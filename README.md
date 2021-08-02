@@ -1,6 +1,5 @@
 # Rocketmq Streams
 
-
 ## Features
 
 * 轻量级部署：可以单独部署，也支持集群部署
@@ -9,6 +8,7 @@
 ## DataStream Example
 
 ```java
+<<<<<<< HEAD
     import org.apache.rocketmq.streams.client.transform.DataStream;
     
 
@@ -20,6 +20,17 @@
         .map(message->message)
         .toPrint(1)
         .start();
+=======
+import org.apache.rocketmq.streams.client.transform.DataStream;
+
+DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
+
+    source
+    .fromFile("/Users/junjie.cheng/text.txt",false)
+    .map(message->message)
+    .toPrint(1)
+    .start();
+>>>>>>> main
 ```
 
 ## Maven Repository
@@ -47,6 +58,10 @@ StreamBuilder 用于构建流任务的源； 内部包含```dataStream()```和``
 ## DataStream API
 
 ### Source
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
 DataStreamSource 是分段式编程的源头类，用于对接各种数据源， 从各大消息队列中获取数据；
 
 + ```fromFile```  从文件中读取数据， 该方法包含俩个参数
@@ -60,6 +75,7 @@ DataStreamSource 是分段式编程的源头类，用于对接各种数据源，
     + ```isJson``` 是否json格式，非必填参数
     + ```tags``` rocketmq消费的tags值，用于过滤消息，非必填参数
 
+<<<<<<< HEAD
 
 + ```from``` 自定义的数据源， 通过实现ISource接口实现自己的数据源
 
@@ -67,6 +83,16 @@ DataStreamSource 是分段式编程的源头类，用于对接各种数据源，
 transform 允许在流计算过程中对输入源的数据进行修改，进行下一步的操作；DataStream API中包括```DataStream```,```JoinStream```, ```SplitStream```,```WindowStream```等多个transform类；
 
 #### DataStream
+=======
++ ```from``` 自定义的数据源， 通过实现ISource接口实现自己的数据源
+
+### transform
+
+transform 允许在流计算过程中对输入源的数据进行修改，进行下一步的操作；DataStream API中包括```DataStream```,```JoinStream```, ```SplitStream```,```WindowStream```等多个transform类；
+
+#### DataStream
+
+>>>>>>> main
 DataStream实现了一系列常见的流计算算子
 
 + ```map``` 通过将源的每个记录传递给函数func来返回一个新的DataStream
@@ -80,6 +106,7 @@ DataStream实现了一系列常见的流计算算子
 + ```toFile``` 将结果保存为文件，生成一个新的DataStreamAction实例
 + ```toDB``` 将结果保存到数据库
 + ```toRocketmq``` 将结果输出到rocketmq
+<<<<<<< HEAD
 + ```toSls``` 将结果输出到sls
 + ```to``` 将结果经过自定义的ISink接口输出到指定的存储
 + ```window``` 在窗口内进行相关的统计分析，一般会与```groupBy```连用， ```window()```用来定义窗口的大小， ```groupBy()```用来定义统计分析的主key，可以指定多个
@@ -89,11 +116,22 @@ DataStream实现了一系列常见的流计算算子
   + ```avg``` 获取窗口内统计值的平均值
   + ```sum``` 获取窗口内统计值的加和值
   + ```reduce``` 在窗口内进行自定义的汇总运算
+=======
++ ```to``` 将结果经过自定义的ISink接口输出到指定的存储
++ ```window``` 在窗口内进行相关的统计分析，一般会与```groupBy```连用， ```window()```用来定义窗口的大小， ```groupBy()```用来定义统计分析的主key，可以指定多个
+    + ```count``` 在窗口内计数
+    + ```min``` 获取窗口内统计值的最小值
+    + ```max``` 获取窗口内统计值得最大值
+    + ```avg``` 获取窗口内统计值的平均值
+    + ```sum``` 获取窗口内统计值的加和值
+    + ```reduce``` 在窗口内进行自定义的汇总运算
+>>>>>>> main
 + ```join``` 根据条件将将俩个流进行关联， 合并为一个大流进行相关的运算
 + ```union``` 将俩个流进行合并
 + ```split``` 将一个数据流按照标签进行拆分，分为不同的数据流供下游进行分析计算
 + ```with``` with算子用来指定计算过程中的相关策略，包括checkpoint的存储策略，state的存储策略等
 
+<<<<<<< HEAD
 
 # Strategy 
 策略机制主要用来控制计算引擎运行过程中的底层逻辑，如checkpoint，state的存储方式等，后续还会增加对窗口、双流join等的控制；所有的控制策略通过```with```算子传入，可以同时传入多个策略类型；
@@ -107,3 +145,18 @@ DataStream实现了一系列常见的流计算算子
         .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX", "", "", 0L))
         .start();
 ```
+=======
+# Strategy
+
+策略机制主要用来控制计算引擎运行过程中的底层逻辑，如checkpoint，state的存储方式等，后续还会增加对窗口、双流join等的控制；所有的控制策略通过```with```算子传入，可以同时传入多个策略类型；
+
+```java
+//指定checkpoint的存储策略
+source
+    .fromRocketmq("TSG_META_INFO","")
+    .map(message->message+"--")
+    .toPrint(1)
+    .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
+    .start();
+```
+>>>>>>> main
