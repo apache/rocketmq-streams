@@ -1,0 +1,11 @@
+paserBySplit(@,uuid,file_path,pid,ppid,pfile_path,group_name,group_id,user_name,uid,euid,egroup_id,time,cmd_line,index,perm,tty,pcmdline,sid,cwd,filename);
+addRandom(messageId,10);
+rename(groupname,group_name);
+rename(username,user_name);
+rename(seq,index);
+rename(egourpid,egroup_id);
+rename(filepath,file_path);
+rename(groupid,group_id);
+rename(pfilename,pfile_name);
+rename(safe_mode,perm);
+rename(cmdline,cmd_line);
