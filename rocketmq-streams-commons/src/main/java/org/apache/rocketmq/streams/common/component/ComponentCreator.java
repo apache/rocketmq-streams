@@ -270,11 +270,6 @@ public class ComponentCreator {
         return;
     }
 
-    public static void initDBConfigurableService() {
-        ComponentCreator.createDBProperties("jdbc:mysql://rm-tatsasthreat.mysql.rdstest.tbsite" + ".net:3306/yundun_soc?useUnicode=true&characterEncoding=utf8&autoReconnect=true", "yundunsoc",
-            "yundunsoc",
-            AbstractConfigurable.TABLE_NAME, 1000 * 60L);
-    }
 
     public static void createProperty(String outputFilePath) {
         Properties properties = ComponentCreator.getProperties();
