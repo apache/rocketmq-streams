@@ -1,3 +1,0 @@
-org.apache.rocketmq.streams.common.channel.impl.PrintChannelBuilder
-org.apache.rocketmq.streams.common.channel.impl.file.FileChannelBuilder
-org.apache.rocketmq.streams.common.channel.impl.memory.MemoryChannelBuilder
