@@ -56,8 +56,7 @@ DataStreamSource 是分段式编程的源头类，用于对接各种数据源，
     + ```groupName``` 消费者组的名称，必填参数
     + ```isJson``` 是否json格式，非必填参数
     + ```tags``` rocketmq消费的tags值，用于过滤消息，非必填参数
-
-
+    
 + ```from``` 自定义的数据源， 通过实现ISource接口实现自己的数据源
 
 ### transform
