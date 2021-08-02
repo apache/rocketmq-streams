@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.common.cache.compress;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class AdditionStore {
 
     /**
