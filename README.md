@@ -2,7 +2,6 @@
 
 ## Features
 
-
 * 轻量级部署：可以单独部署，也支持集群部署
 * 多种类型的数据输入以及输出，source支持 rocketmq ， sink支持db, rocketmq 等
 
