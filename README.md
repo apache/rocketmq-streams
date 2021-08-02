@@ -1,6 +1,5 @@
 # Rocketmq Streams
 
-
 ## Features
 
 * 轻量级部署：可以单独部署，也支持集群部署
