@@ -161,6 +161,29 @@ public class ORMUtil {
         }
     }
 
+
+    public static boolean executeSQL(String sql, Object paras, String driver, final String url, final String userName,
+                                     final String password) {
+        if (paras != null) {
+            sql = SQLUtil.parseIbatisSQL(paras, sql);
+        }
+        JDBCDriver dataSource = null;
+        try {
+            dataSource = DriverBuilder.createDriver(driver, url, userName, password);
+            dataSource.execute(sql);
+            return true;
+        } catch (Exception e) {
+            String errorMsg = ("execute sql  error ,the sql is " + sql + ". the error msg is " + e.getMessage());
+            LOG.error(errorMsg);
+            e.printStackTrace();
+            throw new RuntimeException(errorMsg, e);
+        } finally {
+            if (dataSource != null) {
+                dataSource.destroy();
+            }
+        }
+    }
+
     /**
      * 把一个对象的字段拼接成where条件，如果字段值为null，不拼接
      *
