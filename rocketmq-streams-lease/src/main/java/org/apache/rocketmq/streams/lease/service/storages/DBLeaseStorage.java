@@ -176,9 +176,9 @@ public class DBLeaseStorage implements ILeaseStorage {
         leaseInfo.setLeaseEndDate(getMapDateValue("lease_end_time", map));
         leaseInfo.setLeaseName(getMapValue("lease_name", map, String.class));
         leaseInfo.setLeaseUserIp(getMapValue("lease_user_ip", map, String.class));
-        Integer stauts = getMapValue("status", map, Integer.class);
-        if (stauts != null) {
-            leaseInfo.setStatus(stauts);
+        Integer status = getMapValue("status", map, Integer.class);
+        if (status != null) {
+            leaseInfo.setStatus(status);
         }
         leaseInfo.setUpdateTime(getMapDateValue("gmt_modified", map));
         Long version = getMapLongValue("version", map);

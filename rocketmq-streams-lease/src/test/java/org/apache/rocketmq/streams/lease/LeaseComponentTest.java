@@ -112,8 +112,7 @@ public class LeaseComponentTest {
             return true;
         }
 
-        boolean success = leaseService.holdLock(name, lockName, leaseTime);
-        return success;
+        return leaseService.holdLock(name, lockName, leaseTime);
     }
 
 }
