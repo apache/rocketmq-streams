@@ -16,15 +16,23 @@
  */
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
-import org.apache.rocketmq.streams.common.cache.compress.ByteArrayValueKV;
-import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
-import org.apache.rocketmq.streams.common.datatype.*;
-import org.apache.rocketmq.streams.common.utils.NumberUtils;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.cache.compress.ByteArrayValueKV;
+import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
+import org.apache.rocketmq.streams.common.datatype.BooleanDataType;
+import org.apache.rocketmq.streams.common.datatype.ByteDataType;
+import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.DateDataType;
+import org.apache.rocketmq.streams.common.datatype.DoubleDataType;
+import org.apache.rocketmq.streams.common.datatype.FloatDataType;
+import org.apache.rocketmq.streams.common.datatype.IntDataType;
+import org.apache.rocketmq.streams.common.datatype.LongDataType;
+import org.apache.rocketmq.streams.common.datatype.SetDataType;
+import org.apache.rocketmq.streams.common.datatype.ShortDataType;
+import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
 /**
  * 常用类型的存储，目前只支持，float，int，long，double，set<String>，date，byte，short,boolean 存入一行数据，且必须是定长的行

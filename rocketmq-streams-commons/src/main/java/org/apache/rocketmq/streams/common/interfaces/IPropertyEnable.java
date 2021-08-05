@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.interfaces;
 
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-
 import java.util.Properties;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 
 /**
  * 可以通过属性文件创建的对象，主要应用在创建configuableserivce实现类，可以通过配置文件获取创建组件的数据

@@ -18,14 +18,17 @@ package org.apache.rocketmq.streams.common.configurable;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.configurable.annotation.NoSerialized;
 import org.apache.rocketmq.streams.common.datatype.DataType;
-import org.apache.rocketmq.streams.common.utils.*;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.ENVUtile;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * 这个类自动完成成员变量的序列化，反序列化，以及环境变量的替换 子类只要按pojo实现即可。 有几个要求： 1.需要序列化的类，必须实现getset方法，这块下个版本会优化，去掉这个限制 2.不需要序列化的字段必须加transient 关键字声明 3.成员变量是 DataType支持的类型

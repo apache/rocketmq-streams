@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.filter.operator.expression;
 
-import org.apache.rocketmq.streams.common.model.NameCreator;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.common.model.NameCreator;
 
 public class ExpressionRelationParser {
     public static final String OR = "|";

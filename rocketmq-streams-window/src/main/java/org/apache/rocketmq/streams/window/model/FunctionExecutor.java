@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.window.model;
 
 import java.util.List;
-
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 

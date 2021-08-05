@@ -18,13 +18,12 @@
 package org.apache.rocketmq.streams.client.source;
 
 import com.google.common.collect.Sets;
+import java.util.Set;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.source.RocketMQSource;
-
-import java.util.Set;
 
 public class DataStreamSource {
     protected PipelineBuilder mainPipelineBuilder;

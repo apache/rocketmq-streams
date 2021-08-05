@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.streams.common.topology;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
@@ -28,9 +34,6 @@ import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.topology.stages.UnionChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 /**
  * 如果某个节点有多个pipline构成，可以继承此类，如union，join节点

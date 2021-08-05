@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
+import java.util.List;
 import org.apache.rocketmq.streams.common.cache.compress.CacheKV;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
-
-import java.util.List;
 
 /**
  * 支持key是string，value是int的场景，支持size不大于10000000.只支持int，long，boolean，string类型

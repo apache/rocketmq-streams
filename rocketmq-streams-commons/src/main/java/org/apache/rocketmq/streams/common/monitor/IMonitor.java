@@ -17,13 +17,12 @@
 package org.apache.rocketmq.streams.common.monitor;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.List;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.monitor.impl.DipperMonitor;
 import org.apache.rocketmq.streams.common.monitor.impl.NothingMontior;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
-import java.util.List;
 
 /**
  * name 的推荐用法，是层级关系，如pipline.name.channel.name/pipline.name.stage.name/channel.name.rule.name/channel.name.rule.name.expression.name

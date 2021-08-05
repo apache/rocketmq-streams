@@ -16,17 +16,22 @@
  */
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.rocketmq.streams.common.cache.compress.AdditionStore;
 import org.apache.rocketmq.streams.common.cache.compress.ByteArray;
 import org.apache.rocketmq.streams.common.cache.compress.CacheKV;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.junit.Assert;
-
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.util.*;
-import java.util.Map.Entry;
 
 /**
  * 支持key是string，value是int的场景，支持size不大于10000000.只支持int，long，boolean，string类型

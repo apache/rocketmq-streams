@@ -16,16 +16,15 @@
  */
 package org.apache.rocketmq.streams.common.channel.sinkcache.impl;
 
-import org.apache.rocketmq.streams.common.channel.sinkcache.DataSourceAutoFlushTask;
-import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
-import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.channel.sinkcache.DataSourceAutoFlushTask;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 
 /**
  * 消息缓存的实现，通过消息队列做本地缓存。目前多是用了这个实现

@@ -1,12 +1,11 @@
 package org.apache.rocketmq.streams.dbinit.mysql.delegate;
 
+import java.io.IOException;
+import java.net.URL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-
-import java.io.IOException;
-import java.net.URL;
 
 public class MysqlDelegate implements DBDelegate {
 

@@ -17,16 +17,15 @@
 package org.apache.rocketmq.streams.script.function.impl.parser;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.LogParserUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
-import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-import org.apache.rocketmq.streams.common.utils.LogParserUtil;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Function
 public class LogParserFunction {

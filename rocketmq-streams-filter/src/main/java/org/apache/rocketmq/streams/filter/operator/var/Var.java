@@ -17,14 +17,13 @@
 package org.apache.rocketmq.streams.filter.operator.var;
 
 import java.io.Serializable;
-
-import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
 
 public abstract class Var<T> extends BasedConfigurable implements IConfigurable, IConfigurableAction<T>, Serializable {
 

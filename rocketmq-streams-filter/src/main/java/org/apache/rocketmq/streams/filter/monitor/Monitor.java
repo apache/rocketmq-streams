@@ -18,10 +18,9 @@ package org.apache.rocketmq.streams.filter.monitor;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
 
 @SuppressWarnings("rawtypes")
 public abstract class Monitor<T> {

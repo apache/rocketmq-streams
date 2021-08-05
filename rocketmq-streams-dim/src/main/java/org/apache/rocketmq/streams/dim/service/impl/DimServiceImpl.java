@@ -16,11 +16,9 @@
  */
 package org.apache.rocketmq.streams.dim.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.Map;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.dim.service.IDimService;

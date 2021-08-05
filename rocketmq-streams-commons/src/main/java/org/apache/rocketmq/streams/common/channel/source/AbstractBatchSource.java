@@ -16,14 +16,12 @@
  */
 package org.apache.rocketmq.streams.common.channel.source;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.BatchMessageOffset;
 import org.apache.rocketmq.streams.common.context.Message;

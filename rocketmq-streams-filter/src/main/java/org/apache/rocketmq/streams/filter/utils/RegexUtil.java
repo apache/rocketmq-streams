@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.streams.filter.utils;
 
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
 
 public class RegexUtil {
 

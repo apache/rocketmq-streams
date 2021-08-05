@@ -16,6 +16,15 @@
  */
 package org.apache.rocketmq.streams.window.operator.impl;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
@@ -32,9 +41,6 @@ import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.IWindowStorage;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class WindowOperator extends AbstractShuffleWindow {
 

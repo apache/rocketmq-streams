@@ -1,12 +1,16 @@
 package org.apache.rocketmq.streams.serviceloader;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.ServiceLoader;
+import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.model.ServiceName;
-import org.apache.rocketmq.streams.serviceloader.namefinder.IServiceNameGetter;
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.*;
+import org.apache.rocketmq.streams.serviceloader.namefinder.IServiceNameGetter;
 
 public class ServiceLoaderComponent<T> extends AbstractComponent<IServiceLoaderService<T>>
     implements IServiceLoaderService<T> {

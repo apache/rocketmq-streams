@@ -18,13 +18,12 @@ package org.apache.rocketmq.streams.common.datatype;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.utils.NumberUtils;
-
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
 public abstract class BaseDataType<T> implements DataType<T>, Serializable {
 
