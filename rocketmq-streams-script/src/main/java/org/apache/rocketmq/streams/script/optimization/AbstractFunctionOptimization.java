@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.streams.script.optimization;
 
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
-import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptParameter;
+import org.apache.rocketmq.streams.script.service.IScriptExpression;
+import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public abstract class AbstractFunctionOptimization implements IFunctionOptimization {

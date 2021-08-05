@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.streams.configuable;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
@@ -28,11 +32,6 @@ import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 import org.apache.rocketmq.streams.configuable.service.AbstractConfigurableService;
 import org.apache.rocketmq.streams.configuable.service.ConfigurableServcieType;
 import org.apache.rocketmq.streams.configuable.service.ConfigurableServiceFactory;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 /**
  * 对Configurable对象，做统一的管理，统一查询，插入和更新。 insert/update 把configuabel对象写入存储，支持文件存储（file），内存存储（memory）和db存储（DB）。可以在配置通过这个ConfigureFileKey.CONNECT_TYPE key 配置 query 是基于内存的查询，对象定时load到内存，可以在属性文件通过这个ConfigureFileKey.POLLING_TIME key配置加载周期，单位是秒 新对象加载后生效，已经存在的对象只有updateFlag发生变化才会被替换

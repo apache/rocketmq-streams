@@ -18,11 +18,6 @@ package org.apache.rocketmq.streams.lease.service.impl;
 
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseGetCallback;

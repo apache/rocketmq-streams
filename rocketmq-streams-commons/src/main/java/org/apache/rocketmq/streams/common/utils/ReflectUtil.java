@@ -18,16 +18,11 @@ package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.configurable.IFieldProcessor;
-import org.apache.rocketmq.streams.common.configurable.annotation.NoSerialized;
-import org.apache.rocketmq.streams.common.datatype.*;
-
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -37,6 +32,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.IFieldProcessor;
+import org.apache.rocketmq.streams.common.configurable.annotation.NoSerialized;
+import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
+import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.ListDataType;
+import org.apache.rocketmq.streams.common.datatype.MapDataType;
+import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
+import org.apache.rocketmq.streams.common.datatype.SetDataType;
 
 /**
  * 类ReflectUtil的实现描述

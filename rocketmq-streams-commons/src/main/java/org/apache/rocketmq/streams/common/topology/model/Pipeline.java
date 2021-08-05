@@ -17,6 +17,8 @@
 package org.apache.rocketmq.streams.common.topology.model;
 
 import com.alibaba.fastjson.JSONArray;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -29,9 +31,6 @@ import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 每个pipline会有一个固定的处理流程，通过stage组成。每个stage可以决定是否需要中断执行，也可以决定下个stage的输入参数

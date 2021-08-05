@@ -17,14 +17,13 @@
 package org.apache.rocketmq.streams.script.function.impl.type;
 
 import java.io.UnsupportedEncodingException;
-
-import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function

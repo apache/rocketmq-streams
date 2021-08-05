@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.streams.window.builder;
 
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
+import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.OverWindow;
+import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
+import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
 
 public class WindowBuilder {
     /**

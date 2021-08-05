@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.transport;
 
-import org.apache.rocketmq.streams.common.utils.FileUtil;
-
 import java.io.File;
+import org.apache.rocketmq.streams.common.utils.FileUtil;
 
 public abstract class AbstractFileTransport implements IFileTransport {
 

@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.parser.ScriptExpressionParserFactory;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;

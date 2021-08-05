@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.streams.common.cache.softreference.impl;
 
-import org.apache.rocketmq.streams.common.cache.softreference.ICache;
-import org.apache.rocketmq.streams.common.cache.softreference.RebuildCacheElement;
-
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.streams.common.cache.softreference.ICache;
+import org.apache.rocketmq.streams.common.cache.softreference.RebuildCacheElement;
 
 /**
  * 基于软引用实现的缓存，可以在内存不足时回收，尽量最大限度使用内存的场景使用

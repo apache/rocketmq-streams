@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.datatype;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
 public class NumberDataType extends BaseDataType<Number> {

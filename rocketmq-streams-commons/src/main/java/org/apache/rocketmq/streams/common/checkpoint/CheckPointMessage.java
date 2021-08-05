@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class CheckPointMessage implements ISystemMessage {
     protected ISource source;//数据源对象

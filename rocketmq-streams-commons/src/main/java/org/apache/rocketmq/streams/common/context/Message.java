@@ -17,12 +17,9 @@
 package org.apache.rocketmq.streams.common.context;
 
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
+import java.util.UUID;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
-
-import java.util.UUID;
 
 public class Message implements IMessage {
 

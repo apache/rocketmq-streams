@@ -16,14 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class PropertiesUtils {
     private static final Log LOG = LogFactory.getLog(PropertiesUtils.class);

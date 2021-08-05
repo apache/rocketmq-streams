@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.lease;
 
 import java.util.Date;
-
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;

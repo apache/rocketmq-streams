@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.common.utils;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.WinNT;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;

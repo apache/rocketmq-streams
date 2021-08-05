@@ -17,10 +17,10 @@
 package org.apache.rocketmq.streams.filter.function.etl;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.script.annotation.Function;
-import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.script.annotation.Function;
+import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 
 @Function
 public class RenameFunction {

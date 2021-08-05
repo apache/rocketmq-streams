@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.db.driver.batchloader;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -24,15 +25,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
-import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
+import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
+import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 
 /**
  * 多线程批量加载数据，每加载一批数据后，通过IRowOperator回调接口处理数据 需要有递增的字段，这个字段有索引，不重复，如id字段

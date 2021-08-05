@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Base64;
 
 public class Base64Utils {

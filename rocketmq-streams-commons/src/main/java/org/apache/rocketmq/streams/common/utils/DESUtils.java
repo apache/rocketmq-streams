@@ -16,13 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
-import javax.crypto.*;
-import javax.crypto.spec.DESKeySpec;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.Key;
 import java.security.SecureRandom;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.DESKeySpec;
 
 public class DESUtils {
 

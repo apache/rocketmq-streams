@@ -17,13 +17,17 @@
 package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
-
-import java.util.*;
 
 public class SQLUtil {
     private static final String INSERT = "INSERT INTO";

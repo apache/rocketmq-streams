@@ -16,9 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.compiler;
 
-import org.apache.rocketmq.streams.common.utils.FileUtil;
-
-import javax.tools.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +27,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.FileObject;
+import javax.tools.ForwardingJavaFileManager;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileManager;
+import javax.tools.JavaFileObject;
+import javax.tools.SimpleJavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
+import org.apache.rocketmq.streams.common.utils.FileUtil;
 
 /**
  * 编译java源码

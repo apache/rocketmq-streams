@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.context;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.interfaces.IBaseStreamOperator;
@@ -23,11 +27,6 @@ import org.apache.rocketmq.streams.common.model.ThreadContext;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractContext<T extends IMessage> extends HashMap {
 

@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.metadata;
 
+import java.util.Map;
 import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
-
-import java.util.Map;
 
 public class MetaDataAdapter<T> {
 

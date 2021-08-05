@@ -16,14 +16,11 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.date;
 
-import org.apache.rocketmq.streams.script.context.FunctionContext;
-
+import java.util.Date;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
-
-import java.util.Date;
-
-import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 
 @Function
 public class GetDateFunction {

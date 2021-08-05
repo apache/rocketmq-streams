@@ -19,13 +19,12 @@ package org.apache.rocketmq.streams.common.utils;
 import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.datatype.MapDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
-
-import java.util.List;
-import java.util.Map;
 
 @SuppressWarnings("rawtypes")
 public class JsonableUtil {

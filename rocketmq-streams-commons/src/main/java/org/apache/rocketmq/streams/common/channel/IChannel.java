@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.channel;
 
+import java.io.Serializable;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-
-import java.io.Serializable;
 
 /**
  * source和sink的结合，dipper框架中，不单独区分source和sink，统一用channel 接口表示

@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.window.offset;
 
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.rocketmq.streams.common.model.Entity;
 
 /**
