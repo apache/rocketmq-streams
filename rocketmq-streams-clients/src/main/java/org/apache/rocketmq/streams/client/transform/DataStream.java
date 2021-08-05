@@ -19,6 +19,8 @@ package org.apache.rocketmq.streams.client.transform;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
+import java.io.Serializable;
+import java.util.Set;
 import org.apache.rocketmq.streams.client.DataStreamAction;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
@@ -30,7 +32,11 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
-import org.apache.rocketmq.streams.common.functions.*;
+import org.apache.rocketmq.streams.common.functions.FilterFunction;
+import org.apache.rocketmq.streams.common.functions.ForEachFunction;
+import org.apache.rocketmq.streams.common.functions.ForEachMessageFunction;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
+import org.apache.rocketmq.streams.common.functions.SplitFunction;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
@@ -48,9 +54,6 @@ import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.window.builder.WindowBuilder;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
-
-import java.io.Serializable;
-import java.util.Set;
 
 public class DataStream implements Serializable {
 

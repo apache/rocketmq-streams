@@ -18,11 +18,10 @@ package org.apache.rocketmq.streams.script.function.service.impl;
 
 import java.io.File;
 import java.lang.reflect.Modifier;
-
-import org.apache.rocketmq.streams.script.annotation.Function;
-import org.apache.rocketmq.streams.common.calssscaner.AbstractScan;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.calssscaner.AbstractScan;
+import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
 
 /**

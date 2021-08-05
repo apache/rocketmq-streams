@@ -5,11 +5,11 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * 类AES256Util.java的实现描述

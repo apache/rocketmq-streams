@@ -16,19 +16,15 @@
  */
 package org.apache.rocketmq.streams.script.operator;
 
+import com.alibaba.fastjson.JSONObject;
 import java.lang.reflect.Method;
 import java.util.List;
-
-import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
-import org.apache.rocketmq.streams.script.ScriptComponent;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.script.ScriptComponent;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 
 /**
  * 脚本的抽象类

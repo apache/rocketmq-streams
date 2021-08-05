@@ -17,16 +17,14 @@
 package org.apache.rocketmq.streams.script.function.impl.python;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
-import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.impl.GroovyScriptOperator;
-import org.apache.rocketmq.streams.script.operator.impl.JPythonScriptOperator;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function

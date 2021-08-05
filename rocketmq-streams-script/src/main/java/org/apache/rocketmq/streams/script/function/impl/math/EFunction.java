@@ -16,12 +16,10 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import org.apache.rocketmq.streams.script.context.FunctionContext;
-
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
-
-import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 
 @Function
 public class EFunction {

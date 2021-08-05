@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.var.Var;
-import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.var.Var;
+import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public abstract class CompareFunction extends AbstractExpressionFunction {
 

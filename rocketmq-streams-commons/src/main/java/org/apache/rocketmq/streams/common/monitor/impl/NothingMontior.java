@@ -17,11 +17,10 @@
 package org.apache.rocketmq.streams.common.monitor.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.List;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
-
-import java.util.List;
 
 public class NothingMontior implements IMonitor {
     @Override

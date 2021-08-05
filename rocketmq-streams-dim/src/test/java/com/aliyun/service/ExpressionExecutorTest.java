@@ -17,12 +17,11 @@
 package com.aliyun.service;
 
 import com.alibaba.fastjson.JSONObject;
+import java.io.File;
+import org.apache.rocketmq.streams.filter.FilterComponent;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.operator.expression.SimpleExpression;
-import org.apache.rocketmq.streams.filter.FilterComponent;
 import org.junit.Test;
-
-import java.io.File;
 
 public class ExpressionExecutorTest {
     private static final String CREDIBLE_PROPERTIES = "credible" + File.separator + "credible.properties";

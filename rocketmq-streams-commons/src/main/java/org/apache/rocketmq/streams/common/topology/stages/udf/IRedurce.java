@@ -17,9 +17,8 @@
 
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
-import java.io.Serializable;
-
 import com.alibaba.fastjson.JSONObject;
+import java.io.Serializable;
 
 /**
  * window redurce 接口

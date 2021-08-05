@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.classloader;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * 加载指定目录的class

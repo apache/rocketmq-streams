@@ -1,11 +1,10 @@
 package org.apache.rocketmq.streams.configruation.model;
 
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 
 /**
  * Created by yuanxiaodong on 6/27/19.

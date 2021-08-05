@@ -16,12 +16,6 @@
  */
 package org.apache.rocketmq.streams.window.storage;
 
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.db.driver.batchloader.BatchRowLoader;
-import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
-import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-import org.apache.rocketmq.streams.window.state.WindowBaseValue;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +24,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.db.driver.batchloader.BatchRowLoader;
+import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
+import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 public abstract class AbstractWindowStorage<T extends WindowBaseValue> implements IWindowStorage<T> {
     protected boolean isLocalStorageOnly = false;

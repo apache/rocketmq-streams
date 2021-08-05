@@ -1,13 +1,11 @@
 package org.apache.rocketmq.streams.client.windows;
 
+import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;

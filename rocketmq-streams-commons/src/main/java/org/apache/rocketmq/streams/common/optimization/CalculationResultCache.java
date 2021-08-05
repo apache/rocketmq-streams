@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.optimization;
 
-import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public class CalculationResultCache {
     private static int MAX_COUNT = 3000000;

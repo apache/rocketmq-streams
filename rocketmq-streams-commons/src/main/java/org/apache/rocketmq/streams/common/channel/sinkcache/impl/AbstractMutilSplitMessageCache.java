@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.streams.common.channel.sinkcache.impl;
 
-import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
-import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-import org.apache.rocketmq.streams.common.context.IMessage;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
+import org.apache.rocketmq.streams.common.context.IMessage;
 
 public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> {
     protected ConcurrentHashMap<String, MessageCache<IMessage>> queueMessageCaches = new ConcurrentHashMap();

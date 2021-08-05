@@ -15,12 +15,11 @@
  * limitations under the License.
  */package org.apache.rocketmq.streams.window.storage;
 
-import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
 
 public interface IStorage<T> {
 

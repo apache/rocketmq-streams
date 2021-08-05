@@ -17,6 +17,11 @@
 package org.apache.rocketmq.streams.common.topology;
 
 import com.alibaba.fastjson.JSONObject;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
@@ -35,12 +40,6 @@ import org.apache.rocketmq.streams.common.utils.DipperThreadLocalUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 数据流拓扑结构，包含了source 算子，sink

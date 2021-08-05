@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.topology.model;
 
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-
-import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractScript<T, C extends AbstractContext> extends BasedConfigurable implements
     IStreamOperator<IMessage, List<IMessage>> {

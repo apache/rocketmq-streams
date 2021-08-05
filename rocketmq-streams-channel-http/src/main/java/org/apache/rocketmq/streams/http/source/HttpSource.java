@@ -19,13 +19,12 @@ package org.apache.rocketmq.streams.http.source;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.apache.rocketmq.streams.http.source.server.HttpServerManager;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.http.source.server.HttpServerManager;
 
 /**
  * receive http(s) post data

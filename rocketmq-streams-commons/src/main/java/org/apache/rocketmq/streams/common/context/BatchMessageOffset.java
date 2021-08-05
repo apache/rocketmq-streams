@@ -18,12 +18,11 @@ package org.apache.rocketmq.streams.common.context;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class BatchMessageOffset extends BasedConfigurable {
 

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
 import java.io.Serializable;
-
 import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;

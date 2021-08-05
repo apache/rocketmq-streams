@@ -17,10 +17,12 @@
 package org.apache.rocketmq.streams.filter.monitor.rule;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.filter.monitor.Monitor;
 import org.apache.rocketmq.streams.filter.monitor.contants.MonitorType;
-
-import java.util.*;
 
 @SuppressWarnings("rawtypes")
 public class RuleMonitor extends Monitor<Boolean> {

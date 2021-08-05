@@ -18,10 +18,9 @@ package org.apache.rocketmq.streams.common.monitor.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 //请用imonitor和dippermonitor
 public class MonitorItem extends JSONObject {

@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.streams.filter.optimization;
 
-import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
-import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
+import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 
 /**
  * 对于表达式解析，为了方便，会产生很多附加的关系，如（a,==,b)&((c,>,0)&&(d,>,1))，每一层括号都会产生一层关系。可以通过优化，降低关系个数 优化思路，是如果顶层关系是&，则子表达式也是&，则可以拉平，变成如下这种（a,==,b)&(c,>,0)&(d,>,1)

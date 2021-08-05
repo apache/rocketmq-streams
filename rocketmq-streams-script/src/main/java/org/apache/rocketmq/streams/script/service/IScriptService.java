@@ -16,17 +16,12 @@
  */
 package org.apache.rocketmq.streams.script.service;
 
-import java.io.File;
-import java.io.Serializable;
-import java.util.Iterator;
-import java.util.List;
-
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
+import java.io.File;
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 
 /**
  * 脚本服务，脚本是有多个函数构成的。如now=now();nowhh=datefirst(now,'hh');splitByTimeInterval(last,nowhh,'hh',1);from=dateAdd(last,'hh',-1); 脚本执行无返回值,函数会改变message的内容。

@@ -16,11 +16,9 @@
  */
 package com.aliyun.service;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.junit.Test;

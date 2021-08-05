@@ -17,14 +17,13 @@
 package org.apache.rocketmq.streams.common.topology.model;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 public abstract class AbstractRule extends BasedConfigurable implements IStreamOperator<IMessage, Boolean> {
 
