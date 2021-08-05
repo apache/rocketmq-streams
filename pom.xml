@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -20,11 +20,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>18</version>
+    </parent>
+
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>ROCKETMQ STREAMS</name>
+    <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
+    <url>http://rocketmq.apache.org/</url>
 
     <modules>
         <module>rocketmq-streams-commons</module>
