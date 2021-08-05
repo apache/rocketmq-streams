@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.streams.configurable.service;
 
+import java.util.Properties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
-
-import java.util.Properties;
 
 public class ConfigurableServiceFactory {
     private static ServiceLoaderComponent<IConfigurableService> configurableServiceLoaderComponent =

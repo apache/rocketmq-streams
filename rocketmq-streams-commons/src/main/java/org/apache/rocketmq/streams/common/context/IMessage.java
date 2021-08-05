@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.common.context;
 
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 
 public interface IMessage {

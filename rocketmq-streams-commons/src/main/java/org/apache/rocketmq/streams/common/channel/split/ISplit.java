@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.channel.split;
 
-import org.apache.rocketmq.streams.common.datatype.IJsonable;
-
 import java.io.Serializable;
+import org.apache.rocketmq.streams.common.datatype.IJsonable;
 
 /**
  * 对消息队列分片的抽象。代表一个分片

@@ -16,16 +16,15 @@
  */
 package org.apache.rocketmq.streams.configurable.service;
 
-import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * namespace 分层，支持顶级命名空间，顶级命名空间的对象，所有命名空间都可见。顶级命名空间是固定值IConfigurableService.PARENT_CHANNEL_NAME_SPACE

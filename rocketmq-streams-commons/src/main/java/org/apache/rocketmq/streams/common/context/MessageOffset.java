@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.context;
 
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * 保存消息的offset，支持消息拆分后，多级offset

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.channel.builder;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 

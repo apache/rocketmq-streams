@@ -17,20 +17,18 @@
 package org.apache.rocketmq.streams.script.operator.impl;
 
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.script.operator.AbstractScriptOperator;
-import org.python.util.PythonInterpreter;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.operator.AbstractScriptOperator;
+import org.python.util.PythonInterpreter;
 
 /**
  * 实现思路，通过INNER_MESSAG 把message的jsonobject传给python，python中直接操作jsonobject

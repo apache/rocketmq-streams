@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.filter.operator.expression;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,13 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import com.alibaba.fastjson.JSONObject;
-
+import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
 
 /**
  * hyperscan和规则的结合，目前暂不启用。

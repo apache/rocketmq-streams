@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.window.operator.join;
 
 import com.alibaba.fastjson.JSONObject;
-
 import java.security.MessageDigest;
 import java.util.List;
 

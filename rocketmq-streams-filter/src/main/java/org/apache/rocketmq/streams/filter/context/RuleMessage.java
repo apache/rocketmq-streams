@@ -17,8 +17,8 @@
 package org.apache.rocketmq.streams.filter.context;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.filter.monitor.rule.MessageMonitor;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.filter.monitor.rule.MessageMonitor;
 
 public class RuleMessage extends Message {
 

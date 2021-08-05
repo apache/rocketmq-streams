@@ -17,15 +17,18 @@
 
 package org.apache.rocketmq.streams.client;
 
+import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.CheckpointStrategy;
 import org.apache.rocketmq.streams.client.strategy.StateStrategy;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.Serializable;
-import java.sql.*;
 
 public class DataStreamTest implements Serializable {
 

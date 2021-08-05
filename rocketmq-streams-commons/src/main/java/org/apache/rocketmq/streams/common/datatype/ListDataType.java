@@ -18,15 +18,14 @@ package org.apache.rocketmq.streams.common.datatype;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
-import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.common.utils.ContantsUtil;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.ContantsUtil;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class ListDataType extends GenericParameterDataType<List> {
 

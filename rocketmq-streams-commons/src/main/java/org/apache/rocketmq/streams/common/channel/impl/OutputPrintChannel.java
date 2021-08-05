@@ -16,12 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl;
 
-import org.apache.commons.lang3.time.StopWatch;
+import java.util.List;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
-
-import java.util.List;
 
 /**
  * 测试使用，输出就是把消息打印出来

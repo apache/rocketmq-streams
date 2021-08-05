@@ -18,6 +18,9 @@
 package org.apache.rocketmq.streams.client;
 
 import com.google.common.collect.Maps;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import org.apache.rocketmq.streams.client.strategy.Strategy;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -26,10 +29,6 @@ import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
-
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 public class DataStreamAction extends DataStream {
 

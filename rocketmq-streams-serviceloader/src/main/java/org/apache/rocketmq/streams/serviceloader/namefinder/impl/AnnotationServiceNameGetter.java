@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.streams.serviceloader.namefinder.impl;
 
+import com.google.auto.service.AutoService;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.serviceloader.namefinder.IServiceNameGetter;
-import com.google.auto.service.AutoService;
 
 /**
  * 根据class的标注获取servicename

@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.streams.script.operator.impl;
 
-import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.common.compiler.CustomJavaCompiler;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.script.ScriptComponent;
 
 /**
  * 可以传java源码，编译成类，提供服务 java源码的clas必须是无参的

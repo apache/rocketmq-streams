@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.common.topology.stages;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;

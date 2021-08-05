@@ -21,6 +21,10 @@ import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -29,11 +33,6 @@ import org.apache.rocketmq.streams.common.disruptor.BufferFullFunction;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorEvent;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorEventFactory;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorProducer;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 不可靠的消息源，如http，syslog，可以继承这个类。做了系统保护，如果消息发送太快，可能会出现丢失。

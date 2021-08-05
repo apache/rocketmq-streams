@@ -17,24 +17,26 @@
 package org.apache.rocketmq.streams.db.configuable;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
-import org.apache.rocketmq.streams.configurable.model.Configure;
-
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.interfaces.IPropertyEnable;
 import org.apache.rocketmq.streams.common.utils.AESUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.apache.rocketmq.streams.configurable.model.Configure;
+import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
-
-import java.util.*;
+import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 
 /**
  * Configuable对象存储在db中，是生成环境常用的一种模式 数据库参数可以配置在配置文件中，ConfiguableComponent在启动时，会把参数封装在Properties中，调用DBConfigureService(Properties properties) 构造方法完成实例创建

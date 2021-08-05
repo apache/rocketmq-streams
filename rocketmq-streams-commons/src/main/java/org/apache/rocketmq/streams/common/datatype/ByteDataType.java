@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.datatype;
 
 import com.alibaba.fastjson.JSONObject;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ByteDataType extends BaseDataType<Byte> {

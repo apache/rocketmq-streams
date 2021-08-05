@@ -22,17 +22,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
+import org.apache.rocketmq.streams.common.metadata.MetaData;
+import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.UnionChainStage;
-import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 /**

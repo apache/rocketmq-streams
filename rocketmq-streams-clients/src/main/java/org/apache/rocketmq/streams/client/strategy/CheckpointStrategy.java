@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.client.strategy;
 
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-
-import java.util.Properties;
 
 public class CheckpointStrategy implements Strategy {
 

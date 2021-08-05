@@ -1,12 +1,10 @@
 package org.apache.rocketmq.streams.client.windows;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.utils.FileUtil;

@@ -16,18 +16,16 @@
  */
 package org.apache.rocketmq.streams.script.optimization;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.script.context.FunctionContext;
-import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 

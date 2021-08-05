@@ -16,16 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.memory;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.AbstractChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 消息产生的source数据，就是通过sink写入的消息

@@ -17,11 +17,11 @@
 package org.apache.rocketmq.streams.filter.operator.var;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.operator.Rule;
 
 public class ContextVar<T> extends Var<T> {
 

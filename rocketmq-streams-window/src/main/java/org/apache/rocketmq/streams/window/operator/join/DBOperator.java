@@ -18,21 +18,23 @@ package org.apache.rocketmq.streams.window.operator.join;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.state.impl.JoinLeftState;
 import org.apache.rocketmq.streams.window.state.impl.JoinRightState;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
-
-import java.security.MessageDigest;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class DBOperator implements Operator {
 

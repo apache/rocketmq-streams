@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.streams.script.service.udf;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 核心思路：通过实现外部流计算的uatf的收集器，把拆分的流对象收集到自己的上下文实现

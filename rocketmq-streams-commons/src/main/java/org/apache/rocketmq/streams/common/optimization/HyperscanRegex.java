@@ -16,10 +16,16 @@
  */
 package org.apache.rocketmq.streams.common.optimization;
 
+import com.gliwka.hyperscan.wrapper.Database;
+import com.gliwka.hyperscan.wrapper.Expression;
+import com.gliwka.hyperscan.wrapper.ExpressionFlag;
+import com.gliwka.hyperscan.wrapper.Match;
 import com.gliwka.hyperscan.wrapper.Scanner;
-import com.gliwka.hyperscan.wrapper.*;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HyperscanRegex<T> {

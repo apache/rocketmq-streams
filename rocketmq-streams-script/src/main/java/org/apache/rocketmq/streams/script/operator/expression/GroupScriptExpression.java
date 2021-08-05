@@ -20,10 +20,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
