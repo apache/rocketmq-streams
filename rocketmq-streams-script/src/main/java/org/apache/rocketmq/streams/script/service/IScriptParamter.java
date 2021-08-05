@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.script.service;
 
-import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 
 /**
  * 函数的参数

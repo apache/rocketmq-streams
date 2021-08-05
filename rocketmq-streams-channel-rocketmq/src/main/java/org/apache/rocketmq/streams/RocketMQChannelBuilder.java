@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.auto.service.AutoService;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.AbstractSupportShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
@@ -28,8 +29,6 @@ import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.source.RocketMQSource;
-
-import java.util.Properties;
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource")

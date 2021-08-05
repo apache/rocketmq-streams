@@ -16,13 +16,15 @@
  */
 package org.apache.rocketmq.streams.schedule.service.impl;
 
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.interfaces.IScheduleExecutor;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.schedule.job.ConfigurableExecutorJob;
 import org.apache.rocketmq.streams.schedule.service.IScheduleService;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.quartz.JobBuilder;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
@@ -31,11 +33,8 @@ import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.quartz.impl.StdSchedulerFactory;
 
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-
-import static org.quartz.TriggerBuilder.*;
-import static org.quartz.CronScheduleBuilder.*;
+import static org.quartz.CronScheduleBuilder.cronSchedule;
+import static org.quartz.TriggerBuilder.newTrigger;
 
 public class ScheduleServiceImpl implements IScheduleService {
     private static final Log LOG = LogFactory.getLog(ScheduleServiceImpl.class);

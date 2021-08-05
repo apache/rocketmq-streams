@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.lease;
 
+import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
@@ -30,8 +31,6 @@ import org.apache.rocketmq.streams.lease.service.impl.LeaseServiceImpl;
 import org.apache.rocketmq.streams.lease.service.impl.MockLeaseImpl;
 import org.apache.rocketmq.streams.lease.service.storages.DBLeaseStorage;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
-
-import java.util.Properties;
 
 /**
  * 通过db实现租约和锁，可以更轻量级，减少其他中间件的依赖 使用主备场景，只有一个实例运行，当当前实例挂掉，在一定时间内，会被其他实例接手 也可以用于全局锁

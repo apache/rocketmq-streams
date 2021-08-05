@@ -18,6 +18,12 @@ package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
@@ -27,9 +33,6 @@ import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
-
-import java.lang.reflect.Field;
-import java.util.*;
 
 public class ConfigurableUtil {
     protected static class FieldProcessorGetter implements IFieldProcessor {

@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 
 /**
  * 自定义flat map

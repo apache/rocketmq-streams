@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.filter;
 
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.junit.Test;
 

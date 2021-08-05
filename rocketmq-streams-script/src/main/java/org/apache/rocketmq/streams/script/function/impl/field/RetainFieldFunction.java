@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.field;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 需要保留的字段，一个日志中可能有很多字段， 但其中只有一部分需要保留存储到下一步的文件中， 这个函数可以设置最后需要保留哪些字段

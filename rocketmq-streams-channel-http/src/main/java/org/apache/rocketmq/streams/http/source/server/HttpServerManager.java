@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.http.source.server;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.http.source.HttpSource;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * receive http(s) post data

@@ -16,21 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.memory;
 
-import java.util.Properties;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import com.alibaba.fastjson.JSONObject;
-
 import com.google.auto.service.AutoService;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.AbstractSupportShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
-import org.apache.rocketmq.streams.common.channel.impl.file.FileSink;
-import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.ServiceName;
-import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(value = MemoryChannelBuilder.TYPE, aliasName = "MemorySource")

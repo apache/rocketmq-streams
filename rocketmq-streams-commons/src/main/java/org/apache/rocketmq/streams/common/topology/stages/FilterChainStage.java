@@ -18,6 +18,14 @@ package org.apache.rocketmq.streams.common.topology.stages;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.IComponent;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
@@ -28,16 +36,14 @@ import org.apache.rocketmq.streams.common.interfaces.IFilterService;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
-import org.apache.rocketmq.streams.common.utils.*;
-
-import java.lang.reflect.Array;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.PrintUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.common.utils.TraceUtil;
 
 public class FilterChainStage<T extends IMessage, R extends AbstractRule> extends AbstractStatelessChainStage<T> implements IAfterConfiguableRefreshListerner {
     protected transient AtomicInteger count = new AtomicInteger(0);

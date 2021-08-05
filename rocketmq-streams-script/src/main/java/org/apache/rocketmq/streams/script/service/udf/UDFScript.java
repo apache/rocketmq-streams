@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.streams.script.service.udf;
 
+import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -28,13 +34,6 @@ import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
 import org.apache.rocketmq.streams.script.service.IScriptUDFInit;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 主要是为了兼容外部的udf，或者把任意java的方法发布成函数

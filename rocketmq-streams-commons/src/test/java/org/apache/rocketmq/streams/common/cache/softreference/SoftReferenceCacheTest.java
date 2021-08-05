@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.cache.softreference;
 
-import org.apache.rocketmq.streams.common.cache.softreference.ICache;
-import org.apache.rocketmq.streams.common.cache.softreference.RebuildCacheElement;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.junit.Test;
 

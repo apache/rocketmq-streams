@@ -17,9 +17,7 @@
 package org.apache.rocketmq.streams.common.functions;
 
 import java.io.Serializable;
-
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.context.IMessage;
 
 public interface MultiTableSplitFunction<T> extends Serializable {
 

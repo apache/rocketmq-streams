@@ -16,22 +16,20 @@
  */
 package org.apache.rocketmq.streams.dim.function.script;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.dim.DimComponent;
 import org.apache.rocketmq.streams.dim.intelligence.AbstractIntelligenceCache;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
-import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 @Function
 public class IntelligenceFunction {

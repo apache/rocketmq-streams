@@ -16,22 +16,21 @@
  */
 package org.apache.rocketmq.streams.filter.operator.expression;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.filter.contants.RuleElementType;
+import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.optimization.CalculationResultCache;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
+import org.apache.rocketmq.streams.filter.contants.RuleElementType;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.optimization.EqualsExpressionOptimization;
 import org.apache.rocketmq.streams.filter.optimization.IExpressionOptimization;
 import org.apache.rocketmq.streams.filter.optimization.LikeExpressionOptimization;
 import org.apache.rocketmq.streams.filter.optimization.OptimizationExpression;
 import org.apache.rocketmq.streams.filter.optimization.RegexExpressionOptimization;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.common.datatype.DataType;
-import org.apache.rocketmq.streams.common.optimization.CalculationResultCache;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 
 /**
  * 变量名就是字段名，不需要声明meta

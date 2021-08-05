@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.streams.filter.optimization;
 
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 
 public class LikeExpressionOptimization implements IExpressionOptimization {
     @Override

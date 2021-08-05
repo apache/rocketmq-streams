@@ -16,21 +16,20 @@
  */
 package org.apache.rocketmq.streams.filter.builder;
 
-import org.apache.rocketmq.streams.filter.operator.action.impl.MetaDataAction;
-import org.apache.rocketmq.streams.filter.contants.RuleElementType;
-import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
-import org.apache.rocketmq.streams.filter.operator.var.ConstantVar;
-import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import org.apache.rocketmq.streams.filter.contants.RuleElementType;
+import org.apache.rocketmq.streams.filter.operator.action.impl.MetaDataAction;
+import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
+import org.apache.rocketmq.streams.filter.operator.var.ConstantVar;
+import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
 
 public class RuleElementBuilder {
     /**

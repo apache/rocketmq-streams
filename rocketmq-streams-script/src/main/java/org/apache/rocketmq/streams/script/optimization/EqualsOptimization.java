@@ -17,9 +17,9 @@
 package org.apache.rocketmq.streams.script.optimization;
 
 import org.apache.rocketmq.streams.script.function.impl.condition.EqualsFunction;
+import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
-import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 
 public class EqualsOptimization extends AbstractFunctionOptimization {
 

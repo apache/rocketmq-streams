@@ -17,12 +17,11 @@
 package org.apache.rocketmq.streams.common.channel.builder;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.Properties;
 
 /**
  * 创建channel，如果需要扩展channel，需要实现这个接口，跟定属性文件，能够创建channel对象 如果想和sql对接，实现这个接口，properties中的kv是sql中with部分的内容

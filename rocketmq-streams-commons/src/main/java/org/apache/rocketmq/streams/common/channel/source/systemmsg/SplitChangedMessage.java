@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.channel.source.systemmsg;
 
 import java.util.Set;
-
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;

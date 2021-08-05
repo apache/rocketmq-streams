@@ -16,20 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.file;
 
-import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
-import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.utils.FileUtil;
-import org.apache.rocketmq.streams.common.utils.PrintUtil;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
+import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.PrintUtil;
 
 /**
  * 文件的输入输出，source是把指定的文件数据加载到内存，for循环输出到后续节点 sink，把内容写入文件，可以配置写入模式，是追加还是覆盖

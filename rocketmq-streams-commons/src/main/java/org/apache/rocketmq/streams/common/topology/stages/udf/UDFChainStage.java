@@ -21,7 +21,6 @@ import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshL
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
