@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.script.function.aggregation;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.script.function.aggregation.AverageAccumulator.AverageAccum;

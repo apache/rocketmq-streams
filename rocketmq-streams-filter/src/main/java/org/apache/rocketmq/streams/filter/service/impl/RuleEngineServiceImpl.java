@@ -17,24 +17,21 @@
 package org.apache.rocketmq.streams.filter.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.filter.builder.RuleBuilder;
-import org.apache.rocketmq.streams.filter.context.ContextConfigure;
-import org.apache.rocketmq.streams.filter.engine.impl.DefaultRuleEngine;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.engine.IRuleEngine;
-import org.apache.rocketmq.streams.filter.context.RuleMessage;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.filter.service.IRuleEngineService;
-
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.filter.builder.RuleBuilder;
+import org.apache.rocketmq.streams.filter.context.ContextConfigure;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.context.RuleMessage;
+import org.apache.rocketmq.streams.filter.engine.IRuleEngine;
+import org.apache.rocketmq.streams.filter.engine.impl.DefaultRuleEngine;
+import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.service.IRuleEngineService;
 
 /**
  * 规则引擎实现

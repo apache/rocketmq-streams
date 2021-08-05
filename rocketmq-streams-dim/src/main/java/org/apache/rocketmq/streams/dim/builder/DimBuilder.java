@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.dim.builder;
 
-import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.dim.model.DBDim;
 
 public class DimBuilder {
 

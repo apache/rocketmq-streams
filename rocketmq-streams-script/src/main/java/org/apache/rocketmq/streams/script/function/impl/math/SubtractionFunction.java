@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import org.apache.rocketmq.streams.script.context.FunctionContext;
+import java.math.BigDecimal;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
-import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-
-import java.math.BigDecimal;
 
 /**
  * 减法函数

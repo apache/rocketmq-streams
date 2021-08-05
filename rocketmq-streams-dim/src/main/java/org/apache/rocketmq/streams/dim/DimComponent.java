@@ -17,13 +17,12 @@
 package org.apache.rocketmq.streams.dim;
 
 import java.util.Properties;
-
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.dim.service.IDimService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.component.AbstractComponent;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
+import org.apache.rocketmq.streams.dim.service.IDimService;
 import org.apache.rocketmq.streams.dim.service.impl.DimServiceImpl;
 
 public class DimComponent extends AbstractComponent<IDimService> {

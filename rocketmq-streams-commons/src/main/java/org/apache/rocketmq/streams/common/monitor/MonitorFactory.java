@@ -16,16 +16,15 @@
  */
 package org.apache.rocketmq.streams.common.monitor;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.logger.LoggerOutputChannel;
 import org.apache.rocketmq.streams.common.monitor.impl.DipperMonitor;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class MonitorFactory {
     public static final String ALL_NAMESPACE_PIPLINES = "all.namespaces.piplines";//所有的pipline

@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.common.context;
 
 import com.alibaba.fastjson.JSONObject;
-
+import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
@@ -25,8 +25,6 @@ import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.Set;
 
 /**
  * 每个消息有个头部，代表消息的一些支持信息

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.date;
 
+import java.util.Date;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -23,8 +24,6 @@ import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-
-import java.util.Date;
 
 /**
  * * 计算从enddate到startdate两个时间的天数差值， 日期格式可以是yy-MM-dd HH:mm:ss或yy-MM-dd或timestamp，返回整数， 若有参数为null或解析错误，返回null。

@@ -17,15 +17,13 @@
 package org.apache.rocketmq.streams.script.function.impl.header;
 
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.script.annotation.Function;
-import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
+import java.util.UUID;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.script.annotation.Function;
+import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-
-import java.util.UUID;
 
 @Function
 public class HeaderFunction {

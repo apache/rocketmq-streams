@@ -17,12 +17,10 @@
 package org.apache.rocketmq.streams.filter.service;
 
 import com.alibaba.fastjson.JSONObject;
-
+import java.util.List;
+import org.apache.rocketmq.streams.common.interfaces.IFilterService;
 import org.apache.rocketmq.streams.filter.context.RuleMessage;
 import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.common.interfaces.IFilterService;
-
-import java.util.List;
 
 /**
  * 规则引擎服务，执行规则

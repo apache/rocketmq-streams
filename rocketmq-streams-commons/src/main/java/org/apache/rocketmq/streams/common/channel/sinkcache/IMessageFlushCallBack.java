@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.common.channel.sinkcache;
 
 import java.util.List;
 
-import org.apache.rocketmq.streams.common.context.IMessage;
-
 public interface IMessageFlushCallBack<R> {
     /**
      * 直接存储存储，不过缓存

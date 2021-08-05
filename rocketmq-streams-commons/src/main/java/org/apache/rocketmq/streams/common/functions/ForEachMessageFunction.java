@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.functions;
 
 import java.io.Serializable;
-
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 

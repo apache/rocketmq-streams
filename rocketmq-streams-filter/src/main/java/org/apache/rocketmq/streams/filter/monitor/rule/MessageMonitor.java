@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.streams.filter.monitor.rule;
 
-import org.apache.rocketmq.streams.filter.monitor.Monitor;
-import org.apache.rocketmq.streams.filter.monitor.contants.MonitorType;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.filter.monitor.Monitor;
+import org.apache.rocketmq.streams.filter.monitor.contants.MonitorType;
+import org.apache.rocketmq.streams.filter.operator.Rule;
 
 @SuppressWarnings("rawtypes")
 public class MessageMonitor extends Monitor<List<Rule>> {

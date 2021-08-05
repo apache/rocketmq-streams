@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.AbstractMutilPipelineChainPipline;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-
-import java.util.List;
 
 /**
  * 会把消息复制后转给其他的pipeline 主要处理场景是类似blink多任务过滤部分抽取成规则放到一个任务的场景
