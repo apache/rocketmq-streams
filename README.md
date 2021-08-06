@@ -1,4 +1,4 @@
-# Rocketmq Streams
+# RocketMQ Streams
 
 ## Features
 
