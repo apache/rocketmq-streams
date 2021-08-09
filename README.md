@@ -1,5 +1,8 @@
 # RocketMQ Streams
-
+[![Build Status](https://travis-ci.org/apache/rocketmq-streams.svg?branch=main)](https://travis-ci.com/github/apache/rocketmq-streams)
+[![CodeCov](https://codecov.io/gh/apache/rocketmq-stream/branch/main/graph/badge.svg)](https://codecov.io/gh/apache/rocketmq-steams)
+[![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.com/apache/rocketmq-streams/releases)
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 ## Features
 
 * 轻量级部署：可以单独部署，也支持集群部署
