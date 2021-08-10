@@ -20,11 +20,14 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
@@ -323,7 +326,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     protected abstract boolean isNotDataSplit(String queueId);
 
-    @Override
+
     public void removeSplit(Set<String> splitIds) {
         if (splitIds == null || splitIds.size() == 0) {
             return;
@@ -340,8 +343,12 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
         }
     }
-
-    @Override
+    public List<ISplit> getAllSplits(){
+        return null;
+    }
+    public Map<String,List<ISplit>> getWorkingSplitsGroupByInstances(){
+        return null;
+    }
     public void addNewSplit(Set<String> splitIds) {
         if (splitIds == null || splitIds.size() == 0) {
             return;

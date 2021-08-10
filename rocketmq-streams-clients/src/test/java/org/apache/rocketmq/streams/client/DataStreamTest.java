@@ -17,18 +17,21 @@
 
 package org.apache.rocketmq.streams.client;
 
-import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import com.alibaba.fastjson.JSONObject;
+import netscape.javascript.JSObject;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.CheckpointStrategy;
 import org.apache.rocketmq.streams.client.strategy.StateStrategy;
+import org.apache.rocketmq.streams.client.strategy.Strategy;
+import org.apache.rocketmq.streams.client.transform.window.Time;
+import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.Serializable;
+import java.sql.*;
 
 public class DataStreamTest implements Serializable {
 
@@ -50,6 +53,9 @@ public class DataStreamTest implements Serializable {
 
     @Test
     public void testRocketmq() {
+
+
+        DataStreamSource dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
         dataStream
             .fromRocketmq("TOPIC_EVENT_SAS_SECURITY_EVENT", "111")
             .map(message -> message + "--")
@@ -77,13 +83,37 @@ public class DataStreamTest implements Serializable {
             .start();
     }
 
+
+    @Test
+    public void testWindow() {
+        DataStreamSource dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
+        dataStream
+            .fromRocketmq("TSG_META_INFO", "")
+            .map(new MapFunction<JSONObject, String>() {
+
+                @Override
+                public JSONObject map(String message) throws Exception {
+                    JSONObject msg=JSONObject.parseObject(message);
+                    return msg;
+                }
+            })
+            .window(TumblingWindow.of(Time.seconds(5)))
+            .groupBy("name","age")
+            .count("c")
+            .sum("score","scoreValue")
+            .toDataSteam()
+            .toPrint(1)
+            .with(CheckpointStrategy.db("","","",1000L))
+            .start();
+    }
+
     @Test
     public void testBothStrategy() {
         dataStream
             .fromRocketmq("TSG_META_INFO", "")
             .map(message -> message + "--")
             .toPrint(1)
-            .with(CheckpointStrategy.mem(0L), StateStrategy.db())
+            .with()
             .start();
     }
 
