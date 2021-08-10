@@ -135,6 +135,7 @@ public class MyDailyRollingFileAppender extends FileAppender {
         return maxBackupIndex;
     }
 
+    @Override
     public void activateOptions() {
         super.activateOptions();
 
@@ -308,6 +309,7 @@ public class MyDailyRollingFileAppender extends FileAppender {
      * <p>
      * Before actually logging, this method will check whether it is time to do a rollover. If it is, it will schedule the next rollover time and then rollover.
      */
+    @Override
     protected void subAppend(LoggingEvent event) {
         // 根据文件大小roll over
         rollOverBySize();

@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
@@ -41,8 +43,9 @@ public class MonitorCommander {
 
     private static final Log logger = LogFactory.getLog(MonitorCommander.class);
 
-    private static MonitorCommander monitorManager = new MonitorCommander();
-    private static MetaData metaData = new MetaData();
+    private final static MonitorCommander monitorManager = new MonitorCommander();
+
+    private final static MetaData metaData = new MetaData();
 
     static {
         metaData.setTableName("mq_monitor_data");
@@ -57,7 +60,7 @@ public class MonitorCommander {
         metaData.getMetaDataFields().add(createMetaDataField("slowCount", new BooleanDataType()));
     }
 
-    private Object object = new Object();
+    private final Object object = new Object();
     private Object initObject = new Object();
     private boolean inited = false;
     private Map<String, GroupedMonitorInfo> groupedMonitorInfoMap = new HashMap<String, GroupedMonitorInfo>();
@@ -94,40 +97,37 @@ public class MonitorCommander {
                     outputDataSourceList.add(source);
                 }
             }
-            Executors.newScheduledThreadPool(1).scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    Map<String, GroupedMonitorInfo> groupedMap = new HashMap<>();
-                    synchronized (object) {
-                        groupedMap = groupedMonitorInfoMap;
-                        groupedMonitorInfoMap = new HashMap<String, GroupedMonitorInfo>();
-                    }
-
-                    ISink loggerOutputDataSource = MonitorFactory.createOrGetLogOutputDatasource(
-                        "dataprocess_info");
-                    for (String key : groupedMap.keySet()) {
-                        GroupedMonitorInfo gmi = groupedMap.get(key);
-                        JSONObject result = new JSONObject();
-                        result.put("name", gmi.getName());
-                        result.put("count", gmi.getCount());
-                        result.put("max", gmi.getMax());
-                        result.put("min", gmi.getMin());
-                        result.put("avg", gmi.getAvg());
-                        result.put("errorCount", gmi.getErrorCount());
-                        result.put("slowCount", gmi.getSlowCount());
-                        //本地打印
-                        loggerOutputDataSource.batchAdd(new Message(result));
-                        loggerOutputDataSource.flush();
-                        //远程输出
-                        for (ISink source : outputDataSourceList) {
-                            source.batchAdd(new Message(result));
-                        }
-                    }
-                    //flush出去
+            ScheduledExecutorService monitorService = new ScheduledThreadPoolExecutor(1, new BasicThreadFactory.Builder().namingPattern("monitor-schedule-pool-%d").build());
+            monitorService.scheduleWithFixedDelay(() -> {
+                Map<String, GroupedMonitorInfo> groupedMap;
+                synchronized (object) {
+                    groupedMap = groupedMonitorInfoMap;
+                    groupedMonitorInfoMap = new HashMap<>();
+                }
+                ISink loggerOutputDataSource = MonitorFactory.createOrGetLogOutputDatasource(
+                    "data_process_info");
+                for (String key : groupedMap.keySet()) {
+                    GroupedMonitorInfo gmi = groupedMap.get(key);
+                    JSONObject result = new JSONObject();
+                    result.put("name", gmi.getName());
+                    result.put("count", gmi.getCount());
+                    result.put("max", gmi.getMax());
+                    result.put("min", gmi.getMin());
+                    result.put("avg", gmi.getAvg());
+                    result.put("errorCount", gmi.getErrorCount());
+                    result.put("slowCount", gmi.getSlowCount());
+                    //本地打印
+                    loggerOutputDataSource.batchAdd(new Message(result));
                     loggerOutputDataSource.flush();
+                    //远程输出
                     for (ISink source : outputDataSourceList) {
-                        source.flush();
+                        source.batchAdd(new Message(result));
                     }
+                }
+                //flush出去
+                loggerOutputDataSource.flush();
+                for (ISink source : outputDataSourceList) {
+                    source.flush();
                 }
             }, 0, 60, TimeUnit.SECONDS);
             inited = true;
