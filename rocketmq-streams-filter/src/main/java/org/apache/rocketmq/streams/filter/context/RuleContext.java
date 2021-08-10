@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.filter.context;
 
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.Serializable;
 import java.util.Properties;
 import java.util.Vector;
@@ -24,6 +25,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
@@ -106,7 +111,10 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
             synchronized (RuleContext.class) {
                 if (!initflag) {
                     RuleContext staticRuleContext = new RuleContext(DEFALUT_NAME_SPACE, contextConfigure);
-                    ExecutorService actionExecutor = Executors.newFixedThreadPool(contextConfigure.getActionPoolSize());
+                    ThreadFactory actionFactory = new ThreadFactoryBuilder().setNameFormat("RuleContext-Action-Poo-%d").build();
+                    int threadSize = contextConfigure.getActionPoolSize();
+                    ExecutorService actionExecutor = new ThreadPoolExecutor(threadSize, threadSize,0L, TimeUnit.MILLISECONDS,
+                        new LinkedBlockingQueue<>(1024), actionFactory, new ThreadPoolExecutor.AbortPolicy());
                     staticRuleContext.actionExecutor = actionExecutor;
                     staticRuleContext.functionService.scanePackage("org.apache.rocketmq.streams.filter.function");
                     superRuleContext = staticRuleContext;

@@ -30,6 +30,7 @@ public class NothingMonitorItem extends MonitorItem {
         return this;
     }
 
+    @Override
     public NothingMonitorItem endMonitor() {
 
         return this;
@@ -49,10 +50,12 @@ public class NothingMonitorItem extends MonitorItem {
         return emptyJson;
     }
 
+    @Override
     public MonitorItem occureError(Exception e, String... messages) {
         return this;
     }
 
+    @Override
     public void addMessage(String key, JSONObject value) {
 
     }

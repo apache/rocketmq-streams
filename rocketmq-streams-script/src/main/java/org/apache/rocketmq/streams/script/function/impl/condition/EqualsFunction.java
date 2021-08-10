@@ -65,7 +65,7 @@ public class EqualsFunction {
         } else if (FunctionUtils.isLong(value)) {
             Long left = FunctionUtils.getLong(leftValue);
             Long right = FunctionUtils.getLong(value);
-            return left == right;
+            return left.equals(right);
         } else if (FunctionUtils.isDouble(value)) {
             Double left = FunctionUtils.getDouble(leftValue);
             Double right = FunctionUtils.getDouble(value);
