@@ -19,28 +19,38 @@ package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.client.transform.SplitStream;
+import org.apache.rocketmq.streams.client.transform.window.Time;
+import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.functions.FilterFunction;
+import org.apache.rocketmq.streams.common.functions.FlatMapFunction;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
+import org.apache.rocketmq.streams.common.functions.ReduceFunction;
 import org.apache.rocketmq.streams.common.functions.SplitFunction;
 import org.junit.Test;
 
 public class SplitTest implements Serializable {
 
     @Test
-    public void testUnion() {
+    public void testOperator() throws InterruptedException {
         DataStream stream = (StreamBuilder.dataStream("namespace", "name")
             .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
-            .filter(new FilterFunction<JSONObject>() {
-
+            .flatMap(new FlatMapFunction<JSONObject, String>() {
                 @Override
-                public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
-                        return true;
+                public List<JSONObject> flatMap(String message) throws Exception {
+                    List<JSONObject> msgs=new ArrayList<>();
+                    for(int i=0;i<10;i++){
+                        JSONObject msg=JSONObject.parseObject(message);
+                        msg.put("index",i);
+                        msgs.add(msg);
                     }
-                    return false;
+                    return msgs;
                 }
-            }));
+            })
+            .filter(message->((JSONObject)message).getString("Project")==null));
 
         SplitStream splitStream = stream.split(new SplitFunction<JSONObject>() {
             @Override
@@ -57,8 +67,21 @@ public class SplitTest implements Serializable {
         DataStream children = splitStream.select("children");
         DataStream adult = splitStream.select("adult");
         children.union(adult)
+            .join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5)
+            .setCondition("(name,==,name)")
+            .toDataSteam()
+            .window(TumblingWindow.of(Time.seconds(5)))
+            .groupBy("ProjectName", "LogStore")
+            .setLocalStorageOnly(true)
+            .count("total")
+            .sum("OutFlow", "OutFlow")
+            .sum("InFlow", "InFlow")
+            .toDataSteam()
             .toPrint()
-            .start();
+            .asyncStart();
+        while (true){
+            Thread.sleep(1000);
+        }
 
     }
 

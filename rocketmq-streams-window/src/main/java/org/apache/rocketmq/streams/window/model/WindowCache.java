@@ -16,21 +16,29 @@
  */
 package org.apache.rocketmq.streams.window.model;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+
+import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
+import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.channel.IChannel;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.window.debug.DebugWriter;
+import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 
 /**
  * 缓存数据，flush时，刷新完成数据落盘
@@ -48,6 +56,9 @@ public abstract class WindowCache extends
 
     public static final String ORIGIN_MESSAGE_HEADER = "origin_message_header";
 
+
+    public static final String ORIGIN_SOURCE_NAME="origin_offset_name";
+
     public static final String SHUFFLE_KEY = "SHUFFLE_KEY";
 
     public static final String ORIGIN_MESSAGE_TRACE_ID = "origin_request_id";
@@ -62,13 +73,26 @@ public abstract class WindowCache extends
         Map<Integer, JSONArray> shuffleMap = translateToShuffleMap(messageList);
         if (shuffleMap != null && shuffleMap.size() > 0) {
             Set<String> splitIds=new HashSet<>();
+
             for (Map.Entry<Integer, JSONArray> entry : shuffleMap.entrySet()) {
                 ISplit split=shuffleChannel.getSplit(entry.getKey());
                 JSONObject msg=shuffleChannel.createMsg(entry.getValue(),split);
                 shuffleChannel.getProducer().batchAdd(new Message(msg),split);
                 splitIds.add(split.getQueueId());
+                List<IMessage> messages=new ArrayList<>();
+
+
+                if(DebugWriter.getDebugWriter(shuffleChannel.getWindow().getConfigureName()).isOpenDebug()){
+                    JSONArray jsonArray=entry.getValue();
+                    for(int i=0;i<jsonArray.size();i++){
+                        messages.add(new Message(jsonArray.getJSONObject(i)));
+                    }
+                    DebugWriter.getDebugWriter(shuffleChannel.getWindow().getConfigureName()).writeWindowCache(shuffleChannel.getWindow(),messages,split.getQueueId());
+                }
+
             }
-            shuffleChannel.getProducer().flush();
+
+            shuffleChannel.getProducer().flush(splitIds);
         }
         return true;
     }

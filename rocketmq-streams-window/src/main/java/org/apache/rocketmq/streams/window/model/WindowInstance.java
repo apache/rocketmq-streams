@@ -310,16 +310,17 @@ public class WindowInstance extends Entity implements Serializable {
         List<WindowInstance> instanceList = new ArrayList<>();
         List<Pair<String, String>> lostWindowTimeList = new ArrayList<>();
         List<String> lostFireList = new ArrayList<>();
-        long now = System.currentTimeMillis();
+
+        Long maxEventTime =window.getMaxEventTime(queueId);
         for (Date begin : windowBeginTimeList) {
             Date end = DateUtil.addDate(TimeUnit.SECONDS, begin, windowSizeInterval * timeUnitAdjust);
             Date fire = null;
             if (window.getFireMode() != 0) {
                 //非正常触发模式
-                if (now - end.getTime() < 0) {
+                if (maxEventTime==null||maxEventTime - end.getTime() < 0) {
                     fire = end;
                 } else {
-                    Long nowEventTime = window.getWindowMaxValueManager().updateWindowEventTime(queueId, begin.getTime());
+                    Long nowEventTime =maxEventTime;
                     List<Date> currentWindowList = DateUtil.getWindowBeginTime(
                         nowEventTime, windowSlideInterval * timeUnitAdjust * 1000,
                         windowSizeInterval * timeUnitAdjust * 1000);
@@ -336,9 +337,16 @@ public class WindowInstance extends Entity implements Serializable {
                         break;
                     }
                 }
+
+                //todo mode 2 clear window instance in first create window instance
             } else {
                 fire = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
+                if (maxEventTime!=null&&maxEventTime - fire.getTime() > 0) {
+                    LOG.warn("*********************the message is discard, because the fire time is exceed****************** "+DateUtil.format(begin)+"-"+DateUtil.format(end)+"---"+DateUtil.format(fire));
+                    break;
+                }
             }
+
             String startTime = DateUtil.format(begin);
             String endTime = DateUtil.format(end);
             String fireTime = DateUtil.format(fire);
@@ -494,5 +502,14 @@ public class WindowInstance extends Entity implements Serializable {
 
     public void setLastMaxUpdateTime(Long lastMaxUpdateTime) {
         this.lastMaxUpdateTime = lastMaxUpdateTime;
+    }
+
+    @Override
+    public int hashCode() {
+        return createWindowInstanceId().hashCode();
+    }
+
+    @Override public String toString() {
+        return createWindowInstanceId().toString();
     }
 }

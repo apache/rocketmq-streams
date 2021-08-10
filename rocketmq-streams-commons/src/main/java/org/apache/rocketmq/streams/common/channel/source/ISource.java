@@ -74,15 +74,4 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
      */
     long getCheckpointTime();
 
-    /**
-     * 当分片被移走前需要做的回调
-     *
-     * @param splitIds 要移走的分片
-     */
-    void removeSplit(Set<String> splitIds);
-
-    /**
-     * 当新增分片时，需要做的回调
-     */
-    void addNewSplit(Set<String> splitIds);
 }
