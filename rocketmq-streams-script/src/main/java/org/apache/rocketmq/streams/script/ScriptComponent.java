@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.script;
 
+import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
@@ -24,8 +25,6 @@ import org.apache.rocketmq.streams.common.component.IgnoreNameSpace;
 import org.apache.rocketmq.streams.script.function.service.impl.ScanFunctionService;
 import org.apache.rocketmq.streams.script.service.IScriptService;
 import org.apache.rocketmq.streams.script.service.impl.ScriptServiceImpl;
-
-import java.util.Properties;
 
 /**
  * 执行脚本，多个函数形成脚本。也可以通过脚本控制流的运转 可以自动扫描 标注了@Function的类。通过scan 来指定扫描的包路径

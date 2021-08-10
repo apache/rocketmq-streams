@@ -17,9 +17,10 @@
 package org.apache.rocketmq.streams.common.topology.model;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.checkpoint.ICheckPoint;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -28,9 +29,6 @@ import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
 import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable
     implements IStreamOperator<T, T>, ISystemMessageProcessor {

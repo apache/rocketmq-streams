@@ -24,21 +24,20 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.model.Entity;
 import org.apache.rocketmq.streams.common.configurable.IFieldProcessor;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
+import org.apache.rocketmq.streams.common.model.Entity;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 
@@ -147,6 +146,29 @@ public class ORMUtil {
         JDBCDriver dataSource = null;
         try {
             dataSource = DriverBuilder.createDriver();
+            dataSource.execute(sql);
+            return true;
+        } catch (Exception e) {
+            String errorMsg = ("execute sql  error ,the sql is " + sql + ". the error msg is " + e.getMessage());
+            LOG.error(errorMsg);
+            e.printStackTrace();
+            throw new RuntimeException(errorMsg, e);
+        } finally {
+            if (dataSource != null) {
+                dataSource.destroy();
+            }
+        }
+    }
+
+
+    public static boolean executeSQL(String sql, Object paras, String driver, final String url, final String userName,
+                                     final String password) {
+        if (paras != null) {
+            sql = SQLUtil.parseIbatisSQL(paras, sql);
+        }
+        JDBCDriver dataSource = null;
+        try {
+            dataSource = DriverBuilder.createDriver(driver, url, userName, password);
             dataSource.execute(sql);
             return true;
         } catch (Exception e) {

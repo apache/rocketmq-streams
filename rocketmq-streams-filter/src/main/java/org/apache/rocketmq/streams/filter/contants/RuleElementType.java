@@ -17,12 +17,11 @@
 package org.apache.rocketmq.streams.filter.contants;
 
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.filter.operator.action.Action;
-
+import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.action.Action;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
-import org.apache.rocketmq.streams.common.metadata.MetaData;
 
 public enum RuleElementType {
     METADATA(MetaData.TYPE),

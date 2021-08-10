@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.topology;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -23,11 +27,6 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * 流拓扑结构的一个节点

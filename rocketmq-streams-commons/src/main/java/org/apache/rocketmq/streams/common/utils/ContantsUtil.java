@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class ContantsUtil {
     private static final List<String> CONSTANTS_SIGNS = new ArrayList<>();//对于特殊字符优先处理，里面存储需要特殊处理的字符

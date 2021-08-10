@@ -17,13 +17,12 @@
 
 package org.apache.rocketmq.streams.client.transform;
 
+import java.util.Set;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.StageBuilder;
-
-import java.util.Set;
 
 public class SplitStream {
 

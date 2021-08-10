@@ -17,18 +17,17 @@
 package org.apache.rocketmq.streams.script.function.impl.parser;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
-import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Function
 public class RegexParserFunction {

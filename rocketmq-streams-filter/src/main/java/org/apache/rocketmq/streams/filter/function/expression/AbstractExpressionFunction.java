@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
-import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.apache.rocketmq.streams.common.monitor.IMonitor;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
 import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 
 public abstract class AbstractExpressionFunction implements ExpressionFunction {
 

@@ -17,12 +17,6 @@
 package org.apache.rocketmq.streams.common.metadata;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.common.datatype.DataType;
-import org.apache.rocketmq.streams.common.datatype.MapDataType;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -33,6 +27,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.MapDataType;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class MetaData extends AbstractMetaData {
 

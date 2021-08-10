@@ -17,14 +17,12 @@
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
 import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
-import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.model.Union;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
+import org.apache.rocketmq.streams.common.topology.model.Union;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 
 public class UDFUnionChainStage extends AbstractStatelessChainStage implements IAfterConfiguableRefreshListerner {

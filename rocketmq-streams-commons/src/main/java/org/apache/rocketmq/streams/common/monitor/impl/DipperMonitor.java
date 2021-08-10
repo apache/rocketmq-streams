@@ -18,16 +18,22 @@ package org.apache.rocketmq.streams.common.monitor.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.datatype.*;
+import org.apache.rocketmq.streams.common.datatype.BooleanDataType;
+import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.IntDataType;
+import org.apache.rocketmq.streams.common.datatype.LongDataType;
+import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
@@ -35,9 +41,6 @@ import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class DipperMonitor implements IMonitor {
 

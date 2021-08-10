@@ -16,11 +16,9 @@
  */
 package org.apache.rocketmq.streams.script.function;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.Date;
 import java.util.List;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.operator.impl.JPythonScriptOperator;

@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.streams.configurable.model;
 
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 
 public class Person extends BasedConfigurable {
     private String name;

@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.channel.sink;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
@@ -23,10 +26,6 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 
 public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>, IMessageFlushCallBack<IMessage> {

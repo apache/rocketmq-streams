@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.common.channel.sinkcache;
 
 import java.util.Set;
 
-import org.apache.rocketmq.streams.common.metadata.MetaData;
-
 /**
  * 消息缓存组件，支持消息缓存，刷新逻辑
  *

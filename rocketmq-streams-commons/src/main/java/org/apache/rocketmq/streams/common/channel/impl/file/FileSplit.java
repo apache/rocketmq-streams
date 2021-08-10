@@ -16,10 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.file;
 
-import java.io.File;
-
 import com.alibaba.fastjson.JSONObject;
-
+import java.io.File;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 

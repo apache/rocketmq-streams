@@ -16,13 +16,17 @@
  */
 package org.apache.rocketmq.streams.common.cache;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 压缩表，行数据以byte[][]存放

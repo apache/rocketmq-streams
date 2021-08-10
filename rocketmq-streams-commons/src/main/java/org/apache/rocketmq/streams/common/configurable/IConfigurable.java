@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.configurable;
 
-import org.apache.rocketmq.streams.common.datatype.IJsonable;
-
 import java.io.Serializable;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.datatype.IJsonable;
 
 /**
  * 对所有可配置的对象，做统一抽象，可配置的对象是：数据量不大，可以加载到内存，整个框架除了数据外，多数框架对象都是configuahle对象 统一抽象的好处是：可以统一的序列化，反序列化，存储，查询。 通过namespace隔离业务，通过type区分类型，namespace+type+name唯一标识一个对象。所有其他字段会被序列化到json_value中 继承BasedConfigurable 基类，会自动实现序列化和反序列化。也可以自己实现

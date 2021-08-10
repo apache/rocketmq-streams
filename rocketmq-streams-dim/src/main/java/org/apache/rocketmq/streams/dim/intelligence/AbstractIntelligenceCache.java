@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.dim.intelligence;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -27,26 +29,22 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.http.source.util.HttpUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
+import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
-import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.apache.rocketmq.streams.http.source.util.HttpUtil;
 
 public abstract class AbstractIntelligenceCache extends BasedConfigurable implements
     IAfterConfiguableRefreshListerner {

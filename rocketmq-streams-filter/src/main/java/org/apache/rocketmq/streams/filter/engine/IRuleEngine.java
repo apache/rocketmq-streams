@@ -17,10 +17,9 @@
 package org.apache.rocketmq.streams.filter.engine;
 
 import java.util.List;
-
+import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.filter.context.RuleMessage;
 import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
 
 public interface IRuleEngine {
 

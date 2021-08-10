@@ -16,12 +16,16 @@
  */
 package org.apache.rocketmq.streams.common.component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.ENVUtile;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.*;
 
 public class PropertyConfigureDescriptorManager {
 

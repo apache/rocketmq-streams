@@ -19,11 +19,9 @@ package com.aliyun.yundun.dipper.configurable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.junit.Test;
-
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.configurable.model.Person;
+import org.junit.Test;
 
 public class DataTpyeTest {
     @Test

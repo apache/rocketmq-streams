@@ -16,16 +16,15 @@
  */
 package org.apache.rocketmq.streams.window.operator.impl;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 只支持 时间去重的场景，日志是按系统时间顺序，所以不落盘。需要设置groupByFieldName和rowNumerName字段

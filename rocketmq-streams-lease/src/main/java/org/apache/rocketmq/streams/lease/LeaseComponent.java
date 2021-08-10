@@ -13,10 +13,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package org.apache.rocketmq.streams.lease;
+ */
+package org.apache.rocketmq.streams.lease;
 
 import java.util.Properties;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.ConfigureDescriptor;
@@ -27,8 +29,6 @@ import org.apache.rocketmq.streams.lease.service.ILeaseService;
 import org.apache.rocketmq.streams.lease.service.ILeaseStorage;
 import org.apache.rocketmq.streams.lease.service.impl.LeaseServiceImpl;
 import org.apache.rocketmq.streams.lease.service.impl.MockLeaseImpl;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.lease.service.storages.DBLeaseStorage;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
@@ -50,10 +50,10 @@ public class LeaseComponent extends AbstractComponent<ILeaseService> {
     }
 
     public static LeaseComponent getInstance() {
-        if(leaseComponent==null){
-            synchronized (LeaseComponent.class){
-                if(leaseComponent==null){
-                    leaseComponent =ComponentCreator.getComponent(null,LeaseComponent.class);
+        if (leaseComponent == null) {
+            synchronized (LeaseComponent.class) {
+                if (leaseComponent == null) {
+                    leaseComponent = ComponentCreator.getComponent(null, LeaseComponent.class);
                 }
             }
         }
@@ -79,25 +79,24 @@ public class LeaseComponent extends AbstractComponent<ILeaseService> {
     protected boolean initProperties(Properties properties) {
         String connectType = properties.getProperty(JDBC_URL);
         if (StringUtil.isEmpty(connectType)) {
-            MockLeaseImpl mockLease = new MockLeaseImpl();
-            this.leaseService=mockLease;
+            this.leaseService = new MockLeaseImpl();
             return true;
         }
 
-        LeaseServiceImpl leaseService= new LeaseServiceImpl();
-        String storageName=ComponentCreator.getProperties().getProperty(ConfigureFileKey.LEASE_STORAGE_NAME);
-        ILeaseStorage storasge=null;
-        if(StringUtil.isEmpty(storageName)){
+        LeaseServiceImpl leaseService = new LeaseServiceImpl();
+        String storageName = ComponentCreator.getProperties().getProperty(ConfigureFileKey.LEASE_STORAGE_NAME);
+        ILeaseStorage storasge = null;
+        if (StringUtil.isEmpty(storageName)) {
             String jdbc = properties.getProperty(AbstractComponent.JDBC_DRIVER);
             String url = properties.getProperty(AbstractComponent.JDBC_URL);
             String userName = properties.getProperty(AbstractComponent.JDBC_USERNAME);
             String password = properties.getProperty(AbstractComponent.JDBC_PASSWORD);
-            storasge=new DBLeaseStorage(jdbc,url,userName,password);
-        }else {
-            storasge= (ILeaseStorage)ServiceLoaderComponent.getInstance(ILeaseStorage.class).loadService(storageName);
+            storasge = new DBLeaseStorage(jdbc, url, userName, password);
+        } else {
+            storasge = (ILeaseStorage)ServiceLoaderComponent.getInstance(ILeaseStorage.class).loadService(storageName);
         }
         leaseService.setLeaseStorage(storasge);
-        this.leaseService=leaseService;
+        this.leaseService = leaseService;
         return true;
     }
 }
