@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.common.calssscaner;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.classloader.IsolationClassLoader;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
@@ -34,6 +35,24 @@ public abstract class AbstractScan {
     private static final String CLASS_REAR = ".class";
 
     protected Set<String> scanDirs = new HashSet<>();
+
+    public void scanJarsFromDir(String dir,String packageName){
+        IsolationClassLoader classLoader= new IsolationClassLoader(dir);
+        File file=new File(dir);
+        if(file.exists()==false){
+            return;
+        }
+        if(file.isDirectory()==false){
+            return;
+        }
+        File[] jars=file.listFiles();
+        for(File jar:jars){
+            if(!jar.getName().endsWith(".jar")){
+                continue;
+            }
+            scanClassDir(jar,packageName,classLoader);
+        }
+    }
 
     public void scanClassDir(File jarFile, String packageName, ClassLoader classLoader) {
         scanClassInJar(jarFile.getAbsolutePath(), packageName, classLoader);

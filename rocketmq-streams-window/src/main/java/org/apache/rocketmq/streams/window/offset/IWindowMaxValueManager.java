@@ -42,16 +42,6 @@ public interface IWindowMaxValueManager {
      */
     Long incrementAndGetSplitNumber(String key);
 
-    /**
-     * return the max time from window receive event if (eventTime > maxEventTime) { maxEventTime=eventTime; } return maxEventTime
-     *
-     * @param eventTime
-     * @return
-     */
-    Long updateWindowEventTime(String splitId, Long eventTime);
-
-    //return the max time from window receive event
-    Long updateWindowEventTime(String splitId, String formatEventTime);
 
     /**
      * load mutil window instance split's max split num

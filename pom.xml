@@ -31,7 +31,6 @@
         <module>rocketmq-streams-dim</module>
         <module>rocketmq-streams-transport-minio</module>
         <module>rocketmq-streams-script</module>
-        <module>rocketmq-streams-script-python</module>
         <module>rocketmq-streams-configurable</module>
         <module>rocketmq-streams-serviceloader</module>
         <module>rocketmq-streams-filter</module>

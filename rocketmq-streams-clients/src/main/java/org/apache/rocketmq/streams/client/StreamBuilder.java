@@ -21,8 +21,8 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
 public class StreamBuilder {
 
-    public static DataStreamSource dataStream(String nameSpaceName, String pipelineName) {
-        return DataStreamSource.create(nameSpaceName, pipelineName);
+    public static DataStreamSource dataStream(String namespace, String jobName) {
+        return DataStreamSource.create(namespace, jobName);
     }
 
 }

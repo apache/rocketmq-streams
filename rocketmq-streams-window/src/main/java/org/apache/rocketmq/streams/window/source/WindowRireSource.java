@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.source;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,22 +33,25 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMutilSplitMessageCache;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
+import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 
 public class WindowRireSource extends AbstractSupportOffsetResetSource implements IStreamOperator {
     protected static final Log LOG = LogFactory.getLog(WindowRireSource.class);
     private AbstractWindow window;
-    protected transient ConcurrentHashMap<String,Long> maxEventTimes=new ConcurrentHashMap();//max event time procced by window
-    protected transient ConcurrentHashMap<String,Long> eventTimeLastUpdateTimes=new ConcurrentHashMap<>();
+    protected transient Long eventTimeLastUpdateTime;
     protected transient ScheduledExecutorService fireCheckScheduler;//检查是否触发
     protected transient ScheduledExecutorService checkpointScheduler;
     protected transient ConcurrentHashMap<String,WindowInstance> windowInstances=new ConcurrentHashMap();
-
     protected transient IMessageCache<WindowInstance> fireInstanceCache=new WindowInstanceCache();
     //正在触发中的windowintance
     protected transient ConcurrentHashMap<String,WindowInstance> firingWindowInstances=new ConcurrentHashMap<>();
@@ -91,6 +95,7 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
                         //        }
                         //    }
                         //}
+                        return;
 
                     }
                     List<WindowInstance> windowInstanceList=new ArrayList<>();
@@ -106,16 +111,33 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
                             return o2.getStartTime().compareTo(o1.getStartTime());
                         }
                     });
-                    for(int i=0;i<windowInstanceList.size();i++){
-                        WindowInstance windowInstance = windowInstanceList.get(i);
-
+                    WindowInstance windowInstance = windowInstanceList.get(0);
+                    while (windowInstance!=null){
                         boolean success= executeFireTask(windowInstance,false);
-                        if(!success){
-                            continue;
+                        if(success){
+                            windowInstances.remove(windowInstance.createWindowInstanceId());
                         }
-                        windowInstances.remove(windowInstance.createWindowInstanceId());
-
+                        if(windowInstances.size()==0){
+                            break;
+                        }
+                        windowInstanceList=new ArrayList<>();
+                        windowInstanceList.addAll(windowInstances.values());
+                        Collections.sort(windowInstanceList, new Comparator<WindowInstance>() {
+                            @Override
+                            public int compare(WindowInstance o1, WindowInstance o2) {
+                                int value= o1.getFireTime().compareTo(o2.getFireTime());
+                                if(value!=0){
+                                    return value;
+                                }
+                                return o2.getStartTime().compareTo(o1.getStartTime());
+                            }
+                        });
+                        if(windowInstanceList.size()==0){
+                            break;
+                        }
+                        windowInstance=windowInstanceList.get(0);
                     }
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -165,17 +187,12 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
      * 注册一个window instance
      * @param windowInstance
      */
-    public void updateWindowInstanceLastUpdateTime(WindowInstance windowInstance,Long windowMaxEventTime){
+    public void updateWindowInstanceLastUpdateTime(WindowInstance windowInstance){
         String windowInstanceId=windowInstance.createWindowInstanceId();
-        if(windowMaxEventTime!=null){
-            this.maxEventTimes.put(windowInstanceId,windowMaxEventTime);
-            this.eventTimeLastUpdateTimes.put(windowInstanceId,System.currentTimeMillis());
-        }
+        this.eventTimeLastUpdateTime=System.currentTimeMillis();
 
 
         windowInstances.putIfAbsent(windowInstanceId,windowInstance);
-
-
 
     }
     /**
@@ -184,6 +201,17 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
      */
     public boolean executeFireTask(WindowInstance windowInstance,boolean startNow) {
         String windowInstanceId=windowInstance.createWindowInstanceId();
+//        JSONObject fireMsg=new JSONObject();
+//        Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
+//        fireMsg.put("start_time",windowInstance.getStartTime());
+//        fireMsg.put("end_time",windowInstance.getEndTime());
+//        fireMsg.put("fire_time",windowInstance.getFireTime());
+//        fireMsg.put("queueid",windowInstance.getSplitId());
+//        fireMsg.put("lastUpdateTime", DateUtil.format(new Date(eventTimeLastUpdateTime)));
+//        fireMsg.put("sign","abc*********************************************abc");
+//        List<IMessage> messages=new ArrayList<>();
+//        messages.add(new Message(fireMsg));
+//        ShuffleChannel.write2File(window,messages,windowInstance,windowInstance.getSplitId());
         if (canFire(windowInstance)) {
             //maybe firimg
             if (firingWindowInstances.containsKey(windowInstanceId)) {
@@ -196,6 +224,7 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
             //    return true;
             //}
             //start firing
+            DebugWriter.getDebugWriter(window.getConfigureName()).writeFireWindowInstance(windowInstance,eventTimeLastUpdateTime);
             firingWindowInstances.put(windowInstanceId, windowInstance);
             if(startNow){
                 fireWindowInstance(windowInstance);
@@ -224,13 +253,12 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
 
 
             if(windowInstance.getLastMaxUpdateTime()==null){
-                windowInstance.setLastMaxUpdateTime(this.maxEventTimes.get(windowInstanceId));
+                windowInstance.setLastMaxUpdateTime(window.getMaxEventTime(windowInstance.getSplitId()));
             }
             int fireCount=window.fireWindowInstance(windowInstance,windowInstanceQueueOffsets.get(windowInstanceId));
             LOG.debug("fire instance("+windowInstance.createWindowInstanceId()+" fire count is "+fireCount);
             firingWindowInstances.remove(windowInstanceId);
-            this.eventTimeLastUpdateTimes.remove(windowInstanceId);
-            this.maxEventTimes.remove(windowInstanceId);
+            //this.maxEventTimes.remove(windowInstanceId);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -248,19 +276,19 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
             LOG.warn(windowInstanceId + " can't find window!");
             return false;
         }
-        Date realFireTime=window.getRealFireTime(windowInstance);
+        Date fireTime=DateUtil.parseTime(windowInstance.getFireTime());
         /**
          * 未到触发时间
          */
-        Long maxEventTime=this.maxEventTimes.get(windowInstanceId);
+        Long maxEventTime=this.window.getMaxEventTime(windowInstance.getSplitId());
         if(maxEventTime==null){
             return false;
         }
-        if(maxEventTime-realFireTime.getTime()>=0){
+        if(maxEventTime-fireTime.getTime()>=3000){
             return true;
         }
-        if(maxEventTime-realFireTime.getTime()<0){
-            Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTimes.get(windowInstanceId);
+        if(maxEventTime-fireTime.getTime()<3000){
+            Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
             if(eventTimeLastUpdateTime==null){
                 return false;
             }

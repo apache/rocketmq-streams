@@ -32,8 +32,10 @@ import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
+import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -207,14 +209,15 @@ public class ShuffleChannel extends AbstractSystemChannel {
                     ShufflePartitionManager.getInstance().setWindowInstanceFinished(windowInstance.createWindowInstanceId());
                 }
             }
-
+            for(WindowInstance windowInstance:windowInstances){
+                window.updateMaxEventTime(message);
+                window.getWindowFireSource().updateWindowInstanceLastUpdateTime(windowInstance);
+            }
             message.getMessageBody().put(WindowInstance.class.getSimpleName(), windowInstances);
             message.getMessageBody().put(AbstractWindow.class.getSimpleName(), window);
             beforeBatchAdd(oriMessage,message);
             shuffleSink.batchAdd(message);
-            for(WindowInstance windowInstance:windowInstances){
-                window.getWindowFireSource().updateWindowInstanceLastUpdateTime(windowInstance,window.updateMaxEventTime(message));
-            }
+
         }
 
         return null;
@@ -307,7 +310,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 ShufflePartitionManager.getInstance().setSplitFinished(queueId);
             }
         }
-
+        window.getFireReceiver().doMessage(message,context);
     }
 
     @Override
@@ -323,6 +326,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             window.getWindowMaxValueManager().removeKeyPrefixFromLocalCache(queueIds);
             //window.getWindowFireSource().removeSplit(queueIds);
         }
+        window.getFireReceiver().doMessage(message,context);
     }
 
     @Override
@@ -368,6 +372,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 List<IMessage> messages = entry.getValue();
                 WindowInstance windowInstance = windowInstanceMap.get(queueIdAndInstanceKey.getRight());
                 window.shuffleCalculate(messages, windowInstance, queueIdAndInstanceKey.getLeft());
+                DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleCalculate(window,messages,windowInstance);
             }
             return true;
         }
@@ -408,6 +413,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             return null;
         }
     }
+
 
     /**
      * 根据message，把message分组到不同的group，分别处理
@@ -539,4 +545,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
         this.shuffleSink.notSaveWindowInstances.remove(windowInstance);
     }
 
+    public AbstractShuffleWindow getWindow() {
+        return window;
+    }
 }
