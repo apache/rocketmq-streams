@@ -59,6 +59,10 @@ public class CustomJavaCompiler {
     //运行耗时(单位ms)
     private long runTakeTime;
 
+    private static Pattern pattern1 = Pattern.compile("package\\s+\\S+\\s*;");
+
+    private static Pattern pattern2 = Pattern.compile("class\\s+\\S+.*\\{");
+
     /**
      * @param sourceFile java 文件
      */
@@ -153,14 +157,11 @@ public class CustomJavaCompiler {
      */
     public static String getFullClassName(String sourceCode) {
         String className = "";
-        Pattern pattern = Pattern.compile("package\\s+\\S+\\s*;");
-        Matcher matcher = pattern.matcher(sourceCode);
+        Matcher matcher = pattern1.matcher(sourceCode);
         if (matcher.find()) {
             className = matcher.group().replaceFirst("package", "").replace(";", "").trim() + ".";
         }
-
-        pattern = Pattern.compile("class\\s+\\S+.*\\{");
-        matcher = pattern.matcher(sourceCode);
+        matcher = pattern2.matcher(sourceCode);
         if (matcher.find()) {
             className += matcher.group().replaceFirst("class", "").replace("{", "").trim();
         }

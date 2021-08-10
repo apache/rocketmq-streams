@@ -57,7 +57,7 @@ public class AdditionalFiledFunction {
     @FunctionMethod(value = "random", alias = "createRandom", comment = "产生一个随机数")
     public String random(IMessage message, FunctionContext context,
                          @FunctionParamter(value = "string", comment = "代表字段长度的字段名，数字或常量") String strLength) {
-        Long length = 10l;
+        Long length = 10L;
         if (!StringUtil.isEmpty(strLength) && !"null".equals(strLength)) {
             Object object = FunctionUtils.getValue(message, context, strLength);
             if (FunctionUtils.isNumberObject(object)) {
