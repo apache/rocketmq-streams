@@ -54,6 +54,7 @@ public class DataStreamAction extends DataStream {
     /**
      * 启动流任务
      */
+    @Override
     public void start() {
         start(false);
     }
@@ -65,6 +66,7 @@ public class DataStreamAction extends DataStream {
         start(true);
     }
 
+    @Override
     protected void start(boolean isAsync) {
         if (this.mainPipelineBuilder == null) {
             return;

@@ -21,8 +21,6 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.classloader.FileClassLoader;
@@ -114,7 +112,5 @@ public class ScriptServiceImpl implements IScriptService {
             new IsolationClassLoader(jarFile.getAbsolutePath(), this.getClass().getClassLoader());
         functionService.scanClassDir(jarFile, packageName, isolationClassLoader);
     }
-
-    private ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(3);
 
 }
