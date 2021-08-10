@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -24,13 +25,10 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
-
-import java.util.List;
 
 public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfiguableRefreshListerner {
     private static final Log LOG = LogFactory.getLog(ScriptChainStage.class);

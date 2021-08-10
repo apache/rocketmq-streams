@@ -17,10 +17,7 @@
 package org.apache.rocketmq.streams.common.channel.sink;
 
 import java.util.List;
-
-import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.context.IMessage;
 
 public abstract class AbstractSupportShuffleSink extends AbstractSink {
 

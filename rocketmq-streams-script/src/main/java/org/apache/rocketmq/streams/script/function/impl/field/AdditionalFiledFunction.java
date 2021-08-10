@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.field;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.Ip2LongUtils;
@@ -27,9 +29,6 @@ import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 import org.apache.rocketmq.streams.script.utils.MatchUtil;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 @Function
 public class AdditionalFiledFunction {

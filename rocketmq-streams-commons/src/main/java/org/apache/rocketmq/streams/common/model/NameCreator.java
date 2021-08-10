@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.model;
 
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.NameCreatorUtil;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.NameCreatorUtil;
 
 public class NameCreator {
     private transient AtomicInteger nameCreator = new AtomicInteger(10000);

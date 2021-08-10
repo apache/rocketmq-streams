@@ -21,14 +21,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
+import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseStorage;
 
@@ -176,9 +175,9 @@ public class DBLeaseStorage implements ILeaseStorage {
         leaseInfo.setLeaseEndDate(getMapDateValue("lease_end_time", map));
         leaseInfo.setLeaseName(getMapValue("lease_name", map, String.class));
         leaseInfo.setLeaseUserIp(getMapValue("lease_user_ip", map, String.class));
-        Integer stauts = getMapValue("status", map, Integer.class);
-        if (stauts != null) {
-            leaseInfo.setStatus(stauts);
+        Integer status = getMapValue("status", map, Integer.class);
+        if (status != null) {
+            leaseInfo.setStatus(status);
         }
         leaseInfo.setUpdateTime(getMapDateValue("gmt_modified", map));
         Long version = getMapLongValue("version", map);

@@ -17,9 +17,8 @@
 package org.apache.rocketmq.streams.script.service;
 
 import java.util.List;
-
-import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 
 /**
  * 一个函数，如a=now();就是一个表达式 这里是函数真正执行的地方

@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.optimization;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * 可以用sql中的like表示正则，系统负责完成转化

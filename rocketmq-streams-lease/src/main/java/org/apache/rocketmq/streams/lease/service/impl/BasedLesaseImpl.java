@@ -27,12 +27,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseGetCallback;
 import org.apache.rocketmq.streams.lease.service.ILeaseService;
@@ -42,7 +41,7 @@ public abstract class BasedLesaseImpl implements ILeaseService {
     private static final Log LOG = LogFactory.getLog(BasedLesaseImpl.class);
 
     private static final String CONSISTENT_HASH_PREFIX = "consistent_hash_";
-    private static AtomicBoolean syncStart = new AtomicBoolean(false);
+    private static final AtomicBoolean syncStart = new AtomicBoolean(false);
     private static final int synTime = 120;  // 5分钟的一致性hash同步时间太久了，改为2分钟
     protected ScheduledExecutorService taskExecutor = null;
     protected int leaseTerm = 300 * 2;                                  // 租约时间

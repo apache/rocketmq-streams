@@ -16,18 +16,23 @@
  */
 package org.apache.rocketmq.streams.lease.service.impl;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseService;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LeaseServiceImpl extends BasedLesaseImpl {
 
@@ -91,8 +96,7 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
         }
         Date nextLeaseDate =
             DateUtil.addSecond(new Date(), leaseSecond);// 默认锁定5分钟，用完需要立刻释放.如果时间不同步，可能导致锁失败
-        boolean success = tryGetLease(lockerName, nextLeaseDate);// 申请锁，锁的时间是leaseTerm
-        return success;
+        return tryGetLease(lockerName, nextLeaseDate);
     }
 
     @Override
@@ -136,7 +140,7 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
             Date nextLeaseDate =
                 DateUtil.addSecond(new Date(), lockTimeSecond);
             boolean success = tryGetLease(lockerName, nextLeaseDate);// 申请锁，锁的时间是leaseTerm
-            if (success == false) {
+            if (!success) {
                 return false;
             }
             leaseName2Date.put(lockerName, nextLeaseDate);
@@ -175,7 +179,7 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
     }
 
     private class HoldLockTask extends ApplyTask {
-        protected volatile boolean iscontinue = true;
+        protected volatile boolean isContinue = true;
         protected LeaseServiceImpl leaseService;
         protected ScheduledExecutorService scheduledExecutor;
 
@@ -191,20 +195,20 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
         }
 
         public void close() {
-            iscontinue = false;
+            isContinue = false;
             if (scheduledExecutor != null) {
                 scheduledExecutor.shutdown();
             }
         }
 
-        public boolean isIscontinue() {
-            return iscontinue;
+        public boolean isContinue() {
+            return isContinue;
         }
 
         @Override
         public void run() {
             try {
-                if (!iscontinue) {
+                if (!isContinue) {
                     return;
                 }
                 Date leaseDate = applyLeaseTask(leaseTerm, name, new AtomicBoolean(false));
@@ -213,14 +217,14 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
                     LOG.debug("LeaseServiceImpl, name: " + name + " " + getSelfUser() + " 续约锁成功, 租约到期时间为 "
                         + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(leaseDate));
                 } else {
-                    iscontinue = false;
+                    isContinue = false;
                     synchronized (leaseService) {
                         holdLockTasks.remove(name);
                     }
                     LOG.info("LeaseServiceImpl name: " + name + " " + getSelfUser() + " 续约锁失败，续锁程序会停止");
                 }
             } catch (Exception e) {
-                iscontinue = false;
+                isContinue = false;
                 LOG.error(" LeaseServiceImpl name: " + name + "  " + getSelfUser() + " 续约锁出现异常，续锁程序会停止", e);
             }
 
@@ -256,7 +260,7 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
 
         @Override
         public Boolean get() throws InterruptedException, ExecutionException {
-            while (isDone() == false) {
+            while (!isDone()) {
                 Thread.sleep(1000);
             }
             return true;

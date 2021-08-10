@@ -25,7 +25,6 @@ import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertTrue;
 
 /**
  * 数据库的存储，需要配置存储的连接参数，请先完成配置，后执行单元用例 如果未建表，可以通过Configure.createTableSQL() 获取建表语句，创建表后，测试

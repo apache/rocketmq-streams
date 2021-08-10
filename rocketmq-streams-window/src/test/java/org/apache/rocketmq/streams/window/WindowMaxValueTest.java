@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.window;
 
+import java.util.Date;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.offset.WindowMaxValue;
 import org.junit.Test;
-
-import java.util.Date;
 
 public class WindowMaxValueTest {
 

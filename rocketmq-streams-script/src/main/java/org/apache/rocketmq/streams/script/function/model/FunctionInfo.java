@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.script.function.model;
 
+import java.util.Objects;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import java.util.Objects;
 
 /**
  * 保存每个函数的参数和描述信息 主要用于展示

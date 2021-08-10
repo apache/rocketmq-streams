@@ -16,17 +16,24 @@
  */
 package org.apache.rocketmq.streams.common.logger;
 
-import org.apache.log4j.*;
-import org.apache.log4j.helpers.CountingQuietWriter;
-import org.apache.log4j.helpers.LogLog;
-import org.apache.log4j.spi.LoggingEvent;
-
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.Writer;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Locale;
+import java.util.TimeZone;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Layout;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.helpers.CountingQuietWriter;
+import org.apache.log4j.helpers.LogLog;
+import org.apache.log4j.spi.LoggingEvent;
 
 /**
  * log4j appender扩展<br> （1）按天并且只保留最近n天的 <br> （2）如果一天的文件过大，可以按配置的大小将一天的文件进行切分

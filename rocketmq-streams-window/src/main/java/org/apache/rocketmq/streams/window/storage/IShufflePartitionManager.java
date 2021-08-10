@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.window.storage;
 
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
-
 import java.util.Collection;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 
 public interface IShufflePartitionManager {
 

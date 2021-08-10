@@ -17,24 +17,22 @@
 package org.apache.rocketmq.streams.filter.function.expression;
 
 import com.alibaba.fastjson.JSONObject;
-
+import java.util.List;
+import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.SimpleExpression;
 import org.apache.rocketmq.streams.script.ScriptComponent;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
-
-import java.util.List;
+import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 /**
  * 可以把script脚本发布成规则引擎的表达式格式如下（"随便写会被忽略"，"operator"，"equals(fieldname,'3232')"）; 函数必须返回的是boolean值

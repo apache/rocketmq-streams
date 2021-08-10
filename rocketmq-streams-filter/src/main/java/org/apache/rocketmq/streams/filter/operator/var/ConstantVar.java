@@ -17,12 +17,12 @@
 package org.apache.rocketmq.streams.filter.operator.var;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.operator.Rule;
 
 public class ConstantVar<T> extends Var<T> {
 

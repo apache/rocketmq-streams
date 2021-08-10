@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.channel;
 
+import com.alibaba.fastjson.JSONObject;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
@@ -28,11 +33,6 @@ import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.alibaba.fastjson.JSONObject;
 
 /**
  * channel的抽象，实现了消息的封装，发送等核心逻辑

@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import org.apache.rocketmq.streams.common.utils.ContantsUtil;
 import org.junit.Test;
 

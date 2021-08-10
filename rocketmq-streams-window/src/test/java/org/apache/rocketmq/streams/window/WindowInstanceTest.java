@@ -17,14 +17,13 @@
 package org.apache.rocketmq.streams.window;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
 import org.junit.Test;
-
-import java.util.List;
 
 import static junit.framework.TestCase.assertTrue;
 

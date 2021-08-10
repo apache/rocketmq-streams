@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.date;
 
+import java.util.Date;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -24,8 +25,6 @@ import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-
-import java.util.Date;
 
 @Function
 public class NowFuntion {

@@ -18,14 +18,13 @@ package org.apache.rocketmq.streams.script.function;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.util.Date;
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.junit.Test;
-
-import java.util.Date;
-import java.util.List;
 
 import static junit.framework.TestCase.assertTrue;
 

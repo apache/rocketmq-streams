@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.dim.function.expression;
 
+import java.util.Map;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.function.expression.AbstractExpressionFunction;
@@ -24,8 +25,6 @@ import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
-
-import java.util.Map;
 
 @Function
 public class InExpressionResource extends AbstractExpressionFunction {

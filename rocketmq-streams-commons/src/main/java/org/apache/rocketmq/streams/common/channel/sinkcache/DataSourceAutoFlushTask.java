@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.common.channel.sinkcache;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
-import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 
 /**
  * 自动刷新缓存的任务，开始openAutoFlush后，可以由独立线程完成数据的flush，不必显式调用

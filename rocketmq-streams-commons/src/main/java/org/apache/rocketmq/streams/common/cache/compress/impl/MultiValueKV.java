@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
-import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
 
 public abstract class MultiValueKV<T> implements ICacheKV<T> {
     //按固定大小分割存储

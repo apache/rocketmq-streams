@@ -20,14 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.ScriptComponent;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.function.aggregation.AverageAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.ConcatAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.ConcatDistinctAccumulator;

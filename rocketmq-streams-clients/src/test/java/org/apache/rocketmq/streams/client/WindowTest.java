@@ -18,9 +18,7 @@
 package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONObject;
-
 import java.io.Serializable;
-
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.functions.ForEachFunction;

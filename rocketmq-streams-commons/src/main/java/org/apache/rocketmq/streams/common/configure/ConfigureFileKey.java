@@ -27,6 +27,7 @@ public interface ConfigureFileKey {
     /**
      * 数据库url
      */
+    String DB_TYPE = "dipper.rds.jdbc.type";
     String JDBC_URL = "dipper.rds.jdbc.url";
     String JDBC_USERNAME = "dipper.rds.jdbc.username";
     String JDBC_PASSWORD = "dipper.rds.jdbc.password";

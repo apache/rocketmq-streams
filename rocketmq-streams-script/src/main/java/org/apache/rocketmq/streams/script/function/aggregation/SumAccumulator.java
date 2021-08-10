@@ -17,11 +17,10 @@
 package org.apache.rocketmq.streams.script.function.aggregation;
 
 import java.util.Iterator;
-
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
-import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
 
 @Function

@@ -17,9 +17,8 @@
 package org.apache.rocketmq.streams.common.datatype;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.common.utils.NumberUtils;
-
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
 public class IntDataType extends BaseDataType<Integer> {
     private static final long serialVersionUID = -7780238614760001804L;
