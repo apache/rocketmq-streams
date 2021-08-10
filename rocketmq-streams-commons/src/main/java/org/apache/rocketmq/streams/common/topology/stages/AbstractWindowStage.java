@@ -17,10 +17,14 @@
 package org.apache.rocketmq.streams.common.topology.stages;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
@@ -41,11 +45,11 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
         if(message.getHeader().isNeedFlush()){
             if(message.getHeader().getCheckpointQueueIds()!=null&&message.getHeader().getCheckpointQueueIds().size()>0){
-                window.getWindowCache().flush();
+                window.getWindowCache().flush(message.getHeader().getCheckpointQueueIds());
             }else {
                 Set<String> queueIds=new HashSet<>();
                 queueIds.add(message.getHeader().getQueueId());
-                window.getWindowCache().flush();
+                window.getWindowCache().flush(queueIds);
             }
 
         }
@@ -56,6 +60,8 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
 
     @Override
     public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
+
+
         //do nothigh
     }
     @Override
