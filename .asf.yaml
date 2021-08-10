@@ -1,0 +1,4 @@
+github:
+  features:
+    # Enable issue management
+    issues: true
