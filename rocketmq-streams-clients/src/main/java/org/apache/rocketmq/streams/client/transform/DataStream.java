@@ -19,6 +19,8 @@ package org.apache.rocketmq.streams.client.transform;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.streams.client.DataStreamAction;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
@@ -28,6 +30,7 @@ import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.functions.*;
@@ -95,6 +98,41 @@ public class DataStream implements Serializable {
                             message.setMessageBody(new UserDefinedMessage(result));
                         }
                     }
+                    return null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+        };
+        ChainStage<?> stage = this.mainPipelineBuilder.createStage(stageBuilder);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
+    }
+
+
+    public <T, O> DataStream flatMap(FlatMapFunction<T, O> mapFunction) {
+        StageBuilder stageBuilder = new StageBuilder() {
+            @Override
+            protected <T> T operate(IMessage message, AbstractContext context) {
+                try {
+                    O o = (O)(message.getMessageValue());
+                    List<T> result =(List<T>)mapFunction.flatMap(o);
+                    if(result==null||result.size()==0){
+                        context.breakExecute();
+                    }
+                    List<IMessage> splitMessages=new ArrayList<>();
+                    for(T t:result){
+                        Message subMessage=null;
+                        if (result instanceof JSONObject) {
+                            subMessage=new Message((JSONObject)result);
+                        } else {
+                            subMessage=new Message(new UserDefinedMessage(result));
+                        }
+                        splitMessages.add(subMessage);
+                    }
+                    context.openSplitModel();;
+                    context.setSplitMessages(splitMessages);
                     return null;
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -384,25 +422,7 @@ public class DataStream implements Serializable {
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-    public DataStreamAction toMetaq(String topic) {
-        return toMetaq(topic, null);
-    }
 
-    public DataStreamAction toMetaq(String topic, String tags) {
-        return toMetaq(topic, tags, -1);
-    }
-
-    public DataStreamAction toMetaq(String topic, String tags, int batchSize) {
-        RocketMQSink metaqChannel = new RocketMQSink();
-        metaqChannel.setTopic(topic);
-        metaqChannel.setTags(tags);
-        if (batchSize > 0) {
-            metaqChannel.setBatchSize(batchSize);
-        }
-        ChainStage<?> output = this.mainPipelineBuilder.createStage(metaqChannel);
-        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
-        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
-    }
 
     public DataStreamAction toRocketmq(String topic, String groupName, String endpoint, String namesrvAddr,
                                        String accessKey, String secretKey, String instanceId) {

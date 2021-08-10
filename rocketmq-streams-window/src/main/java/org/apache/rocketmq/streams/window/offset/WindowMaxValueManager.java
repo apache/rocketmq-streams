@@ -57,22 +57,22 @@ public class WindowMaxValueManager implements IWindowMaxValueManager {
         return windowMaxValue.incrementAndGetMaxOffset();
     }
 
-    @Override
-    public Long updateWindowEventTime(String splitId, Long eventTime) {
-        String windowId=StringUtil.createMD5Str(MapKeyUtil.createKey(window.getNameSpace(),window.getConfigureName()));
-        String key=MapKeyUtil.createKey(splitId, windowId);
-        WindowMaxValue windowOffset=queryOrCreateWindowOffset(key,true);
-        return windowOffset.comareAndSet(eventTime);
-    }
-
-    @Override
-    public Long updateWindowEventTime(String splitId, String formatEventTime) {
-        if(StringUtil.isEmpty(formatEventTime)){
-            return  updateWindowEventTime(splitId,(Long)null);
-        }
-        Long time= DateUtil.parseTime(formatEventTime).getTime();
-        return  updateWindowEventTime(splitId,time);
-    }
+    //@Override
+    //public Long updateWindowEventTime(String splitId, Long eventTime) {
+    //    String windowId=StringUtil.createMD5Str(MapKeyUtil.createKey(window.getNameSpace(),window.getConfigureName()));
+    //    String key=MapKeyUtil.createKey(splitId, windowId);
+    //    WindowMaxValue windowOffset=queryOrCreateWindowOffset(key,true);
+    //    return windowOffset.comareAndSet(eventTime);
+    //}
+    //
+    //@Override
+    //public Long updateWindowEventTime(String splitId, String formatEventTime) {
+    //    if(StringUtil.isEmpty(formatEventTime)){
+    //        return  updateWindowEventTime(splitId,(Long)null);
+    //    }
+    //    Long time= DateUtil.parseTime(formatEventTime).getTime();
+    //    return  updateWindowEventTime(splitId,time);
+    //}
 
     @Override
     public Long incrementAndGetSplitNumber(String key) {

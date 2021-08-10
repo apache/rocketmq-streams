@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> {
     protected ConcurrentHashMap<String, MessageCache<IMessage>> queueMessageCaches = new ConcurrentHashMap();
-
+    protected transient Boolean isOpenAutoFlush=true;
     public AbstractMutilSplitMessageCache(
         IMessageFlushCallBack<R> flushCallBack) {
         super(null);
@@ -43,7 +43,9 @@ public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> 
             messageCache = existMessageCache;
         } else {
             messageCache.setBatchSize(batchSize);
-            messageCache.openAutoFlush();
+            if(this.isOpenAutoFlush){
+                messageCache.openAutoFlush();
+            }
         }
         messageCache.addCache(msg);
         int size = messageCount.incrementAndGet();
@@ -101,10 +103,12 @@ public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> 
         for (IMessageCache cache : this.queueMessageCaches.values()) {
             cache.openAutoFlush();
         }
+        this.isOpenAutoFlush=true;
     }
 
     @Override
     public void closeAutoFlush() {
+        this.isOpenAutoFlush=false;
         for (IMessageCache cache : this.queueMessageCaches.values()) {
             cache.closeAutoFlush();
         }

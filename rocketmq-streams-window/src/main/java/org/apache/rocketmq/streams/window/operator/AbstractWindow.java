@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import com.alibaba.fastjson.JSONObject;
 
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAfterCurrentNode;
@@ -39,6 +40,7 @@ import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.model.WindowCache;
@@ -190,6 +192,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected transient WindowStorage storage;
     protected transient WindowRireSource windowFireSource;
 
+    protected transient EventTimeManager eventTimeManager;
+
     //create and save window instacne max partitionNum and window max eventTime
     protected transient IWindowMaxValueManager windowMaxValueManager;
 
@@ -227,6 +231,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             byte[] bytes= Base64Utils.decode(  this.reduceSerializeValue);
             reducer = InstantiationUtil.deserializeObject(bytes);
         }
+        eventTimeManager=new EventTimeManager();
         windowMaxValueManager = new WindowMaxValueManager(this);
         return success;
     }
@@ -262,6 +267,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         JSONObject msg = message.getMessageBody();
         msg.put(MessageHeader.class.getSimpleName(), message.getHeader());
         msg.put(AbstractWindow.class.getSimpleName(), this);
+        eventTimeManager.setSource(message.getHeader().getSource());
         windowCache.batchAdd(message);
         //主要为了在单元测试中，写入和触发一体化使用，无实际意义，不要在业务场景使用这个字段
 
@@ -306,7 +312,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @return
      */
     public String createWindowInstanceName(String startTime, String endTime, String fireTime){
-        return fireMode==1?fireTime:getConfigureName();
+        return fireMode==0?getConfigureName():fireTime;
     }
 
     /**
@@ -460,30 +466,19 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     public List<WindowInstance> queryOrCreateWindowInstance(IMessage message,String queueId) {
         List<WindowInstance> windowInstances=WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
             queueId);
-        if(fireMode==2){
-            if(windowInstances==null){
-                return null;
-            }
-            for(WindowInstance windowInstance:windowInstances){
-                Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
-                Date lastFireTimne=DateUtil.addDate(TimeUnit.SECONDS,endTime,getWaterMarkMinute()*timeUnitAdjust);
-                //if fireMode==2， need clear data in lastFireTime
-                WindowInstance lastClearWindowInstance=createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTimne),queueId);
-                getWindowFireSource().registFireWindowInstanceIfNotExist(lastClearWindowInstance,this);
-            }
-        }
+//        if(fireMode==2){
+//            if(windowInstances==null){
+//                return null;
+//            }
+//            for(WindowInstance windowInstance:windowInstances){
+//                Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
+//                Date lastFireTimne=DateUtil.addDate(TimeUnit.SECONDS,endTime,getWaterMarkMinute()*timeUnitAdjust);
+//                //if fireMode==2， need clear data in lastFireTime
+//                WindowInstance lastClearWindowInstance=createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTimne),queueId);
+//                getWindowFireSource().registFireWindowInstanceIfNotExist(lastClearWindowInstance,this);
+//            }
+//        }
         return windowInstances;
-    }
-
-    /**
-     * 获取实际触发的时间，增加了固定延迟和water marker
-     *
-     * @param windowInstance
-     * @return
-     */
-    public Date getRealFireTime(WindowInstance windowInstance){
-        Date fireDate=DateUtil.parse(windowInstance.getFireTime());
-        return DateUtil.addSecond(fireDate,FIRE_DELAY_SECOND);
     }
 
     /**
@@ -491,35 +486,13 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @param msg
      * @return
      */
-    public Long updateMaxEventTime(IMessage msg){
-        String splitId=msg.getHeader().getQueueId();
-        if(StringUtil.isEmpty(this.timeFieldName)){
-            return updateWindowEventTime(splitId,System.currentTimeMillis());
-        }
-        String time=msg.getMessageBody().getString(timeFieldName);
-        if(StringUtil.isEmpty(time)){
-            LOG.error(timeFieldName+ " is null, may be delay window fire");
-            return null;
-        }
-        if(FunctionUtils.isLong(time)){
-            return updateWindowEventTime(splitId,Long.valueOf(time));
-        }
-        return updateWindowEventTime(splitId,time);
+    public void updateMaxEventTime(IMessage msg){
+        eventTimeManager.updateEventTime(msg,this);
     }
 
-    protected transient Map<String,Long> maxTime=new HashMap<>();
-    private  Long updateWindowEventTime(String splitId, String currentTime) {
-        return updateWindowEventTime(splitId,DateUtil.parseTime(currentTime).getTime());
+    public Long getMaxEventTime(String queueId) {
+       return this.eventTimeManager.getMaxEventTime(queueId);
     }
-    private  Long updateWindowEventTime(String splitId, Long currentTime) {
-        Long old=maxTime.get(splitId);
-
-        if(old==null||currentTime>old){
-            maxTime.put(splitId,currentTime);
-        }
-        return maxTime.get(splitId);
-    }
-
 
     /**
      * 聚合后的数据，继续走规则引擎的规则
@@ -777,5 +750,9 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
 
     public void setMsgMaxGapSecond(Long msgMaxGapSecond) {
         this.msgMaxGapSecond = msgMaxGapSecond;
+    }
+
+    public EventTimeManager getEventTimeManager() {
+        return eventTimeManager;
     }
 }
