@@ -17,6 +17,12 @@
 
 package org.apache.rocketmq.streams.client.transform;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
@@ -28,9 +34,6 @@ import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.script.operator.impl.ScriptOperator;
 import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JoinStream {
 

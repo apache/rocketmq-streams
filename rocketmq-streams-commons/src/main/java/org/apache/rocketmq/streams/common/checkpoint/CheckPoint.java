@@ -16,11 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.model.Entity;
 

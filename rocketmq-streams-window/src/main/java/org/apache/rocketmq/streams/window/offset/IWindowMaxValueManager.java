@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.window.offset;
 
-import org.apache.rocketmq.streams.window.model.WindowInstance;
-
 import java.util.Set;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 
 /**
  * create split sequence number for window instance output result order by split sequence number when windown instance fire

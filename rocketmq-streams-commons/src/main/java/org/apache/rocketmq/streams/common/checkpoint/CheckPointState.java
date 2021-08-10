@@ -18,10 +18,7 @@ package org.apache.rocketmq.streams.common.checkpoint;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.rocketmq.streams.common.context.MessageOffset;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 
 public class CheckPointState {
     protected Map<String, MessageOffset> queueIdAndOffset = new HashMap<>();//存储已经处理完成的队列id和最大的offset

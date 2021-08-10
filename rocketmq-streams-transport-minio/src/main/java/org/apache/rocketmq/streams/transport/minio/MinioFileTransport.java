@@ -16,16 +16,8 @@
  */
 package org.apache.rocketmq.streams.transport.minio;
 
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.model.ServiceName;
-import org.apache.rocketmq.streams.common.transport.AbstractFileTransport;
-import org.apache.rocketmq.streams.common.transport.IFileTransport;
-import org.apache.rocketmq.streams.common.utils.FileUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 import com.google.auto.service.AutoService;
 import io.minio.MinioClient;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -33,6 +25,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.model.ServiceName;
+import org.apache.rocketmq.streams.common.transport.AbstractFileTransport;
+import org.apache.rocketmq.streams.common.transport.IFileTransport;
+import org.apache.rocketmq.streams.common.utils.FileUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 @AutoService(IFileTransport.class)
 @ServiceName(MinioFileTransport.NAME)

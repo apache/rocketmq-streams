@@ -16,16 +16,15 @@
  */
 package org.apache.rocketmq.streams.common.component;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.utils.ENVUtile;
 import org.apache.rocketmq.streams.common.utils.PropertiesUtils;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFileKey {
 

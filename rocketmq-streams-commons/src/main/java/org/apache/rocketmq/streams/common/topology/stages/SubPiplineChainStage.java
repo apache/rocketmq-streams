@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -37,12 +42,6 @@ import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.topology.model.PipelineSourceJoiner;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class
 SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfiguableRefreshListerner {

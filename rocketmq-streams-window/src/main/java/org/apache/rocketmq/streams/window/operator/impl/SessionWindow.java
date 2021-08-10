@@ -16,6 +16,13 @@
  */
 package org.apache.rocketmq.streams.window.operator.impl;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -26,8 +33,6 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
-
-import java.util.*;
 
 /**
  * 实现思路： 1.每个分片一个windowinstance，starttime=2020-12-30:00:00:00 endtime=2999-01-01 01:01:01 2.firetime，第一次创建窗口，firetime=当前时间计算+window size 3.增加存储，按window instance所有groupby的触发时间排序(设计前缀)，每次有数据来时，更新触发时间，触发时间算法如2 4.窗口触发时，检查存储中最近的触发时间是否<=触发时间，如果符合触发条件触发，然后一直迭代到触发时间>当前时间，把最近的触发时间当作window instance的触发时间，修改window instance的firetime 5.清理触发的数据（触发时间<=窗口实例的触发时间）

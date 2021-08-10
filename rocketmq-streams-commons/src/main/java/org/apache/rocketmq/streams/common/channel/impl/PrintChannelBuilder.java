@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl;
 
-import java.util.Properties;
-
 import com.google.auto.service.AutoService;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;

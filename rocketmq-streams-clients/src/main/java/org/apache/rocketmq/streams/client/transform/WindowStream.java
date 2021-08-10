@@ -18,6 +18,7 @@
 package org.apache.rocketmq.streams.client.transform;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.functions.ReduceFunction;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
@@ -25,8 +26,6 @@ import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-
-import java.util.Set;
 
 /**
  * 做windown 相关操作 可以同时设置多个统计算子，如count，sum，avg 通过toDataSteam/reduce 返回DataSteam

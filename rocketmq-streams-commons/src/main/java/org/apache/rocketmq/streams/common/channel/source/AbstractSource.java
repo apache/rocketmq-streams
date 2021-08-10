@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.channel.source;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -23,10 +25,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;

@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.script.optimization;
 
-import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptParameter;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;

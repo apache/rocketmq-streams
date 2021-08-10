@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.channel;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.context.Message;

@@ -17,11 +17,10 @@
 package org.apache.rocketmq.streams.common.interfaces;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
-
-import java.util.List;
 
 public interface IFilterService<T extends AbstractRule> {
 

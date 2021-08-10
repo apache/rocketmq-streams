@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.filter.operator;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.operator.expression.SimpleExpression;
 import org.junit.Test;

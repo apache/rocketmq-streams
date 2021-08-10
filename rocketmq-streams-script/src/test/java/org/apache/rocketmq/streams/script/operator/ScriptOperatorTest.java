@@ -16,11 +16,9 @@
  */
 package org.apache.rocketmq.streams.script.operator;
 
-import java.util.List;
-
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;

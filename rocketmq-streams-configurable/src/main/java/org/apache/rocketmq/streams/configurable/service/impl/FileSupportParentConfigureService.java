@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.streams.configurable.service.impl;
 
-import org.apache.rocketmq.streams.configurable.service.AbstractSupportParentConfigureService;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
-import org.apache.rocketmq.streams.common.model.ServiceName;
 import com.google.auto.service.AutoService;
-
 import java.util.Properties;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.model.ServiceName;
+import org.apache.rocketmq.streams.configurable.service.AbstractSupportParentConfigureService;
+import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
 
 @AutoService(IConfigurableService.class)
 @ServiceName(ConfigurableServcieType.FILE_SERVICE_NAME)

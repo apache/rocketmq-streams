@@ -16,29 +16,34 @@
  */
 package org.apache.rocketmq.streams.filter.builder;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.common.model.NameCreator;
-import org.apache.rocketmq.streams.db.driver.JDBCDriver;
-import org.apache.rocketmq.streams.filter.operator.action.Action;
-import org.apache.rocketmq.streams.filter.operator.action.impl.MetaDataAction;
-import org.apache.rocketmq.streams.filter.contants.RuleElementType;
-import org.apache.rocketmq.streams.filter.operator.expression.ExpressionRelationParser;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
-import org.apache.rocketmq.streams.filter.operator.var.ConstantVar;
-import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
-import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
-import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
-import java.util.*;
+import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.apache.rocketmq.streams.filter.contants.RuleElementType;
+import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.action.Action;
+import org.apache.rocketmq.streams.filter.operator.action.impl.MetaDataAction;
+import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.expression.ExpressionRelationParser;
+import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
+import org.apache.rocketmq.streams.filter.operator.var.ConstantVar;
+import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
+import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
+import org.apache.rocketmq.streams.filter.operator.var.Var;
 
 /**
  * 通过这个工具可以快速创建一条规则。这个工具默认消息流的字段名＝metadata的字段名

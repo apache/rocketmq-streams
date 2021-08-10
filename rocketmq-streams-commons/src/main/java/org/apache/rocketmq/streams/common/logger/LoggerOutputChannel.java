@@ -17,6 +17,10 @@
 package org.apache.rocketmq.streams.common.logger;
 
 import com.alibaba.fastjson.JSONObject;
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
@@ -25,11 +29,6 @@ import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class LoggerOutputChannel extends AbstractSink {
     private static transient Map<String, Logger> loggerFactory = new HashMap<>();

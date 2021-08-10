@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
-import org.apache.rocketmq.streams.common.cache.compress.ByteArrayValueKV;
-import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
-import org.junit.Assert;
-
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.cache.compress.ByteArrayValueKV;
+import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
+import org.junit.Assert;
 
 /**
  * 支持key是string，value是int的场景，支持size不大于10000000.只支持int，long，boolean，string类型 只能一次行load，不能进行更新

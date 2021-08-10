@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.streams.script.service.udf;
 
+import java.lang.reflect.Method;
 import org.apache.rocketmq.streams.common.model.BeanHolder;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
-
-import java.lang.reflect.Method;
 
 /**
  * 实现了IAccumulator。核心思路是通过反射，把外部的udaf 映射成标准的IAccumulator接口

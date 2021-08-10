@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.lease;
 
 import java.util.Date;
-
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
@@ -112,8 +111,7 @@ public class LeaseComponentTest {
             return true;
         }
 
-        boolean success = leaseService.holdLock(name, lockName, leaseTime);
-        return success;
+        return leaseService.holdLock(name, lockName, leaseTime);
     }
 
 }

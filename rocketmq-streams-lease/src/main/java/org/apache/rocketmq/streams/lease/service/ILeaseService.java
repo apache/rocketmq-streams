@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.lease.service;
 
 import java.util.List;
-import java.util.concurrent.Future;
-
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 
 /**

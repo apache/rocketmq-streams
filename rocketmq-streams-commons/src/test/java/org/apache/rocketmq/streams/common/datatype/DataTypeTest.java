@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.datatype;
 
-import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.junit.Test;
 

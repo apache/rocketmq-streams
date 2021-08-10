@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.filter.operator.expression;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.rocketmq.streams.filter.operator.Rule;
 
 public class OptimizationRule {

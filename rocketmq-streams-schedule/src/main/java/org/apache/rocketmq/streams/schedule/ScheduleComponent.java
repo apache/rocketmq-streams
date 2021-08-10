@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.streams.schedule;
 
-import org.apache.rocketmq.streams.schedule.service.IScheduleService;
-import org.apache.rocketmq.streams.schedule.service.impl.ScheduleServiceImpl;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-
-import java.util.Properties;
+import org.apache.rocketmq.streams.schedule.service.IScheduleService;
+import org.apache.rocketmq.streams.schedule.service.impl.ScheduleServiceImpl;
 
 public class ScheduleComponent extends AbstractComponent<IScheduleService> {
     private static ScheduleComponent scheduleComponent;

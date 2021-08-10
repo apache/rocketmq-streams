@@ -16,15 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.configurable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
-import org.apache.rocketmq.streams.common.model.Entity;
-import org.apache.rocketmq.streams.common.utils.AESUtil;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.model.Entity;
+import org.apache.rocketmq.streams.common.utils.AESUtil;
 
 public abstract class AbstractConfigurable extends Entity implements IConfigurable {
 

@@ -16,31 +16,30 @@
  */
 package org.apache.rocketmq.streams.filter.operator.expression;
 
+import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.utils.AESUtil;
-import org.apache.rocketmq.streams.common.utils.ContantsUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
-import org.apache.rocketmq.streams.filter.operator.var.Var;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.utils.AESUtil;
+import org.apache.rocketmq.streams.common.utils.ContantsUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
+import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
+import org.apache.rocketmq.streams.filter.operator.var.Var;
+import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public class Expression<T> extends BasedConfigurable
     implements IConfigurable, IConfigurableAction<Boolean>, Serializable {

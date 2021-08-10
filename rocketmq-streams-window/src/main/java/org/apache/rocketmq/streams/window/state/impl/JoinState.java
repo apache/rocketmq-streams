@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.window.state.impl;
 
 import java.util.Date;
-
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 public class JoinState extends WindowBaseValue {

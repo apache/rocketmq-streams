@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.optimization;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class OptimizationRegex {
     private static int orWordCount = 21;//对于or，超过多少就不处理了

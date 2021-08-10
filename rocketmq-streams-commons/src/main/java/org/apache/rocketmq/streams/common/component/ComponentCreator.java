@@ -16,17 +16,21 @@
  */
 package org.apache.rocketmq.streams.common.component;
 
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.PropertiesUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
-
-import java.net.URL;
-import java.util.*;
-import java.util.Map.Entry;
 
 /**
  * 创建组件，如果参数未发生变化（如果未传入，则是配置文件的参数），返回同一个组件对象，如果发生变化，返回不同的组件对象

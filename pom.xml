@@ -20,11 +20,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>18</version>
+    </parent>
+
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
-    <name>ROCKETMQ STREAMS</name>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
+    <url>http://rocketmq.apache.org/</url>
 
     <modules>
         <module>rocketmq-streams-commons</module>
@@ -37,6 +44,7 @@
         <module>rocketmq-streams-schedule</module>
         <module>rocketmq-streams-lease</module>
         <module>rocketmq-streams-db-operator</module>
+        <module>rocketmq-streams-dbinit</module>
         <module>rocketmq-streams-window</module>
         <module>rocketmq-streams-clients</module>
         <module>rocketmq-streams-channel-rocketmq</module>
@@ -84,7 +92,24 @@
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <version>0.12</version>
+                <configuration>
+                    <excludes>
+                        <exclude>.gitignore</exclude>
+                        <exclude>.travis.yaml</exclude>
+                        <exclude>README.md</exclude>
+                        <exclude>QUICKSTART.md</exclude>
+                        <exclude>.github/**</exclude>
+                        <exclude>*/target/**</exclude>
+                        <exclude>*/*.iml</exclude>
+                        <exclude>**/*.txt</exclude>
+                        <exclude>**/*.cs</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -100,6 +125,25 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
                 <version>2.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
