@@ -111,6 +111,7 @@ public class Message implements IMessage {
         isJsonMessage = jsonMessage;
     }
 
+    @Override
     public void setHeader(MessageHeader header) {
         this.header = header;
     }
