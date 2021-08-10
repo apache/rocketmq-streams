@@ -508,7 +508,9 @@ public class ReflectUtil {
     public static Object invoke(Object object, String methodName, Class[] classes, Object[] objects) {
         try {
             Class clazz = object.getClass();
-            return clazz.getMethod(methodName, classes).invoke(object, objects);
+            Method method= clazz.getDeclaredMethod(methodName, classes);
+            method.setAccessible(true);
+            return method.invoke(object, objects);
         } catch (Exception e) {
             throw new RuntimeException(
                 "invokeGetMinvokeethod error， the methodName is " + methodName + "; the object is " + object, e);

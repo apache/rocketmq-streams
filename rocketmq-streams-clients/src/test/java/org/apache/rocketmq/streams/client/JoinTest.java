@@ -83,7 +83,6 @@ public class JoinTest implements Serializable {
             .toPrint();
         stream.start();
         ;
-        ;
 
     }
 }

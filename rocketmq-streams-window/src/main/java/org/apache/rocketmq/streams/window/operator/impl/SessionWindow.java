@@ -64,7 +64,7 @@ public class SessionWindow extends WindowOperator {
             if (windowBaseValue == null) {
                 continue;
             }
-            Date realFireTime = getRealFireTime(instance);
+            Date realFireTime = DateUtil.parseTime(instance.getFireTime());
             Long currentMaxTime = instance.getLastMaxUpdateTime();
             Long realFireTimeLong = realFireTime.getTime();
             // System.out.println(DateUtil.format(new Date(currentMaxTime)));
@@ -105,7 +105,10 @@ public class SessionWindow extends WindowOperator {
     protected void saveStorage(Map<String, WindowBaseValue> newWindowValues, Map<String, WindowBaseValue> exisitWindowValues, WindowInstance windowInstance, String queueId) {
         List<String> oldKeys = new ArrayList<>();
         Map<String, WindowBaseValue> partionNumOrders = new HashMap<>();//需要基于key前缀排序partitionnum
-        for (WindowBaseValue windowBaseValue : exisitWindowValues.values()) {
+        Map<String,WindowBaseValue> allWindowBasedValue=new HashMap<>();
+        allWindowBasedValue.putAll(exisitWindowValues);
+        allWindowBasedValue.putAll(newWindowValues);
+        for (WindowBaseValue windowBaseValue : allWindowBasedValue.values()) {
             WindowValue windowValue = (WindowValue)windowBaseValue;
             String oldPartitionNumKey = createStoreKey(getOrderBypPrefix() + queueId, MapKeyUtil.createKey(getOrderBypFieldName(windowValue), windowValue.getGroupBy()), windowInstance);
 
@@ -118,20 +121,8 @@ public class SessionWindow extends WindowOperator {
             }
 
         }
-        //
-        for (WindowBaseValue windowBaseValue : newWindowValues.values()) {
-            WindowValue windowValue = (WindowValue)windowBaseValue;
-            String oldPartitionNumKey = createStoreKey(getOrderBypPrefix() + queueId, MapKeyUtil.createKey(getOrderBypFieldName(windowValue), windowValue.getGroupBy()), windowInstance);
-            windowBaseValue.setFireTime(createSessionFireTime(windowValue.getPartition(), windowValue.getLastUpdateTime()));
-            String partitionNumKey = createStoreKey(getOrderBypPrefix() + queueId, MapKeyUtil.createKey(getOrderBypFieldName(windowValue), windowValue.getGroupBy()), windowInstance);
-            if (!partitionNumKey.equals(oldPartitionNumKey)) {
-                oldKeys.add(oldPartitionNumKey);
-                partionNumOrders.put(partitionNumKey, windowValue);
-            }
-        }
         this.storage.getLocalStorage().removeKeys(oldKeys);
-        storage.multiPut(exisitWindowValues);
-        storage.multiPut(newWindowValues);
+        storage.multiPut(allWindowBasedValue);
         storage.multiPut(partionNumOrders);
     }
 
@@ -214,17 +205,6 @@ public class SessionWindow extends WindowOperator {
         return DateUtil.format(newFireTime);
     }
 
-    /**
-     * 获取实际触发的时间，增加了固定延迟和water marker
-     *
-     * @param windowInstance
-     * @return
-     */
-    @Override
-    public Date getRealFireTime(WindowInstance windowInstance) {
-        Date fireDate = DateUtil.parse(windowInstance.getFireTime());
-        return fireDate;
-    }
 
     /**
      * create min session fire time, the current time+window size
@@ -235,7 +215,7 @@ public class SessionWindow extends WindowOperator {
      */
     protected Date createSessionFireDate(String splitId, Long lastUpdateTime) {
         if (lastUpdateTime == null) {
-            lastUpdateTime = this.getWindowMaxValueManager().updateWindowEventTime(splitId, (Long)null);
+           // lastUpdateTime = this.updateMaxEventTime(splitId, (Long)null);
         }
         Date currentDate = new Date(lastUpdateTime);
         Date newFireTime = DateUtil.addSecond(currentDate, this.sizeInterval * this.timeUnitAdjust);
