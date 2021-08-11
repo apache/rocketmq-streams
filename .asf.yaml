@@ -4,8 +4,7 @@ github:
     issues: true
     # Enable wiki
     wiki: true
-
-    
+   
   protected_branches:
     master:
       required_pull_request_reviews:
