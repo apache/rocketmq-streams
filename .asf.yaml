@@ -5,3 +5,4 @@ github:
     # Enable wiki
     wiki: true
 
+  protected_branches:
