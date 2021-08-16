@@ -37,6 +37,7 @@ public class DataTpyeTest {
     @Test
     public void testV2() {
         Set<String> set = new HashSet<>();
+        set.add("北京");
         set.add("北斗");
         set.add("福建jz");
         set.add("甘肃jz");
