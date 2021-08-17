@@ -40,6 +40,7 @@ import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
@@ -501,6 +502,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      */
     public void sendFireMessage(List<WindowValue> windowValueList,String queueId) {
         int count = 0;
+        List<IMessage> msgs=new ArrayList<>();
         for (WindowValue windowValue : windowValueList) {
             JSONObject message = new JSONObject();
 
@@ -533,8 +535,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             if (count == windowValueList.size() - 1) {
                 newMessage.getHeader().setNeedFlush(true);
             }
+            msgs.add(newMessage);
             windowFireSource.executeMessage(newMessage);
+
             count++;
+        }
+
+        if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
+            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowFire(this,msgs,queueId);
         }
     }
 

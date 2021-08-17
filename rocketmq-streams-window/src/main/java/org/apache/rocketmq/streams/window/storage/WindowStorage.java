@@ -153,17 +153,17 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
 
     @Override
     public void delete(String windowInstanceId, Set<String> queueIds, Class<T> clazz) {
-        executorService.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                localStorage.delete(windowInstanceId, queueIds, clazz);
-                if (!isLocalStorageOnly) {
-                    remoteStorage.delete(windowInstanceId, queueIds, clazz);
-                }
-
-            }
-        });
+        localStorage.delete(windowInstanceId, queueIds, clazz);
+        if (!isLocalStorageOnly) {
+            remoteStorage.delete(windowInstanceId, queueIds, clazz);
+//            executorService.execute(new Runnable() {
+//
+//                @Override
+//                public void run() {
+//                    remoteStorage.delete(windowInstanceId, queueIds, clazz);
+//                }
+//            });
+        }
     }
 
     public static abstract class WindowBaseValueIterator<T extends WindowBaseValue> implements Iterator<T> {

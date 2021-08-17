@@ -33,6 +33,7 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
@@ -142,7 +143,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         }
         Map<String,WindowBaseValue> exisitWindowValues=new HashMap<>();
         Map<String,WindowBaseValue> newWindowValues=new HashMap<>();
-
+        List<WindowValue> windowValues=new ArrayList<>();
         //从存储中，查找window value对象，value是对象的json格式
         Map<String, WindowBaseValue>  key2WindowValues=storage.multiGet(getWindowBaseValueClass(),storeKeys,instance.createWindowInstanceId(),queueId);
         Iterator<Entry<String, List<IMessage>>> it = groupBy.entrySet().iterator();
@@ -159,6 +160,7 @@ public class WindowOperator extends AbstractShuffleWindow {
                 exisitWindowValues.put(storeKey,windowValue);
             }
 
+            windowValues.add(windowValue);
             windowValue.incrementUpdateVersion();
             //Integer origValue=(Integer)windowValue.getComputedColumnResultByKey("total");
             //if(origValue==null){
@@ -179,7 +181,9 @@ public class WindowOperator extends AbstractShuffleWindow {
             //System.out.println("==========shuffle count is "+shuffleCount.get());
 
         }
-
+        if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
+            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowCalculate(this,windowValues,queueId);
+        }
         saveStorage(newWindowValues,exisitWindowValues,instance,queueId);
         //Integer count=shuffleWindowInstanceId2MsgCount.get(instance.createWindowInstanceId());
         //if(count==null){

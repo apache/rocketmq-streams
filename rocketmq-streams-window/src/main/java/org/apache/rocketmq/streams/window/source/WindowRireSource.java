@@ -200,30 +200,16 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
      */
     public boolean executeFireTask(WindowInstance windowInstance,boolean startNow) {
         String windowInstanceId=windowInstance.createWindowInstanceId();
-//        JSONObject fireMsg=new JSONObject();
-//        Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
-//        fireMsg.put("start_time",windowInstance.getStartTime());
-//        fireMsg.put("end_time",windowInstance.getEndTime());
-//        fireMsg.put("fire_time",windowInstance.getFireTime());
-//        fireMsg.put("queueid",windowInstance.getSplitId());
-//        fireMsg.put("lastUpdateTime", DateUtil.format(new Date(eventTimeLastUpdateTime)));
-//        fireMsg.put("sign","abc*********************************************abc");
-//        List<IMessage> messages=new ArrayList<>();
-//        messages.add(new Message(fireMsg));
-//        ShuffleChannel.write2File(window,messages,windowInstance,windowInstance.getSplitId());
-        if (canFire(windowInstance)) {
+        FireResult fireResult=canFire(windowInstance);
+        if (fireResult.isCanFire()) {
             //maybe firimg
             if (firingWindowInstances.containsKey(windowInstanceId)) {
                 //System.out.println("has firing");
 
                 return true;
             }
-            //maybe fired
-            //if (!window.getWindowInstanceMap().containsKey(windowInstanceId)) {
-            //    return true;
-            //}
             //start firing
-            DebugWriter.getDebugWriter(window.getConfigureName()).writeFireWindowInstance(windowInstance,eventTimeLastUpdateTime);
+            DebugWriter.getDebugWriter(window.getConfigureName()).writeFireWindowInstance(windowInstance,eventTimeLastUpdateTime,this.window.getMaxEventTime(windowInstance.getSplitId()),fireResult.getReason());
             firingWindowInstances.put(windowInstanceId, windowInstance);
             if(startNow){
                 fireWindowInstance(windowInstance);
@@ -269,11 +255,11 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
      * @param windowInstance
      * @return
      */
-    protected boolean canFire(WindowInstance windowInstance) {
+    protected FireResult canFire(WindowInstance windowInstance) {
         String windowInstanceId=windowInstance.createWindowInstanceId();
         if(window == null){
             LOG.warn(windowInstanceId + " can't find window!");
-            return false;
+            return new FireResult();
         }
         Date fireTime=DateUtil.parseTime(windowInstance.getFireTime());
         /**
@@ -281,25 +267,25 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
          */
         Long maxEventTime=this.window.getMaxEventTime(windowInstance.getSplitId());
         if(maxEventTime==null){
-            return false;
+            return new FireResult();
         }
         if(maxEventTime-fireTime.getTime()>=3000){
-            return true;
+            return new FireResult(true,0);
         }
         if(maxEventTime-fireTime.getTime()<3000){
             Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
             if(eventTimeLastUpdateTime==null){
-                return false;
+                return new FireResult();
             }
             int gap=(int)(System.currentTimeMillis()-eventTimeLastUpdateTime);
             if(window.getMsgMaxGapSecond()!=null&&gap>window.getMsgMaxGapSecond()*1000){
                 LOG.warn("the fire reason is exceed the gap "+gap+" window instance id is "+windowInstanceId);
-                return true;
+                return new FireResult(true,1);
             }
-            return false;
+            return new FireResult();
         }
 
-        return true;
+        return new FireResult(true,0);
     }
 
     @Override
@@ -338,6 +324,28 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
         @Override
         protected String createSplitId(WindowInstance windowInstance) {
             return windowInstance.getSplitId();
+        }
+    }
+
+    protected class FireResult{
+        protected boolean canFire=false;
+        protected int reason=-1;//0:event time;1:timeout;-1:nothign
+        public FireResult(boolean canFire,int reason){
+            this.canFire=canFire;
+            this.reason=reason;
+        }
+
+        public FireResult(){
+            this.canFire=false;
+            this.reason=-1;
+        }
+
+        public boolean isCanFire() {
+            return canFire;
+        }
+
+        public int getReason() {
+            return reason;
         }
     }
 

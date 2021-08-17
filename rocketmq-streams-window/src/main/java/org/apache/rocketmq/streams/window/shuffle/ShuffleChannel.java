@@ -185,22 +185,23 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
             List<WindowInstance> windowInstances=window.queryOrCreateWindowInstance(message,queueId);
             if(windowInstances==null||windowInstances.size()==0){
+                System.out.println("====================== discard data");
                 continue;
             }
             for(WindowInstance windowInstance:windowInstances){
                 String windowInstanceId = windowInstance.createWindowInstanceId();
                 if(!window.getWindowInstanceMap().containsKey(windowInstanceId)){
                     window.getWindowInstanceMap().putIfAbsent(windowInstanceId,windowInstance);
-                    synchronized (this){
-                        if(window.getFireMode()==2){
-                            //这个模式窗口触发不会清理数据，需要额外的创建一个实例做最后的存储清理
-                            Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
-                            Date lastFireTime=DateUtil.addDate(TimeUnit.SECONDS,endTime,window.getWaterMarkMinute()*window.getTimeUnitAdjust());
-                            WindowInstance lastClearWindowInstance=window.createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTime),queueId);
-
-                            addNeedFlushWindowInstance(lastClearWindowInstance);
-                        }
-                    }
+//                    synchronized (this){
+//                        if(window.getFireMode()==2){
+//                            //这个模式窗口触发不会清理数据，需要额外的创建一个实例做最后的存储清理
+//                            Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
+//                            Date lastFireTime=DateUtil.addDate(TimeUnit.SECONDS,endTime,window.getWaterMarkMinute()*window.getTimeUnitAdjust());
+//                            WindowInstance lastClearWindowInstance=window.createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTime),queueId);
+//
+//                            addNeedFlushWindowInstance(lastClearWindowInstance);
+//                        }
+//                    }
 
                 }
                 if(windowInstance.isNewWindowInstance()){
@@ -215,6 +216,12 @@ public class ShuffleChannel extends AbstractSystemChannel {
             }
             message.getMessageBody().put(WindowInstance.class.getSimpleName(), windowInstances);
             message.getMessageBody().put(AbstractWindow.class.getSimpleName(), window);
+
+            if(DebugWriter.getDebugWriter(window.getConfigureName()).isOpenDebug()){
+                List<IMessage> msgs=new ArrayList<>();
+                msgs.add(message);
+                DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceiveBeforeCache(window,msgs,queueId);
+            }
             beforeBatchAdd(oriMessage,message);
             shuffleSink.batchAdd(message);
 
@@ -362,17 +369,19 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
         @Override
         protected boolean batchInsert(List<IMessage> messageList) {
+//            List<WindowInstance> windowInstances = (List<WindowInstance>)messageList.get(0).getMessageBody().get(WindowInstance.class.getSimpleName());
+//            DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window,messageList,windowInstances.get(0));
             Map<Pair<String, String>, List<IMessage>> instance2Messages = new HashMap<>();
             Map<String, WindowInstance> windowInstanceMap = new HashMap<>();
             groupByWindowInstanceAndQueueId(messageList, instance2Messages, windowInstanceMap);
-            Iterator<Map.Entry<Pair<String, String>, List<IMessage>>> it = instance2Messages.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<Pair<String, String>, List<IMessage>> entry = it.next();
-                Pair<String, String> queueIdAndInstanceKey = entry.getKey();
-                List<IMessage> messages = entry.getValue();
+            List<Pair<String, String>> keys=new ArrayList<>(instance2Messages.keySet());
+            Collections.sort(keys);
+            for(Pair<String, String> key:keys){
+                Pair<String, String> queueIdAndInstanceKey = key;
+                List<IMessage> messages = instance2Messages.get(key);
                 WindowInstance windowInstance = windowInstanceMap.get(queueIdAndInstanceKey.getRight());
+                DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window,messages,windowInstance);
                 window.shuffleCalculate(messages, windowInstance, queueIdAndInstanceKey.getLeft());
-                DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleCalculate(window,messages,windowInstance);
             }
             return true;
         }

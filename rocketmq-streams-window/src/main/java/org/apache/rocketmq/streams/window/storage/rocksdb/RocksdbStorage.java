@@ -70,11 +70,11 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
                             try (final Options options = new Options().setCreateIfMissing(true)) {
 
                                 try {
-                                    File dir = new File(rocksdbFilePath);
-                                    if (dir.exists()) {
-                                        dir.delete();
-                                    }
-                                    dir.mkdirs();
+                                        File dir = new File(rocksdbFilePath);
+                                        if (dir.exists()) {
+                                            dir.delete();
+                                        }
+                                        dir.mkdirs();
                                     final TtlDB db = TtlDB.open(options, rocksdbFilePath, 10800, false);
                                     RocksdbStorage.rocksDB = db;
                                     writeOptions.setSync(true);

@@ -73,7 +73,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         List<IMessage> needOrderProducer=new ArrayList<>();
         for (int i=0;i<messages.size();i++) {
             IMessage message =messages.get(i);
-            if(getSPlit(message)!=null){
+            if(getSplit(message)!=null){
                 if(i==0){
                     needOrderProducer=messages;
                     break;
@@ -115,7 +115,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     protected boolean putMessage2Mq(IMessage fieldName2Value,AtomicInteger msgFinishCount,int allMsgSize) {
         MessageQueue targetQueue = null;
-        ISplit<RocketMQMessageQueue,MessageQueue> channelQueue=getSPlit(fieldName2Value);
+        ISplit<RocketMQMessageQueue,MessageQueue> channelQueue=getSplit(fieldName2Value);
 
         if (channelQueue!= null) {
             targetQueue = channelQueue.getQueue();
