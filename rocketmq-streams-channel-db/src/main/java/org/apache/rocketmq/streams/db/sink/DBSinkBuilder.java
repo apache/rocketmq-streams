@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.db.sink;
 
+<<<<<<< HEAD
 import java.util.List;
 import java.util.Properties;
 
@@ -27,6 +28,18 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import com.google.auto.service.AutoService;
+=======
+import com.google.auto.service.AutoService;
+import java.util.List;
+import java.util.Properties;
+import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
+import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.metadata.MetaData;
+import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.model.ServiceName;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(DBSinkBuilder.TYPE)

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.configurable.service.impl;
 
+<<<<<<< HEAD
 import java.util.Properties;
 
 import org.apache.rocketmq.streams.configurable.service.AbstractSupportParentConfigureService;
@@ -23,6 +24,14 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import com.google.auto.service.AutoService;
+=======
+import com.google.auto.service.AutoService;
+import java.util.Properties;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.model.ServiceName;
+import org.apache.rocketmq.streams.configurable.service.AbstractSupportParentConfigureService;
+import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 
 @AutoService(IConfigurableService.class)
 @ServiceName(ConfigurableServcieType.MEMORY_SERVICE_NAME)

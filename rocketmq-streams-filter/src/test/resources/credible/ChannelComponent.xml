@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd"
+       default-autowire="byName">
+    <!-- 引入core.properties属性文件 -->
+    <context:property-placeholder
+            location="classpath:component/ChannelComponent.properties"/>
+
+
+    <context:annotation-config/>
+    <context:component-scan base-package="com.aliyun.yundun.dipper"/>
+
+    <bean id="channelRunner" class="com.aliyun.yundun.dipper.channel.DefaultChannelRunner">
+        <property name="pollingSecond" value="${dipper.channel.polling.second}"/><!--应用多久向配置中心拉取一次配置，单位为秒 -->
+        <property name="dataCachePollingSecond"
+                  value="${dipper.channel.data.cache.polling.second}"/><!--应用多久刷新一次内存打标数据，单位为秒，可选，若不设置则使用默认值1个小时 -->
+        <property name="startChannelList"
+                  value="${dipper.startchannel.list}"/><!--如果值为ALL,则表示启动拉取到的所有channel,如果值为NONE则表示所有channel都不启动，如果想指定启动某几个channel,则填写channelIdentification,多个之间用英文逗号分隔，此功能一般用于实现预发环境不收数据 -->
+        <property name="configurableService" ref="configurableService"></property>
+        <property name="runChannelService" value="false"/>
+        <property name="runDataCacheService" value="false"/>
+        <property name="runCountService" value="false"/>
+        <property name="channel2GroupNameConfigures" value="${dipper.channel2GroupNameConfigures}"/>
+        <property name="channel2OffsetModeConfigures" value="${dipper.channel2OffsetModeConfigures}"/>
+    </bean>
+
+
+    <!--<bean id="configurableService" class="com.aliyun.yundun.dipper.channel.sync.HttpSupportParentConfigureService"> -->
+    <!--<constructor-arg value="${dipper.channle.ak}"></constructor-arg> -->
+    <!--<constructor-arg value="${dipper.channle.sk}"></constructor-arg> -->
+    <!--</bean> -->
+
+
+    <bean id="configurableService"
+          class="com.aliyun.yundun.dipper.channel.sync.ResourceSupportParentConfigureService">
+        <constructor-arg value="${dipper.rds.jdbc.driver}"></constructor-arg>
+        <constructor-arg value="${dipper.rds.jdbc.url}"></constructor-arg>
+        <constructor-arg value="${dipper.rds.jdbc.username}"></constructor-arg>
+        <constructor-arg value="${dipper.rds.jdbc.password}"></constructor-arg>
+    </bean>
+    <bean id="channelDiamondConfig"
+          class="com.aliyun.yundun.dipper.channel.sync.ChannelDiamondConfig">
+    </bean>
+    <!--存储统计数据，二方包的实现类使用tair，使用如下配置时配置中心可以获取到统计数据并绘图，线上线下相同 -->
+    <bean id="channelTairConfig" class="com.aliyun.yundun.dipper.channel.sync.ChannelTairConfig">
+    </bean>
+
+    <bean id="dipperNotifyService"
+          class="com.aliyun.yundun.dipper.configurable.service.impl.DipperNotifyServiceImpl">
+    </bean>
+
+
+    <bean id="dipperDataSourceService"
+          class="com.aliyun.yundun.dipper.channel.sync.DipperDataSourceServiceImpl">
+        <property name="jdbcdriver" value="${dipper.rds.jdbc.driver}"/>
+        <property name="url" value="${dipper.rds.jdbc.url}"/>
+        <property name="userName" value="${dipper.rds.jdbc.username}"/>
+        <property name="password" value="${dipper.rds.jdbc.password}"/>
+    </bean>
+
+</beans>

@@ -17,6 +17,13 @@
 
 package org.apache.rocketmq.streams.configuable;
 
+<<<<<<< HEAD
+=======
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
@@ -28,7 +35,6 @@ import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 import org.apache.rocketmq.streams.configuable.service.AbstractConfigurableService;
 import org.apache.rocketmq.streams.configuable.service.ConfigurableServcieType;
 import org.apache.rocketmq.streams.configuable.service.ConfigurableServiceFactory;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;

@@ -17,15 +17,27 @@
 
 package org.apache.rocketmq.streams.configuable.service.impl;
 
+<<<<<<< HEAD
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.configuable.service.AbstractConfigurableService;
 import org.apache.rocketmq.streams.configuable.model.Configure;
+=======
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import org.apache.rocketmq.streams.common.model.Entity;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+<<<<<<< HEAD
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -33,6 +45,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+=======
+import org.apache.rocketmq.streams.configuable.model.Configure;
+import org.apache.rocketmq.streams.configuable.service.AbstractConfigurableService;
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 
 public class FileConfigureService extends AbstractConfigurableService {
 

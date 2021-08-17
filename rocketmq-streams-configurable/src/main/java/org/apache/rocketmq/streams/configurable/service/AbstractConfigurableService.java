@@ -17,6 +17,19 @@
 package org.apache.rocketmq.streams.configurable.service;
 
 import com.alibaba.fastjson.JSONObject;
+<<<<<<< HEAD
+=======
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
@@ -26,6 +39,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.model.Entity;
+<<<<<<< HEAD
 import org.apache.rocketmq.streams.common.utils.*;
 import org.apache.rocketmq.streams.configurable.model.Configure;
 
@@ -34,6 +48,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+=======
+import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.configurable.model.Configure;
+
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 public abstract class AbstractConfigurableService implements IConfigurableService {
 
     private static final Log LOG = LogFactory.getLog(AbstractConfigurableService.class);

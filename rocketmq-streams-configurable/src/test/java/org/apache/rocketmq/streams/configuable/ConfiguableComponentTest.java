@@ -18,7 +18,10 @@
 package org.apache.rocketmq.streams.configuable;
 
 import java.util.List;
+<<<<<<< HEAD
 
+=======
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;

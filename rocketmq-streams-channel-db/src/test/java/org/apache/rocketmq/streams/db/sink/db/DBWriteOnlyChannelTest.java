@@ -17,7 +17,10 @@
 package org.apache.rocketmq.streams.db.sink.db;
 
 import com.alibaba.fastjson.JSONObject;
+<<<<<<< HEAD
 
+=======
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.metadata.MetaData;

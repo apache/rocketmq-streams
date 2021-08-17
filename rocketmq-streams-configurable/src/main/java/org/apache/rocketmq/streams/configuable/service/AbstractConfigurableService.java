@@ -18,7 +18,10 @@
 package org.apache.rocketmq.streams.configuable.service;
 
 import com.alibaba.fastjson.JSONObject;
+<<<<<<< HEAD
 
+=======
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,7 +32,10 @@ import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+<<<<<<< HEAD
 
+=======
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;

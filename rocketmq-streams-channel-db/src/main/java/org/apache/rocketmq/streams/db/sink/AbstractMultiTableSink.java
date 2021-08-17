@@ -16,17 +16,28 @@
  */
 package org.apache.rocketmq.streams.db.sink;
 
+<<<<<<< HEAD
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.functions.MultiTableSplitFunction;
 
+=======
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+<<<<<<< HEAD
+=======
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.functions.MultiTableSplitFunction;
+>>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 
 public abstract class AbstractMultiTableSink extends DBSink {
     protected transient ConcurrentHashMap<String, DBSink> tableSinks = new ConcurrentHashMap();
