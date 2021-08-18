@@ -124,10 +124,10 @@ public class DataStream implements Serializable {
                     List<IMessage> splitMessages=new ArrayList<>();
                     for(T t:result){
                         Message subMessage=null;
-                        if (result instanceof JSONObject) {
-                            subMessage=new Message((JSONObject)result);
+                        if (t instanceof JSONObject) {
+                            subMessage=new Message((JSONObject)t);
                         } else {
-                            subMessage=new Message(new UserDefinedMessage(result));
+                            subMessage=new Message(new UserDefinedMessage(t));
                         }
                         splitMessages.add(subMessage);
                     }
