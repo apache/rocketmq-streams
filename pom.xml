@@ -99,8 +99,10 @@
                 <configuration>
                     <excludes>
                         <exclude>.gitignore</exclude>
-                        <exclude>.travis.yaml</exclude>
+                        <exclude>.travis.yml</exclude>
+                        <exclude>.asf.yaml</exclude>
                         <exclude>README.md</exclude>
+                        <exclude>README-Chinese.md</exclude>
                         <exclude>QUICKSTART.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
