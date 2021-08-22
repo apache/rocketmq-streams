@@ -94,16 +94,6 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     }
 
     @Override
-    public void removeSplit(Set<String> splitIds) {
-        source.removeSplit(splitIds);
-    }
-
-    @Override
-    public void addNewSplit(Set<String> splitIds) {
-        source.addNewSplit(splitIds);
-    }
-
-    @Override
     public Map<String, MessageOffset> getFinishedQueueIdAndOffsets(CheckPointMessage checkPointMessage) {
         return sink.getFinishedQueueIdAndOffsets(checkPointMessage);
     }
