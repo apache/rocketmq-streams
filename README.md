@@ -8,6 +8,7 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social)](https://twitter.com/intent/follow?screen_name=ApacheRocketMQ)
 
 ## [中文文档](./README-Chinese.md)
+## [Quick Start](./QUICKSTART.md)
 
 
 ## Features
