@@ -18,7 +18,9 @@
 package org.apache.rocketmq.streams.client.source;
 
 import com.google.common.collect.Sets;
+
 import java.util.Set;
+
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
@@ -49,20 +51,21 @@ public class DataStreamSource {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName) {
-        return fromRocketmq(topic, groupName, null, false);
+    public DataStream fromRocketmq(String topic, String groupName, String namesrvAddress) {
+        return fromRocketmq(topic, groupName, false, namesrvAddress);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName, boolean isJson) {
-        return fromRocketmq(topic, groupName, null, isJson);
+    public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress) {
+        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson) {
+    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress) {
         RocketMQSource rocketMQSource = new RocketMQSource();
         rocketMQSource.setTopic(topic);
         rocketMQSource.setTags(tags);
         rocketMQSource.setGroupName(groupName);
         rocketMQSource.setJsonData(isJson);
+        rocketMQSource.setNamesrvAddr(namesrvAddress);
         this.mainPipelineBuilder.setSource(rocketMQSource);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
