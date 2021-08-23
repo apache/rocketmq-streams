@@ -43,15 +43,7 @@ public class WindowFromMetaq extends AbstractWindowFireModeTest {
     }
 
 
-    @Test
-    public void testWindowToMetaq() throws InterruptedException {
 
-        long start=System.currentTimeMillis();
-        StreamBuilder.dataStream("namespace", "name")
-            .fromFile("/Users/yuanxiaodong/chris/sls_10.txt", true)
-            .toMetaq(topic)
-            .start();
-    }
 
 
     protected DataStream createSourceDataStream(){
