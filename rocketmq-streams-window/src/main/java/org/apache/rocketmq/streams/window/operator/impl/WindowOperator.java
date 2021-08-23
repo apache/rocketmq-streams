@@ -133,7 +133,7 @@ public class WindowOperator extends AbstractShuffleWindow {
     protected transient Map<String,Integer>  shuffleWindowInstanceId2MsgCount=new HashMap<>();
 
     @Override
-    public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
+    public Map<String, WindowBaseValue> shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
         Map<String,List<IMessage>> groupBy=groupByGroupName(messages);
         Set<String> groupByKeys=groupBy.keySet();
         List<String> storeKeys=new ArrayList<>();
@@ -184,7 +184,10 @@ public class WindowOperator extends AbstractShuffleWindow {
         if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
             DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowCalculate(this,windowValues,queueId);
         }
-        saveStorage(newWindowValues,exisitWindowValues,instance,queueId);
+        Map<String, WindowBaseValue> allWindowValues=new HashMap<>();
+        allWindowValues.putAll(newWindowValues);
+        allWindowValues.putAll(exisitWindowValues);
+        return allWindowValues;
         //Integer count=shuffleWindowInstanceId2MsgCount.get(instance.createWindowInstanceId());
         //if(count==null){
         //    count=0;
@@ -193,11 +196,10 @@ public class WindowOperator extends AbstractShuffleWindow {
         //shuffleWindowInstanceId2MsgCount.put(instance.createWindowInstanceId(),count);
     }
 
-    protected void saveStorage(Map<String, WindowBaseValue> newWindowValues, Map<String, WindowBaseValue> exisitWindowValues,WindowInstance windowInstance,String queueId) {
+    @Override
+    public void saveStorage(Map<String, WindowBaseValue> allWindowValues,List<IMessage> messages,WindowInstance windowInstance,String queueId) {
         String windowInstanceId=windowInstance.createWindowInstanceId();
-        Map<String, WindowBaseValue> allWindowValues=new HashMap<>();
-        allWindowValues.putAll(newWindowValues);
-        allWindowValues.putAll(exisitWindowValues);
+
         storage.multiPut(allWindowValues,windowInstanceId,queueId);
         Map<String,WindowBaseValue> partionNumOrders=new HashMap<>();//需要基于key前缀排序partitionnum
         for(WindowBaseValue windowBaseValue:allWindowValues.values()){
@@ -332,6 +334,7 @@ public class WindowOperator extends AbstractShuffleWindow {
                     WindowInstance.clearInstances(windowInstances);
                 }
                 shuffleChannel.clearCache(windowInstance);
+                windowMaxValueManager.deleteSplitNum(windowInstance,windowInstance.getSplitId());
                 ShufflePartitionManager.getInstance().clearWindowInstance(windowInstance.createWindowInstanceId());
                 storage.delete(windowInstance.createWindowInstanceId(),queueIds,getWindowBaseValueClass());
                 storage.getLocalStorage().delete(windowInstance.createWindowInstanceId(),patitionNums,getWindowBaseValueClass());

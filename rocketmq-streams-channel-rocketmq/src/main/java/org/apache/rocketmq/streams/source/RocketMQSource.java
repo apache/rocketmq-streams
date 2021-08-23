@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.AccessChannel;
@@ -48,6 +49,7 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.RocketMQOffset;
+import org.apache.rocketmq.streams.debug.DebugWriter;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 
 import java.util.ArrayList;
@@ -121,6 +123,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                     consumer.setConsumeTimestamp(consumerOffset);
                 }
             }
+            Map<String,Boolean>isFirstDataForQueue=new HashMap<>();
 
             consumer.subscribe(topic, tags);
             consumer.registerMessageListener((MessageListenerOrderly)(msgs, context) -> {
@@ -133,9 +136,19 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                         String offset = msg.getQueueOffset() + "";
                         org.apache.rocketmq.streams.common.context.Message message = createMessage(jsonObject, queueId, offset, false);
                         message.getHeader().setOffsetIsLong(true);
-                        //                        message.getHeader().setQueueId(RocketMQMessageQueue.getQueueId(context.getMessageQueue()));
-                        //                        message.getHeader().setOffset(String.valueOf(msg.getQueueOffset()));
-                        //                        message.getHeader().setMessageQueue(new RocketMQMessageQueue(context.getMessageQueue()));
+                        if(DebugWriter.isOpenDebug()){
+                            Boolean isFirstData=isFirstDataForQueue.get(queueId);
+                            if(isFirstData==null){
+                                synchronized (this){
+                                    isFirstData=isFirstDataForQueue.get(queueId);
+                                    if(isFirstData==null){
+                                        isFirstDataForQueue.put(queueId,true);
+                                    }
+                                    DebugWriter.getInstance(getTopic()).receiveFirstData(queueId,msg.getQueueOffset());
+                                }
+                            }
+                        }
+
                         if (i == msgs.size() - 1) {
                             message.getHeader().setNeedFlush(true);
                         }
@@ -150,7 +163,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
             });
 
             setOffsetStore(consumer);
-            addRebalanceCallback(consumer);
+          //  addRebalanceCallback(consumer);
             consumer.start();
 
             return consumer;

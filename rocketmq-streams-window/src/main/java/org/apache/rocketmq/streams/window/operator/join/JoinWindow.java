@@ -85,9 +85,24 @@ public class JoinWindow extends AbstractShuffleWindow {
     public void clearCache(String queueId) {
 
     }
-
     @Override
-    public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
+    public Map<String, WindowBaseValue> shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
+        Map<String, WindowBaseValue> allWindowValues = new HashMap<>();
+        for (IMessage msg : messages) {
+            MessageHeader header = JSONObject.parseObject(msg.getMessageBody().
+                getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
+            msg.setHeader(header);
+            String routeLabel = header.getMsgRouteFromLable();
+            String storeKey = createStoreKey(msg, routeLabel, instance);
+            JoinState state = createJoinState(msg, instance, routeLabel);
+            allWindowValues.put(storeKey,state);
+
+        }
+        return allWindowValues;
+    }
+
+    @Override public void saveStorage(Map<String, WindowBaseValue> allWindowValues, List<IMessage> messages,
+        WindowInstance instance, String queueId) {
         Map<String, WindowBaseValue> joinLeftStates = new HashMap<>();
         Map<String, WindowBaseValue> joinRightStates = new HashMap<>();
         for (IMessage msg : messages) {
@@ -96,7 +111,7 @@ public class JoinWindow extends AbstractShuffleWindow {
             msg.setHeader(header);
             String routeLabel = header.getMsgRouteFromLable();
             String storeKey = createStoreKey(msg, routeLabel, instance);
-            JoinState state = createJoinState(msg, instance, routeLabel);
+            JoinState state =(JoinState) allWindowValues.get(storeKey);
             if ("left".equalsIgnoreCase(routeLabel)) {
                 joinLeftStates.put(storeKey, state);
             } else if ("right".equalsIgnoreCase(routeLabel)) {

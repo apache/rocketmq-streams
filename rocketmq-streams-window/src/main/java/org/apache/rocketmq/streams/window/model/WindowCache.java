@@ -54,6 +54,9 @@ public abstract class WindowCache extends
 
     public static final String ORIGIN_QUEUE_ID = "origin_queue_id";
 
+
+    public static final String ORIGIN_QUEUE_IS_LONG = "origin_offset_is_LONG";
+
     public static final String ORIGIN_MESSAGE_HEADER = "origin_message_header";
 
 
@@ -122,6 +125,7 @@ public abstract class WindowCache extends
 
             body.put(ORIGIN_OFFSET, offset);
             body.put(ORIGIN_QUEUE_ID, queueId);
+            body.put(ORIGIN_QUEUE_IS_LONG,msg.getHeader().getMessageOffset().isLongOfMainOffset());
             body.put(ORIGIN_MESSAGE_HEADER, JSONObject.toJSONString(msg.getHeader()));
             body.put(ORIGIN_MESSAGE_TRACE_ID, msg.getHeader().getTraceId());
             body.put(SHUFFLE_KEY, shuffleKey);

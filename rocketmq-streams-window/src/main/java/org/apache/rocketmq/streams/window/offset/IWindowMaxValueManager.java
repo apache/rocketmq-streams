@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.offset;
 
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 
@@ -32,15 +33,6 @@ public interface IWindowMaxValueManager {
      * @return plus one on the current max split sequence number
      */
     Long incrementAndGetSplitNumber(WindowInstance instance, String splitId);
-
-    /**
-     * create split sequence number if the generator is not in memory， need load from db or other storage if instance is new ，set the split sequence number = init value
-     *
-     * @param key
-     * @return plus one on the current max split sequence number
-     */
-    Long incrementAndGetSplitNumber(String key);
-
 
     /**
      * load mutil window instance split's max split num
@@ -62,9 +54,6 @@ public interface IWindowMaxValueManager {
 
     void removeKeyPrefixFromLocalCache(Set<String> keyPrefixs);
 
-    //load window max event time
-    void loadWindowMaxEventTime(Set<String> splitId);
-
     /**
      * save addition WindowMaxValue
      */
@@ -73,4 +62,19 @@ public interface IWindowMaxValueManager {
     void resetSplitNum(WindowInstance instance, String splitId);
 
     void resetSplitNum(String key);
+
+    void deleteSplitNum(WindowInstance instance, String splitId);
+
+    /**
+     * save window saved max offset，can filter the less offset
+     * @param name
+     * @param queueId2Offsets
+     */
+    void saveMaxOffset(boolean isLong,String name,Map<String,String> queueId2Offsets);
+
+
+    Map<String,String> loadOffsets(String name,Set<String> queueIds);
+
+
+    String loadOffset(String name,String queueIds);
 }

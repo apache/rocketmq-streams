@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.rocketmq.streams.window.source.WindowRireSource;
+import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
 public abstract class AbstractShuffleWindow extends AbstractWindow implements IAfterConfiguableRefreshListerner {
@@ -69,8 +70,8 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
      * @param messages
      * @param instance
      */
-    public abstract void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
-
+    public abstract Map<String, WindowBaseValue>  shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
+    public abstract void saveStorage(Map<String, WindowBaseValue> allWindowValues,List<IMessage> messages,WindowInstance windowInstance,String queueId);
     /**
      * 触发window
      *

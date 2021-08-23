@@ -529,6 +529,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             //can keep offset in order
             Long offset=((fireTime-baseTime)/1000*10+sameFireCount)*100000000+windowValue.getPartitionNum();
             message.put("windowInstanceId",windowValue.getWindowInstancePartitionId());
+            message.put("start_time",windowValue.getStartTime());
+            message.put("end_time",windowValue.getEndTime());
             message.put("offset",offset);
             Message newMessage=windowFireSource.createMessage(message,queueId,offset+"",false);
             newMessage.getHeader().setOffsetIsLong(true);

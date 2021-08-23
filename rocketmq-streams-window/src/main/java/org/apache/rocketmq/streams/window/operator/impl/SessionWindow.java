@@ -102,12 +102,9 @@ public class SessionWindow extends WindowOperator {
     }
 
     @Override
-    protected void saveStorage(Map<String, WindowBaseValue> newWindowValues, Map<String, WindowBaseValue> exisitWindowValues, WindowInstance windowInstance, String queueId) {
+    public void saveStorage(Map<String, WindowBaseValue> allWindowBasedValue,List<IMessage> messages, WindowInstance windowInstance, String queueId) {
         List<String> oldKeys = new ArrayList<>();
         Map<String, WindowBaseValue> partionNumOrders = new HashMap<>();//需要基于key前缀排序partitionnum
-        Map<String,WindowBaseValue> allWindowBasedValue=new HashMap<>();
-        allWindowBasedValue.putAll(exisitWindowValues);
-        allWindowBasedValue.putAll(newWindowValues);
         for (WindowBaseValue windowBaseValue : allWindowBasedValue.values()) {
             WindowValue windowValue = (WindowValue)windowBaseValue;
             String oldPartitionNumKey = createStoreKey(getOrderBypPrefix() + queueId, MapKeyUtil.createKey(getOrderBypFieldName(windowValue), windowValue.getGroupBy()), windowInstance);
