@@ -19,8 +19,10 @@ package org.apache.rocketmq.streams.sink;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,114 +66,54 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         return true;
     }
 
-    protected transient AtomicBoolean isProcessing=new AtomicBoolean(false);
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
         if (messages == null) {
             return true;
         }
-        List<IMessage> needOrderProducer=new ArrayList<>();
-        for (int i=0;i<messages.size();i++) {
-            IMessage message =messages.get(i);
-            if(getSplit(message)!=null){
-                if(i==0){
-                    needOrderProducer=messages;
-                    break;
-                }
-                needOrderProducer.add(message);
-                continue;
+        if (StringUtil.isEmpty(topic)) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("topic is blank");
             }
-            AtomicInteger msgFinishCount=new AtomicInteger(1);
-            putMessage2Mq(message,msgFinishCount,messages.size());
+            return false;
         }
-        if(needOrderProducer.size()==0){
-            return true;
-        }
-        boolean success= isProcessing.compareAndSet(false,true);
-        if(!success){
-            while (isProcessing.get()){
-                synchronized (this){
-                    try {
-                        this.wait();
-                        success= isProcessing.compareAndSet(false,true);
-                        if(success){
-                            break;
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+        initProducer();
 
-                }
-            }
-        }
-        AtomicInteger msgFinishCount=new AtomicInteger(0);
-        for(IMessage message:needOrderProducer){
-            putMessage2Mq(message,msgFinishCount,needOrderProducer.size());
-        }
-
-
-        return true;
-    }
-
-    protected boolean putMessage2Mq(IMessage fieldName2Value,AtomicInteger msgFinishCount,int allMsgSize) {
-        MessageQueue targetQueue = null;
-        ISplit<RocketMQMessageQueue,MessageQueue> channelQueue=getSplit(fieldName2Value);
-
-        if (channelQueue!= null) {
-            targetQueue = channelQueue.getQueue();
-        }
-        sendMessage(fieldName2Value.getMessageValue().toString(), null, this.tags, targetQueue,msgFinishCount,allMsgSize);
-        return true;
-    }
-
-    /**
-     * 发送metaq消息
-     *  @param content 消息内容
-     * @param key     消息的Key字段是为了唯一标识消息的，方便运维排查问题。如果不设置Key，则无法定位消息丢失原因。
-     * @param targetQueue
-     */
-    protected void sendMessage(String content, String key, String tags,  MessageQueue targetQueue,AtomicInteger msgFinishCount,int allMsgSize) {
         try {
-            if (StringUtil.isEmpty(topic)) {
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("topic is blank:" + content);
+            Map<String,List<Message>> msgsByQueueId=new HashMap<>();// group by queueId, if the message not contains queue info ,the set default string as default queueId
+            Map<String,MessageQueue> messageQueueMap=new HashMap<>();//if has queue id in message, save the map for queueid 2 messagequeeue
+            String defaultQueueId="<null>";//message is not contains queue ,use default
+            for(IMessage msg:messages){
+                ISplit<RocketMQMessageQueue, MessageQueue> channelQueue = getSplit(msg);
+                String queueId=defaultQueueId;
+                if (channelQueue != null) {
+                    queueId=channelQueue.getQueueId();
+                    messageQueueMap.put(queueId,channelQueue.getQueue());
                 }
-                return;
+                List<Message> messageList=msgsByQueueId.get(queueId);
+                if(messageList==null){
+                    messageList=new ArrayList<>();
+                    msgsByQueueId.put(queueId,messageList);
+                }
+                messageList.add(new Message(topic, tags, null, msg.getMessageBody().toJSONString().getBytes("UTF-8")));
             }
-            initProducer();
-            final RocketMQSink rocketMQSink=this;
-            Message msg = new Message(topic, tags, key, content.getBytes("UTF-8"));
-            if (targetQueue != null) {
-                producer.send(msg, targetQueue,new SendCallback() {
-                    @Override
-                    public void onSuccess(SendResult sendResult) {
-                        int finishCount=msgFinishCount.incrementAndGet();
-                        if(finishCount==allMsgSize){
-                            synchronized (rocketMQSink){
-                                isProcessing.set(false);
-                                rocketMQSink.notifyAll();;
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onException(Throwable e) {
-                        int finishCount=msgFinishCount.incrementAndGet();
-                        if(finishCount==allMsgSize){
-                            synchronized (rocketMQSink){
-                                isProcessing.set(false);
-                                rocketMQSink.notifyAll();;
-                            }
-                        }
-                    }
-                });
-            } else {
-                producer.sendOneway(msg );
+            for(String queueId:msgsByQueueId.keySet()){
+                List<Message> messageList=msgsByQueueId.get(queueId);
+                if(defaultQueueId.equals(queueId)){
+                    producer.send(messageList);
+                }else {
+                    MessageQueue queue=messageQueueMap.get(queueId);
+                    producer.send(messageList,queue);
+                }
             }
-        } catch (Exception e) {
-            LOG.error("send message error:" + content, e);
+        }catch (Exception e){
+            e.printStackTrace();
+            throw new RuntimeException("batch insert error ",e);
         }
+
+        return true;
     }
+
 
     protected void initProducer() {
         if(producer==null){
@@ -205,6 +147,16 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                 }
             }
         }
+    }
+
+    public static void main(String[] args) {
+        String topic = "TOPIC_DIPPER_SYSTEM_MSG_6";
+        RocketMQSink metaqSink = new RocketMQSink();
+        metaqSink.setTopic(topic);
+        metaqSink.setNamesrvAddr("http://MQ_INST_1410092570399499_BXlwOegB.mq-internet-access.mq-internet.aliyuncs.com:80");
+        metaqSink.setSplitNum(5);
+        metaqSink.init();
+        System.out.println(metaqSink.getSplitList().size());
     }
 
     @Override
