@@ -400,7 +400,8 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 WindowInstance windowInstance = windowInstanceMap.get(queueIdAndInstanceKey.getRight());
                 DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window,messages,windowInstance);
                 Map<String, WindowBaseValue> allWindowBaseValue=window.shuffleCalculate(messages, windowInstance, queueIdAndInstanceKey.getLeft());
-
+                window.getWindowMaxValueManager().flush();
+                window.saveStorage(allWindowBaseValue,messages,windowInstance,windowInstance.getSplitId());
                 Map<String,String> queueId2Offset=new HashMap<>();
                 Boolean isLong=false;
                 for(IMessage message:messages){
@@ -411,7 +412,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 }
                 window.getWindowMaxValueManager().saveMaxOffset(isLong,window.getConfigureName(),queueId2Offset);
                 window.getWindowMaxValueManager().flush();
-                window.saveStorage(allWindowBaseValue,messages,windowInstance,windowInstance.getSplitId());
             }
             return true;
         }
