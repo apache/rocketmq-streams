@@ -50,6 +50,7 @@
         <module>rocketmq-streams-channel-rocketmq</module>
         <module>rocketmq-streams-channel-db</module>
         <module>rocketmq-streams-channel-http</module>
+        <module>rocketmq-streams-examples</module>
     </modules>
 
     <properties>
@@ -171,6 +172,11 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-commons</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-clients</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

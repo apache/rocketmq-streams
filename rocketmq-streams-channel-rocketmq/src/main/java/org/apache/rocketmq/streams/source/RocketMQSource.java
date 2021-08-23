@@ -150,7 +150,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
             });
 
             setOffsetStore(consumer);
-            addRebalanceCallback(consumer);
             consumer.start();
 
             return consumer;

@@ -74,4 +74,8 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
      */
     long getCheckpointTime();
 
+    void removeSplit(Set<String> splitIds);
+
+    void addNewSplit(Set<String> splitIds);
+
 }
