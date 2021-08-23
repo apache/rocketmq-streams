@@ -20,7 +20,7 @@ import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.junit.Test;
 
-public class WindowFromMetaq extends AbstractWindowFireModeTest {
+public class WindowFromRocketMQ extends AbstractWindowFireModeTest {
 
     String topic = "TOPIC_DIPPER_SYSTEM_MSG_5";
     @Test
@@ -44,12 +44,12 @@ public class WindowFromMetaq extends AbstractWindowFireModeTest {
 
 
     @Test
-    public void testWindowToMetaq() throws InterruptedException {
+    public void testWindowToRocketMQ() throws InterruptedException {
 
         long start=System.currentTimeMillis();
         StreamBuilder.dataStream("namespace", "name")
             .fromFile("/Users/yuanxiaodong/chris/sls_10.txt", true)
-            .toMetaq(topic)
+                .toRocketmq(topic, "chris1", "", "", "", "", "")
             .start();
     }
 
