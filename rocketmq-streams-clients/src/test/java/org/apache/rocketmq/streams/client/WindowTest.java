@@ -53,7 +53,7 @@ public class WindowTest implements Serializable {
     }
 
     //    @Test
-    //    public void testWindowFromMetaq() throws InterruptedException {
+    //    public void testWindowFromRocketMQ() throws InterruptedException {
     //        String topic = "TOPIC_DIPPER_SYSTEM_MSG_4";
     //        StreamBuilder.dataStream("namespace", "name")
     //            .fromFile("/Users/yuanxiaodong/chris/sls_100.txt", true)
