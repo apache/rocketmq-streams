@@ -52,33 +52,4 @@ public class WindowTest implements Serializable {
 
     }
 
-    //    @Test
-    //    public void testWindowFromRocketMQ() throws InterruptedException {
-    //        String topic = "TOPIC_DIPPER_SYSTEM_MSG_4";
-    //        StreamBuilder.dataStream("namespace", "name")
-    //            .fromFile("/Users/yuanxiaodong/chris/sls_100.txt", true)
-    //            .toRocketmq(topic)
-    //            .asyncStart();
-    //
-    //        StreamBuilder.dataStream("namespace", "name1")
-    //            .fromRocketmq(topic, "chris", true)
-    //            .window(TumblingWindow.of(Time.seconds(5)))
-    //            .groupby("ProjectName", "LogStore")
-    //            .setLocalStorageOnly(true)
-    //            .count("total")
-    //            .sum("OutFlow", "OutFlow")
-    //            .sum("InFlow", "inflow")
-    //            .toDataSteam()
-    //            .forEach(new ForEachFunction<JSONObject>() {
-    //                protected int sum = 0;
-    //
-    //                @Override
-    //                public void foreach(JSONObject o) {
-    //                    int total = o.getInteger("total");
-    //                    sum = sum + total;
-    //                    o.put("sum(total)", sum);
-    //                }
-    //            }).toPrint().start();
-    //    }
-
 }
