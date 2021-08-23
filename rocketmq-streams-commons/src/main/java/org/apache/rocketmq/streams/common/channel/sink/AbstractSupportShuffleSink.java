@@ -27,7 +27,7 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
     protected volatile transient boolean hasCreated = false;
 
     /**
-     * 获取sink的主题，在sls中是logStore，metaq是topic
+     * 获取sink的主题，在sls中是logStore，RocketMQ是topic
      *
      * @return
      */
