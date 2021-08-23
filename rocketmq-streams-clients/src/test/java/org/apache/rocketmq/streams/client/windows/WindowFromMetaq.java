@@ -56,7 +56,7 @@ public class WindowFromMetaq extends AbstractWindowFireModeTest {
 
     protected DataStream createSourceDataStream(){
         return  StreamBuilder.dataStream("namespace", "name1")
-            .fromRocketmq(topic,"chris1",true);
+            .fromRocketmq(topic,"chris1","");
     }
 
 
