@@ -164,7 +164,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
     @Override
     public List<ISplit> getAllSplits() {
         try {
-
             Set<MessageQueue> rocketmqQueueSet =  consumer.fetchSubscribeMessageQueues(this.topic);
             List<ISplit> queueList = new ArrayList<>();
             for (MessageQueue queue : rocketmqQueueSet) {
