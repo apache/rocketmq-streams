@@ -42,7 +42,7 @@ public class WindowBaseValue extends BasedConfigurable implements Serializable {
     protected String windowInstanceId;
 
     /**
-     * 分片信息（metaQ里是queue）
+     * 分片信息（RocketMQ里是queue）
      */
     protected String partition;
 

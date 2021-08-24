@@ -125,7 +125,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     }
 
     /**
-     * 发送metaq消息
+     * 发送RocketMQ消息
      *  @param content 消息内容
      * @param key     消息的Key字段是为了唯一标识消息的，方便运维排查问题。如果不设置Key，则无法定位消息丢失原因。
      * @param targetQueue
@@ -230,9 +230,9 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         try {
 
             if (messageQueues == null || messageQueues.size() == 0) {
-                List<MessageQueue> metaqQueueSet = producer.fetchPublishMessageQueues(topic);
+                List<MessageQueue> rocketmqQueueSet = producer.fetchPublishMessageQueues(topic);
                 List<ISplit> queueList = new ArrayList<>();
-                for (MessageQueue queue : metaqQueueSet) {
+                for (MessageQueue queue : rocketmqQueueSet) {
                     RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
                     queueList.add(rocketMQMessageQueue);
 

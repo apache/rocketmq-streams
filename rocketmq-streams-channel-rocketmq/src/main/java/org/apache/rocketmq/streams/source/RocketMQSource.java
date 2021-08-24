@@ -157,22 +157,23 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
         } catch (Exception e) {
             setInitSuccess(false);
             e.printStackTrace();
-            throw new RuntimeException("start metaq channel error " + topic, e);
+            throw new RuntimeException("start rocketmq channel error " + topic, e);
         }
     }
 
     @Override
     public List<ISplit> getAllSplits() {
         try {
-            Set<MessageQueue> metaqQueueSet = consumer.fetchSubscribeMessageQueues(this.topic);
+
+            Set<MessageQueue> rocketmqQueueSet =  consumer.fetchSubscribeMessageQueues(this.topic);
             List<ISplit> queueList = new ArrayList<>();
-            for (MessageQueue queue : metaqQueueSet) {
-                RocketMQMessageQueue metaqMessageQueue = new RocketMQMessageQueue(queue);
-                if (isNotDataSplit(metaqMessageQueue.getQueueId())) {
+            for (MessageQueue queue : rocketmqQueueSet) {
+                RocketMQMessageQueue rocketmqMessageQueue = new RocketMQMessageQueue(queue);
+                if(isNotDataSplit(rocketmqMessageQueue.getQueueId())){
                     continue;
                 }
 
-                queueList.add(metaqMessageQueue);
+                queueList.add(rocketmqMessageQueue);
 
             }
             return queueList;
@@ -191,11 +192,12 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
         defaultMQAdminExt.setInstanceName(this.consumer.getInstanceName());
         try {
             defaultMQAdminExt.start();
-            Map<org.apache.rocketmq.common.message.MessageQueue, String> queue2Instances = getMessageQueueAllocationResult(defaultMQAdminExt, this.groupName);
-            Map<String, List<ISplit>> instanceOwnerQueues = new HashMap<>();
-            for (org.apache.rocketmq.common.message.MessageQueue messageQueue : queue2Instances.keySet()) {
-                RocketMQMessageQueue metaqMessageQueue = new RocketMQMessageQueue(new MessageQueue(messageQueue.getTopic(), messageQueue.getBrokerName(), messageQueue.getQueueId()));
-                if (isNotDataSplit(metaqMessageQueue.getQueueId())) {
+
+            Map<org.apache.rocketmq.common.message.MessageQueue, String> queue2Instances= getMessageQueueAllocationResult(defaultMQAdminExt,this.groupName);
+            Map<String,List<ISplit>> instanceOwnerQueues=new HashMap<>();
+            for(org.apache.rocketmq.common.message.MessageQueue messageQueue:queue2Instances.keySet()){
+                RocketMQMessageQueue rocketmqMessageQueue = new RocketMQMessageQueue(new MessageQueue(messageQueue.getTopic(),messageQueue.getBrokerName(),messageQueue.getQueueId()));
+                if(isNotDataSplit(rocketmqMessageQueue.getQueueId())){
                     continue;
                 }
                 String instanceName = queue2Instances.get(messageQueue);
@@ -204,7 +206,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                     splits = new ArrayList<>();
                     instanceOwnerQueues.put(instanceName, splits);
                 }
-                splits.add(metaqMessageQueue);
+                splits.add(rocketmqMessageQueue);
             }
             return instanceOwnerQueues;
 
