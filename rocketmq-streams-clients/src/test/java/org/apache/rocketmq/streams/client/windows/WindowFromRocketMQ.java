@@ -43,7 +43,6 @@ public class WindowFromRocketMQ extends AbstractWindowFireModeTest {
     }
 
 
-
     @Test
     public void testWindowToRocketMQ() throws InterruptedException {
 
