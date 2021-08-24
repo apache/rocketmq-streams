@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.functions;
 
-import java.io.Serializable;
-
-public interface ReduceFunction<R, O> extends Function, Serializable {
+public interface ReduceFunction<R, O> extends Function{
 
     R reduce(R acccumulator, O msg);
 }

@@ -19,13 +19,13 @@ package org.apache.rocketmq.streams.filter.operator.action.impl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.IChannel;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
 
-public class ChannelAction extends Action<Boolean> implements IAfterConfiguableRefreshListerner {
+public class ChannelAction extends Action<Boolean> implements IAfterConfigurableRefreshListener {
 
     private static final Log LOG = LogFactory.getLog(ChannelAction.class);
     protected String channelName;

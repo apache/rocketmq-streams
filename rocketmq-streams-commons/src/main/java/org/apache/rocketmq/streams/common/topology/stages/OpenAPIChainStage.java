@@ -17,14 +17,14 @@
 package org.apache.rocketmq.streams.common.topology.stages;
 
 import org.apache.rocketmq.streams.common.channel.IChannel;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 
-public class OpenAPIChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfiguableRefreshListerner {
+public class OpenAPIChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
     protected String openApiChannelName;
     protected transient IChannel channel;
     protected transient IStageHandle handle = new IStageHandle() {

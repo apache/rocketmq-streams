@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
@@ -29,7 +29,7 @@ import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.rocketmq.streams.window.source.WindowRireSource;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
-public abstract class AbstractShuffleWindow extends AbstractWindow implements IAfterConfiguableRefreshListerner {
+public abstract class AbstractShuffleWindow extends AbstractWindow implements IAfterConfigurableRefreshListener {
 
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);

@@ -31,7 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -138,8 +138,8 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
                 configures.getConfigurables());
             // this.namespace2ConfigurableMap = namespace2ConfigurableMap;
             for (IConfigurable configurable : configurableList) {
-                if (configurable instanceof IAfterConfiguableRefreshListerner) {
-                    ((IAfterConfiguableRefreshListerner)configurable).doProcessAfterRefreshConfigurable(this);
+                if (configurable instanceof IAfterConfigurableRefreshListener) {
+                    ((IAfterConfigurableRefreshListener)configurable).doProcessAfterRefreshConfigurable(this);
                 }
             }
             return true;
