@@ -17,10 +17,10 @@
 package org.apache.rocketmq.streams.common.channel.impl.memory;
 
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 
-public class MemorySource extends AbstractUnreliableSource implements IAfterConfiguableRefreshListerner {
+public class MemorySource extends AbstractUnreliableSource implements IAfterConfigurableRefreshListener {
 
     protected String cacheName;
     protected transient MemoryCache memoryCache;
