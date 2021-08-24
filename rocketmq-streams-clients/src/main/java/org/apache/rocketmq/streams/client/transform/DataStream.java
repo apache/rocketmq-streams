@@ -81,7 +81,7 @@ public class DataStream implements Serializable {
         ChainStage<?> stage = this.mainPipelineBuilder.createStage(new ScriptOperator(script));
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
 
-        return this;
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
 
     public DataStream filter(String expressions) {
