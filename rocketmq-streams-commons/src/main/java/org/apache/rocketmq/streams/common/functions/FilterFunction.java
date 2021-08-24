@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.functions;
 
-import java.io.Serializable;
-
-public interface FilterFunction<T> extends Function, Serializable {
+public interface FilterFunction<T> extends Function {
 
     boolean filter(T value) throws Exception;
 }

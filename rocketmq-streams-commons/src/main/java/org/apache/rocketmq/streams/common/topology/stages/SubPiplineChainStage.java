@@ -27,7 +27,7 @@ import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessa
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -44,7 +44,7 @@ import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class
-SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfiguableRefreshListerner {
+SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfigurableRefreshListener {
     private static String INNER_MESSAGE = "inner_message";//保存原始信息，用于收集触发规则的原始日志时，使用
     private static String FIRE_RUEL = "fireRule";//触发的规则
     private static String FIRE_RULE_OUT_FILE_NAME = "dipper.msg";//触发的规则和原始数据，输出的文件名

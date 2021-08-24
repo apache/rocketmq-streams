@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.configurable;
 
-public interface IAfterConfiguableRefreshListerner {
+public interface IAfterConfigurableRefreshListener {
 
     /**
      * 当configurable数据全部加载完成时，调用实现这个接口的configurable对象

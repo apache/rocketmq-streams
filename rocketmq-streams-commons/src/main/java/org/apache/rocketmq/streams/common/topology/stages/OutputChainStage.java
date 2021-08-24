@@ -25,7 +25,7 @@ import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMe
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -35,7 +35,7 @@ import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
-public class OutputChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfiguableRefreshListerner {
+public class OutputChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfigurableRefreshListener {
     public static final String OUT_MOCK_SWITCH = "out.mock.switch";//在配置文件中，是否打开mock的开关
 
     private String sinkName;

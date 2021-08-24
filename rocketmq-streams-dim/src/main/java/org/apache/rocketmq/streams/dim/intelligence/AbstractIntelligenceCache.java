@@ -36,7 +36,7 @@ import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
@@ -47,7 +47,7 @@ import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.http.source.util.HttpUtil;
 
 public abstract class AbstractIntelligenceCache extends BasedConfigurable implements
-    IAfterConfiguableRefreshListerner {
+        IAfterConfigurableRefreshListener {
 
     private static final Log LOG = LogFactory.getLog(AbstractIntelligenceCache.class);
 
