@@ -2,13 +2,11 @@ dist: trusty
 
 language: java
 
-matrix:
-  include:
-    # On OSX, run with default JDK only.
-    # - os: osx
-    # On Linux, run with specific JDKs only.
-    - os: linux
-      env: CUSTOM_JDK="oraclejdk8"
+jdk:
+    - oraclejdk8
+    - oraclejdk9
+    - oraclejdk11
+    - openjdk8
 
 before_install:
   - echo 'MAVEN_OPTS="$MAVEN_OPTS -Xmx1024m -XX:MaxPermSize=512m -XX:+BytecodeVerificationLocal"' >> ~/.mavenrc
@@ -21,4 +19,4 @@ script:
   - travis_retry mvn -B clean install jacoco:report
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
+  - bash <(curl -s https://codecov.io/bash)
