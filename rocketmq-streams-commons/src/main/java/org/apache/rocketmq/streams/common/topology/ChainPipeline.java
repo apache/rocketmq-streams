@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -44,7 +44,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 /**
  * 数据流拓扑结构，包含了source 算子，sink
  */
-public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IAfterConfiguableRefreshListerner, Serializable {
+public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IAfterConfigurableRefreshListener, Serializable {
 
     private static final long serialVersionUID = -5189371682717444347L;
 
@@ -324,7 +324,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         for (AbstractStage stage : getStages()) {
             stage.setPipeline(this);
-            if (IAfterConfiguableRefreshListerner.class.isInstance(stage)) {
+            if (IAfterConfigurableRefreshListener.class.isInstance(stage)) {
                 if (AbstractConfigurable.class.isInstance(stage)) {
                     AbstractConfigurable abstractConfigurable = (AbstractConfigurable)stage;
                     if (abstractConfigurable.isInitSuccess() == false && this.isInitSuccess() == false) {
@@ -332,8 +332,8 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                         return;
                     }
                 }
-                IAfterConfiguableRefreshListerner afterConfiguableRefreshListerner =
-                    (IAfterConfiguableRefreshListerner)stage;
+                IAfterConfigurableRefreshListener afterConfiguableRefreshListerner =
+                    (IAfterConfigurableRefreshListener)stage;
 
                 afterConfiguableRefreshListerner.doProcessAfterRefreshConfigurable(configurableService);
 

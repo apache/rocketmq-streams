@@ -33,11 +33,7 @@ public class RocketMQSourceExample2 {
                 RMQ_TOPIC,
                 TAGS,
                 RMQ_CONSUMER_GROUP_NAME,
-                "",
-                NAMESRV_ADDRESS,
-                "",
-                "",
-                ""
+                NAMESRV_ADDRESS
         ))
                 .map(message -> message)
                 .toPrint(1)

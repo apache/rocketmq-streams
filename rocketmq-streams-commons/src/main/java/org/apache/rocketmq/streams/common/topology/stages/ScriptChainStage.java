@@ -20,7 +20,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -30,7 +30,7 @@ import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 
-public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfiguableRefreshListerner {
+public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
     private static final Log LOG = LogFactory.getLog(ScriptChainStage.class);
     protected String scriptName;
 

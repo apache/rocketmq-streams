@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.common.topology.stages;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -31,7 +31,7 @@ import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 /**
  * 双流join的右流的处理逻辑
  */
-public class RightJoinChainStage extends ChainStage implements IAfterConfiguableRefreshListerner {
+public class RightJoinChainStage extends ChainStage implements IAfterConfigurableRefreshListener {
     protected String pipelineName;
 
     protected transient Pipeline pipline;

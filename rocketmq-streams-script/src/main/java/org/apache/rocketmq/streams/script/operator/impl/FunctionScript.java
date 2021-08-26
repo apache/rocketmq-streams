@@ -45,9 +45,7 @@ import org.apache.rocketmq.streams.script.service.IScriptParamter;
 /**
  * * 对外提供的脚本算子，通过输入脚本，来实现业务逻辑 * 脚本存储的成员变量是value字段
  */
-public class FunctionScript extends AbstractScript<List<IMessage>, FunctionContext> implements
-    IStreamOperator<IMessage, List<IMessage>>,
-    IStageBuilder<ChainStage> {
+public class FunctionScript extends AbstractScript<List<IMessage>, FunctionContext> implements IStreamOperator<IMessage, List<IMessage>>, IStageBuilder<ChainStage> {
 
     private static final Log LOG = LogFactory.getLog(FunctionScript.class);
 

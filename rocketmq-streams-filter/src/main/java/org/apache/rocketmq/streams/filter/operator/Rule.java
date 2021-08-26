@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -53,7 +53,7 @@ import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.filter.optimization.ExpressionOptimization;
 
-public class Rule extends AbstractRule implements IAfterConfiguableRefreshListerner,
+public class Rule extends AbstractRule implements IAfterConfigurableRefreshListener,
     IStageBuilder<ChainStage> {
     private transient volatile Map<String, Var> varMap = new HashMap<>();
     private transient volatile Map<String, Expression> expressionMap = new HashMap<>();

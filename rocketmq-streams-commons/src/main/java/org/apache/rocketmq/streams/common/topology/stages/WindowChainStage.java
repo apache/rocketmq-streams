@@ -16,14 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.IWindow;
 
-public class WindowChainStage<T extends IMessage> extends AbstractWindowStage<T> implements IAfterConfiguableRefreshListerner {
+public class WindowChainStage<T extends IMessage> extends AbstractWindowStage<T> implements IAfterConfigurableRefreshListener {
 
     private static final long serialVersionUID = -6592591896560866562L;
 
