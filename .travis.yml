@@ -23,4 +23,5 @@ script:
   - travis_retry mvn -B clean install jacoco:report
 
 after_success:
+  - mvn test
   - bash <(curl -s https://codecov.io/bash)
