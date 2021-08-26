@@ -23,9 +23,9 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 
-public class DomainIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfiguableRefreshListerner {
+public class DomainIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfigurableRefreshListener {
     private static final Log LOG = LogFactory.getLog(DomainIntelligenceCache.class);
     protected transient String keyName = "domain";
 

@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -25,7 +25,7 @@ import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Union;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 
-public class UDFUnionChainStage extends AbstractStatelessChainStage implements IAfterConfiguableRefreshListerner {
+public class UDFUnionChainStage extends AbstractStatelessChainStage implements IAfterConfigurableRefreshListener {
     protected String unionName;//union对象的名字
     protected boolean isMainStream = false;//是主流，在union时，主流.union(支流)
 

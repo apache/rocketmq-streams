@@ -24,11 +24,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 
-public class IPIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfiguableRefreshListerner {
+public class IPIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfigurableRefreshListener {
     private static final Log LOG = LogFactory.getLog(IPIntelligenceCache.class);
     protected transient String keyName = "ip";
 

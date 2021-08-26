@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -29,7 +29,7 @@ import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 /**
  * 所有给用户自定义代码的通用类，会转化成这个stage
  */
-public class UDFChainStage extends AbstractStatelessChainStage implements IAfterConfiguableRefreshListerner {
+public class UDFChainStage extends AbstractStatelessChainStage implements IAfterConfigurableRefreshListener {
     protected String udfOperatorClassSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient StageBuilder selfChainStage;
 
