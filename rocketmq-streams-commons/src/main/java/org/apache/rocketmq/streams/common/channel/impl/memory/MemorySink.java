@@ -21,11 +21,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
-public class MemorySink extends AbstractSupportShuffleSink implements IAfterConfiguableRefreshListerner {
+public class MemorySink extends AbstractSupportShuffleSink implements IAfterConfigurableRefreshListener {
     /**
      * 是否启动qps的统计
      */
