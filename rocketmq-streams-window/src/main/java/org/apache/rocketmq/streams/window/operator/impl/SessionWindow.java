@@ -73,7 +73,6 @@ public class SessionWindow extends WindowOperator {
              */
             if (currentMaxTime - realFireTimeLong < 0) {
                 instance.setFireTime(windowBaseValue.getFireTime());
-                shuffleChannel.addNeedFlushWindowInstance(instance);
                 windowFireSource.registFireWindowInstanceIfNotExist(instance, this);
                 hasFinished = false;
                 break;
@@ -102,7 +101,7 @@ public class SessionWindow extends WindowOperator {
     }
 
     @Override
-    public void saveStorage(Map<String, WindowBaseValue> allWindowBasedValue,List<IMessage> messages, WindowInstance windowInstance, String queueId) {
+    protected void saveStorage(Map<String, WindowBaseValue> allWindowBasedValue, WindowInstance windowInstance, String queueId) {
         List<String> oldKeys = new ArrayList<>();
         Map<String, WindowBaseValue> partionNumOrders = new HashMap<>();//需要基于key前缀排序partitionnum
         for (WindowBaseValue windowBaseValue : allWindowBasedValue.values()) {

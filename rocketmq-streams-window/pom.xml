@@ -33,6 +33,11 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-db-operator</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-state</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-lease</artifactId>

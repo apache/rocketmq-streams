@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.model;
 
+import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -87,6 +88,8 @@ public interface IWindow
      */
     boolean isSynchronous();
 
-    ISink getWindowCache();
-
+    IWindowCheckpoint getWindowCache();
+    interface IWindowCheckpoint extends ISink<org.apache.rocketmq.streams.common.channel.sink.AbstractSink>{
+        void checkpoint(Set<String> queueIds);
+    }
 }

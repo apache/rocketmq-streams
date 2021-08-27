@@ -1,23 +1,11 @@
 package org.apache.rocketmq.streams.state;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
 public abstract class AbstractState<K,V> implements IState<K,V>{
-    protected transient Class valueClass;
-    protected String[] namespaces;
-    public AbstractState(Class valueClass,String... namespaces){
-        this.namespaces=namespaces;
-        this.valueClass=valueClass;
-    }
+
 
     @Override public boolean isEmpty() {
         return size()==0;
@@ -41,10 +29,6 @@ public abstract class AbstractState<K,V> implements IState<K,V>{
         map.put(key,value);
         putAll(map);
         return value;
-    }
-
-    @Override public String getNamespace() {
-        return MapKeyUtil.createKey(namespaces);
     }
 
 

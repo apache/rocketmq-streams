@@ -45,11 +45,11 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
         if(message.getHeader().isNeedFlush()){
             if(message.getHeader().getCheckpointQueueIds()!=null&&message.getHeader().getCheckpointQueueIds().size()>0){
-                window.getWindowCache().flush(message.getHeader().getCheckpointQueueIds());
+                window.getWindowCache().checkpoint(message.getHeader().getCheckpointQueueIds());
             }else {
                 Set<String> queueIds=new HashSet<>();
                 queueIds.add(message.getHeader().getQueueId());
-                window.getWindowCache().flush(queueIds);
+                window.getWindowCache().checkpoint(queueIds);
             }
 
         }

@@ -192,7 +192,6 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
 
 
         windowInstances.putIfAbsent(windowInstanceId,windowInstance);
-
     }
     /**
      * 触发窗口

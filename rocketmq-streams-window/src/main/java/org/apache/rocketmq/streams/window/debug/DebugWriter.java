@@ -151,6 +151,12 @@ public class DebugWriter {
         for(WindowValue windowValue:messages){
             JSONObject jsonObject=new JSONObject();
             jsonObject.put("msgKey", windowValue.getMsgKey());
+            jsonObject.put("partition",windowValue.getPartition());
+            jsonObject.put("groupby",windowValue.getGroupBy());
+            jsonObject.put("windowInstanceId",windowValue.getWindowInstanceId());
+            jsonObject.put("start_time",windowValue.getStartTime());
+            jsonObject.put("end_time",windowValue.getEndTime());
+            jsonObject.put("orig_offset",windowValue.getOrigOffset());
             jsonObject.put("result",windowValue.getComputedColumnResultByKey(countFileName).toString());
             msgs.add(jsonObject.toJSONString());
         }

@@ -1,28 +1,15 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.rocketmq.streams.client.windows;
 
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.transform.DataStream;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
@@ -36,10 +23,10 @@ import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 import org.junit.Test;
 
-public class WindowFromFileTest extends AbstractWindowFireModeTest {
+public class WindowFromFileTest extends org.apache.rocketmq.streams.client.windows.AbstractWindowFireModeTest {
     protected DataStream createSourceDataStream(){
         return StreamBuilder.dataStream("namespace", "name1")
-            .fromFile("/Users/yuanxiaodong/chris/sls_100000.txt",false);
+            .fromFile("/Users/yuanxiaodong/chris/sls_100000.txt",true);
     }
 
     /**
@@ -47,7 +34,12 @@ public class WindowFromFileTest extends AbstractWindowFireModeTest {
      * @throws InterruptedException
      */
     @Test
-    public void testWindowFireMode0AndNoTimeField() throws InterruptedException {
+    public void testWindow() throws InterruptedException {
+        String dir="/tmp/rockstmq-streams";
+        FileUtil.deleteFile(dir);
+        ComponentCreator.getProperties().setProperty("window.debug","true");
+        ComponentCreator.getProperties().setProperty("window.debug.dir",dir);
+        ComponentCreator.getProperties().setProperty("window.debug.countFileName","total");
         super.testWindowFireMode0(false);
     }
 
@@ -134,7 +126,7 @@ public class WindowFromFileTest extends AbstractWindowFireModeTest {
 
     @Test
     public void testFileResult(){
-       createFile(3);
+       createFile(1);
     }
 
 
@@ -151,22 +143,38 @@ public class WindowFromFileTest extends AbstractWindowFireModeTest {
             List<String> lines= FileUtil.loadFileLine("/Users/yuanxiaodong/chris/sls_100000.txt");
             List<String> msgs=new ArrayList<>();
             for(String line:lines){
-                JSONObject msg=JSONObject.parseObject(line);
+                JSONObject jsonObject=JSONObject.parseObject(line);
+                JSONObject msg=new JSONObject();
+                msg.put("ProjectName",jsonObject.getString("ProjectName"));
+                msg.put("LogStore",jsonObject.getString("LogStore"));
+                msg.put("OutFlow",jsonObject.getString("OutFlow"));
+                msg.put("InFlow",jsonObject.getString("InFlow"));
                 if(time==null){
                     time=date.getTime();
                 }else {
                     time=time+1;
                 }
                 msg.put("logTime",time);
+                msg.put("currentTime", DateUtil.format(new Date(time)));
+
                 AbstractWindow window=new WindowOperator();
                 window.setSizeInterval(5);
                 window.setTimeUnitAdjust(1);
                 window.setTimeFieldName("logTime");
-                //WindowInstance windowInstance= window.queryOrCreateWindowInstance(new Message(msg),"1").get(0);
                 msgs.add(msg.toJSONString());
             }
-            FileUtil.write("/Users/yuanxiaodong/chris/sls_100000_time_"+i+".txt",msgs);
+            FileUtil.write("/Users/yuanxiaodong/chris/sls_88121_"+i+".txt",msgs,false);
         }
+
     }
 
+    /**
+     * groupBy("ProjectName", "LogStore")
+     *             .setLocalStorageOnly(isLocalOnly)
+     *             .setMaxMsgGap(10L)
+     *             .setTimeField("logTime")
+     *             .count("total")
+     *             .sum("OutFlow", "OutFlow")
+     *             .sum("InFlow", "inflow")
+     */
 }

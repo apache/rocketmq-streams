@@ -1,19 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.rocketmq.streams.client.windows;
 
 import com.alibaba.fastjson.JSONObject;
@@ -29,14 +13,13 @@ import org.apache.rocketmq.streams.common.functions.ForEachFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 
-
 public abstract class AbstractWindowFireModeTest implements Serializable {
     protected Date date=new Date();
     public AbstractWindowFireModeTest(){
 
         date.setYear(2021-1900);
         date.setMonth(6);
-        date.setDate(14);
+        date.setDate(27);
         date.setHours(12);
         date.setMinutes(1);
         date.setSeconds(0);
@@ -44,34 +27,33 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
     }
 
     public void testWindowFireMode0(boolean isLocalOnly) throws InterruptedException {
-        testWindowFireMode1(isLocalOnly,5);
+        testWindowFireMode0(isLocalOnly,5);
     }
 
     public void  testWindowFireMode0(boolean isLocalOnly,int windowSize) throws InterruptedException {
 
-        createSourceDataStream().map(new MapFunction<JSONObject, String>() {
-                int count=0;
+        createSourceDataStream().map(new MapFunction<JSONObject, JSONObject>() {
                 Long time=null;
                 @Override
-                public JSONObject map(String message) throws Exception {
+                public JSONObject map(JSONObject message) throws Exception {
 
                     if(time==null){
                         time=date.getTime();
                     }else {
-                        time+=count;
+                        time++;
                     }
-                    count++;
-                    JSONObject msg=JSONObject.parseObject(message);
+                    JSONObject msg=message;
 
                     msg.put("logTime",time);
 
-                    return msg;
+                    return message;
                 }
             })
             .window(TumblingWindow.of(Time.seconds(windowSize)))
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(isLocalOnly)
-            .setMaxMsgGap(isLocalOnly?10L:20L)
+            .setMaxMsgGap(20L)
+//            .waterMark(20)
             .setTimeField("logTime")
             .count("total")
             .sum("OutFlow", "OutFlow")
@@ -83,8 +65,10 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
                 public synchronized void foreach(JSONObject o) {
                     int total = o.getInteger("total");
                     o.put("sum(total)",  sum.addAndGet(total));
+                    o.put("currentTime", DateUtil.getCurrentTimeString());
+
                 }
-            }).toPrint().start();
+            }).toFile("/tmp/rocketmq-streams/result.txt",true).toPrint().start();
     }
     public void testWindowFireMode1(boolean isLocalOnly) throws InterruptedException {
         testWindowFireMode1(isLocalOnly,5);
@@ -92,28 +76,23 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
     public void testWindowFireMode1(boolean isLocalOnly,int windowSize) throws InterruptedException {
         AtomicInteger sum = new AtomicInteger(0) ;
             createSourceDataStream()
-            //.map(new MapFunction<JSONObject, String>() {
-            //    AtomicInteger COUNT=new AtomicInteger(0);
-            //    Long time;
-            //    @Override
-            //    public JSONObject map(String message) throws Exception {
-            //
-            //        if(time==null){
-            //            time=date.getTime();
-            //        }else {
-            //            int count=COUNT.incrementAndGet();
-            //            time+=count;
-            //        }
-            //        JSONObject msg=JSONObject.parseObject(message);
-            //
-            //        msg.put("logTime",time);
-            //        return msg;
-            //    }
-            //})
+            .map(new MapFunction<JSONObject, JSONObject>() {
+                AtomicInteger COUNT=new AtomicInteger(0);
+                Long time;
+                @Override
+                public JSONObject map(JSONObject message) throws Exception {
+
+                   Long logtime=message.getLong("logTime");
+                   Date date=new Date(logtime);
+                   date.setYear(2021-1900);
+                    message.put("logTime",new Date().getTime());
+                    return message;
+                }
+            })
             .window(TumblingWindow.of(Time.seconds(windowSize)))
             .setTimeField("logTime")
             .fireMode(1)
-                .setMaxMsgGap(isLocalOnly?20L:20L)
+                .setMaxMsgGap(isLocalOnly?20L:7L)
             .waterMark(100000000)
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(isLocalOnly)

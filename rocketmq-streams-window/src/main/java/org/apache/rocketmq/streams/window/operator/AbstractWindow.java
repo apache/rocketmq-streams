@@ -25,21 +25,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.alibaba.fastjson.JSONObject;
 
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAfterCurrentNode;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
-import org.apache.rocketmq.streams.common.topology.stages.udf.IRedurce;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
@@ -71,6 +67,7 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -192,7 +189,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected volatile transient WindowCache windowCache;
     protected transient WindowStorage storage;
     protected transient WindowRireSource windowFireSource;
-
+    protected transient SQLCache sqlCache;
     protected transient EventTimeManager eventTimeManager;
 
     //create and save window instacne max partitionNum and window max eventTime
@@ -211,6 +208,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         if(!ORMUtil.hasConfigueDB()){
             isLocalStorageOnly=true;
         }
+        sqlCache=new SQLCache();
         AbstractWindow window=this;
         windowCache=new WindowCache(){
 
@@ -233,7 +231,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             reducer = InstantiationUtil.deserializeObject(bytes);
         }
         eventTimeManager=new EventTimeManager();
-        windowMaxValueManager = new WindowMaxValueManager(this);
+        windowMaxValueManager = new WindowMaxValueManager(this,sqlCache);
         return success;
     }
 
@@ -359,15 +357,13 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return MapKeyUtil.createKey(values);
     }
 
-    public abstract void clearFire(List<WindowInstance> windowInstances);
+    public abstract void clearFireWindowInstance(WindowInstance windowInstance);
 
     public void clearFire(WindowInstance windowInstance){
         if(windowInstance==null){
             return;
         }
-        List<WindowInstance>windowInstances=new ArrayList<>();
-        windowInstances.add(windowInstance);
-        clearFire(windowInstances);
+        clearFireWindowInstance(windowInstance);
     }
 
     /**
@@ -765,4 +761,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     public EventTimeManager getEventTimeManager() {
         return eventTimeManager;
     }
+
+    public SQLCache getSqlCache() {
+        return sqlCache;
+    }
+
+    public void initWindowInstanceMaxSplitNum(WindowInstance instance){
+        getWindowMaxValueManager().initMaxSplitNum(instance,queryWindowInstanceMaxSplitNum(instance));
+    }
+
+    protected abstract Long queryWindowInstanceMaxSplitNum(WindowInstance instance);
 }

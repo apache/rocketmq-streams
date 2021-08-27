@@ -102,6 +102,9 @@ public class DebugAnalysis {
                 assertTrue(false);
             }
         }
+        if(sum!=expectValue){
+            System.out.println(sum+"     "+expectValue);
+        }
         assertTrue(sum==expectValue);
     }
 
@@ -117,6 +120,9 @@ public class DebugAnalysis {
             List<String> lines= FileUtil.loadFileLine(file.getAbsolutePath()+"/msg.txt");
             sum+=calculateCount(lines,false);
             isOrderInShuffleSplit(lines,file.getAbsolutePath());
+        }
+        if(sum!=expectValue){
+            System.out.println("shuffle receive"+sum+"   "+expectValue);
         }
         assertTrue(sum==expectValue);
     }
@@ -244,6 +250,7 @@ public class DebugAnalysis {
      */
     protected void isOrderInShuffleSplit( List<String> lines,String path){
         Map<String,String> queueId2EventTime=new HashMap<>();
+        Map<String,JSONObject> queueId2Msg=new HashMap<>();
         for(String line :lines){
             JSONObject msg=JSONObject.parseObject(line);
             if(isFireMsg(msg)){
@@ -264,11 +271,13 @@ public class DebugAnalysis {
                     errorMsg.put("current_event_time",eventTime);
                     errorMsg.put("path",path);
                     System.out.println(JsonableUtil.formatJson(errorMsg));
+                    System.out.println(queueId2Msg.get(oriQueueId));
                     Assert.assertTrue(false);
                 }
                 existEventTime=eventTime;
             }
             queueId2EventTime.put(oriQueueId,existEventTime);
+            queueId2Msg.put(oriQueueId,msg);
         }
 
     }

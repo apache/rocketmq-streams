@@ -29,17 +29,6 @@
     <name>ROCKETMQ STREAMS :: state</name>
     <dependencies>
 
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-streams-commons</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-streams-db-operator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.rocksdb</groupId>
-            <artifactId>rocksdbjni</artifactId>
-        </dependency>
+
     </dependencies>
 </project>

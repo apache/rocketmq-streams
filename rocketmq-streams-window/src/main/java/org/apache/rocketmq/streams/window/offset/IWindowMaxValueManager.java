@@ -34,47 +34,45 @@ public interface IWindowMaxValueManager {
      */
     Long incrementAndGetSplitNumber(WindowInstance instance, String splitId);
 
+
+    WindowMaxValue querySplitNum(WindowInstance instance, String splitId);
     /**
-     * load mutil window instance split's max split num
-     *
-     * @param windowInstances
-     * @param split
      */
-    void loadMaxSplitNum(Set<WindowInstance> windowInstances, String split);
+    void initMaxSplitNum(WindowInstance windowInstance, Long maxSplitNum);
 
-    String createSplitNumberKey(WindowInstance instance, String splitId);
 
-    /**
-     * load mutil window instance split's max split num
-     *
-     * @param keys
-     * @return
-     */
-    void loadMaxSplitNum(Set<String> keys);
-
-    void removeKeyPrefixFromLocalCache(Set<String> keyPrefixs);
+//    /**
+//     * load mutil window instance split's max split num
+//     *
+//     * @param keys
+//     * @return
+//     */
+//    void loadMaxSplitNum(Set<String> keys);
+//
+    void removeKeyPrefixFromLocalCache(Set<String> queueIds);
 
     /**
      * save addition WindowMaxValue
      */
-    void flush();
+//    void flush(String... queueIds);
 
     void resetSplitNum(WindowInstance instance, String splitId);
 
-    void resetSplitNum(String key);
-
+//    void resetSplitNum(String key);
+//
     void deleteSplitNum(WindowInstance instance, String splitId);
 
     /**
      * save window saved max offset，can filter the less offset
      * @param name
-     * @param queueId2Offsets
+     * @param oriQueueId2Offsets
      */
-    void saveMaxOffset(boolean isLong,String name,Map<String,String> queueId2Offsets);
+    Map<String,WindowMaxValue> saveMaxOffset(boolean isLong,String name,String shuffleId,Map<String,String> oriQueueId2Offsets);
 
 
-    Map<String,String> loadOffsets(String name,Set<String> queueIds);
+
+    Map<String, String> loadOffsets(String name,String shuffleId);
 
 
-    String loadOffset(String name,String queueIds);
+    Map<String, WindowMaxValue> queryOffsets(String name,String shuffleId,Set<String> oriQueueIds);
 }

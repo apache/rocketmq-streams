@@ -69,7 +69,7 @@ public class DebugWriter {
     public void receiveFirstData(String queueId,Long offset){
         Map<String,Long> offsets=load();
         Long saveOffset=offsets.get(queueId);
-        System.out.println(offset==saveOffset+1);
+        System.out.println("queueId is "+queueId+"current offset "+offset+"===="+saveOffset);
     }
     /**
      * load offsets

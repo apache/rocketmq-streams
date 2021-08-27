@@ -52,30 +52,16 @@ public class RocketMQOffset implements OffsetStore {
 
     @Override
     public long readOffset(MessageQueue mq, ReadOffsetType type) {
-        return offsetStore.readOffset(mq,type);
+         return offsetStore.readOffset(mq,type);
     }
 
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
-        Set<String> queueIds=new HashSet<>();
-        for(MessageQueue mq:mqs){
-            queueIds.add(new RocketMQMessageQueue(mq).getQueueId());
-        }
-        source.sendCheckpoint(queueIds);
-        if(DebugWriter.isOpenDebug()){
-            ConcurrentMap<MessageQueue, AtomicLong>offsetTable=ReflectUtil.getDeclaredField(this.offsetStore,"offsetTable");
-            DebugWriter.getInstance(source.getTopic()).writeSaveOffset(offsetTable);
-        }
         offsetStore.persistAll(mqs);
     }
 
     @Override
     public void persist(MessageQueue mq) {
-        source.sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
-        if(DebugWriter.isOpenDebug()){
-            ConcurrentMap<MessageQueue, AtomicLong>offsetTable=ReflectUtil.getDeclaredField(this.offsetStore,"offsetTable");
-            DebugWriter.getInstance(source.getTopic()).writeSaveOffset(mq,offsetTable.get(mq));
-        }
         offsetStore.persist(mq);
     }
 
@@ -95,6 +81,11 @@ public class RocketMQOffset implements OffsetStore {
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        offsetStore.updateOffset(mq,offset,isOneway);
+        source.sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
+        if(DebugWriter.isOpenDebug()){
+            ConcurrentMap<MessageQueue, AtomicLong>offsetTable=ReflectUtil.getDeclaredField(this.offsetStore,"offsetTable");
+            DebugWriter.getInstance(source.getTopic()).writeSaveOffset(mq,offsetTable.get(mq));
+        }
+       offsetStore.updateConsumeOffsetToBroker(mq,offset,isOneway);
     }
 }

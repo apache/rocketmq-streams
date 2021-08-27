@@ -124,7 +124,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                 }
             }
             Map<String,Boolean>isFirstDataForQueue=new HashMap<>();
-
+            consumer.setCommitOffsetWithPullRequestEnable(false);
             consumer.subscribe(topic, tags);
             consumer.registerMessageListener((MessageListenerOrderly)(msgs, context) -> {
                 try {
@@ -261,7 +261,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
         if (consumer.getMessageModel() == MessageModel.CLUSTERING) {
             consumer.changeInstanceNameToPID();
         }
-        MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
+        MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
         RemoteBrokerOffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, NamespaceUtil.wrapNamespace(consumer.getNamespace(), consumer.getConsumerGroup()));
         consumer.setOffsetStore(new RocketMQOffset(offsetStore, this));//每个一分钟运行一次
     }

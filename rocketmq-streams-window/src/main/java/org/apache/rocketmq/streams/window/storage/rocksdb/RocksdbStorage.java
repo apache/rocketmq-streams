@@ -34,6 +34,7 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.storage.AbstractWindowStorage;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
@@ -112,6 +113,10 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
         return getByKeyPrefix(keyPrefix, clazz, false);
     }
 
+    @Override public Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz) {
+        throw new RuntimeException("can not support this method");
+    }
+
     @Override
     public void multiPut(Map<String, T> values) {
         if (values == null) {
@@ -177,18 +182,15 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
         deleteRange(split.getQueueId(), split.getPlusQueueId(), clazz);
     }
 
+
+
     @Override
-    public void delete(String windowInstanceId, Set<String> queueIds, Class<T> clazz) {
+    public void delete(String windowInstanceId, String queueId, Class<T> clazz) {
         //范围删除影响性能，改成了通过removekey删除
         //String plusWindowInstaceId=null;
         //  String lastWord=windowInstanceId.substring(windowInstanceId.length()-2,windowInstanceId.length());
-        Set<String> currentQueueIds = new HashSet<>(queueIds);
-        Iterator<String> it = currentQueueIds.iterator();
-        while (it.hasNext()) {
-            String queueId = it.next();
-            String firstKey = MapKeyUtil.createKey(queueId, windowInstanceId);
-            deleteRange(firstKey, firstKey, clazz);
-        }
+        String firstKey = MapKeyUtil.createKey(queueId, windowInstanceId);
+        deleteRange(firstKey, firstKey, clazz);
 
     }
 

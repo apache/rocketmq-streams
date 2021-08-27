@@ -23,13 +23,16 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
+import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.storage.db.DBStorage;
 import org.apache.rocketmq.streams.window.storage.rocksdb.RocksdbStorage;
@@ -78,18 +81,33 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
 
     @Override
     public void multiPut(Map<String, T> values, String windowInstanceId, String queueId) {
+        multiPut(values,windowInstanceId,queueId,null);
+    }
+
+    public void multiPut(Map<String, T> values, String windowInstanceId, String queueId, SQLCache sqlCache) {
         localStorage.multiPut(values);
         if (isLocalStorageOnly) {
             return;
         }
         if (shufflePartitionManager.isWindowInstanceFinishInit(queueId, windowInstanceId)) {
             //可以考虑异步
+            if(sqlCache!=null){
+                sqlCache.addCache(new SQLElement(queueId,windowInstanceId,((IRemoteStorage)this.remoteStorage).multiPutSQL(values)));
+            }else {
+                remoteStorage.multiPut(values);
+            }
 
-            remoteStorage.multiPut(values);
 
             return;
         }
         remoteStorage.multiPut(values);
+    }
+
+    @Override public Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz) {
+        if(isLocalStorageOnly){
+            return null;
+        }
+        return remoteStorage.getMaxSplitNum(windowInstance,clazz);
     }
 
     @Override
@@ -152,17 +170,18 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
     }
 
     @Override
-    public void delete(String windowInstanceId, Set<String> queueIds, Class<T> clazz) {
-        localStorage.delete(windowInstanceId, queueIds, clazz);
+    public void delete(String windowInstanceId, String queueId, Class<T> clazz) {
+       this.delete(windowInstanceId,queueId,clazz,null);
+    }
+    public void delete(String windowInstanceId, String queueId, Class<T> clazz, SQLCache sqlCache) {
+        localStorage.delete(windowInstanceId, queueId, clazz);
         if (!isLocalStorageOnly) {
-            remoteStorage.delete(windowInstanceId, queueIds, clazz);
-//            executorService.execute(new Runnable() {
-//
-//                @Override
-//                public void run() {
-//                    remoteStorage.delete(windowInstanceId, queueIds, clazz);
-//                }
-//            });
+            if(sqlCache!=null){
+                sqlCache.addCache(new SQLElement(queueId,windowInstanceId,((IRemoteStorage)this.remoteStorage).deleteSQL(windowInstanceId,queueId,clazz)));
+            }else {
+                remoteStorage.delete(windowInstanceId, queueId, clazz);
+            }
+
         }
     }
 

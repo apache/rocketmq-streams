@@ -427,20 +427,21 @@ public class DataStream implements Serializable {
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-
-
-    public DataStreamAction toRocketmq(String topic, String groupName, String endpoint, String namesrvAddr,
-                                       String accessKey, String secretKey, String instanceId) {
-        return toRocketmq(topic, "*", groupName, namesrvAddr, endpoint, accessKey, secretKey, instanceId);
+    public DataStreamAction toRocketmq(String topic) {
+        return toRocketmq(topic, "*", null,-1, null);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, String endpoint,
-                                       String namesrvAddr, String accessKey, String secretKey, String instanceId) {
-        return toRocketmq(topic, tags, -1, groupName, namesrvAddr, endpoint, accessKey, secretKey, instanceId);
+
+    public DataStreamAction toRocketmq(String topic,String namesrvAddr) {
+        return toRocketmq(topic, "*", null,-1, namesrvAddr);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags, int batchSize, String groupName,
-                                       String endpoint, String namesrvAddr, String accessKey, String secretKey, String instanceId) {
+    public DataStreamAction toRocketmq(String topic, String tags,
+                                       String namesrvAddr) {
+        return toRocketmq(topic, tags,null,-1, namesrvAddr);
+    }
+
+    public DataStreamAction toRocketmq(String topic, String tags,String groupName, int batchSize,  String namesrvAddr) {
         RocketMQSink rocketMQSink = new RocketMQSink();
         rocketMQSink.setTopic(topic);
         rocketMQSink.setTags(tags);

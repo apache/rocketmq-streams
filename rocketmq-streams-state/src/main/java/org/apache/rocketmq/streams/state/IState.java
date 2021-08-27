@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 /**
  * state ，save stata data
  */
@@ -210,12 +209,14 @@ public interface IState<K,V>  {
      */
     Iterator<Map.Entry<K, V>> entryIterator();
 
-    /**
-     * 唯一标识一个state，clear，iterator都是基于此命名空间的
-     * @return
-     */
-    String getNamespace();
 
 
     void removeKeys(Collection<String> keys);
+
+
+
+    void scanEntity(IEntryProcessor<K,V> processor);
+
+
+    V putIfAbsent(K key, V value);
 }

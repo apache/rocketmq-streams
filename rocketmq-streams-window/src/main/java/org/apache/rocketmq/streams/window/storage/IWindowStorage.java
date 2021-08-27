@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
 
@@ -42,8 +43,7 @@ public interface IWindowStorage<T extends WindowBaseValue> extends ICommonStorag
     /**
      * 删除一个窗口实例的数据，包括远程和本地存储
      */
-    void delete(String windowInstanceId, Set<String> queueIds, Class<T> clazz);
-
+    void delete(String windowInstanceId, String queueId, Class<T> clazz);
     /**
      * 加载一个窗口实例的数据到本地存储
      */
@@ -55,7 +55,7 @@ public interface IWindowStorage<T extends WindowBaseValue> extends ICommonStorag
      *
      * @return
      */
-    Long getMaxShuffleId(String queueId, String windowNameSpace, String windowName, Class<T> clazz);
+    Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz);
 
     /**
      * 批量加载数据，放入本地缓存

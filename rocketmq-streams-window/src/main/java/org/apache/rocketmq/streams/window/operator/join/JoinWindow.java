@@ -75,9 +75,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     @Override
     protected int fireWindowInstance(WindowInstance instance, String shuffleId, Map<String, String> queueId2Offsets) {
-        List<WindowInstance> instances = new ArrayList<>();
-        instances.add(instance);
-        clearFire(instances);
+        clearFire(instance);
         return 0;
     }
 
@@ -85,24 +83,9 @@ public class JoinWindow extends AbstractShuffleWindow {
     public void clearCache(String queueId) {
 
     }
+
     @Override
-    public Map<String, WindowBaseValue> shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
-        Map<String, WindowBaseValue> allWindowValues = new HashMap<>();
-        for (IMessage msg : messages) {
-            MessageHeader header = JSONObject.parseObject(msg.getMessageBody().
-                getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
-            msg.setHeader(header);
-            String routeLabel = header.getMsgRouteFromLable();
-            String storeKey = createStoreKey(msg, routeLabel, instance);
-            JoinState state = createJoinState(msg, instance, routeLabel);
-            allWindowValues.put(storeKey,state);
-
-        }
-        return allWindowValues;
-    }
-
-    @Override public void saveStorage(Map<String, WindowBaseValue> allWindowValues, List<IMessage> messages,
-        WindowInstance instance, String queueId) {
+    public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
         Map<String, WindowBaseValue> joinLeftStates = new HashMap<>();
         Map<String, WindowBaseValue> joinRightStates = new HashMap<>();
         for (IMessage msg : messages) {
@@ -111,7 +94,7 @@ public class JoinWindow extends AbstractShuffleWindow {
             msg.setHeader(header);
             String routeLabel = header.getMsgRouteFromLable();
             String storeKey = createStoreKey(msg, routeLabel, instance);
-            JoinState state =(JoinState) allWindowValues.get(storeKey);
+            JoinState state = createJoinState(msg, instance, routeLabel);
             if ("left".equalsIgnoreCase(routeLabel)) {
                 joinLeftStates.put(storeKey, state);
             } else if ("right".equalsIgnoreCase(routeLabel)) {
@@ -442,20 +425,16 @@ public class JoinWindow extends AbstractShuffleWindow {
     /**
      * 删除掉触发过的数据
      *
-     * @param windowInstances
+     * @param instance
      */
     @Override
-    public void clearFire(List<WindowInstance> windowInstances) {
-
-        if (windowInstances != null && windowInstances.size() > 0) {
-            for (WindowInstance instance : windowInstances) {
-                //                System.out.println("clear window is " + instance.getStartTime() + " " + instance.getEndTime() + " " + instance.windowName);
-
-                WindowInstance.cleanWindow(instance);
-                joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(),
-                    this.getSizeInterval(), instance.getStartTime());
-            }
+    public void clearFireWindowInstance(WindowInstance instance) {
+        if(instance==null){
+            return;
         }
+        WindowInstance.clearInstance(instance);
+        joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(),
+            this.getSizeInterval(), instance.getStartTime());
         //todo windowinstace
         //todo left+right
     }
@@ -519,6 +498,24 @@ public class JoinWindow extends AbstractShuffleWindow {
                 windowInstanceMap.remove(tmp);
             }
         }
+    }
+
+    @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
+        Long leftMaxSplitNum=storage.getMaxSplitNum(instance,JoinLeftState.class);
+        Long rigthMaxSplitNum=storage.getMaxSplitNum(instance,JoinRightState.class);
+        if(leftMaxSplitNum==null){
+            return rigthMaxSplitNum;
+        }
+        if(rigthMaxSplitNum==null){
+            return leftMaxSplitNum;
+        }
+        if(leftMaxSplitNum>=rigthMaxSplitNum){
+            return leftMaxSplitNum;
+        }
+        if(leftMaxSplitNum<rigthMaxSplitNum){
+            return rigthMaxSplitNum;
+        }
+        return null;
     }
 
     public int getRetainWindowCount() {

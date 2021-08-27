@@ -82,6 +82,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
 
     protected transient Long lastUpdateTime;//used in session window，set last update time
 
+    protected transient String origOffset;
     public WindowValue() {
         setGmtCreate(DateUtil.getCurrentTime());
         setGmtModified(DateUtil.getCurrentTime());
@@ -541,6 +542,14 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         } catch (Exception e) {
             throw new RuntimeException("decode sql content error " + sqlContent, e);
         }
+    }
+
+    public String getOrigOffset() {
+        return origOffset;
+    }
+
+    public void setOrigOffset(String origOffset) {
+        this.origOffset = origOffset;
     }
 }
 
