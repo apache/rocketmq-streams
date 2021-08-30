@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.window.operator.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -36,6 +38,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
+import org.apache.rocketmq.streams.window.debug.WindowDebug;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
@@ -131,38 +134,33 @@ public class WindowOperator extends AbstractShuffleWindow {
     }
 
     protected transient Map<String,Integer>  shuffleWindowInstanceId2MsgCount=new HashMap<>();
-
+    protected transient int windowvaluecount=0;
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
-        Map<String,List<IMessage>> groupBy=groupByGroupName(messages);
+         DebugWriter.getDebugWriter(getConfigureName()).writeShuffleCalcultateReceveMessage(instance,messages,queueId);
+        List<String> sortKeys=new ArrayList<>();
+        Map<String,List<IMessage>> groupBy=groupByGroupName(messages,sortKeys);
         Set<String> groupByKeys=groupBy.keySet();
         List<String> storeKeys=new ArrayList<>();
         for(String groupByKey:groupByKeys){
             String storeKey=createStoreKey(queueId,groupByKey,instance);
             storeKeys.add(storeKey);
         }
-        Map<String,WindowBaseValue> exisitWindowValues=new HashMap<>();
-        Map<String,WindowBaseValue> newWindowValues=new HashMap<>();
-        List<WindowValue> windowValues=new ArrayList<>();
+        Map<String, WindowBaseValue> allWindowValues=new HashMap<>();
         //从存储中，查找window value对象，value是对象的json格式
-        Map<String, WindowBaseValue>  key2WindowValues=storage.multiGet(getWindowBaseValueClass(),storeKeys,instance.createWindowInstanceId(),queueId);
+        Map<String, WindowBaseValue>  existWindowValues=storage.multiGet(getWindowBaseValueClass(),storeKeys,instance.createWindowInstanceId(),queueId);
       //  Iterator<Entry<String, List<IMessage>>> it = groupBy.entrySet().iterator();
-        List<String> groupbys=new ArrayList<>(groupBy.keySet());
-        Collections.sort(groupbys);
-        for(String groupByKey:groupbys){
+        for(String groupByKey:sortKeys){
 
             List<IMessage> msgs=groupBy.get(groupByKey);
             String storeKey=createStoreKey(queueId,groupByKey,instance);
-            WindowValue windowValue=(WindowValue)key2WindowValues.get(storeKey);;
+            WindowValue windowValue=(WindowValue)existWindowValues.get(storeKey);;
             if(windowValue==null){
+                windowvaluecount++;
                 windowValue=createWindowValue(queueId,groupByKey,instance);
                 windowValue.setOrigOffset(msgs.get(0).getHeader().getOffset());
-                newWindowValues.put(storeKey,windowValue);
-            }else {
-                exisitWindowValues.put(storeKey,windowValue);
             }
-
-            windowValues.add(windowValue);
+            allWindowValues.put(storeKey,windowValue);
             windowValue.incrementUpdateVersion();
             Integer origValue=(Integer)windowValue.getComputedColumnResultByKey("total");
             if(origValue==null){
@@ -187,11 +185,9 @@ public class WindowOperator extends AbstractShuffleWindow {
 
         }
         if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
-            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowCalculate(this,windowValues,queueId);
+            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowCalculate(this,new ArrayList(allWindowValues.values()),queueId);
         }
-        Map<String, WindowBaseValue> allWindowValues=new HashMap<>();
-        allWindowValues.putAll(newWindowValues);
-        allWindowValues.putAll(exisitWindowValues);
+
         saveStorage(allWindowValues,instance,queueId);
         //Integer count=shuffleWindowInstanceId2MsgCount.get(instance.createWindowInstanceId());
         //if(count==null){
@@ -226,11 +222,12 @@ public class WindowOperator extends AbstractShuffleWindow {
      * @param messages
      * @return
      */
-    protected Map<String, List<IMessage>> groupByGroupName(List<IMessage> messages) {
+    protected Map<String, List<IMessage>> groupByGroupName(List<IMessage> messages,List<String> sortKeys) {
         if(messages==null||messages.size()==0){
             return new HashMap<>();
         }
         Map<String,List<IMessage>> groupBy=new HashMap<>();
+        Map<String, MessageOffset> minOffsets=new HashMap<>();
         for(IMessage message:messages){
             String groupByValue=generateShuffleKey(message);
             if(StringUtil.isEmpty(groupByValue)){
@@ -241,7 +238,31 @@ public class WindowOperator extends AbstractShuffleWindow {
                 messageList=new ArrayList<>();
                 groupBy.put(groupByValue,messageList);
             }
+            MessageOffset minOffset=minOffsets.get(groupByValue);
+            if(minOffset==null){
+                minOffset=message.getHeader().getMessageOffset();
+            }else {
+                if(minOffset.greateThan(message.getHeader().getOffset())){
+                    minOffset=message.getHeader().getMessageOffset();
+
+                }
+            }
+            minOffsets.put(groupByValue,minOffset);
             messageList.add(message);
+        }
+        List<Map.Entry<String,MessageOffset>> sortByMinOffset=new ArrayList<>(minOffsets.entrySet());
+        Collections.sort(sortByMinOffset, new Comparator<Entry<String, MessageOffset>>() {
+            @Override public int compare(Entry<String, MessageOffset> o1, Entry<String, MessageOffset> o2) {
+                boolean success= o1.getValue().greateThan(o2.getValue().getOffsetStr());
+                if(success){
+                    return 1;
+                }else {
+                    return -1;
+                }
+            }
+        });
+        for(Map.Entry<String,MessageOffset> entry:sortByMinOffset){
+            sortKeys.add(entry.getKey());
         }
         return groupBy;
     }
@@ -333,7 +354,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         }
 
         if(canClear){
-            this.windowInstanceMap.remove(windowInstance.createWindowInstanceId());
+            this.windowInstanceMap.remove(windowInstance.createWindowInstanceTriggerId());
 
             windowMaxValueManager.deleteSplitNum(windowInstance,windowInstance.getSplitId());
             ShufflePartitionManager.getInstance().clearWindowInstance(windowInstance.createWindowInstanceId());

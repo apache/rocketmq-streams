@@ -60,14 +60,6 @@ public class ShuffleCache extends WindowCache {
         return true;
     }
 
-    /**
-     * save max split num
-     * @param windowInstance
-     */
-    protected void saveWindowInstanceMaxSplitNum(WindowInstance windowInstance) {
-        WindowMaxValue windowMaxValue= window.getWindowMaxValueManager().querySplitNum(windowInstance,windowInstance.getSplitId());
-        window.getSqlCache().addCache(new SQLElement(windowInstance.getSplitId(),windowInstance.createWindowInstanceId(),ORMUtil.createBatchReplacetSQL(windowMaxValue)));
-    }
 
     /**
      * save consumer progress（offset）for groupby  source queueId
@@ -124,8 +116,10 @@ public class ShuffleCache extends WindowCache {
 
             String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
             String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
+            Boolean isLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
             message.getHeader().setQueueId(oriQueueId);
             message.getHeader().setOffset(oriOffset);
+            message.getHeader().setOffsetIsLong(isLong);
 
         }
     }

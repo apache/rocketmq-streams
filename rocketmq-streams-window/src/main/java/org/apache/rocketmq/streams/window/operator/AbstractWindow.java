@@ -208,7 +208,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         if(!ORMUtil.hasConfigueDB()){
             isLocalStorageOnly=true;
         }
-        sqlCache=new SQLCache();
+        sqlCache=new SQLCache(isLocalStorageOnly);
         AbstractWindow window=this;
         windowCache=new WindowCache(){
 
@@ -461,21 +461,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @return
      */
     public List<WindowInstance> queryOrCreateWindowInstance(IMessage message,String queueId) {
-        List<WindowInstance> windowInstances=WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
+        return  WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
             queueId);
-//        if(fireMode==2){
-//            if(windowInstances==null){
-//                return null;
-//            }
-//            for(WindowInstance windowInstance:windowInstances){
-//                Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
-//                Date lastFireTimne=DateUtil.addDate(TimeUnit.SECONDS,endTime,getWaterMarkMinute()*timeUnitAdjust);
-//                //if fireMode==2， need clear data in lastFireTime
-//                WindowInstance lastClearWindowInstance=createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTimne),queueId);
-//                getWindowFireSource().registFireWindowInstanceIfNotExist(lastClearWindowInstance,this);
-//            }
-//        }
-        return windowInstances;
     }
 
     /**

@@ -35,11 +35,11 @@ public class WindowFromFileTest extends org.apache.rocketmq.streams.client.windo
      */
     @Test
     public void testWindow() throws InterruptedException {
-        String dir="/tmp/rockstmq-streams";
-        FileUtil.deleteFile(dir);
-        ComponentCreator.getProperties().setProperty("window.debug","true");
-        ComponentCreator.getProperties().setProperty("window.debug.dir",dir);
-        ComponentCreator.getProperties().setProperty("window.debug.countFileName","total");
+//        String dir="/tmp/rockstmq-streams-1";
+//        FileUtil.deleteFile(dir);
+//        ComponentCreator.getProperties().setProperty("window.debug","true");
+//        ComponentCreator.getProperties().setProperty("window.debug.dir",dir);
+//        ComponentCreator.getProperties().setProperty("window.debug.countFileName","total");
         super.testWindowFireMode0(false);
     }
 
@@ -132,12 +132,12 @@ public class WindowFromFileTest extends org.apache.rocketmq.streams.client.windo
 
     protected void createFile(int count){
 
-        date.setYear(2021-1900);
-        date.setMonth(6);
-        date.setDate(27);
-        date.setHours(12);
-        date.setMinutes(1);
-        date.setSeconds(0);
+//        date.setYear(2021-1900);
+//        date.setMonth(6);
+//        date.setDate(27);
+//        date.setHours(12);
+//        date.setMinutes(1);
+//        date.setSeconds(0);
         Long time=null;
         for(int i=0;i<count;i++){
             List<String> lines= FileUtil.loadFileLine("/Users/yuanxiaodong/chris/sls_100000.txt");
@@ -150,7 +150,7 @@ public class WindowFromFileTest extends org.apache.rocketmq.streams.client.windo
                 msg.put("OutFlow",jsonObject.getString("OutFlow"));
                 msg.put("InFlow",jsonObject.getString("InFlow"));
                 if(time==null){
-                    time=date.getTime();
+                    time=date;
                 }else {
                     time=time+1;
                 }

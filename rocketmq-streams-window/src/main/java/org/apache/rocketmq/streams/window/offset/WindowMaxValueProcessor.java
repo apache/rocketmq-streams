@@ -163,6 +163,10 @@ public class WindowMaxValueProcessor{
 
     public Map<String,String> loadOffset(String name) {
         Map<String,String> result=new HashMap<>();
+        if(window.isLocalStorageOnly()){
+            return result;
+        }
+
         String keyPrefix=MapKeyUtil.createKey(name,splitId);
         String sql="select * from "+ ORMUtil.getTableName(WindowMaxValue.class)+ " where msg_key like '"+keyPrefix+"%'";
         List<WindowMaxValue> windowMaxValues = ORMUtil.queryForList(sql, null, WindowMaxValue.class);

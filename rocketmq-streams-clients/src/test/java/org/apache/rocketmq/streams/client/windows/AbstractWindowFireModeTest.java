@@ -14,15 +14,9 @@ import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 
 public abstract class AbstractWindowFireModeTest implements Serializable {
-    protected Date date=new Date();
+    protected Long date=1627358460609L;
     public AbstractWindowFireModeTest(){
 
-        date.setYear(2021-1900);
-        date.setMonth(6);
-        date.setDate(27);
-        date.setHours(12);
-        date.setMinutes(1);
-        date.setSeconds(0);
 
     }
 
@@ -38,7 +32,7 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
                 public JSONObject map(JSONObject message) throws Exception {
 
                     if(time==null){
-                        time=date.getTime();
+                        time=date;
                     }else {
                         time++;
                     }

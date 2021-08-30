@@ -45,12 +45,27 @@ public class WindowDebugTest {
             if(StringUtil.isEmpty(logstore)){
                 logstore="<null>";
             }
-            String key = MapKeyUtil.createKey(windowInstanceId,project,logstore);
+            String key = MapKeyUtil.createKey(windowInstanceId,project,logstore,currentOffset+"");
             msg.put("index",i++);
             Long value=msg.getLong("total");
             totalSum.addAndGet(value);
             windowInstanceId2Msgs.put(key,msg);
+            Integer count=windowInstanceId2Count.get(key);
+            if(count==null){
+                 count=0;
+            }
+            count++;
+            windowInstanceId2Count.put(key,count);
         }
+
+        int lessDateCount=0;
+        for(String key:windowInstanceId2Count.keySet()){
+            Integer count=windowInstanceId2Count.get(key);
+            if(count!=2){
+                lessDateCount++;
+            }
+        }
+        System.out.println(lessDateCount);
 
 
         List<JSONObject> msgList=new ArrayList<>(windowInstanceId2Msgs.values());
@@ -62,24 +77,24 @@ public class WindowDebugTest {
             }
         });
         Map<String,JSONObject> windowInstanceId2Offset=new HashMap<>();
-        for(JSONObject msg:msgList){
+        for(JSONObject msg:windowInstanceId2Msgs.values()){
             Long currentOffset= msg.getLong("offset");
             String windowInstanceId=msg.getString("windowInstanceId");
             JSONObject old=windowInstanceId2Offset.get(windowInstanceId);
             Long value=msg.getLong("total");
-           //sum.addAndGet(value);
-            if(old==null){
-                windowInstanceId2Offset.put(windowInstanceId,msg);
-                sum.addAndGet(value);
-            }else {
-                if(currentOffset>old.getLong("offset")){
-                    windowInstanceId2Offset.put(windowInstanceId,msg);
-                    sum.addAndGet(value);
-                }else {
-                    System.out.println("   ");
-                }
-
-            }
+            sum.addAndGet(value);
+//            if(old==null){
+//                windowInstanceId2Offset.put(windowInstanceId,msg);
+//                sum.addAndGet(value);
+//            }else {
+//                if(currentOffset>old.getLong("offset")){
+//                    windowInstanceId2Offset.put(windowInstanceId,msg);
+//                    sum.addAndGet(value);
+//                }else {
+//                    System.out.println("   ");
+//                }
+//
+//            }
         }
         System.out.println(sum.get()+"----"+totalSum.get());
     }

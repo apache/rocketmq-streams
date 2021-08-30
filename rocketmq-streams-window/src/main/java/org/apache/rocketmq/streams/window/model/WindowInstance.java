@@ -268,8 +268,17 @@ public class WindowInstance extends Entity implements Serializable {
                         break;
                     }
                 }
+                /**
+                 * mode 2 clear window instance in first create window instance
+                 */
+                if(window.getFireMode()==2&&fire.getTime()==end.getTime()){
+                    Date clearWindowInstanceFireTime=DateUtil.addDate(TimeUnit.SECONDS,end, waterMarkMinute * timeUnitAdjust);
+                    WindowInstance lastWindowInstance=window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end),DateUtil.format(clearWindowInstanceFireTime) , queueId);
+                    window.getWindowInstanceMap().putIfAbsent(lastWindowInstance.createWindowInstanceTriggerId(),lastWindowInstance);
+                    window.getSqlCache().addCache(new SQLElement(queueId,lastWindowInstance.createWindowInstanceId(),ORMUtil.createBatchReplacetSQL(lastWindowInstance)));
+                    window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance,window);
+                }
 
-                //todo mode 2 clear window instance in first create window instance
             } else {
                 fire = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
                 if (maxEventTime!=null&&maxEventTime - fire.getTime() > 0) {
@@ -281,8 +290,8 @@ public class WindowInstance extends Entity implements Serializable {
             String startTime = DateUtil.format(begin);
             String endTime = DateUtil.format(end);
             String fireTime = DateUtil.format(fire);
-            String windowInstanceId = window.createWindowInstance(startTime, endTime, fireTime, queueId).createWindowInstanceId();
-            WindowInstance windowInstance = window.getWindowInstanceMap().get(windowInstanceId);
+            String windowInstanceTriggerId = window.createWindowInstance(startTime, endTime, fireTime, queueId).createWindowInstanceTriggerId();
+            WindowInstance windowInstance = window.getWindowInstanceMap().get(windowInstanceTriggerId);
             if (windowInstance == null) {
                 lostWindowTimeList.add(Pair.of(startTime, endTime));
                 lostFireList.add(fireTime);
@@ -296,7 +305,7 @@ public class WindowInstance extends Entity implements Serializable {
 
         instanceList.addAll(lostInstanceList);
         for (WindowInstance windowInstance : instanceList) {
-            window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceId(), windowInstance);
+            window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceTriggerId(), windowInstance);
         }
 
         return instanceList;

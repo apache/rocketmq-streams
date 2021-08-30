@@ -27,7 +27,7 @@ public class WindowFromRocketMQ extends AbstractWindowFireModeTest {
 //        ComponentCreator.getProperties().setProperty("window.debug","true");
 //        ComponentCreator.getProperties().setProperty("window.debug.dir","/tmp/rockstmq-streams");
 //        ComponentCreator.getProperties().setProperty("window.debug.countFileName","total");
-        super.testWindowFireMode0(false);
+        super.testWindowFireMode0(true);
     }
 
 

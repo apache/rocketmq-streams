@@ -23,8 +23,10 @@ public class SQLCache extends AbstractMutilSplitMessageCache<ISQLElement> {
     protected Boolean isOpenCache=true;//if false，then execute sql when receive sql
     protected Set<String> firedWindowInstances=new HashSet<>();//fired window instance ，if the owned sqls have not commit， can cancel the sqls
     protected Map<String,Integer> windowInstance2Index=new HashMap<>();//set index to ISQLElement group by window instance
-    public SQLCache( ){
+    protected boolean isLocalOnly;
+    public SQLCache(boolean isLocalOnly ){
         super(null);
+        this.isLocalOnly=isLocalOnly;
         this.flushCallBack = new MessageFlushCallBack(new SQLCacheCallback());
         this.setBatchSize(1000);
         this.setAutoFlushTimeGap(30*1000);
@@ -33,7 +35,9 @@ public class SQLCache extends AbstractMutilSplitMessageCache<ISQLElement> {
     }
 
     @Override public int addCache(ISQLElement isqlElement) {
-
+        if(isLocalOnly){
+            return 0;
+        }
         if(isOpenCache==false){
             DriverBuilder.createDriver().execute(isqlElement.getSQL());
             return 1;

@@ -58,6 +58,21 @@ public class DebugWriter {
         }
         return debugWriter;
     }
+    public void writeShuffleCalcultateReceveMessage(WindowInstance instance,List<IMessage> messages,String splitId) {
+        if(!openDebug){
+            return;
+        }
+        String logFilePath=filePath+"/window_calculate_message_receive/"+splitId+"/msg.txt";
+        List<String> msgs=new ArrayList<>();
+        for(IMessage message:messages){
+            JSONObject msg=new JSONObject();
+            msg.put("offset",message.getHeader().getOffset());
+            msg.put("queueid",message.getMessageBody().getString(message.getHeader().getQueueId()));
+            msg.put("windowInstaceId",instance.createWindowInstanceId());
+            msgs.add(msg.toJSONString());
+        }
+        FileUtil.write(logFilePath,msgs,true);
+    }
 
 
     public synchronized void writeWindowCache(AbstractWindow window, List<IMessage> messages,String splitId){
@@ -171,9 +186,13 @@ public class DebugWriter {
         List<String> msgs=new ArrayList<>();
         for(IMessage msg:messages){
             JSONObject jsonObject=new JSONObject();
+            jsonObject.put("windowInstanceId",msg.getMessageBody().getString("windowInstanceId"));
+            jsonObject.put("start_time",msg.getMessageBody().getString("start_time"));
+            jsonObject.put("end_time",msg.getMessageBody().getString("end_time"));
             jsonObject.put("partitionNum", msg.getHeader().getOffset());
             jsonObject.put("result",msg.getMessageBody().getLong("total"));
             jsonObject.put("queueId",msg.getHeader().getQueueId());
+            jsonObject.put("msgKey",msg.getMessageBody().getString("msgKey"));
             msgs.add(jsonObject.toJSONString());
         }
         FileUtil.write(logFilePath,msgs,true);
@@ -230,4 +249,6 @@ public class DebugWriter {
     public boolean isOpenRocksDBTest() {
         return openRocksDBTest;
     }
+
+
 }

@@ -171,9 +171,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
             }
             for(WindowInstance windowInstance:windowInstances){
                 String windowInstanceId = windowInstance.createWindowInstanceId();
-                if(!window.getWindowInstanceMap().containsKey(windowInstanceId)){
-                    window.getWindowInstanceMap().putIfAbsent(windowInstanceId,windowInstance);
-                }
                 //new instance, not need load data from remote
                 if(windowInstance.isNewWindowInstance()){
                     window.getSqlCache().addCache(new SQLElement(windowInstance.getSplitId(),windowInstanceId, ORMUtil.createBatchReplacetSQL(windowInstance)));
@@ -217,15 +214,9 @@ public class ShuffleChannel extends AbstractSystemChannel {
             Map<String,Set<WindowInstance>> queueId2WindowInstances=new HashMap<>();
             for(WindowInstance windowInstance:allWindowInstances){
                 windowInstance.setNewWindowInstance(false);
-                window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceId(),windowInstance);
+                window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceTriggerId(),windowInstance);
                 window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance,window);
                 String queueId=windowInstance.getSplitId();
-                Set<WindowInstance> windowInstances=queueId2WindowInstances.get(queueId);
-                if(windowInstances==null){
-                    windowInstances=new HashSet<>();
-                    queueId2WindowInstances.put(queueId,windowInstances);
-                }
-                windowInstances.add(windowInstance);
                 window.getStorage().loadSplitData2Local(queueId,windowInstance.createWindowInstanceId(),window.getWindowBaseValueClass(),new WindowRowOperator(windowInstance,queueId,window));
                 window.initWindowInstanceMaxSplitNum(windowInstance);
             }
