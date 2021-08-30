@@ -271,7 +271,7 @@ public class WindowInstance extends Entity implements Serializable {
                 /**
                  * mode 2 clear window instance in first create window instance
                  */
-                if(window.getFireMode()==2&&fire.getTime()==end.getTime()){
+                if(window.getFireMode()==2&&fire.getTime()==end.getTime()&&waterMarkMinute>0){
                     Date clearWindowInstanceFireTime=DateUtil.addDate(TimeUnit.SECONDS,end, waterMarkMinute * timeUnitAdjust);
                     WindowInstance lastWindowInstance=window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end),DateUtil.format(clearWindowInstanceFireTime) , queueId);
                     window.getWindowInstanceMap().putIfAbsent(lastWindowInstance.createWindowInstanceTriggerId(),lastWindowInstance);

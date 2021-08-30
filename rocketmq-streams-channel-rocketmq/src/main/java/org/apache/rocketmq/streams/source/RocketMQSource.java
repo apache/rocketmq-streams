@@ -78,8 +78,8 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
 
     public RocketMQSource() {}
 
-    public RocketMQSource(String topic, String tags, String groupName, String endpoint,
-                          String namesrvAddr, String accessKey, String secretKey, String instanceId) {
+    public RocketMQSource(String topic, String tags, String groupName,
+                          String namesrvAddr) {
         this.topic = topic;
         this.tags = tags;
         this.groupName = groupName;
@@ -124,7 +124,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                 }
             }
             Map<String,Boolean>isFirstDataForQueue=new HashMap<>();
-            consumer.setCommitOffsetWithPullRequestEnable(false);
+           // consumer.setCommitOffsetWithPullRequestEnable(false);
             consumer.subscribe(topic, tags);
             consumer.registerMessageListener((MessageListenerOrderly)(msgs, context) -> {
                 try {
@@ -261,7 +261,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
         if (consumer.getMessageModel() == MessageModel.CLUSTERING) {
             consumer.changeInstanceNameToPID();
         }
-        MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
+        MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
         RemoteBrokerOffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, NamespaceUtil.wrapNamespace(consumer.getNamespace(), consumer.getConsumerGroup()));
         consumer.setOffsetStore(new RocketMQOffset(offsetStore, this));//每个一分钟运行一次
     }

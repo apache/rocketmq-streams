@@ -16,6 +16,4 @@
  */
 package org.apache.rocketmq.streams.common.functions;
 
-public interface Function {
-
-}
+public interface Function extends java.io.Serializable {}

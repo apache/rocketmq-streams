@@ -25,11 +25,7 @@ import java.util.Map.Entry;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
-<<<<<<< HEAD
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
-=======
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
->>>>>>> f1bbde9762e2abebae910b848f4dce0c56dec82c
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;

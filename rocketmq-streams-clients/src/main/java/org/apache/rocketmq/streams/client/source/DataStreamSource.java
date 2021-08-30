@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.streams.client.source;
 
+import java.io.Serializable;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;

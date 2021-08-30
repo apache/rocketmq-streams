@@ -95,7 +95,7 @@ public class WindowFireResultCompareTest {
      */
     @Test
     public void testCalculateMsgReceiver(){
-        String filePath="/tmp/rocketmq-streams/result.txt.2";
+        String filePath="/tmp/rocketmq-streams/result.txt";
         List<String> msgs=FileUtil.loadFileLine(filePath);
         Map<String,Integer> windowIntanceId2Count=new HashMap<>();
         for(String line:msgs){

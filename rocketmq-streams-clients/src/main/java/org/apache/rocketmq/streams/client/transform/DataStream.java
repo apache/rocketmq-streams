@@ -80,7 +80,6 @@ public class DataStream implements Serializable {
     public DataStream script(String script) {
         ChainStage<?> stage = this.mainPipelineBuilder.createStage(new ScriptOperator(script));
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
-
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
 
@@ -364,8 +363,6 @@ public class DataStream implements Serializable {
         if (this.mainPipelineBuilder == null) {
             return;
         }
-
-
         ConfigurableComponent configurableComponent = ComponentCreator.getComponent(mainPipelineBuilder.getPipelineNameSpace(), ConfigurableComponent.class, ConfigureFileKey.CONNECT_TYPE + ":memory");
         ChainPipeline pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
         pipeline.startChannel();

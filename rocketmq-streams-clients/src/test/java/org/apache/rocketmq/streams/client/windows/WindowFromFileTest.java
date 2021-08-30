@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.transform.DataStream;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -183,13 +184,4 @@ public class WindowFromFileTest extends org.apache.rocketmq.streams.client.windo
 
     }
 
-    /**
-     * groupBy("ProjectName", "LogStore")
-     *             .setLocalStorageOnly(isLocalOnly)
-     *             .setMaxMsgGap(10L)
-     *             .setTimeField("logTime")
-     *             .count("total")
-     *             .sum("OutFlow", "OutFlow")
-     *             .sum("InFlow", "inflow")
-     */
 }

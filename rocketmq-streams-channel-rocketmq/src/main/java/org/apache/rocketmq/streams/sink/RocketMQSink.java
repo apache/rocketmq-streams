@@ -36,7 +36,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
@@ -197,7 +196,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                     return;
                 }
             }
-            defaultMQAdminExt.createTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC, topic, splitNum, 1);
+            defaultMQAdminExt.createTopic(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC, topic, splitNum, 1);
 
         } catch (Exception e) {
             e.printStackTrace();

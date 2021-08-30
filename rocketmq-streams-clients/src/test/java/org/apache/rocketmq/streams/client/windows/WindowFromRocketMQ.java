@@ -49,7 +49,7 @@ public class WindowFromRocketMQ extends AbstractWindowFireModeTest {
         long start=System.currentTimeMillis();
         StreamBuilder.dataStream("namespace", "name")
             .fromFile("/Users/yuanxiaodong/chris/sls_10.txt", true)
-                .toRocketmq(topic, "chris1", "", "", "", "", "")
+                .toRocketmq(topic, "chris1")
             .start();
     }
 

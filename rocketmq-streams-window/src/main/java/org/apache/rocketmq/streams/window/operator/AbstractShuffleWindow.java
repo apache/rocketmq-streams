@@ -27,10 +27,9 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.rocketmq.streams.window.source.WindowRireSource;
-import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
-public abstract class AbstractShuffleWindow extends AbstractWindow implements IAfterConfiguableRefreshListerner {
+public abstract class AbstractShuffleWindow extends AbstractWindow implements IAfterConfigurableRefreshListener {
 
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
