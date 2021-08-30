@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.examples.filesource;
 
-package org.apache.rocketmq.streams.configuable.service;
+import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-
-@Deprecated
-public class ConfigurableServcieType {
-
-    public static final String DEFAULT_SERVICE_NAME = IConfigurableService.DEFAULT_SERVICE_NAME;
-    public static final String MEMORY_SERVICE_NAME = IConfigurableService.MEMORY_SERVICE_NAME;
-    public static final String FILE_SERVICE_NAME = IConfigurableService.FILE_SERVICE_NAME;
-    public static final String HTTP_SERVICE_NAME = IConfigurableService.HTTP_SERVICE_NAME;
-
-
+public class FileSourceExample {
+    public static void main(String[] args) {
+        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        source.fromFile("/your/file/path", false)
+                .map(message -> message)
+                .toPrint(1)
+                .start();
+    }
 }

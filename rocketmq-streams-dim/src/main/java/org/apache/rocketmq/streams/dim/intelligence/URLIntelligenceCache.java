@@ -23,9 +23,9 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 
-public class URLIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfiguableRefreshListerner {
+public class URLIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfigurableRefreshListener {
 
     private static final Log LOG = LogFactory.getLog(URLIntelligenceCache.class);
 

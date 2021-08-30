@@ -34,7 +34,7 @@ public class GetDateFunction {
      */
     @FunctionMethod(value = "getdate", alias = "gettime", comment = "获取当前时间的时间戳")
     public Long getDate(IMessage message, FunctionContext context) {
-        return new Date().getTime();
+        return System.currentTimeMillis();
     }
 
 }

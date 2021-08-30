@@ -1,0 +1,27 @@
+dist: trusty
+
+env:
+  global:
+    - CODECOV_TOKEN=59121d3e-7f65-4c78-b1cf-3cd3afec07a0
+    
+language: java
+
+jdk:
+    - oraclejdk8
+    - oraclejdk9
+    - oraclejdk11
+    - openjdk8
+
+before_install:
+  - echo 'MAVEN_OPTS="$MAVEN_OPTS -Xmx1024m -XX:MaxPermSize=512m -XX:+BytecodeVerificationLocal"' >> ~/.mavenrc
+  - cat ~/.mavenrc
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then jdk_switcher use "$CUSTOM_JDK"; fi
+
+script:
+  - travis_retry mvn -B clean apache-rat:check
+  - travis_retry mvn -B clean install jacoco:report
+
+after_success:
+  - mvn test
+  - bash <(curl -s https://codecov.io/bash)

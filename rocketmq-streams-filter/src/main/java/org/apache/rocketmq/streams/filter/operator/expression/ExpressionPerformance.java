@@ -23,10 +23,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
 public class ExpressionPerformance implements Runnable {
     protected static List<ExpressionPerformance> expressionPerformances = new ArrayList<>();
@@ -35,16 +36,13 @@ public class ExpressionPerformance implements Runnable {
     protected transient Map<String, ExpressionStatistic> expressionStatisticMap = new HashMap<>();
     protected transient long lastTime = System.currentTimeMillis();//最后一次的优化时间
     protected transient final List<String> values;
-    private static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10);
+
+    private static ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(10, new BasicThreadFactory.Builder().namingPattern("ExpressionPerformance-Performance-%d").build());
 
     static {
-
-        scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                for (ExpressionPerformance expressionPerformance : expressionPerformances) {
-                    expressionPerformance.run();
-                }
+        scheduledExecutorService.scheduleWithFixedDelay(() -> {
+            for (ExpressionPerformance expressionPerformance : expressionPerformances) {
+                expressionPerformance.run();
             }
         }, 10, 3, TimeUnit.SECONDS);
     }

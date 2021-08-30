@@ -14,12 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.configurable;
+package org.apache.rocketmq.streams.examples.rocketmqsource;
 
-public interface IAfterConfiguableRefreshListerner {
+import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
-    /**
-     * 当configurable数据全部加载完成时，调用实现这个接口的configurable对象
-     */
-    void doProcessAfterRefreshConfigurable(IConfigurableService configurableService);
+public class RocketMQSourceExample1 {
+    public static void main(String[] args) {
+        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+
+        source.fromRocketmq(
+                RocketMQSourceExample2.RMQ_TOPIC,
+                RocketMQSourceExample2.RMQ_CONSUMER_GROUP_NAME,
+                RocketMQSourceExample2.NAMESRV_ADDRESS
+        )
+                .map(message -> message)
+                .toPrint(1)
+                .start();
+
+    }
 }
