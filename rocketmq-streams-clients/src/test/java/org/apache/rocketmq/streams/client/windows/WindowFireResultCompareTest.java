@@ -10,6 +10,8 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.junit.Test;
 
+import static junit.framework.TestCase.assertTrue;
+
 public class WindowFireResultCompareTest {
 
     @Test
@@ -94,7 +96,7 @@ public class WindowFireResultCompareTest {
      *             msg.put("windowInstaceId",instance.createWindowInstanceId());
      */
     @Test
-    public void testCalculateMsgReceiver(){
+    public void testResult(){
         String filePath="/tmp/rocketmq-streams/result.txt";
         List<String> msgs=FileUtil.loadFileLine(filePath);
         Map<String,Integer> windowIntanceId2Count=new HashMap<>();
@@ -144,14 +146,16 @@ public class WindowFireResultCompareTest {
             windowIntanceId2Count_2.put(key,count);
         }
 
-        System.out.println(windowIntanceId2Count.size()==windowIntanceId2Count_2.size());
+        System.out.println(windowIntanceId2Count.size()+" "+windowIntanceId2Count_2.size());
+        //assertTrue(windowIntanceId2Count.size()==windowIntanceId2Count_2.size());
 
 
         for(String key:windowIntanceId2Count.keySet()){
             Integer count=windowIntanceId2Count.get(key);
             Integer count2=windowIntanceId2Count_2.get(key);
             if(count.intValue()!=count2.intValue()){
-                System.out.println(key+" "+count+"  "+count2);
+                System.out.println("result is not match");
+                assertTrue(false);
             }
         }
 

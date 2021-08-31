@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.AccessChannel;
@@ -30,6 +32,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
@@ -44,12 +47,14 @@ import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.RocketMQOffset;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
@@ -268,8 +273,30 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
             consumer.changeInstanceNameToPID();
         }
         MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
-        RemoteBrokerOffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, NamespaceUtil.wrapNamespace(consumer.getNamespace(), consumer.getConsumerGroup()));
-        consumer.setOffsetStore(new RocketMQOffset(offsetStore, this));//每个一分钟运行一次
+        RemoteBrokerOffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, NamespaceUtil.wrapNamespace(consumer.getNamespace(), consumer.getConsumerGroup())){
+
+            @Override
+            public void removeOffset(MessageQueue mq) {
+                Set<String> splitIds = new HashSet<>();
+                splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
+                removeSplit(splitIds);
+                super.removeOffset(mq);
+            }
+
+
+            @Override
+            public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway)
+                throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+                sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
+                if(DebugWriter.isOpenDebug()){
+                    ConcurrentMap<MessageQueue, AtomicLong> offsetTable=ReflectUtil.getDeclaredField(this,"offsetTable");
+                    DebugWriter.getInstance(getTopic()).writeSaveOffset(mq,offsetTable.get(mq));
+                }
+                LOG.debug("the queue Id is "+new RocketMQMessageQueue(mq).getQueueId()+",rocketmq start save offset，the save time is "+ DateUtil.getCurrentTimeString());
+                super.updateConsumeOffsetToBroker(mq,offset,isOneway);
+            }
+        };
+        consumer.setOffsetStore(offsetStore);//每个一分钟运行一次
     }
 
     @Override
