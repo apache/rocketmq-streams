@@ -27,7 +27,7 @@ public class DebugWriter {
     }
 
     public static boolean isOpenDebug(){
-        return true;
+        return false;
     }
 
     public DebugWriter(){}
@@ -40,6 +40,9 @@ public class DebugWriter {
      * @param offsets
      */
     public void writeSaveOffset(Map<MessageQueue, AtomicLong> offsets){
+        if(isOpenDebug()==false){
+            return;
+        }
         String path=dir+"/offsets/offset.txt";
         if(offsets==null||offsets.size()==0){
             return;
@@ -60,6 +63,9 @@ public class DebugWriter {
     }
 
     public void writeSaveOffset(MessageQueue messageQueue, AtomicLong offset){
+        if(isOpenDebug()==false){
+            return;
+        }
         Map<MessageQueue, AtomicLong> offsets=new HashMap<>();
         offsets.put(messageQueue,offset);
         writeSaveOffset(offsets);
@@ -67,6 +73,9 @@ public class DebugWriter {
 
 
     public void receiveFirstData(String queueId,Long offset){
+        if(isOpenDebug()==false){
+            return;
+        }
         Map<String,Long> offsets=load();
         Long saveOffset=offsets.get(queueId);
         System.out.println("queueId is "+queueId+"current offset "+offset+"===="+saveOffset);
@@ -76,6 +85,9 @@ public class DebugWriter {
      * @return
      */
     public Map<String,Long> load(){
+        if(isOpenDebug()==false){
+            return null;
+        }
         String path=dir+"/offsets/offset.txt";
         List<String> lines=FileUtil.loadFileLine(path);
         Map<String,Long> offsets=new HashMap<>();

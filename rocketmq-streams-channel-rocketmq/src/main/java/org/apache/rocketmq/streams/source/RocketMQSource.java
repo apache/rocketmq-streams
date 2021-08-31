@@ -47,8 +47,12 @@ import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.RocketMQOffset;
+import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.apache.rocketmq.streams.debug.DebugWriter;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 
@@ -176,18 +180,20 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
     @Override
     public List<ISplit> getAllSplits(){
         try {
-            Set<MessageQueue> metaqQueueSet =  consumer.fetchSubscribeMessageQueues(this.topic);
-            List<ISplit> queueList = new ArrayList<>();
-            for (MessageQueue queue : metaqQueueSet) {
-                RocketMQMessageQueue metaqMessageQueue = new RocketMQMessageQueue(queue);
-                if(isNotDataSplit(metaqMessageQueue.getQueueId())){
-                    continue;
+            List<ISplit> messageQueues=new ArrayList<>();
+            if (messageQueues == null || messageQueues.size() == 0) {
+                Set<MessageQueue> metaqQueueSet =  consumer.fetchSubscribeMessageQueues(this.topic);
+                for (MessageQueue queue : metaqQueueSet) {
+                    RocketMQMessageQueue metaqMessageQueue = new RocketMQMessageQueue(queue);
+                    if(isNotDataSplit(metaqMessageQueue.getQueueId())){
+                        continue;
+                    }
+
+                    messageQueues.add(metaqMessageQueue);
+
                 }
-
-                queueList.add(metaqMessageQueue);
-
             }
-            return queueList;
+            return messageQueues;
         } catch (MQClientException e) {
             e.printStackTrace();
             throw new RuntimeException("get all splits error ",e);
@@ -268,42 +274,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
 
     @Override
     protected boolean isNotDataSplit(String queueId) {
-        return queueId.toUpperCase().startsWith("%RETRY%");
-    }
-
-    /**
-     * 分片发生变化时，回调系统函数，发送系统消息，告知各个组件
-     *
-     * @param consumer
-     */
-    protected void addRebalanceCallback(DefaultMQPushConsumer consumer) {
-        DefaultMQPushConsumerImpl defaultMQPushConsumerImpl = consumer.getDefaultMQPushConsumerImpl();
-        // DefaultMQPushConsumerImpl defaultMQPushConsumerImpl=metaPushConsumer.getDefaultMQPushConsumerImpl();
-        ReflectUtil.setBeanFieldValue(defaultMQPushConsumerImpl, "rebalanceImpl", new RebalancePushImpl(defaultMQPushConsumerImpl) {
-            @Override
-            public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-                Set<String> queueIds = new HashSet<>();
-                for (MessageQueue messageQueue : mqAll) {
-                    if (!mqDivided.contains(messageQueue)) {
-                        ProcessQueue pq = this.processQueueTable.remove(messageQueue);
-                        if (pq != null) {
-                            pq.setDropped(true);
-                            log.info("doRebalance, {}, truncateMessageQueueNotMyTopic remove unnecessary mq, {}", consumerGroup, messageQueue);
-                        }
-                        queueIds.add(RocketMQMessageQueue.getQueueId(messageQueue));
-                    }
-                }
-                Set<String> newQueueIds = new HashSet<>();
-                for (MessageQueue messageQueue : mqDivided) {
-                    if (!mqAll.contains(messageQueue)) {
-                        newQueueIds.add(RocketMQMessageQueue.getQueueId(messageQueue));
-                    }
-                }
-                removeSplit(queueIds);
-                addNewSplit(newQueueIds);
-
-            }
-        });
+        return queueId.toUpperCase().startsWith("RETRY")||queueId.toUpperCase().startsWith("%RETRY%");
     }
 
     @Override
@@ -338,7 +309,31 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
         }
 
     }
-
+    public static void main(String[] args) throws InterruptedException {
+        RocketMQSource source=new RocketMQSource("TOPIC_DIPPER_SYSTEM_MSG_6",null,"fdsdf",null);
+        source.init();
+        source.start(new IStreamOperator() {
+            @Override public Object doMessage(IMessage message, AbstractContext context) {
+                // System.out.println(message.getMessageBody());
+                return null;
+            }
+        });
+        System.out.println(source.getAllSplits().size());
+        while (true){
+            Map<String,List<ISplit>> map=source.getWorkingSplitsGroupByInstances();
+            List<ISplit> ownerSplits=map.get(RuntimeUtil.getDipperInstanceId());
+            int count=0;
+            if(ownerSplits!=null){
+                count=ownerSplits.size();
+            }
+            int sum=0;
+            for(List<ISplit> splits:map.values()){
+                sum+=splits.size();
+            }
+            System.out.println(count+"  "+sum);
+            Thread.sleep(1000);
+        }
+    }
     @Override
     public void destroy() {
         super.destroy();

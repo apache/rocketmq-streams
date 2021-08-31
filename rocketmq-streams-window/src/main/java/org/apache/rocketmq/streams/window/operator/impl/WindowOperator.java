@@ -177,9 +177,9 @@ public class WindowOperator extends AbstractShuffleWindow {
             }
             shuffleCount.addAndGet(-origValue);
             shuffleCount.addAndGet(currentValue);
-//            if(shuffleCount.get()>25000){
-//                System.out.println("==========shuffle count is "+shuffleCount.get());
-//            }
+           // if(shuffleCount.get()>25000){
+            //    System.out.println("==========shuffle count is "+shuffleCount.get());
+            //}
 
 
         }

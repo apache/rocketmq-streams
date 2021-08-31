@@ -50,12 +50,12 @@ public class MultiSplitTest extends SingleSplitTest {
 //
 //
         return StreamBuilder.dataStream("namespace", "name1")
-            .fromRocketmq(topic,"window_test",null);
+            .fromRocketmq(topic,"window_test",true,null);
     }
 
 
     protected int getSourceCount(){
-        return 10000;
+        return 88121;
     }
 
     /**
