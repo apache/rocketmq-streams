@@ -30,6 +30,11 @@ import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAft
 public interface IWindow
     extends IStreamOperator<IMessage, AbstractContext<IMessage>>, IConfigurable {
 
+    int DEFAULTFIRE_MODE=0;// fire time=endtime+watermark
+    int MULTI_WINDOW_INSTANCE_MODE=1;//  fire at window size interval， until event time >endtime+watermark, every window result is independent
+    int INCREMENT_FIRE_MODE=2;//  fire at window size interval， until event time >endtime+watermark, every window result is based preview window result
+
+
     /**
      * split char between function
      */
