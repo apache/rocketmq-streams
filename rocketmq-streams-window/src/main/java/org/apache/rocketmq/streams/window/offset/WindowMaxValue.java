@@ -27,6 +27,8 @@ public class WindowMaxValue extends Entity {
     public static long MAX_VALUE_BASE_VALUE=100000000;
     protected String msgKey;
     protected AtomicLong maxValue=new AtomicLong(MAX_VALUE_BASE_VALUE);
+    protected String maxOffset="-1";
+    protected boolean isMaxOffsetLong;
 
     protected AtomicLong maxEventTime=new AtomicLong();//只有window需要
 
@@ -80,6 +82,22 @@ public class WindowMaxValue extends Entity {
             }
         }
         return maxEventTime.get();
+    }
+
+    public boolean isMaxOffsetLong() {
+        return isMaxOffsetLong;
+    }
+
+    public void setMaxOffsetLong(boolean maxOffsetLong) {
+        isMaxOffsetLong = maxOffsetLong;
+    }
+
+    public String getMaxOffset() {
+        return maxOffset;
+    }
+
+    public void setMaxOffset(String maxOffset) {
+        this.maxOffset = maxOffset;
     }
 
     public long incrementAndGetMaxOffset(){

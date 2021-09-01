@@ -24,7 +24,6 @@ import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
 public class DataStreamSource {
-
     protected PipelineBuilder mainPipelineBuilder;
 
     public DataStreamSource(String namespace, String pipelineName) {

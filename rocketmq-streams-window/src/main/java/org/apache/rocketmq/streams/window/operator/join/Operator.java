@@ -22,7 +22,8 @@ import java.util.List;
 
 public interface Operator {
 
-    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames, List<String> rightJoinFieldNames) {
+    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames,
+        List<String> rightJoinFieldNames) {
         StringBuffer buffer = new StringBuffer();
         if ("left".equalsIgnoreCase(joinLabel)) {
             for (String field : leftJoinFieldNames) {
