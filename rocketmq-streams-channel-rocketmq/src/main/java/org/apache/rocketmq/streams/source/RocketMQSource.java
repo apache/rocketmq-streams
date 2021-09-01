@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.source;
 
 import com.alibaba.fastjson.JSONObject;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -26,7 +27,6 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -114,7 +114,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
 
             consumer.setPersistConsumerOffsetInterval((int) this.checkpointTime);
             consumer.setConsumeMessageBatchMaxSize(maxFetchLogGroupSize);
-            consumer.setAccessChannel(AccessChannel.CLOUD);
             consumer.setNamesrvAddr(this.namesrvAddr);
             if (consumeFromWhere != null) {
                 consumer.setConsumeFromWhere(consumeFromWhere);
@@ -134,9 +133,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                         String offset = msg.getQueueOffset() + "";
                         org.apache.rocketmq.streams.common.context.Message message = createMessage(jsonObject, queueId, offset, false);
                         message.getHeader().setOffsetIsLong(true);
-                        //                        message.getHeader().setQueueId(RocketMQMessageQueue.getQueueId(context.getMessageQueue()));
-                        //                        message.getHeader().setOffset(String.valueOf(msg.getQueueOffset()));
-                        //                        message.getHeader().setMessageQueue(new RocketMQMessageQueue(context.getMessageQueue()));
                         if (i == msgs.size() - 1) {
                             message.getHeader().setNeedFlush(true);
                         }
@@ -145,6 +141,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                     }
                 } catch (Exception e) {
                     LOG.error("consume message from rocketmq error " + e, e);
+                    e.printStackTrace();
                 }
 
                 return ConsumeOrderlyStatus.SUCCESS;// 返回消费成功

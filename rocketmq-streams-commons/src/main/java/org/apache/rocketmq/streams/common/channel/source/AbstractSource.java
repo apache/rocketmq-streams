@@ -234,7 +234,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             messageQueueChangedCheck(channelMessage.getHeader());
         }
 
-        boolean needFlush = channelMessage.getHeader().isSystemMessage() == false && channelMessage.getHeader().isNeedFlush();
+        boolean needFlush = !channelMessage.getHeader().isSystemMessage() && channelMessage.getHeader().isNeedFlush();
 
         if (receiver != null) {
             receiver.doMessage(channelMessage, context);
