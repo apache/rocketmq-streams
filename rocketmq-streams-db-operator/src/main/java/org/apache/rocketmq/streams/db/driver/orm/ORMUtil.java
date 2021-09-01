@@ -301,6 +301,24 @@ public class ORMUtil {
     public static void batchInsertInto(List<?> values) {
         batchIntoByFlag(values, 0);
     }
+    public static String createBatchReplacetSQL(Object...values) {
+        if(values==null){
+            return null;
+        }
+        List<Object> list=new ArrayList<>();
+        for(Object value:values){
+            list.add(value);
+        }
+        return createBatchReplacetSQL(list);
+    }
+    /**
+     * 批量插入对象，多个对象会拼接成一个sql flag==1 then replace into flag=-1 then insert ignore int flag=0 then insert int
+     *
+     * @param values
+     */
+    public static String createBatchReplacetSQL(List<?> values) {
+        return createBatchInsertSQL(values,1);
+    }
 
     /**
      * 批量插入对象，多个对象会拼接成一个sql flag==1 then replace into flag=-1 then insert ignore int flag=0 then insert int
@@ -308,9 +326,9 @@ public class ORMUtil {
      * @param values
      * @param flag
      */
-    protected static void batchIntoByFlag(List<?> values, int flag) {
+    public static String createBatchInsertSQL(List<?> values, int flag) {
         if (CollectionUtil.isEmpty(values)) {
-            return;
+            return null;
         }
         Object object = values.get(0);
         Map<String, Object> paras = new HashMap<>(16);
@@ -357,7 +375,16 @@ public class ORMUtil {
         }
         String valuesSQL = SQLUtil.createInsertValuesSQL(metaData, rows);
         sql = sql + valuesSQL + " ON DUPLICATE  KEY  UPDATE " + SQLUtil.createDuplicateKeyUpdateSQL(metaData);
-        ;
+        return sql;
+    }
+    /**
+     * 批量插入对象，多个对象会拼接成一个sql flag==1 then replace into flag=-1 then insert ignore int flag=0 then insert int
+     *
+     * @param values
+     * @param flag
+     */
+    protected static void batchIntoByFlag(List<?> values, int flag) {
+       String sql=createBatchInsertSQL(values,flag);
         JDBCDriver dataSource = DriverBuilder.createDriver();
         try {
             dataSource.execute(sql);

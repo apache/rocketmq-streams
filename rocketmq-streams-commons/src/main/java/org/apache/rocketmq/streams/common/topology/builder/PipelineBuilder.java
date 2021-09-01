@@ -38,6 +38,7 @@ import java.util.Map;
 
 public class PipelineBuilder implements Serializable {
     private static final long serialVersionUID = 1L;
+
     /**
      * 最终产出的pipeline
      */
