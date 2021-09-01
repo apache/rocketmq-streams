@@ -75,9 +75,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     @Override
     protected int fireWindowInstance(WindowInstance instance, String shuffleId, Map<String, String> queueId2Offsets) {
-        List<WindowInstance> instances = new ArrayList<>();
-        instances.add(instance);
-        clearFire(instances);
+        clearFire(instance);
         return 0;
     }
 
@@ -427,20 +425,16 @@ public class JoinWindow extends AbstractShuffleWindow {
     /**
      * 删除掉触发过的数据
      *
-     * @param windowInstances
+     * @param instance
      */
     @Override
-    public void clearFire(List<WindowInstance> windowInstances) {
-
-        if (windowInstances != null && windowInstances.size() > 0) {
-            for (WindowInstance instance : windowInstances) {
-                //                System.out.println("clear window is " + instance.getStartTime() + " " + instance.getEndTime() + " " + instance.windowName);
-
-                WindowInstance.cleanWindow(instance);
-                joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(),
-                    this.getSizeInterval(), instance.getStartTime());
-            }
+    public void clearFireWindowInstance(WindowInstance instance) {
+        if(instance==null){
+            return;
         }
+        WindowInstance.clearInstance(instance);
+        joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(),
+            this.getSizeInterval(), instance.getStartTime());
         //todo windowinstace
         //todo left+right
     }
@@ -504,6 +498,24 @@ public class JoinWindow extends AbstractShuffleWindow {
                 windowInstanceMap.remove(tmp);
             }
         }
+    }
+
+    @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
+        Long leftMaxSplitNum=storage.getMaxSplitNum(instance,JoinLeftState.class);
+        Long rigthMaxSplitNum=storage.getMaxSplitNum(instance,JoinRightState.class);
+        if(leftMaxSplitNum==null){
+            return rigthMaxSplitNum;
+        }
+        if(rigthMaxSplitNum==null){
+            return leftMaxSplitNum;
+        }
+        if(leftMaxSplitNum>=rigthMaxSplitNum){
+            return leftMaxSplitNum;
+        }
+        if(leftMaxSplitNum<rigthMaxSplitNum){
+            return rigthMaxSplitNum;
+        }
+        return null;
     }
 
     public int getRetainWindowCount() {

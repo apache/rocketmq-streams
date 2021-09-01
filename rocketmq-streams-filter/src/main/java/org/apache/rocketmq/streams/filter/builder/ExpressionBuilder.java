@@ -349,8 +349,8 @@ public class ExpressionBuilder {
     interface IRuleExpressionCreator {
 
         String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions,
-                                boolean containsContant,
-                                Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr);
+            boolean containsContant,
+            Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr);
     }
 
     protected static IRuleExpressionCreator ruleExpressionCreator = new IRuleExpressionCreator() {
