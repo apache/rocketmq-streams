@@ -19,6 +19,8 @@ package org.apache.rocketmq.streams.client.transform;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
+
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.streams.client.DataStreamAction;
@@ -131,7 +133,7 @@ public class DataStream implements Serializable {
                     for(T t:result){
                         Message subMessage=null;
                         if (result instanceof JSONObject) {
-                            subMessage=new Message((JSONObject)result);
+                            subMessage=new Message((JSONObject)t);
                         } else {
                             subMessage=new Message(new UserDefinedMessage(result));
                         }
