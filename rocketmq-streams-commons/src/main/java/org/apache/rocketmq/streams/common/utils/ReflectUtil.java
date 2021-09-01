@@ -63,13 +63,12 @@ public class ReflectUtil {
             AUTOWIRED_CLASS = null;
         }
     }
-
-    public static <T> T getDeclaredField(Object object, String fieldName) {
+    public static <T> T getDeclaredField(Class clazz, Object object, String fieldName) {
         try {
-            if (existMethodName(object.getClass(), getGetMethodName(fieldName))) {
+            if (existMethodName(clazz, getGetMethodName(fieldName))) {
                 return (T)invokeGetMethod(fieldName, object);
             }
-            Field field = object.getClass().getDeclaredField(fieldName);
+            Field field = clazz.getDeclaredField(fieldName);
             field.setAccessible(true);
             return (T)field.get(object);
         } catch (Exception e) {
@@ -79,6 +78,9 @@ public class ReflectUtil {
             }
             throw new RuntimeException("get field value error " + msg, e);
         }
+    }
+    public static <T> T getDeclaredField(Object object, String fieldName) {
+        return getDeclaredField(object.getClass(),object,fieldName);
     }
 
     public static List<Field> getDeclaredFieldsContainsParentClass(Class c) {

@@ -83,7 +83,12 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
     }
 
     @Override
-    public ISink createBySource(ISource piplineSoure) {
-        return null;
+    public ISink createBySource(ISource pipelineSource) {
+        RocketMQSource source = (RocketMQSource)pipelineSource;
+        String topic = source.getTopic();
+        RocketMQSink sink = new RocketMQSink();
+        sink.setTopic(topic);
+        sink.setTags(source.getTags());
+        return sink;
     }
 }

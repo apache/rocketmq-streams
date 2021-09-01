@@ -22,29 +22,31 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
-import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
-import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMutilSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.channel.IChannel;
+import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * 缓存数据，flush时，刷新完成数据落盘
  */
 public abstract class WindowCache extends
-    AbstractSink {
+    AbstractSink implements IWindow.IWindowCheckpoint {
 
     private static final Log LOG = LogFactory.getLog(WindowCache.class);
 
@@ -53,6 +55,9 @@ public abstract class WindowCache extends
     public static final String ORIGIN_OFFSET = "origin_offset";
 
     public static final String ORIGIN_QUEUE_ID = "origin_queue_id";
+
+
+    public static final String ORIGIN_QUEUE_IS_LONG = "origin_offset_is_LONG";
 
     public static final String ORIGIN_MESSAGE_HEADER = "origin_message_header";
 
@@ -67,6 +72,48 @@ public abstract class WindowCache extends
      * 分片转发channel
      */
     protected transient ShuffleChannel shuffleChannel;
+    protected class ShuffleMsgCache extends AbstractMutilSplitMessageCache<Pair<ISplit,JSONObject>>{
+
+        public ShuffleMsgCache() {
+            super(new IMessageFlushCallBack<Pair<ISplit, JSONObject>>() {
+                @Override public boolean flushMessage(List<Pair<ISplit, JSONObject>> messages) {
+                    if(messages==null||messages.size()==0){
+                        return true;
+                    }
+                    ISplit split=messages.get(0).getLeft();
+                    JSONObject jsonObject=messages.get(0).getRight();
+                    JSONArray allMsgs=shuffleChannel.getMsgs(jsonObject);
+                    for(int i=1;i<messages.size();i++){
+                        Pair<ISplit, JSONObject> pair=messages.get(i);
+                        JSONObject msg=pair.getRight();
+                        JSONArray jsonArray=shuffleChannel.getMsgs(msg);
+                        if(jsonArray!=null){
+                            allMsgs.addAll(jsonArray);
+                        }
+                    }
+                    shuffleChannel.getProducer().batchAdd(new Message(jsonObject),split);
+                    shuffleChannel.getProducer().flush(split.getQueueId());
+
+                    return true;
+                }
+            });
+        }
+
+        @Override protected String createSplitId(Pair<ISplit, JSONObject> msg) {
+            return msg.getLeft().getQueueId();
+        }
+    }
+
+    protected transient ShuffleMsgCache shuffleMsgCache=new ShuffleMsgCache();
+
+    @Override protected boolean initConfigurable() {
+        shuffleMsgCache=new ShuffleMsgCache();
+        shuffleMsgCache.setBatchSize(5000);
+        shuffleMsgCache.setAutoFlushSize(100);
+        shuffleMsgCache.setAutoFlushTimeGap(1000);
+        shuffleMsgCache.openAutoFlush();
+        return super.initConfigurable();
+    }
 
     @Override
     protected boolean batchInsert(List<IMessage> messageList) {
@@ -77,25 +124,31 @@ public abstract class WindowCache extends
             for (Map.Entry<Integer, JSONArray> entry : shuffleMap.entrySet()) {
                 ISplit split=shuffleChannel.getSplit(entry.getKey());
                 JSONObject msg=shuffleChannel.createMsg(entry.getValue(),split);
-                shuffleChannel.getProducer().batchAdd(new Message(msg),split);
-                splitIds.add(split.getQueueId());
+               // shuffleChannel.getProducer().batchAdd(new Message(msg),split);
+                shuffleMsgCache.addCache(new MutablePair<>(split,msg));
                 List<IMessage> messages=new ArrayList<>();
-
+                splitIds.add(split.getQueueId());
 
                 if(DebugWriter.getDebugWriter(shuffleChannel.getWindow().getConfigureName()).isOpenDebug()){
                     JSONArray jsonArray=entry.getValue();
                     for(int i=0;i<jsonArray.size();i++){
-                        messages.add(new Message(jsonArray.getJSONObject(i)));
+                        Message message=new Message(jsonArray.getJSONObject(i));
+                        message.getHeader().setQueueId(jsonArray.getJSONObject(i).getString(ORIGIN_QUEUE_ID));
+                        message.getHeader().setOffset(jsonArray.getJSONObject(i).getLong(ORIGIN_OFFSET));
+                        messages.add(message);
+
                     }
                     DebugWriter.getDebugWriter(shuffleChannel.getWindow().getConfigureName()).writeWindowCache(shuffleChannel.getWindow(),messages,split.getQueueId());
                 }
 
             }
+          //  shuffleChannel.getProducer().flush(splitIds);
 
-            shuffleChannel.getProducer().flush(splitIds);
         }
         return true;
     }
+
+
 
     /**
      * 对接收的消息按照不同shuffle key进行分组
@@ -122,6 +175,7 @@ public abstract class WindowCache extends
 
             body.put(ORIGIN_OFFSET, offset);
             body.put(ORIGIN_QUEUE_ID, queueId);
+            body.put(ORIGIN_QUEUE_IS_LONG,msg.getHeader().getMessageOffset().isLongOfMainOffset());
             body.put(ORIGIN_MESSAGE_HEADER, JSONObject.toJSONString(msg.getHeader()));
             body.put(ORIGIN_MESSAGE_TRACE_ID, msg.getHeader().getTraceId());
             body.put(SHUFFLE_KEY, shuffleKey);
@@ -149,6 +203,11 @@ public abstract class WindowCache extends
      */
     protected abstract String generateShuffleKey(IMessage message);
 
+    @Override public void checkpoint(Set<String> queueIds) {
+        this.flush(queueIds);
+        this.shuffleMsgCache.flush(queueIds);
+    }
+
     /**
      * 如果需要额外的字段附加到shuffle前的message，通过实现这个子类增加
      *
@@ -160,6 +219,10 @@ public abstract class WindowCache extends
 
     public ShuffleChannel getShuffleChannel() {
         return shuffleChannel;
+    }
+
+    public ShuffleMsgCache getShuffleMsgCache() {
+        return shuffleMsgCache;
     }
 
     public void setShuffleChannel(ShuffleChannel shuffleChannel) {

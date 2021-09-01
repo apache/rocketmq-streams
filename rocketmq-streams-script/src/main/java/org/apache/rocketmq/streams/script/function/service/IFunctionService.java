@@ -77,7 +77,7 @@ public interface IFunctionService {
      * @return
      */
     FunctionConfigure getFunctionConfigure(IMessage message, FunctionContext context, String functionName,
-                                           Object... parameters);
+        Object... parameters);
 
     /**
      * 获取FunctionConfigure对象，这个对象能完成函数的反射执行 因为函数支持重载，同名函数有多个，需要把函数参数传过来，既比较名称，也比较参数及类型 寻找不带message，context前缀参数的函数

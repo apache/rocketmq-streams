@@ -22,27 +22,37 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.storage.AbstractWindowStorage;
+import org.apache.rocketmq.streams.window.storage.IRemoteStorage;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
 
 /**
  * database storage
  */
-public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<T> {
+public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<T> implements IRemoteStorage<T> {
+
+    @Override public String multiPutSQL(Map<String, T> values) {
+        if (CollectionUtil.isEmpty(values)) {
+            return null;
+        }
+        String sql=ORMUtil.createBatchReplacetSQL(new ArrayList<>(values.values()));
+        return sql;
+    }
 
     @Override
     public void multiPut(Map<String, T> values) {
         if (CollectionUtil.isEmpty(values)) {
             return;
         }
+
         ORMUtil.batchReplaceInto(values.values());
     }
 
@@ -77,8 +87,8 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
     public WindowBaseValueIterator<T> loadWindowInstanceSplitData(String localStorePrefix, String queueId, String windowInstanceId, String keyPrex, Class<T> clazz) {
 
         //search max partition number in case of inserting fresh data [min,max)
-        long maxPartitionIndex = getPartitionNum(queueId, windowInstanceId, clazz, true) + 1;
-        long mimPartitionIndex = getPartitionNum(queueId, windowInstanceId, clazz, false) - 1;
+        long maxPartitionIndex = getPartitionNum(windowInstanceId, clazz, true) + 1;
+        long mimPartitionIndex = getPartitionNum(windowInstanceId, clazz, false) - 1;
         if (maxPartitionIndex <= 1) {
             return new WindowBaseValueIterator<T>() {
                 @Override
@@ -98,17 +108,27 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         return dbIterator;
     }
 
+    @Override public Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz) {
+        return getPartitionNum(windowInstance.createWindowInstanceId(), clazz, true);
+    }
+
     @Override
     public void clearCache(ISplit channelQueue, Class<T> clazz) {
         throw new RuntimeException("can not support this method");
     }
 
     @Override
-    public void delete(String windowInstanceId, Set<String> queueIds, Class<T> clazz) {
-        String sql = "delete from " + ORMUtil.getTableName(clazz) + " where window_instance_id = '" + StringUtil.createMD5Str(windowInstanceId) + "'";
+    public void delete(String windowInstanceId, String queueId, Class<T> clazz) {
+
         ORMUtil.executeSQL(
-            sql,
+            deleteSQL(windowInstanceId,queueId,clazz),
             new HashMap<>(4));
+    }
+
+
+    @Override public String deleteSQL(String windowInstanceId, String queueId, Class<T> clazz) {
+        String sql = "delete from " + ORMUtil.getTableName(clazz) + " where window_instance_id = '" + StringUtil.createMD5Str(windowInstanceId) + "'";
+        return sql;
     }
 
     public static class DBIterator<T extends WindowBaseValue> extends WindowBaseValueIterator<T> {
@@ -170,7 +190,7 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
 
     }
 
-    protected Long getPartitionNum(String queueId, String windowInstanceId, Class<T> clazz, boolean isMax) {
+    protected Long getPartitionNum(String windowInstanceId, Class<T> clazz, boolean isMax) {
         String partitionNumSQL = isMax ? "max(partition_num)" : "min(partition_num)";
         String windowInstancePartitionId = StringUtil.createMD5Str(windowInstanceId);
         String sql = "select " + partitionNumSQL + " as partition_num from " + ORMUtil.getTableName(clazz)
