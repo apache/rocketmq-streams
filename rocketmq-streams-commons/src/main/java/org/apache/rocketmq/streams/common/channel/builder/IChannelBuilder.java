@@ -36,7 +36,8 @@ public interface IChannelBuilder {
      * @param formatName
      * @param inputName
      */
-    static void formatPropertiesName(JSONObject formatProperties, Properties inputProperties, String formatName, String inputName) {
+    static void formatPropertiesName(JSONObject formatProperties, Properties inputProperties, String formatName,
+        String inputName) {
         String inputValue = inputProperties.getProperty(inputName);
         if (StringUtil.isNotEmpty(inputValue)) {
             formatProperties.put(formatName, inputValue);

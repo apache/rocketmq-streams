@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.offset;
 
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 
@@ -33,44 +34,46 @@ public interface IWindowMaxValueManager {
      */
     Long incrementAndGetSplitNumber(WindowInstance instance, String splitId);
 
+
+    WindowMaxValue querySplitNum(WindowInstance instance, String splitId);
     /**
-     * create split sequence number if the generator is not in memory， need load from db or other storage if instance is new ，set the split sequence number = init value
-     *
-     * @param key
-     * @return plus one on the current max split sequence number
      */
-    Long incrementAndGetSplitNumber(String key);
+    void initMaxSplitNum(WindowInstance windowInstance, Long maxSplitNum);
 
 
-    /**
-     * load mutil window instance split's max split num
-     *
-     * @param windowInstances
-     * @param split
-     */
-    void loadMaxSplitNum(Set<WindowInstance> windowInstances, String split);
-
-    String createSplitNumberKey(WindowInstance instance, String splitId);
-
-    /**
-     * load mutil window instance split's max split num
-     *
-     * @param keys
-     * @return
-     */
-    void loadMaxSplitNum(Set<String> keys);
-
-    void removeKeyPrefixFromLocalCache(Set<String> keyPrefixs);
-
-    //load window max event time
-    void loadWindowMaxEventTime(Set<String> splitId);
+//    /**
+//     * load mutil window instance split's max split num
+//     *
+//     * @param keys
+//     * @return
+//     */
+//    void loadMaxSplitNum(Set<String> keys);
+//
+    void removeKeyPrefixFromLocalCache(Set<String> queueIds);
 
     /**
      * save addition WindowMaxValue
      */
-    void flush();
+//    void flush(String... queueIds);
 
     void resetSplitNum(WindowInstance instance, String splitId);
 
-    void resetSplitNum(String key);
+//    void resetSplitNum(String key);
+//
+    void deleteSplitNum(WindowInstance instance, String splitId);
+
+    /**
+     * save window saved max offset，can filter the less offset
+     * @param name
+     * @param oriQueueId2Offsets
+     */
+    Map<String,WindowMaxValue> saveMaxOffset(boolean isLong, String name, String shuffleId,
+        Map<String, String> oriQueueId2Offsets);
+
+
+
+    Map<String, String> loadOffsets(String name, String shuffleId);
+
+
+    Map<String, WindowMaxValue> queryOffsets(String name, String shuffleId, Set<String> oriQueueIds);
 }

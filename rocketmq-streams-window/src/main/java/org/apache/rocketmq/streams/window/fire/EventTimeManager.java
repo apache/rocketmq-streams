@@ -19,11 +19,8 @@ package org.apache.rocketmq.streams.window.fire;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.configuable.ConfigurableComponent;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public class EventTimeManager {

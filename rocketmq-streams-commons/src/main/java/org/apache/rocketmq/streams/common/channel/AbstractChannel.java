@@ -93,14 +93,16 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
         jsonObject.put("source", Base64Utils.encode(InstantiationUtil.serializeObject(source)));
     }
 
-    @Override
     public void removeSplit(Set<String> splitIds) {
-        source.removeSplit(splitIds);
+        if(source instanceof AbstractSource){
+            (( AbstractSource)source).removeSplit(splitIds);
+        }
     }
 
-    @Override
     public void addNewSplit(Set<String> splitIds) {
-        source.addNewSplit(splitIds);
+        if(source instanceof AbstractSource){
+            (( AbstractSource)source).addNewSplit(splitIds);
+        }
     }
 
     @Override

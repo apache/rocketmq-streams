@@ -30,6 +30,7 @@ import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.AbstractWindowStorage;
@@ -48,14 +49,9 @@ public class FileStorage<T extends WindowBaseValue> extends AbstractWindowStorag
     }
 
     @Override
-    public synchronized void delete(String windowInstanceId, Set<String> queueIds, Class<T> clazz) {
-        Set<String> currentQueueIds = new HashSet<>(queueIds);
-        Iterator<String> it = currentQueueIds.iterator();
-        while (it.hasNext()) {
-            String queueId = it.next();
-            String firstKey = MapKeyUtil.createKey(queueId, windowInstanceId);
-            deleteByKeyPrefix(firstKey);
-        }
+    public synchronized void delete(String windowInstanceId, String queueId, Class<T> clazz) {
+        String firstKey = MapKeyUtil.createKey(queueId, windowInstanceId);
+        deleteByKeyPrefix(firstKey);
         this.flush();
     }
 
@@ -92,6 +88,10 @@ public class FileStorage<T extends WindowBaseValue> extends AbstractWindowStorag
                 return null;
             }
         };
+    }
+
+    @Override public Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz) {
+        return null;
     }
 
     @Override
