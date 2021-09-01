@@ -18,7 +18,11 @@ package org.apache.rocketmq.streams.window.shuffle;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
+
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -27,6 +31,7 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
@@ -45,11 +50,8 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.model.WindowCache;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator.WindowRowOperator;
-import org.apache.rocketmq.streams.window.source.WindowRireSource;
+import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 
 import java.util.*;
@@ -64,18 +66,16 @@ public class ShuffleChannel extends AbstractSystemChannel {
     protected static final Log LOG = LogFactory.getLog(ShuffleChannel.class);
 
     protected static final String SHUFFLE_QUEUE_ID = "SHUFFLE_QUEUE_ID";
-    private static final String SHUFFLE_KEY = "SHUFFLE_KEY";
-    private static final String PROCESS_NAME = "PROCESS_NAME";
 
     protected static final String SHUFFLE_MESSAGES = "SHUFFLE_MESSAGES";
     protected String MSG_OWNER = "MSG_OWNER";//消息所属的window
 
-    protected String WINDOW_INSTANCE_START_TIME = "_start_time";
-    protected String WINDOW_INSTANCE_END_TIME = "_end_time";
 
     private static final String SHUFFLE_TRACE_ID = "SHUFFLE_TRACE_ID";
 
-    protected ShuffleOutputDataSource shuffleSink;
+    protected ShuffleCache shuffleCache;
+
+
 
     protected Map<String, ISplit> queueMap = new ConcurrentHashMap<>();
     protected List<ISplit> queueList;//所有的分片
@@ -84,7 +84,10 @@ public class ShuffleChannel extends AbstractSystemChannel {
     protected AbstractShuffleWindow window;
     private Set<String> currentQueueIds;//当前管理的分片
 
-    protected transient WindowRireSource windowRireSource;
+    /**
+     * 每个分片，已经确定处理的最大offset
+     */
+    protected transient Map<String,String> split2MaxOffsets=new HashMap<>();
 
     public ShuffleChannel(AbstractShuffleWindow window) {
         this.window = window;
@@ -100,13 +103,11 @@ public class ShuffleChannel extends AbstractSystemChannel {
         if(this.consumer instanceof AbstractSource){
             ((AbstractSource)this.consumer).setJsonData(true);
         }
-        this.shuffleSink = createWindowTaskOutputDataSource();
-        this.shuffleSink.openAutoFlush();
-        //this.notfiyChannel = NotifyChannel.getInstance();
-        //if(this.notfiyChannel.producer==null||this.notfiyChannel.consumer==null){
-        //    this.notfiyChannel.autoCreateShuffleChannel(window.getFireReceiver().getPipeline());
-        //}
-        //this.notfiyChannel.startChannel();//启动通知管理，里面做了重入，最终只启动一个
+
+        this.shuffleCache = new ShuffleCache(window);
+        this.shuffleCache.init();
+        this.shuffleCache.openAutoFlush();
+
         if (producer!=null&&(queueList == null  || queueList.size() == 0) ){
             queueList = producer.getSplitList();
             Map<String, ISplit> tmp = new ConcurrentHashMap<>();
@@ -118,18 +119,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         }
     }
 
-    @Override
-    protected String getDynamicPropertyValue() {
-        String dynamicPropertyValue= MapKeyUtil.createKey(window.getNameSpace(),window.getConfigureName());
-        dynamicPropertyValue = dynamicPropertyValue.replaceAll("\\.", "_").replaceAll(";","_");
-        return dynamicPropertyValue;
-    }
-
-    @Override
-    protected int getShuffleSplitCount(AbstractSupportShuffleSink shuffleSink) {
-        int splitNum=shuffleSink.getSplitNum();
-        return splitNum>0?splitNum:32;
-    }
 
     /**
      * 接收到分片信息，如果是系统消息，做缓存刷新，否则把消息放入缓存，同时计算存储的有效性
@@ -139,21 +128,11 @@ public class ShuffleChannel extends AbstractSystemChannel {
      * @return
      */
 
-
+    protected transient AtomicLong COUNT=new AtomicLong(0);
     @Override
     public Object doMessage(IMessage oriMessage, AbstractContext context) {
         if (oriMessage.getHeader().isSystemMessage()) {
-            ISystemMessage systemMessage=oriMessage.getSystemMessage();
-            if(systemMessage instanceof CheckPointMessage){
-                this.checkpoint(oriMessage, context,(CheckPointMessage)systemMessage);
-            }else if(systemMessage instanceof NewSplitMessage){
-                this.addNewSplit(oriMessage,context,(NewSplitMessage)systemMessage);
-            }else if(systemMessage instanceof RemoveSplitMessage){
-                this.removeSplit(oriMessage,context,(RemoveSplitMessage)systemMessage);
-            }else {
-                throw new RuntimeException("can not support this system message "+systemMessage.getClass().getName());
-            }
-            afterFlushCallback(oriMessage,context);
+            doSystemMessage(oriMessage,context);
             return null;
 
         }
@@ -165,10 +144,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
             return null;
         }
         String queueId=oriMessage.getHeader().getQueueId();
-        //ISplit channelQueue=queueMap.get(queueId);
-        //boolean containQueueId=notfiyChannel.contains(queueId);
-        //notfiyChannel.dealMessageQueue(channelQueue);
-
         JSONArray messages = oriMessage.getMessageBody().getJSONArray(SHUFFLE_MESSAGES);
         if(messages==null){
             return null;
@@ -182,45 +157,156 @@ public class ShuffleChannel extends AbstractSystemChannel {
         for (Object obj: messages) {
             IMessage message = new Message((JSONObject) obj);
             message.getHeader().setQueueId(queueId);
-
+            window.updateMaxEventTime(message);
+            if(isRepeateMessage(message,queueId)){
+                continue;
+            }
             List<WindowInstance> windowInstances=window.queryOrCreateWindowInstance(message,queueId);
             if(windowInstances==null||windowInstances.size()==0){
+                LOG.warn("the message is out of window instance, the message is discard");
                 continue;
             }
             for(WindowInstance windowInstance:windowInstances){
                 String windowInstanceId = windowInstance.createWindowInstanceId();
-                if(!window.getWindowInstanceMap().containsKey(windowInstanceId)){
-                    window.getWindowInstanceMap().putIfAbsent(windowInstanceId,windowInstance);
-                    synchronized (this){
-                        if(window.getFireMode()==2){
-                            //这个模式窗口触发不会清理数据，需要额外的创建一个实例做最后的存储清理
-                            Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
-                            Date lastFireTime=DateUtil.addDate(TimeUnit.SECONDS,endTime,window.getWaterMarkMinute()*window.getTimeUnitAdjust());
-                            WindowInstance lastClearWindowInstance=window.createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTime),queueId);
-
-                            addNeedFlushWindowInstance(lastClearWindowInstance);
-                        }
-                    }
-
-                }
+                //new instance, not need load data from remote
                 if(windowInstance.isNewWindowInstance()){
-                    addNeedFlushWindowInstance(windowInstance);
+                    window.getSqlCache().addCache(new SQLElement(windowInstance.getSplitId(),windowInstanceId, ORMUtil.createBatchReplacetSQL(windowInstance)));
                     windowInstance.setNewWindowInstance(false);
                     ShufflePartitionManager.getInstance().setWindowInstanceFinished(windowInstance.createWindowInstanceId());
                 }
             }
-            for(WindowInstance windowInstance:windowInstances){
-                window.updateMaxEventTime(message);
-                window.getWindowFireSource().updateWindowInstanceLastUpdateTime(windowInstance);
-            }
+
             message.getMessageBody().put(WindowInstance.class.getSimpleName(), windowInstances);
             message.getMessageBody().put(AbstractWindow.class.getSimpleName(), window);
-            beforeBatchAdd(oriMessage,message);
-            shuffleSink.batchAdd(message);
+            long count=COUNT.incrementAndGet();
+//            if(count>25000){
+//                System.out.println("shufffle reciever is "+count);
+//            }
 
+            if(DebugWriter.getDebugWriter(window.getConfigureName()).isOpenDebug()){
+                List<IMessage> msgs=new ArrayList<>();
+                msgs.add(message);
+                DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceiveBeforeCache(window,msgs,queueId);
+            }
+
+
+            beforeBatchAdd(oriMessage,message);
+
+            for(WindowInstance windowInstance:windowInstances){
+                window.getWindowFireSource().updateWindowInstanceLastUpdateTime(windowInstance);
+            }
+            shuffleCache.batchAdd(message);
         }
 
         return null;
+    }
+
+    @Override
+    public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
+        this.currentQueueIds=newSplitMessage.getCurrentSplitIds();
+        loadSplitProgress(newSplitMessage);
+
+        List<WindowInstance> allWindowInstances=WindowInstance.queryAllWindowInstance(DateUtil.getCurrentTimeString(),window,newSplitMessage.getSplitIds());
+        if(CollectionUtil.isNotEmpty(allWindowInstances)){
+            Map<String,Set<WindowInstance>> queueId2WindowInstances=new HashMap<>();
+            for(WindowInstance windowInstance:allWindowInstances){
+                windowInstance.setNewWindowInstance(false);
+                window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceTriggerId(),windowInstance);
+                window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance,window);
+                String queueId=windowInstance.getSplitId();
+                window.getStorage().loadSplitData2Local(queueId,windowInstance.createWindowInstanceId(),window.getWindowBaseValueClass(),new WindowRowOperator(windowInstance,queueId,window));
+                window.initWindowInstanceMaxSplitNum(windowInstance);
+            }
+
+
+        }else {
+            for(String queueId:newSplitMessage.getSplitIds()){
+                ShufflePartitionManager.getInstance().setSplitFinished(queueId);
+            }
+        }
+        window.getFireReceiver().doMessage(message,context);
+    }
+
+    /**
+     * load ori split consume offset
+     * @param newSplitMessage
+     */
+    protected void loadSplitProgress(NewSplitMessage newSplitMessage) {
+        for(String queueId:newSplitMessage.getSplitIds()){
+            Map<String,String> result=window.getWindowMaxValueManager().loadOffsets(window.getConfigureName(),queueId);
+            if(result!=null){
+                this.split2MaxOffsets.putAll(result);
+            }
+        }
+    }
+
+    @Override
+    public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
+        this.currentQueueIds=removeSplitMessage.getCurrentSplitIds();
+        Set<String> queueIds=removeSplitMessage.getSplitIds();
+        if(queueIds!=null){
+            for(String queueId:queueIds){
+                ShufflePartitionManager.getInstance().setSplitInValidate(queueId);
+                window.clearCache(queueId);
+
+            }
+            window.getWindowMaxValueManager().removeKeyPrefixFromLocalCache(queueIds);
+            //window.getWindowFireSource().removeSplit(queueIds);
+        }
+        window.getFireReceiver().doMessage(message,context);
+    }
+
+    @Override
+    public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
+        if(message.getHeader().isNeedFlush()){
+            this.flush(message.getHeader().getCheckpointQueueIds());
+            window.getSqlCache().flush(message.getHeader().getCheckpointQueueIds());
+        }
+        CheckPointState checkPointState=  new CheckPointState();
+        checkPointState.setQueueIdAndOffset(this.shuffleCache.getFinishedQueueIdAndOffsets(checkPointMessage));
+        checkPointMessage.reply(checkPointState);
+    }
+
+    /**
+     * do system message
+     * @param oriMessage
+     * @param context
+     */
+    protected void doSystemMessage(IMessage oriMessage, AbstractContext context) {
+        ISystemMessage systemMessage=oriMessage.getSystemMessage();
+        if(systemMessage instanceof CheckPointMessage){
+            this.checkpoint(oriMessage, context,(CheckPointMessage)systemMessage);
+        }else if(systemMessage instanceof NewSplitMessage){
+            this.addNewSplit(oriMessage,context,(NewSplitMessage)systemMessage);
+        }else if(systemMessage instanceof RemoveSplitMessage){
+            this.removeSplit(oriMessage,context,(RemoveSplitMessage)systemMessage);
+        }else {
+            throw new RuntimeException("can not support this system message "+systemMessage.getClass().getName());
+        }
+        afterFlushCallback(oriMessage,context);
+    }
+
+
+    /**
+     * if the message offset is old filter the repeate message
+     * @param message
+     * @param queueId
+     * @return
+     */
+    protected boolean isRepeateMessage(IMessage message, String queueId) {
+        boolean isOrigOffsetLong=message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
+        String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
+        String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
+        String key=MapKeyUtil.createKey(window.getConfigureName(),queueId,oriQueueId);
+        String offset=this.split2MaxOffsets.get(key);
+        if(offset!=null){
+            MessageOffset messageOffset=new MessageOffset(oriOffset,isOrigOffsetLong);
+            if(!messageOffset.greateThan(offset)){
+                System.out.println("the message offset is old, the message is discard ");
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -274,70 +360,8 @@ public class ShuffleChannel extends AbstractSystemChannel {
         return pipeline.getSource().getNameSpace();
     }
 
-    /**
-     * 对于接收到新的window task消息后的处理器
-     *
-     * @return
-     */
-    protected ShuffleOutputDataSource createWindowTaskOutputDataSource() {
 
-        ShuffleOutputDataSource outputDataSource =new ShuffleOutputDataSource();
-        outputDataSource.init();
-        outputDataSource.setConfigureName("shuffleChannel");
-        return outputDataSource;
-    }
 
-    @Override
-    public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
-        this.currentQueueIds=newSplitMessage.getCurrentSplitIds();
-        List<WindowInstance> allWindowInstances=WindowInstance.queryAllWindowInstance(DateUtil.getCurrentTimeString(),window,newSplitMessage.getSplitIds());
-        if(CollectionUtil.isNotEmpty(allWindowInstances)){
-            Set<String> partitionNumKeys=new HashSet<>();
-            for(WindowInstance windowInstance:allWindowInstances){
-                windowInstance.setNewWindowInstance(false);
-                window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceId(),windowInstance);
-                window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance,window);
-                for(String queueId:newSplitMessage.getSplitIds()){
-                    String key=window.getWindowMaxValueManager().createSplitNumberKey(windowInstance,queueId);
-                    partitionNumKeys.add(key);
-                    window.getStorage().loadSplitData2Local(queueId,windowInstance.createWindowInstanceId(),window.getWindowBaseValueClass(),new WindowRowOperator(windowInstance,queueId,window));
-                }
-            }
-            window.getWindowMaxValueManager().loadMaxSplitNum(partitionNumKeys);
-
-        }else {
-            for(String queueId:newSplitMessage.getSplitIds()){
-                ShufflePartitionManager.getInstance().setSplitFinished(queueId);
-            }
-        }
-        window.getFireReceiver().doMessage(message,context);
-    }
-
-    @Override
-    public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
-        this.currentQueueIds=removeSplitMessage.getCurrentSplitIds();
-        Set<String> queueIds=removeSplitMessage.getSplitIds();
-        if(queueIds!=null){
-            for(String queueId:queueIds){
-                ShufflePartitionManager.getInstance().setSplitInValidate(queueId);
-                window.clearCache(queueId);
-
-            }
-            window.getWindowMaxValueManager().removeKeyPrefixFromLocalCache(queueIds);
-            //window.getWindowFireSource().removeSplit(queueIds);
-        }
-        window.getFireReceiver().doMessage(message,context);
-    }
-
-    @Override
-    public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
-        if(message.getHeader().isNeedFlush()){
-            this.flush(message.getHeader().getCheckpointQueueIds());
-        }
-        CheckPointState checkPointState=  new CheckPointState();
-        checkPointState.setQueueIdAndOffset(this.shuffleSink.getFinishedQueueIdAndOffsets(checkPointMessage));
-        checkPointMessage.reply(checkPointState);
-    }
 
     @Override
     public String getConfigureName() {
@@ -354,99 +378,8 @@ public class ShuffleChannel extends AbstractSystemChannel {
         return Pipeline.TYPE;
     }
 
-    protected class ShuffleOutputDataSource extends WindowCache {
-        protected  List<WindowInstance> notSaveWindowInstances=new ArrayList<>();//未保存的windowinstance
-
-        public ShuffleOutputDataSource() {
-        }
-
-        @Override
-        protected boolean batchInsert(List<IMessage> messageList) {
-            Map<Pair<String, String>, List<IMessage>> instance2Messages = new HashMap<>();
-            Map<String, WindowInstance> windowInstanceMap = new HashMap<>();
-            groupByWindowInstanceAndQueueId(messageList, instance2Messages, windowInstanceMap);
-            Iterator<Map.Entry<Pair<String, String>, List<IMessage>>> it = instance2Messages.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<Pair<String, String>, List<IMessage>> entry = it.next();
-                Pair<String, String> queueIdAndInstanceKey = entry.getKey();
-                List<IMessage> messages = entry.getValue();
-                WindowInstance windowInstance = windowInstanceMap.get(queueIdAndInstanceKey.getRight());
-                window.shuffleCalculate(messages, windowInstance, queueIdAndInstanceKey.getLeft());
-                DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleCalculate(window,messages,windowInstance);
-            }
-            return true;
-        }
-
-        @Override
-        public boolean flushMessage(List<IMessage> messages) {
-            saveOtherState();
-            return super.flushMessage(messages);
-        }
-
-        protected void saveOtherState(){
-            if(notSaveWindowInstances.size()>0){
-                if(notSaveWindowInstances.size()>0){
-                    List<WindowInstance> copy=null;
-                    synchronized (this){
-                        copy=this.notSaveWindowInstances;
-                        this.notSaveWindowInstances=new ArrayList<>();
-                    }
-                    Set<String> existWindowInstaceIds=new HashSet<>();
-                    List<WindowInstance> windowInstances=new ArrayList<>();
-                    for(WindowInstance windowInstance:copy){
-                        String windowInstanceId=windowInstance.createWindowInstanceId();
-                        if(existWindowInstaceIds.contains(windowInstanceId)){
-                            continue;
-                        }
-                        windowInstances.add(windowInstance);
-                        existWindowInstaceIds.add(windowInstanceId);
-                    }
-                    ORMUtil.batchReplaceInto(windowInstances);
-                }
-
-            }
-            window.getWindowMaxValueManager().flush();
-        }
-
-        @Override
-        protected String generateShuffleKey(IMessage message) {
-            return null;
-        }
-    }
 
 
-    /**
-     * 根据message，把message分组到不同的group，分别处理
-     *
-     * @param messageList
-     * @param instance2Messages
-     * @param windowInstanceMap
-     */
-    protected void groupByWindowInstanceAndQueueId(List<IMessage> messageList, Map<Pair<String, String>, List<IMessage>> instance2Messages,
-        Map<String, WindowInstance> windowInstanceMap) {
-        for (IMessage message : messageList) {
-
-            List<WindowInstance> windowInstances = (List<WindowInstance>)message.getMessageBody().get(WindowInstance.class.getSimpleName());
-            String queueId = message.getHeader().getQueueId();
-            for(WindowInstance windowInstance:windowInstances){
-                String windowInstanceId = windowInstance.createWindowInstanceId();
-                Pair<String, String> queueIdAndInstanceKey = Pair.of(queueId, windowInstanceId);
-                List<IMessage> messages = instance2Messages.get(queueIdAndInstanceKey);
-                if (messages == null) {
-                    messages = new ArrayList<>();
-                    instance2Messages.put(queueIdAndInstanceKey, messages);
-                }
-                messages.add(message);
-                windowInstanceMap.put(windowInstanceId, windowInstance);
-            }
-
-            String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
-            String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
-            message.getHeader().setQueueId(oriQueueId);
-            message.getHeader().setOffset(oriOffset);
-
-        }
-    }
 
     public ISplit getSplit(Integer index){
         return queueList.get(index);
@@ -473,6 +406,10 @@ public class ShuffleChannel extends AbstractSystemChannel {
         return msg;
     }
 
+    public JSONArray getMsgs(JSONObject msg){
+        return msg.getJSONArray(SHUFFLE_MESSAGES);
+    }
+
     public ISplit getChannelQueue(String key){
         int index=hash(key);
         ISplit targetQueue = queueList.get(index);
@@ -492,7 +429,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     }
 
     public void flush(Set<String> checkpointQueueIds) {
-        shuffleSink.flush(checkpointQueueIds);
+        shuffleCache.flush(checkpointQueueIds);
     }
 
     /**
@@ -526,6 +463,18 @@ public class ShuffleChannel extends AbstractSystemChannel {
         }
         return true;
     }
+    @Override
+    protected String getDynamicPropertyValue() {
+        String dynamicPropertyValue= MapKeyUtil.createKey(window.getNameSpace(),window.getConfigureName());
+        dynamicPropertyValue = dynamicPropertyValue.replaceAll("\\.", "_").replaceAll(";","_");
+        return dynamicPropertyValue;
+    }
+
+    @Override
+    protected int getShuffleSplitCount(AbstractSupportShuffleSink shuffleSink) {
+        int splitNum=shuffleSink.getSplitNum();
+        return splitNum>0?splitNum:32;
+    }
 
     public Set<String> getCurrentQueueIds() {
         return currentQueueIds;
@@ -533,16 +482,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
     public List<ISplit> getQueueList() {
         return queueList;
-    }
-
-    public synchronized void addNeedFlushWindowInstance(WindowInstance windowInstance){
-        if(!window.isLocalStorageOnly()){
-            this.shuffleSink.notSaveWindowInstances.add(windowInstance);
-        }
-    }
-
-    public synchronized void clearCache(WindowInstance windowInstance){
-        this.shuffleSink.notSaveWindowInstances.remove(windowInstance);
     }
 
     public AbstractShuffleWindow getWindow() {

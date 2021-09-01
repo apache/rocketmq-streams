@@ -25,21 +25,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import com.alibaba.fastjson.JSONObject;
 
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAfterCurrentNode;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
-import org.apache.rocketmq.streams.common.topology.stages.udf.IRedurce;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
@@ -67,9 +67,7 @@ import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -191,7 +189,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected volatile transient WindowCache windowCache;
     protected transient WindowStorage storage;
     protected transient WindowRireSource windowFireSource;
-
+    protected transient SQLCache sqlCache;
     protected transient EventTimeManager eventTimeManager;
 
     //create and save window instacne max partitionNum and window max eventTime
@@ -210,6 +208,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         if(!ORMUtil.hasConfigueDB()){
             isLocalStorageOnly=true;
         }
+        sqlCache=new SQLCache(isLocalStorageOnly);
         AbstractWindow window=this;
         windowCache=new WindowCache(){
 
@@ -232,7 +231,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             reducer = InstantiationUtil.deserializeObject(bytes);
         }
         eventTimeManager=new EventTimeManager();
-        windowMaxValueManager = new WindowMaxValueManager(this);
+        windowMaxValueManager = new WindowMaxValueManager(this,sqlCache);
         return success;
     }
 
@@ -358,15 +357,13 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return MapKeyUtil.createKey(values);
     }
 
-    public abstract void clearFire(List<WindowInstance> windowInstances);
+    public abstract void clearFireWindowInstance(WindowInstance windowInstance);
 
     public void clearFire(WindowInstance windowInstance){
         if(windowInstance==null){
             return;
         }
-        List<WindowInstance>windowInstances=new ArrayList<>();
-        windowInstances.add(windowInstance);
-        clearFire(windowInstances);
+        clearFireWindowInstance(windowInstance);
     }
 
     /**
@@ -464,21 +461,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @return
      */
     public List<WindowInstance> queryOrCreateWindowInstance(IMessage message,String queueId) {
-        List<WindowInstance> windowInstances=WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
+        return  WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
             queueId);
-//        if(fireMode==2){
-//            if(windowInstances==null){
-//                return null;
-//            }
-//            for(WindowInstance windowInstance:windowInstances){
-//                Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
-//                Date lastFireTimne=DateUtil.addDate(TimeUnit.SECONDS,endTime,getWaterMarkMinute()*timeUnitAdjust);
-//                //if fireMode==2， need clear data in lastFireTime
-//                WindowInstance lastClearWindowInstance=createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTimne),queueId);
-//                getWindowFireSource().registFireWindowInstanceIfNotExist(lastClearWindowInstance,this);
-//            }
-//        }
-        return windowInstances;
     }
 
     /**
@@ -501,6 +485,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      */
     public void sendFireMessage(List<WindowValue> windowValueList,String queueId) {
         int count = 0;
+        List<IMessage> msgs=new ArrayList<>();
         for (WindowValue windowValue : windowValueList) {
             JSONObject message = new JSONObject();
 
@@ -527,14 +512,22 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             //can keep offset in order
             Long offset=((fireTime-baseTime)/1000*10+sameFireCount)*100000000+windowValue.getPartitionNum();
             message.put("windowInstanceId",windowValue.getWindowInstancePartitionId());
+            message.put("start_time",windowValue.getStartTime());
+            message.put("end_time",windowValue.getEndTime());
             message.put("offset",offset);
             Message newMessage=windowFireSource.createMessage(message,queueId,offset+"",false);
             newMessage.getHeader().setOffsetIsLong(true);
             if (count == windowValueList.size() - 1) {
                 newMessage.getHeader().setNeedFlush(true);
             }
+            msgs.add(newMessage);
             windowFireSource.executeMessage(newMessage);
+
             count++;
+        }
+
+        if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
+            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowFire(this,msgs,queueId);
         }
     }
 
@@ -755,4 +748,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     public EventTimeManager getEventTimeManager() {
         return eventTimeManager;
     }
+
+    public SQLCache getSqlCache() {
+        return sqlCache;
+    }
+
+    public void initWindowInstanceMaxSplitNum(WindowInstance instance){
+        getWindowMaxValueManager().initMaxSplitNum(instance,queryWindowInstanceMaxSplitNum(instance));
+    }
+
+    protected abstract Long queryWindowInstanceMaxSplitNum(WindowInstance instance);
 }

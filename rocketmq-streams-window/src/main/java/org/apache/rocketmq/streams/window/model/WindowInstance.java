@@ -36,6 +36,8 @@ import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
+import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 
 /**
  * 具体的窗口实例
@@ -107,6 +109,10 @@ public class WindowInstance extends Entity implements Serializable {
         return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime);
     }
 
+    public String createWindowInstanceTriggerId(){
+        return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime,fireTime);
+    }
+
     /**
      * 创建window instance对象列表
      *
@@ -130,79 +136,6 @@ public class WindowInstance extends Entity implements Serializable {
     public String createWindowInstancePartitionId() {
         return StringUtil.createMD5Str(MapKeyUtil.createKey(windowNameSpace, windowName, windowInstanceName, startTime, endTime, splitId));
     }
-    //
-    ///**
-    // * 批量查询窗口实例，对于不存在的窗口实例创建并插入数据库
-    // */
-    //public static List<WindowInstance> queryAndCreateWindowInstances(AbstractWindow window,
-    //    List<Pair<String, String>> startAndEndTimeList, List<String> fireTimeList) {
-    //        List<WindowInstance> windowInstanceList = queryWindowInstances(window, startAndEndTimeList, fireTimeList);
-    //        if (windowInstanceList == null) {
-    //            //TODO db exception
-    //            return new ArrayList<>();
-    //        }
-    //        List<Pair<String, String>> lostPairList = new ArrayList<>();
-    //        List<String> lostFireList = new ArrayList<>();
-    //        for (int index = 0; index < startAndEndTimeList.size(); index++) {
-    //            Pair<String, String> pair = startAndEndTimeList.get(index);
-    //            String fireTime = fireTimeList.get(index);
-    //            List<WindowInstance> resultList = windowInstanceList.stream().filter(
-    //                instance -> instance.startTime.equals(pair.getLeft()) && instance.endTime.equals(pair.getRight()) && instance.getFireTime().equals(fireTime))
-    //                .collect(
-    //                    Collectors.toList());
-    //            if (CollectionUtil.isEmpty(resultList)) {
-    //                lostPairList.add(pair);
-    //                lostFireList.add(fireTimeList.get(index));
-    //            }
-    //        }
-    //        List<WindowInstance> lostInstanceList = createWindowInstances(window,lostPairList,lostFireList);
-    //        try {
-    //            //插入数据库前重写windowInstanceId
-    //
-    //            ORMUtil.batchIgnoreInto(lostInstanceList);
-    //        } catch (Exception e) {
-    //            LOG.error("failed in creating new window instances", e);
-    //        }
-    //        windowInstanceList.addAll(lostInstanceList);
-    //        return windowInstanceList;
-    //}
-
-    ///**
-    // * 在内存中没有找到instance，查询数据库
-    // */
-    //public static WindowInstance queryWindowInstance(String dbWindowInstanceId) {
-    //    String sql = "select * from " + ORMUtil.getTableName(WindowInstance.class)
-    //        + " where status = 0 and window_instance_key = '" + dbWindowInstanceId + "';";
-    //    WindowInstance windowInstance = ORMUtil.queryForObject(sql, null, WindowInstance.class);
-    //    return windowInstance;
-    //}
-
-    //public static List<WindowInstance> queryWindowInstances(AbstractWindow window, List<Pair<String, String>> windowTimeList,
-    //    List<String> fireTimeList) {
-    //    if (CollectionUtil.isEmpty(windowTimeList)) {
-    //        return new ArrayList<>();
-    //    }
-    //    String sql = "select * from " + ORMUtil.getTableName(WindowInstance.class);
-    //    StringBuilder builder = new StringBuilder();
-    //    builder.append(" where status = 0 and window_instance_key in (");
-    //    for (int index = 0; index < windowTimeList.size(); index++) {
-    //        Pair<String, String> windowTime = windowTimeList.get(index);
-    //        String instanceKey = window.createWindowInstance(windowTime.getLeft(), windowTime.getRight(), fireTimeList.get(index)).getWindowInstanceKey();
-    //        builder.append("'").append(instanceKey).append("'");
-    //        if (index != windowTimeList.size() - 1) {
-    //            builder.append(",");
-    //        }
-    //    }
-    //    builder.append(");");
-    //    sql += builder.toString();
-    //    try {
-    //        List<WindowInstance> dbWindowInstanceList = ORMUtil.queryForList(sql, null, WindowInstance.class);
-    //        return dbWindowInstanceList;
-    //    } catch (Exception e) {
-    //        LOG.error("failed in getting window instances batch", e);
-    //    }
-    //    return null;
-    //}
 
     /**
      * 触发时间比lastTime小的所有的有效的instance
@@ -210,7 +143,7 @@ public class WindowInstance extends Entity implements Serializable {
      * @param
      * @return
      */
-    public static List<WindowInstance> queryAllWindowInstance(String lastTime, AbstractWindow window,
+    public static List<WindowInstance>  queryAllWindowInstance(String lastTime, AbstractWindow window,
                                                               Collection<String> splitIds) {
         if (window.isLocalStorageOnly() || splitIds == null) {
             return null;
@@ -239,30 +172,27 @@ public class WindowInstance extends Entity implements Serializable {
      *
      * @param windowInstance
      */
+    @Deprecated
     public static void cleanWindow(WindowInstance windowInstance) {
-        List<WindowInstance> windowInstances = new ArrayList<>();
-        windowInstances.add(windowInstance);
-        clearInstances(windowInstances);
+        clearInstance(windowInstance,null);
     }
+    public static void clearInstance(WindowInstance windowInstance) {
+        clearInstance(windowInstance,null);
 
-    public static void clearInstances(List<WindowInstance> windowInstances) {
-        if (CollectionUtil.isEmpty(windowInstances)) {
+    }
+    public static void clearInstance(WindowInstance windowInstance, SQLCache sqlCache) {
+        if (windowInstance==null) {
             return;
         }
-        StringBuilder deleteInstanceSql = new StringBuilder();
-        boolean isFirst = true;
-        for (WindowInstance windowInstance : windowInstances) {
-            LOG.debug("clear window instance in db, instance key: " + windowInstance.getWindowInstanceKey());
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                deleteInstanceSql.append(",");
-            }
-            deleteInstanceSql.append("('" + windowInstance.getWindowInstanceKey() + "')");
-        }
+
         String deleteInstanceById = "delete from " + ORMUtil.getTableName(WindowInstance.class)
-            + " where (window_instance_key) in (" + deleteInstanceSql.toString() + ")";
-        ORMUtil.executeSQL(deleteInstanceById, null);
+            + " where window_instance_key ='" + windowInstance.getWindowInstanceKey() + "'";
+        if(sqlCache!=null){
+            sqlCache.addCache(new SQLElement(windowInstance.getSplitId(),windowInstance.createWindowInstanceId(),deleteInstanceById));
+        }else {
+            ORMUtil.executeSQL(deleteInstanceById, null);
+        }
+
     }
 
     public static Long getOccurTime(AbstractWindow window, IMessage message) {
@@ -337,8 +267,17 @@ public class WindowInstance extends Entity implements Serializable {
                         break;
                     }
                 }
+                /**
+                 * mode 2 clear window instance in first create window instance
+                 */
+                if(window.getFireMode()==2&&fire.getTime()==end.getTime()&&waterMarkMinute>0){
+                    Date clearWindowInstanceFireTime=DateUtil.addDate(TimeUnit.SECONDS,end, waterMarkMinute * timeUnitAdjust);
+                    WindowInstance lastWindowInstance=window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end),DateUtil.format(clearWindowInstanceFireTime) , queueId);
+                    window.getWindowInstanceMap().putIfAbsent(lastWindowInstance.createWindowInstanceTriggerId(),lastWindowInstance);
+                    window.getSqlCache().addCache(new SQLElement(queueId,lastWindowInstance.createWindowInstanceId(),ORMUtil.createBatchReplacetSQL(lastWindowInstance)));
+                    window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance,window);
+                }
 
-                //todo mode 2 clear window instance in first create window instance
             } else {
                 fire = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
                 if (maxEventTime!=null&&maxEventTime - fire.getTime() > 0) {
@@ -350,8 +289,8 @@ public class WindowInstance extends Entity implements Serializable {
             String startTime = DateUtil.format(begin);
             String endTime = DateUtil.format(end);
             String fireTime = DateUtil.format(fire);
-            String windowInstanceId = window.createWindowInstance(startTime, endTime, fireTime, queueId).createWindowInstanceId();
-            WindowInstance windowInstance = window.getWindowInstanceMap().get(windowInstanceId);
+            String windowInstanceTriggerId = window.createWindowInstance(startTime, endTime, fireTime, queueId).createWindowInstanceTriggerId();
+            WindowInstance windowInstance = window.getWindowInstanceMap().get(windowInstanceTriggerId);
             if (windowInstance == null) {
                 lostWindowTimeList.add(Pair.of(startTime, endTime));
                 lostFireList.add(fireTime);
@@ -365,7 +304,7 @@ public class WindowInstance extends Entity implements Serializable {
 
         instanceList.addAll(lostInstanceList);
         for (WindowInstance windowInstance : instanceList) {
-            window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceId(), windowInstance);
+            window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceTriggerId(), windowInstance);
         }
 
         return instanceList;

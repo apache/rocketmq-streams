@@ -37,19 +37,6 @@ public abstract class AbstractWindowStorage<T extends WindowBaseValue> implement
         new LinkedBlockingQueue<Runnable>());
     ;
 
-    @Override
-    public Long getMaxShuffleId(String queueId, String windowNameSpace, String windowName, Class<T> clazz) {
-        if (isLocalStorageOnly) {
-            return null;
-        }
-        String sql = "select max(partition_num) as partition_num from " + ORMUtil.getTableName(clazz)
-            + " where name_space ='" + windowNameSpace + "' and configure_name='" + windowName + "' and `partition`='" + queueId + "'";
-        WindowBaseValue windowBaseValue = ORMUtil.queryForObject(sql, new HashMap<>(4), clazz);
-        if (windowBaseValue == null) {
-            return null;
-        }
-        return windowBaseValue.getPartitionNum();
-    }
 
     @Override
     public void multiPut(Map<String, T> map, String windowInstanceId, String queueId) {

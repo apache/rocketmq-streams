@@ -22,6 +22,7 @@ import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.configuable.model.Person;
+import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertTrue;
