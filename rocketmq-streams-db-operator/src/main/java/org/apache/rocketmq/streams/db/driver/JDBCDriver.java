@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.db.driver;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -28,10 +29,16 @@ import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlProvider;
+import org.springframework.jdbc.core.StatementCallback;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.JdbcUtils;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.util.Assert;
 
 /**
  * 数据库常用操作的封装，核心实现的接口是IJdbcTemplate 这个对象实现了IConfigurable接口，可以序列化存储和网络传输 数据库参数，可以配置成名字，实际值在配置文件配置
@@ -77,12 +84,49 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
         }
         return dbDriver;
     }
+   static class BatchUpdateStatementCallback implements StatementCallback<int[]>, SqlProvider {
+        private String currSql;
+        private String[] sql;
+        public BatchUpdateStatementCallback(String... sqls){
+            this.sql=sqls;
+        }
+        @Override
+        public int[] doInStatement(Statement stmt) throws SQLException, DataAccessException {
+            int[] rowsAffected = new int[sql.length];
+            if (JdbcUtils.supportsBatchUpdates(stmt.getConnection())) {
+               // stmt.getConnection().setAutoCommit(false);
+                for (String sqlStmt : sql) {
+                    this.currSql = sqlStmt;
+                    stmt.addBatch(sqlStmt);
+                }
 
+                rowsAffected = stmt.executeBatch();
+              //  stmt.getConnection().commit();
+            }
+            else {
+                for (int i = 0; i < sql.length; i++) {
+                    this.currSql = sql[i];
+                    if (!stmt.execute(sql[i])) {
+                        rowsAffected[i] = stmt.getUpdateCount();
+                    }
+                    else {
+                        throw new InvalidDataAccessApiUsageException("Invalid batch SQL statement: " + sql[i]);
+                    }
+                }
+            }
+            return rowsAffected;
+        }
+        @Override
+        public String getSql() {
+            return this.currSql;
+        }
+    }
     @Override
     public IDBDriver createDBDriver() {
         javax.sql.DataSource dataSource = createDBDataSource();
         return new IDBDriver() {
             private final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
 
             @Override
             public int update(String sql) {
@@ -121,7 +165,8 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
 
             @Override
             public void executSqls(String... sqls) {
-                jdbcTemplate.batchUpdate(sqls);
+                Assert.notEmpty(sqls, "SQL array must not be empty");
+                jdbcTemplate.execute(new BatchUpdateStatementCallback(sqls));
             }
 
             @Override

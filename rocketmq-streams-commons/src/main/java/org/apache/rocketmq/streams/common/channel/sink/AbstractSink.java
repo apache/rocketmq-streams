@@ -71,7 +71,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         return batchAdd(fieldName2Value);
     }
 
-    public ISplit getSPlit(IMessage message) {
+    public ISplit getSplit(IMessage message) {
         return (ISplit)message.getMessageBody().get(TARGET_QUEUE);
     }
 
@@ -126,6 +126,10 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     @Override
     public boolean flush(Set<String> splitIds) {
         int size = messageCache.flush(splitIds);
+        if (size > 0) {
+            System.out.println( " finish flush data " + size);
+        }
+
         return size > 0;
     }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.topology.model;
 
+import java.util.Set;
+
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -28,6 +30,11 @@ import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAft
  */
 public interface IWindow
     extends IStreamOperator<IMessage, AbstractContext<IMessage>>, IConfigurable {
+
+    int DEFAULTFIRE_MODE=0;// fire time=endtime+watermark
+    int MULTI_WINDOW_INSTANCE_MODE=1;//  fire at window size interval， until event time >endtime+watermark, every window result is independent
+    int INCREMENT_FIRE_MODE=2;//  fire at window size interval， until event time >endtime+watermark, every window result is based preview window result
+
 
     /**
      * split char between function
@@ -87,6 +94,8 @@ public interface IWindow
      */
     boolean isSynchronous();
 
-    ISink getWindowCache();
-
+    IWindowCheckpoint getWindowCache();
+    interface IWindowCheckpoint extends ISink<org.apache.rocketmq.streams.common.channel.sink.AbstractSink>{
+        void checkpoint(Set<String> queueIds);
+    }
 }
