@@ -20,6 +20,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -27,9 +35,13 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> {
     protected ConcurrentHashMap<String, MessageCache<IMessage>> queueMessageCaches = new ConcurrentHashMap();
     protected transient Boolean isOpenAutoFlush=true;
+    protected transient ExecutorService executorService;
     public AbstractMutilSplitMessageCache(
         IMessageFlushCallBack<R> flushCallBack) {
         super(null);
+        this.executorService=new ThreadPoolExecutor(10, 10,
+            0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>());
         this.flushCallBack = new MessageFlushCallBack(flushCallBack);
     }
 
@@ -37,6 +49,8 @@ public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> 
     public int addCache(R msg) {
         String queueId = createSplitId(msg);
         MessageCache messageCache = new MessageCache(flushCallBack);
+        messageCache.setAutoFlushSize(this.autoFlushSize);
+        messageCache.setAutoFlushTimeGap(this.autoFlushTimeGap);
         MessageCache existMessageCache = queueMessageCaches.putIfAbsent(queueId, messageCache);
         if (existMessageCache != null) {
             messageCache = existMessageCache;
@@ -68,19 +82,43 @@ public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> 
 
     @Override
     public int flush(Set<String> splitIds) {
-        int size=0;
+        AtomicInteger size=new AtomicInteger(0);
         if(queueMessageCaches==null||queueMessageCaches.size()==0){
             return 0;
         }
-        for(String splitId:splitIds){
-
-            IMessageCache cache=  queueMessageCaches.get(splitId);
-            if(cache!=null){
-                size+=cache.flush();
+        if(splitIds==null||splitIds.size()==0){
+            return 0;
+        }
+        if(splitIds.size()==1){
+            IMessageCache cache=  queueMessageCaches.get(splitIds.iterator().next());
+            if(cache==null){
+                return 0;
             }
+            int count=cache.flush();
+            size.addAndGet(count);
+            return size.get();
+        }
+        CountDownLatch countDownLatch = new CountDownLatch(splitIds.size());
+        for(String splitId:splitIds){
+            executorService.execute(new Runnable() {
+                @Override public void run() {
+                    IMessageCache cache=  queueMessageCaches.get(splitId);
+                    if(cache!=null){
+                        int count=cache.flush();
+                        size.addAndGet(count);
+
+                    }
+                    countDownLatch.countDown();
+                }
+            });
 
         }
-        return size;
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return size.get();
     }
 
     protected int flush(String splitId) {
@@ -99,7 +137,9 @@ public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> 
         if (this.queueMessageCaches == null) {
             return;
         }
-        for (IMessageCache cache : this.queueMessageCaches.values()) {
+        for (MessageCache cache : this.queueMessageCaches.values()) {
+            cache.setAutoFlushSize(this.autoFlushSize);
+            cache.setAutoFlushTimeGap(this.autoFlushTimeGap);
             cache.openAutoFlush();
         }
         this.isOpenAutoFlush=true;
@@ -137,4 +177,5 @@ public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> 
             return success;
         }
     }
+
 }

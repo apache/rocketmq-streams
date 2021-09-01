@@ -34,7 +34,8 @@ public interface IScriptService {
      * @param script 脚本对象
      * @return
      */
-    List<IMessage> executeScript(IMessage message, FunctionContext context, AbstractScript<List<IMessage>, FunctionContext> script);
+    List<IMessage> executeScript(IMessage message, FunctionContext context,
+        AbstractScript<List<IMessage>, FunctionContext> script);
 
     /**
      * 执行一个脚本

@@ -122,6 +122,10 @@ public class OverWindow extends AbstractWindow {
         return true;
     }
 
+    @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
+        return null;
+    }
+
     @Override
     protected boolean initConfigurable() {
         return true;
@@ -138,7 +142,7 @@ public class OverWindow extends AbstractWindow {
     }
 
     @Override
-    public void clearFire(List<WindowInstance> windowInstances) {
+    public void clearFireWindowInstance(WindowInstance windowInstance) {
 
     }
 
