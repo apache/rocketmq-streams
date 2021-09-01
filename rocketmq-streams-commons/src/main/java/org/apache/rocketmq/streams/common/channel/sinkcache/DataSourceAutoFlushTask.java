@@ -29,6 +29,8 @@ public class DataSourceAutoFlushTask implements Runnable {
     private volatile boolean isAutoFlush = false;
     private volatile IMessageCache messageCache;
     protected transient Long lastUpdateTime;
+    protected volatile int autoFlushSize=300;
+    protected volatile int autoFlushTimeGap=1000;
 
     public DataSourceAutoFlushTask(boolean isAutoFlush,
                                    IMessageCache messageCache) {
@@ -40,7 +42,7 @@ public class DataSourceAutoFlushTask implements Runnable {
     public void run() {
         while (isAutoFlush) {
             try {
-                if (messageCache.getMessageCount() < 300 && (lastUpdateTime != null && (System.currentTimeMillis() - lastUpdateTime) < 300)) {
+                if (messageCache.getMessageCount() < autoFlushSize && (lastUpdateTime != null && (System.currentTimeMillis() - lastUpdateTime) < autoFlushTimeGap)) {
                     Thread.sleep(100);
                     continue;
                 }
@@ -61,4 +63,27 @@ public class DataSourceAutoFlushTask implements Runnable {
         isAutoFlush = autoFlush;
     }
 
+    public int getAutoFlushSize() {
+        return autoFlushSize;
+    }
+
+    public void setAutoFlushSize(int autoFlushSize) {
+        this.autoFlushSize = autoFlushSize;
+    }
+
+    public Long getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+
+    public void setLastUpdateTime(Long lastUpdateTime) {
+        this.lastUpdateTime = lastUpdateTime;
+    }
+
+    public int getAutoFlushTimeGap() {
+        return autoFlushTimeGap;
+    }
+
+    public void setAutoFlushTimeGap(int autoFlushTimeGap) {
+        this.autoFlushTimeGap = autoFlushTimeGap;
+    }
 }

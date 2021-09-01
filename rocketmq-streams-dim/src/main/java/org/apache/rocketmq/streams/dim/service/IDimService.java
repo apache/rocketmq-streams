@@ -61,5 +61,5 @@ public interface IDimService {
      * @return 返回匹配的一行数据，如果有多行匹配，只返回第一行。
      */
     List<Map<String, Object>> matchSupportMultiRow(String dimName,
-                                                   String expressionStr, Map<String, Object> msgs, String script);
+        String expressionStr, Map<String, Object> msgs, String script);
 }

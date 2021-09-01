@@ -19,8 +19,8 @@ package org.apache.rocketmq.streams.client;
 
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.configuable.ConfigurableComponent;
-import org.apache.rocketmq.streams.configuable.model.Configure;
+import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
+import org.apache.rocketmq.streams.configurable.model.Configure;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.junit.Test;
 

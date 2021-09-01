@@ -20,6 +20,8 @@ package org.apache.rocketmq.streams;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -27,6 +29,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.debug.DebugWriter;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 
 public class RocketMQOffset implements OffsetStore {
@@ -48,22 +52,16 @@ public class RocketMQOffset implements OffsetStore {
 
     @Override
     public long readOffset(MessageQueue mq, ReadOffsetType type) {
-        return offsetStore.readOffset(mq,type);
+         return offsetStore.readOffset(mq,type);
     }
 
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
-        Set<String> queueIds=new HashSet<>();
-        for(MessageQueue mq:mqs){
-            queueIds.add(new RocketMQMessageQueue(mq).getQueueId());
-        }
-        source.sendCheckpoint(queueIds);
         offsetStore.persistAll(mqs);
     }
 
     @Override
     public void persist(MessageQueue mq) {
-        source.sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
         offsetStore.persist(mq);
     }
 
@@ -72,7 +70,6 @@ public class RocketMQOffset implements OffsetStore {
         Set<String> splitIds = new HashSet<>();
         splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
         source.removeSplit(splitIds);
-        offsetStore.removeOffset(mq);
         offsetStore.removeOffset(mq);
     }
 
@@ -84,6 +81,11 @@ public class RocketMQOffset implements OffsetStore {
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway)
             throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        offsetStore.updateOffset(mq,offset,isOneway);
+        source.sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
+        if(DebugWriter.isOpenDebug()){
+            ConcurrentMap<MessageQueue, AtomicLong>offsetTable=ReflectUtil.getDeclaredField(this.offsetStore,"offsetTable");
+            DebugWriter.getInstance(source.getTopic()).writeSaveOffset(mq,offsetTable.get(mq));
+        }
+       offsetStore.updateConsumeOffsetToBroker(mq,offset,isOneway);
     }
 }
