@@ -33,7 +33,7 @@ import org.apache.rocketmq.streams.common.utils.TraceUtil;
 public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable
     implements IStreamOperator<T, T>, ISystemMessageProcessor {
 
-    private static final long serialVersionUID = -143202547707927632L;
+
 
     private static final Log LOG = LogFactory.getLog(AbstractStage.class);
 
