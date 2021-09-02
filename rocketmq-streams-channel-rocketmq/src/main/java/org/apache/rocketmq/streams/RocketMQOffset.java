@@ -20,6 +20,7 @@ package org.apache.rocketmq.streams;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -36,9 +37,12 @@ import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 public class RocketMQOffset implements OffsetStore {
     protected OffsetStore offsetStore;
     protected AbstractSupportOffsetResetSource source;
+    private AtomicBoolean starting;
+
     public RocketMQOffset(OffsetStore offsetStore, AbstractSupportOffsetResetSource source){
         this.offsetStore=offsetStore;
         this.source=source;
+        this.starting = new AtomicBoolean(true);
     }
     @Override
     public void load() throws MQClientException {
@@ -67,9 +71,16 @@ public class RocketMQOffset implements OffsetStore {
 
     @Override
     public void removeOffset(MessageQueue mq) {
-        Set<String> splitIds = new HashSet<>();
-        splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
-        source.removeSplit(splitIds);
+        //todo 启动时第一次做rebalance时source中也没有原有消费mq，不做移除，做了会有副作用
+        //后续整个checkpoint机制都会调整成异步，整块代码都不会保留，目前为了整体跑通，不做修改。
+        if (starting.get()) {
+            starting.set(false);
+        } else {
+            Set<String> splitIds = new HashSet<>();
+            splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
+            source.removeSplit(splitIds);
+        }
+
         offsetStore.removeOffset(mq);
     }
 
