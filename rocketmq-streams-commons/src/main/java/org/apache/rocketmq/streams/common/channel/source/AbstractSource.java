@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.common.channel.source;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -219,19 +221,15 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         return createJson(message);
     }
 
-    /**
-     * 交给receiver执行后续逻辑
-     *
-     * @param channelMessage
-     * @return
-     */
+
     public AbstractContext executeMessage(Message channelMessage) {
         AbstractContext context = new Context(channelMessage);
-        if (isSplitInRemoving(channelMessage)) {
-            return context;
-        }
         if (!channelMessage.getHeader().isSystemMessage()) {
             messageQueueChangedCheck(channelMessage.getHeader());
+        }
+
+        if (isSplitInRemoving(channelMessage)) {
+            return context;
         }
 
         boolean needFlush = !channelMessage.getHeader().isSystemMessage() && channelMessage.getHeader().isNeedFlush();
@@ -277,9 +275,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @param header
      */
     protected void messageQueueChangedCheck(MessageHeader header) {
-        if (supportNewSplitFind() && supportRemoveSplitFind()) {
-            return;
-        }
         Set<String> queueIds = new HashSet<>();
         String msgQueueId = header.getQueueId();
         if (StringUtil.isNotEmpty(msgQueueId)) {
@@ -290,7 +285,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             queueIds.addAll(checkpointQueueIds);
         }
         Set<String> newQueueIds = new HashSet<>();
-        Set<String> removeQueueIds = new HashSet<>();
+
         for (String queueId : queueIds) {
             if (isNotDataSplit(queueId)) {
                 continue;
@@ -306,22 +301,12 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
                 } else {
 
                     this.checkPointManager.updateLastUpdate(queueId);
-                    //if(this.checkPointManager.isRemovedSplit(queueId)){
-                    //    this.checkPointManager.removeSplit(queueId);
-                    //    removeQueueIds.add(queueId);
-                    //}else {
-                    //
-                    //}
+
                 }
             }
         }
-        //if(!supportRemoveSplitFind()){
-        //    removeSplit(removeQueueIds);
-        //}
-        if (!supportNewSplitFind()) {
-            addNewSplit(newQueueIds);
-        }
 
+        addNewSplit(newQueueIds);
     }
 
     protected abstract boolean isNotDataSplit(String queueId);
@@ -343,12 +328,15 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
         }
     }
-    public List<ISplit> getAllSplits(){
+
+    public List<ISplit> getAllSplits() {
         return null;
     }
-    public Map<String,List<ISplit>> getWorkingSplitsGroupByInstances(){
+
+    public Map<String, List<ISplit>> getWorkingSplitsGroupByInstances() {
         return null;
     }
+
     public void addNewSplit(Set<String> splitIds) {
         if (splitIds == null || splitIds.size() == 0) {
             return;

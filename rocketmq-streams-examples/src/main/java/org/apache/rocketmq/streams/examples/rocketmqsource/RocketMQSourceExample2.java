@@ -23,7 +23,7 @@ import org.apache.rocketmq.streams.source.RocketMQSource;
 public class RocketMQSourceExample2 {
     public static final String NAMESRV_ADDRESS = "127.0.0.1:9876";
     public static final String RMQ_TOPIC = "topic_tiger_0901_01";
-    public static final String RMQ_CONSUMER_GROUP_NAME = "consumer_tiger_0901_16";
+    public static final String RMQ_CONSUMER_GROUP_NAME = "test-group-10";
     public static final String TAGS = "*";
 
     public static void main(String[] args) {
