@@ -31,7 +31,7 @@ import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
 @AutoService(IChannelBuilder.class)
-@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource")
+@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource",name="metaq")
 public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     public static final String TYPE = "rocketmq";
 

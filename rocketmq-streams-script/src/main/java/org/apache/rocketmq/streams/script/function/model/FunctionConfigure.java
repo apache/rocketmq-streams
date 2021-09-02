@@ -326,6 +326,12 @@ public class FunctionConfigure {
         }
         return parameters;
     }
+    public Object getRealValue(int parameterIndex, Object value) {
+
+        DataType datatype=this.parameterDataTypes[parameterIndex];
+        return getRealValue(datatype,value);
+
+    }
 
     private Object getRealValue(DataType dataType, Object value) {
         try {

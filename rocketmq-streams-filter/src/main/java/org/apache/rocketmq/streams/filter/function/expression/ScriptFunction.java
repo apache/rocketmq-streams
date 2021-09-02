@@ -40,7 +40,6 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class ScriptFunction extends AbstractExpressionFunction {
-    ScriptComponent scriptComponent = ScriptComponent.getInstance();
     public static final String SPLIT_SIGN = "######";//对参数进行分隔
     public static final String QUOTATION_CONVERT = "^^^^";//单引号转换
 

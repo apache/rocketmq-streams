@@ -510,8 +510,12 @@ public class ReflectUtil {
     public static Object invoke(Object object, String methodName, Class[] classes, Object[] objects) {
         try {
             Class clazz = object.getClass();
-            Method method= clazz.getDeclaredMethod(methodName, classes);
-            method.setAccessible(true);
+            Method method=clazz.getMethod(methodName, classes);
+            if(method==null){
+                method= clazz.getDeclaredMethod(methodName, classes);
+                method.setAccessible(true);
+            }
+
             return method.invoke(object, objects);
         } catch (Exception e) {
             throw new RuntimeException(
