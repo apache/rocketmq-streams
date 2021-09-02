@@ -71,14 +71,14 @@ public class RocketMQOffset implements OffsetStore {
 
     @Override
     public void removeOffset(MessageQueue mq) {
-        Set<String> splitIds = new HashSet<>();
-        splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
-
         //todo 启动时第一次做rebalance时source中也没有原有消费mq，不做移除，做了会有副作用
         //后续整个checkpoint机制都会调整成异步，整块代码都不会保留，目前为了整体跑通，不做修改。
-        if (!starting.get()) {
-            source.removeSplit(splitIds);
+        if (starting.get()) {
             starting.set(false);
+        } else {
+            Set<String> splitIds = new HashSet<>();
+            splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
+            source.removeSplit(splitIds);
         }
 
         offsetStore.removeOffset(mq);
