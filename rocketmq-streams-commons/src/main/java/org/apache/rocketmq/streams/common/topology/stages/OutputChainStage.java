@@ -82,7 +82,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
              */
             if(openMockChannel()){
                 if(mockSink!=null){
-                    mockSink.batchAdd(message);
+                    mockSink.batchAdd(message.deepCopy());
                     return message;
                 }
                 return message;

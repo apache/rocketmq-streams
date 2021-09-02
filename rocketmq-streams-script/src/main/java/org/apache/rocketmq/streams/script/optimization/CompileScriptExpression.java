@@ -105,7 +105,7 @@ public class CompileScriptExpression {
                 Entry<Integer, CompileParameter> entry = it.next();
                 Integer index = entry.getKey();
                 CompileParameter compileParameter = entry.getValue();
-                parameters[index] = compileParameter.getValue(message, context);
+                parameters[index] = functionConfigure.getRealValue(index,compileParameter.getValue(message, context));
             }
         }
         Object value = functionConfigure.directReflectExecute(parameters);
