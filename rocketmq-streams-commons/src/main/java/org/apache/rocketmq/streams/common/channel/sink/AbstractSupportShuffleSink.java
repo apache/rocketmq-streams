@@ -60,7 +60,12 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
         if (!hasCreated) {
             synchronized (this) {
                 if (!hasCreated) {
-                    createTopicIfNotExist(splitNum);
+                    try {
+                        createTopicIfNotExist(splitNum);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
                     hasCreated = true;
                 }
 

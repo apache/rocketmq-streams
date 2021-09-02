@@ -121,6 +121,9 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
             } else if (systemMessage instanceof RemoveSplitMessage) {
                 stage.removeSplit(t, context, (RemoveSplitMessage)systemMessage);
             } else {
+                if(systemMessage==null){
+                    return true;
+                }
                 throw new RuntimeException("can not support this system message " + systemMessage.getClass().getName());
             }
             if (stage.isAsyncNode()) {
