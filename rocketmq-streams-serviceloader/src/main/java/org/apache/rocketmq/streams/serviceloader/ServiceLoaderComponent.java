@@ -147,6 +147,10 @@ public class ServiceLoaderComponent<T> extends AbstractComponent<IServiceLoaderS
             serviceNames.add(annotation.aliasName());
         }
 
+        if (StringUtil.isNotEmpty(annotation.name())) {
+            serviceNames.add(annotation.name());
+        }
+
         return serviceNames;
     }
 }

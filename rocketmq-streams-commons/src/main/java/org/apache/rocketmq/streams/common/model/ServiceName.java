@@ -29,4 +29,8 @@ public @interface ServiceName {
     String value() default "";
 
     String aliasName() default "";
+
+
+
+    String name() default "";
 }

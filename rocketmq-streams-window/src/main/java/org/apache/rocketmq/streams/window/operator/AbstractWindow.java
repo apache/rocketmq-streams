@@ -144,14 +144,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     /**
      * 默认为空，窗口的触发类似flink，在测试模式下，因为消息有界，期望当消息发送完成后能触发，可以设置两条消息的最大间隔，超过这个间隔，将直接触发消息
      */
-    protected Long msgMaxGapSecond;
+    protected Long msgMaxGapSecond=10L;
 
     /**
      * 是否支持过期数据的计算 过期：当前时间大于数据所在窗口的触发时间
      */
     protected int fireMode=0;//0:普通触发,firetime后收到数据丢弃；1:多实例多次独立触发，在watermark时间内，同starttime，endtime创建多个实例，多次触发；2.单实例，多次独立触发，每次触发是最新值
 
-    protected boolean isLocalStorageOnly=false;//是否只用本地存储，可以提高性能，但不保证可靠性
+    protected boolean isLocalStorageOnly=true;//是否只用本地存储，可以提高性能，但不保证可靠性
     protected String reduceSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient IReducer reducer;
     /**

@@ -20,32 +20,21 @@ import java.util.Properties;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 
-public class CheckpointStrategy implements Strategy {
+public class WindowStrategy implements Strategy {
 
     private final Properties properties;
 
-    private CheckpointStrategy(Long pollingTime) {
+    private WindowStrategy() {
         properties = new Properties();
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.MEMORY_SERVICE_NAME);
-        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
     }
 
-    private CheckpointStrategy(String filePath, Long pollingTime) {
-        properties = new Properties();
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.FILE_SERVICE_NAME);
-        properties.put(IConfigurableService.FILE_PATH_NAME, filePath);
-        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
-    }
-
-    private CheckpointStrategy(String url, String username, String password, Long pollingTime) {
+    private WindowStrategy(String url, String username, String password) {
         properties = new Properties();
         properties.put(AbstractComponent.JDBC_DRIVER, AbstractComponent.DEFAULT_JDBC_DRIVER);
         properties.put(AbstractComponent.JDBC_URL, url);
         properties.put(AbstractComponent.JDBC_USERNAME, username);
         properties.put(AbstractComponent.JDBC_PASSWORD, password);
         properties.put(AbstractComponent.JDBC_TABLE_NAME, AbstractComponent.DEFAULT_JDBC_TABLE_NAME);
-        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.DEFAULT_SERVICE_NAME);
     }
 
     @Override
@@ -53,16 +42,15 @@ public class CheckpointStrategy implements Strategy {
         return this.properties;
     }
 
-    public static Strategy db(String url, String username, String password, Long pollingTime) {
-        return new CheckpointStrategy(url, username, password, pollingTime);
+    public static Strategy exactlyOnce(String url, String username, String password) {
+        return new WindowStrategy(url, username, password);
     }
 
-    public static Strategy file(String filePath, Long pollingTime) {
-        return new CheckpointStrategy(filePath, pollingTime);
+    public static Strategy highPerformance() {
+
+        return new WindowStrategy();
     }
 
-    public static Strategy mem(Long pollingTime) {
-        return new CheckpointStrategy(pollingTime);
-    }
+
 
 }
