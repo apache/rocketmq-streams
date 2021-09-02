@@ -28,12 +28,12 @@ public interface IConfigurable extends IJsonable, IConfigurableIdentification, S
     /**
      * 把toJson的结果当作一个特殊属性
      */
-    static final String JSON_PROPERTY = "configurable_json";
+    String JSON_PROPERTY = "configurable_json";
 
     /**
      * 把status当作configurable 的一个特殊属性
      */
-    static final String STATUS_PROPERTY = "configurable_status";
+    String STATUS_PROPERTY = "configurable_status";
 
     /**
      * 每个配置有一个独立的名字

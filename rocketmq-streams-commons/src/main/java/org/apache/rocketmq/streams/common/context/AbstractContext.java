@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.common.context;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,9 +129,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         if (splitMessages == null) {
             return;
         }
-        for (T t : splitMessages) {
-            this.splitMessages.add(t);
-        }
+        this.splitMessages.addAll(Arrays.asList(splitMessages));
     }
 
     public void removeSpliteMessage(T message) {

@@ -41,8 +41,7 @@ public class ExpressionTest {
         jsonObject.put("vmip", "1.1.1.1");
 
         boolean value =
-            ExpressionBuilder.executeExecute("namespace", "(ip,=,1.2.2.3)&((uid,=,1224)|(vmip,=,1.1.11.1))",
-                jsonObject);
+            ExpressionBuilder.executeExecute("namespace", "(ip,=,1.2.2.3)&((uid,=,1224)|(vmip,=,1.1.11.1))", jsonObject);
         assertTrue(value);
     }
 }

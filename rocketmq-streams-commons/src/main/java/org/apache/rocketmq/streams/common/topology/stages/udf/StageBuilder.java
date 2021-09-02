@@ -26,11 +26,13 @@ import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 
+import java.io.Serializable;
+
 /**
  * 给用户提供自定义的抽象类
  */
-public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage> implements IStageBuilder<ChainStage>, IAfterConfigurableRefreshListener {
-
+public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage> implements IStageBuilder<ChainStage>, Serializable, IAfterConfigurableRefreshListener {
+    private static final long serialVersionUID = 1L;
     @Override
     protected boolean initConfigurable() {
         return true;
