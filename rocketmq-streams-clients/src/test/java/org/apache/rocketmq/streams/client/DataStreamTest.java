@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
-import org.apache.rocketmq.streams.client.strategy.CheckpointStrategy;
+import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
@@ -64,7 +64,7 @@ public class DataStreamTest implements Serializable {
                 .fromRocketmq("topic_xxxx02", "consumer_xxxx02", "127.0.0.1:9876")
                 .map(message -> message + "--")
                 .toPrint(1)
-                .with(CheckpointStrategy.db("", "", "", 0L))
+                .with(WindowStrategy.exactlyOnce("", "", ""))
                 .start();
     }
 
@@ -74,7 +74,7 @@ public class DataStreamTest implements Serializable {
                 .fromFile("/Users/junjie.cheng/text.txt", false)
                 .map(message -> message + "--")
                 .toPrint(1)
-                .with(CheckpointStrategy.mem(0L))
+                .with(WindowStrategy.highPerformance())
                 .start();
     }
 
@@ -98,7 +98,7 @@ public class DataStreamTest implements Serializable {
                 .sum("score", "scoreValue")
                 .toDataSteam()
                 .toPrint(1)
-                .with(CheckpointStrategy.db("", "", "", 1000L))
+                .with(WindowStrategy.exactlyOnce("", "", ""))
                 .start();
     }
 

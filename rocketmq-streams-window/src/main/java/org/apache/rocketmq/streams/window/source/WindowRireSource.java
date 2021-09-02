@@ -34,6 +34,7 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMutilSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
@@ -258,6 +259,13 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
             return new FireResult();
         }
         Date fireTime=DateUtil.parseTime(windowInstance.getFireTime());
+        Boolean isTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+        if(isTest){
+            if(System.currentTimeMillis()-fireTime.getTime()>0){
+                System.out.println("window instance is fired");
+                return new FireResult(true,3);
+            }
+        }
         /**
          * 未到触发时间
          */
