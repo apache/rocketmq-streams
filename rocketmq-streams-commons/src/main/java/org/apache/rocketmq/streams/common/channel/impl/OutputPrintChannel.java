@@ -26,20 +26,16 @@ import org.apache.rocketmq.streams.common.utils.PrintUtil;
  */
 public class OutputPrintChannel extends AbstractSink {
 
-    private static int counter = 1;
-    private transient boolean start = false;
-    private static long startTime = System.currentTimeMillis();
-    private static long begin = startTime;
-    private static int step = 40000;
 
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
-        StringBuilder stringBuilder = new StringBuilder();
         for (IMessage msg : messages) {
-            stringBuilder.append(msg.getMessageValue().toString() + PrintUtil.LINE);
+            System.out.println(msg.getMessageBody().toJSONString());
         }
-        System.out.println(stringBuilder.toString());
         return false;
     }
+
+
+
 
 }
