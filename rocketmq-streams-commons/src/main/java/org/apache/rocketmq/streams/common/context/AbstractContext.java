@@ -78,6 +78,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public <C extends AbstractContext<T>> void syncContext(C subContext) {
+        this.putAll(subContext);
         this.setValues(subContext.getValues());
         this.setConfigurableService(subContext.getConfigurableService());
         this.setSplitModel(subContext.isSplitModel());
@@ -88,6 +89,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
+        subContext.putAll(this);
         subContext.setValues(this.getValues());
         subContext.setConfigurableService(this.getConfigurableService());
         subContext.setSplitModel(this.isSplitModel());
@@ -95,6 +97,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.setSplitMessages(this.getSplitMessages());
         subContext.monitor = this.monitor;
         subContext.isBreak = isBreak;
+
         return subContext;
     }
 

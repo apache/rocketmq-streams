@@ -29,6 +29,16 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class CaseFunction {
 
+
+
+
+    public static boolean isCaseFunction(String functionName){
+        if("if".equals(functionName)||"case".equals(functionName)){
+            return true;
+        }
+        return false;
+    }
+
     /**
      * if(((((___compare_1&___compare_2)&___compare_3)&___compare_4)&___in_1)){___case_1='可疑编码命令';};
      *
