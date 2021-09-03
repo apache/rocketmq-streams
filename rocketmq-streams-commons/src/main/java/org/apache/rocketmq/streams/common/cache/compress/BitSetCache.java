@@ -2,12 +2,16 @@ package org.apache.rocketmq.streams.common.cache.compress;
 
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
+/**
+ * key：list boolean value
+ */
 public class BitSetCache {
     protected ByteArrayValueKV cache;
     protected int byteSetSize;
     protected int capacity;
+    protected int bitSetSize;
 
-    private class BitSet{
+    public class BitSet{
         private byte[] bytes;
 
         public BitSet(){
@@ -17,7 +21,7 @@ public class BitSetCache {
             this.bytes=bytes;
         }
         public void set(int index){
-            if(index>byteSetSize){
+            if(index>bitSetSize){
                 throw new RuntimeException("the index exceed max index, max index is "+byteSetSize+", real is "+index);
             }
             int byteIndex=index/8;
@@ -27,7 +31,7 @@ public class BitSetCache {
             bytes[byteIndex]=byteElement;
         }
         public boolean get(int index){
-            if(index>byteSetSize){
+            if(index>bitSetSize){
                 throw new RuntimeException("the index exceed max index, max index is "+byteSetSize+", real is "+index);
             }
             int byteIndex=index/8;
@@ -51,6 +55,7 @@ public class BitSetCache {
         cache=new ByteArrayValueKV(capacity,true);
         this.byteSetSize=bitSetSize/8+bitSetSize%8;
         this.capacity=capacity;
+        this.bitSetSize=bitSetSize;
     }
 
 

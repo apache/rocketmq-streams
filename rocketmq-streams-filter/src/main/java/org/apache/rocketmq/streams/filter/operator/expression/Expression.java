@@ -53,9 +53,13 @@ public class Expression<T> extends BasedConfigurable
     @SuppressWarnings("rawtypes")
     private DataType dataType = new StringDataType(String.class);
     protected T value;
-
     public Expression copy() {
-        Expression expression = new Expression();
+        Expression expression=new Expression();
+        copy(expression);
+        return expression;
+    }
+
+    public void copy(Expression expression) {
         expression.setNameSpace(getNameSpace());
         expression.setType(getType());
         expression.setConfigureName(getConfigureName());
@@ -65,7 +69,6 @@ public class Expression<T> extends BasedConfigurable
         expression.setValue(value);
         expression.setPrivateDatas(privateDatas);
         expression.setAesFlag(aesFlag);
-        return expression;
     }
 
     // 前端处理使用

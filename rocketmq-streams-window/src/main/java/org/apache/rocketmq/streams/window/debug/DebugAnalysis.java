@@ -40,9 +40,9 @@ public class DebugAnalysis {
 
     public void debugAnalysis(){
         testWindowCacheSuccess();
-        System.out.println("window cache check success");
+        System.out.println("window cachefilter check success");
         testShuffleReceivedBeforeCacheSuccess();
-        System.out.println("shuffle received before cache check success");
+        System.out.println("shuffle received before cachefilter check success");
         testShuffleReceivedSuccess();
         System.out.println("shuffle received check success");
         testTimeoutFire();
