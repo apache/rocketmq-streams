@@ -90,7 +90,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
             if (scriptOptimization.supportOptimize()) {
                 expressions = scriptOptimization.optimize();
             }
-            FunctionScript functionScript = this;
+
             //转化成istreamoperator 接口
             for (IScriptExpression scriptExpression : expressions) {
                 receivers.add((message, context) -> {
