@@ -18,7 +18,9 @@ package org.apache.rocketmq.streams.client.strategy;
 
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 
 public class WindowStrategy implements Strategy {
 
@@ -51,6 +53,9 @@ public class WindowStrategy implements Strategy {
         return new WindowStrategy();
     }
 
-
+    public static Strategy windowDefaultSiZe(int defualtSize){
+        ComponentCreator.getProperties().put(ConfigureFileKey.DIPPER_WINDOW_DEFAULT_INERVAL_SIZE,defualtSize);
+        return null;
+    }
 
 }

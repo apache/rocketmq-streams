@@ -23,7 +23,7 @@ public abstract class SimpleScriptExpressionProxy extends AbstractScriptProxy {
                 if(this.optimizationExpressions==null){
                     List<ICacheFilter> optimizationExpressions=new ArrayList<>();
                     optimizationExpressions.add(new AbstractCacheFilter(getVarName(),this.origExpression) {
-                        @Override protected boolean executeOrigExpression(IMessage message, AbstractContext context) {
+                        @Override public boolean executeOrigExpression(IMessage message, AbstractContext context) {
                             FunctionContext functionContext = new FunctionContext(message);
                             if (context != null) {
                                 context.syncSubContext(functionContext);

@@ -400,6 +400,16 @@ public class DataStream implements Serializable {
 
         this.otherPipelineBuilders.addAll(rightSource.otherPipelineBuilders);
     }
+
+    public DataStreamAction toFile(String filePath,int batchSize,boolean isAppend) {
+        FileSink fileChannel = new FileSink(filePath,isAppend);
+        if(batchSize>0){
+            fileChannel.setBatchSize(batchSize);
+        }
+        ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);
+        mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+    }
     public DataStreamAction toFile(String filePath,boolean isAppend) {
         FileSink fileChannel = new FileSink(filePath,isAppend);
         ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);

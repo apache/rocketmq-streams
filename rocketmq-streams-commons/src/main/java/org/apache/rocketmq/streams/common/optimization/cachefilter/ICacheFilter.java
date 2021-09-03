@@ -17,6 +17,8 @@ public interface ICacheFilter<T> {
      */
     boolean execute(IMessage message, AbstractContext context);
 
+
+    boolean executeOrigExpression(IMessage message, AbstractContext context);
     /**
      *
      * @return expression's var name
