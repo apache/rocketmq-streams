@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.client;
 
+import org.apache.rocketmq.streams.client.source.DataStreamSource;
+import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -36,5 +38,14 @@ public class SourceTest {
                 return null;
             }
         });
+    }
+
+
+    @Test
+    public void testImportMsgFromSource(){
+        DataStreamSource.create("tmp","tmp")
+            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG","chris_test","T_MSG_PROC",true,null)
+            .toFile("/tmp/aegis_proc.txt",true)
+        .start();
     }
 }

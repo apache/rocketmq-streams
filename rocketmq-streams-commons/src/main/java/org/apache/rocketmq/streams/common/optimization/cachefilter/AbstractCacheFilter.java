@@ -23,8 +23,6 @@ public abstract class AbstractCacheFilter<T> implements ICacheFilter<T> {
         return executeOrigExpression(message,context);
     }
 
-    protected abstract boolean executeOrigExpression(IMessage message, AbstractContext context) ;
-
     @Override public String getVarName() {
         return varName;
     }

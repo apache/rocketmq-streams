@@ -149,6 +149,26 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     /**
+     * cache filter（regex，like，equals）result
+     */
+    private static String FILTER_CACHE_PREPIX="__filter_cache_prefix";
+    public void setFilterCache(String expressionStr,String varValue, boolean result){
+        this.put(MapKeyUtil.createKey(FILTER_CACHE_PREPIX,expressionStr,varValue),result);
+    }
+
+    /**
+     * get cache result
+     * @param expressionStr
+     * @param varValue
+     * @return
+     */
+    public Boolean getFilterCache(String expressionStr,String varValue){
+        String key=MapKeyUtil.createKey(FILTER_CACHE_PREPIX,expressionStr,varValue);
+        return (Boolean) this.get(key);
+    }
+
+
+    /**
      * 获取基于字段缓存的某些值
      *
      * @param fieldName
