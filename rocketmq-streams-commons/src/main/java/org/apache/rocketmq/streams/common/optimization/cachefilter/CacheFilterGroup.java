@@ -37,7 +37,7 @@ public class CacheFilterGroup {
             bitSet=cache.createBitSet();
             for(int i=0;i<expressionList.size();i++){
                 ICacheFilter cacheFilter=expressionList.get(i);
-                boolean isMatch=cacheFilter.execute(message,context);
+                boolean isMatch=cacheFilter.executeOrigExpression(message,context);
                 if(isMatch){
                     bitSet.set(i);
                 }

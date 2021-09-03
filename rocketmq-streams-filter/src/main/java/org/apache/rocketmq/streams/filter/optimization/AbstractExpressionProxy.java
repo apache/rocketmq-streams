@@ -36,7 +36,8 @@ public abstract class AbstractExpressionProxy extends Expression implements ICac
 
     public abstract boolean support(Expression oriExpression) ;
 
-    private boolean executeOrigExpression(IMessage message, AbstractContext context) {
+    @Override
+    public boolean executeOrigExpression(IMessage message, AbstractContext context) {
         RuleContext ruleContext = new RuleContext(message.getMessageBody(), rule);
         if (context != null) {
             context.syncSubContext(ruleContext);

@@ -80,6 +80,12 @@ public class RegexFunction extends AbstractExpressionFunction {
         String regex = "";
         varString = String.valueOf(varObject).trim();
         regex = String.valueOf(valueObject).trim();
+
+        Boolean cacheResult=context.getFilterCache(regex,varString);
+        if(cacheResult!=null){
+            return cacheResult;
+        }
+
         Boolean isMatch = calculationResultCache.match(regex, varString);
         if (isMatch != null) {
             return isMatch;
