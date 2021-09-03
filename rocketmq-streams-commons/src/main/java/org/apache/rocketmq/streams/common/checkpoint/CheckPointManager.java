@@ -16,13 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
@@ -31,6 +24,13 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentificati
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class CheckPointManager {
     protected IMessageCache<CheckPointMessage> messageCache;
@@ -138,11 +138,7 @@ public class CheckPointManager {
      * @param sourceStateMap
      */
     protected void saveCheckPoint(Map<String, SourceState> sourceStateMap) {
-        List<CheckPoint> checkPoints = new ArrayList<>();
-        for (SourceState sourceState : sourceStateMap.values()) {
-            CheckPoint checkPoint = new CheckPoint();
-            //  checkPoint.setOffset();
-        }
+
     }
 
     /**
@@ -176,16 +172,7 @@ public class CheckPointManager {
         this.messageCache.addCache(message);
     }
 
-    //public boolean isRemovedSplit(String queueId) {
-    //    Long lastUpdateTime=this.currentSplitAndLastUpdateTime.get(queueId);
-    //    if(lastUpdateTime==null){
-    //        return false;
-    //    }
-    //    if(System.currentTimeMillis()-lastUpdateTime>10000*1000){
-    //        return true;
-    //    }
-    //    return false;
-    //}
+
 
     public void updateLastUpdate(String queueId) {
         addSplit(queueId);

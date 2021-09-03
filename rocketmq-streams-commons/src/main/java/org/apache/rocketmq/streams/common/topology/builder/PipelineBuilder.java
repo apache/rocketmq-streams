@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.topology.builder;
 
-import java.io.Serializable;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
@@ -30,6 +29,7 @@ import org.apache.rocketmq.streams.common.topology.stages.OutputChainStage;
 import org.apache.rocketmq.streams.common.utils.NameCreatorUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 public class PipelineBuilder implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     /**
      * 最终产出的pipeline

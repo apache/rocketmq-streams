@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.functions;
 
-public interface MapFunction<T, O> extends Function {
+import java.io.Serializable;
+
+public interface MapFunction<T, O> extends Function, Serializable {
 
     T map(O message) throws Exception;
 }
