@@ -28,7 +28,7 @@ import com.alibaba.fastjson.JSONObject;
 
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMutilSplitMessageCache;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -72,7 +72,7 @@ public abstract class WindowCache extends
      * 分片转发channel
      */
     protected transient ShuffleChannel shuffleChannel;
-    protected class ShuffleMsgCache extends AbstractMutilSplitMessageCache<Pair<ISplit,JSONObject>>{
+    protected class ShuffleMsgCache extends AbstractMultiSplitMessageCache<Pair<ISplit,JSONObject>> {
 
         public ShuffleMsgCache() {
             super(new IMessageFlushCallBack<Pair<ISplit, JSONObject>>() {
@@ -203,9 +203,10 @@ public abstract class WindowCache extends
      */
     protected abstract String generateShuffleKey(IMessage message);
 
-    @Override public void checkpoint(Set<String> queueIds) {
+    @Override public boolean checkpoint(Set<String> queueIds) {
         this.flush(queueIds);
         this.shuffleMsgCache.flush(queueIds);
+        return true;
     }
 
     /**
