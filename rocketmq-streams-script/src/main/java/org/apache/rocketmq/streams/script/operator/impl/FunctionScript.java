@@ -35,9 +35,10 @@ import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
-import org.apache.rocketmq.streams.script.optimization.ScriptOptimization;
+import org.apache.rocketmq.streams.script.optimization.performance.ScriptOptimization;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
@@ -85,9 +86,9 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
             List<IScriptExpression> expressions = this.scriptExpressions;
 
             //表达式优化，在运行中收集信息，减少解析查找的时间
-            ScriptOptimization scriptOptimization = new ScriptOptimization(this.scriptExpressions);
+            ScriptOptimization scriptOptimization = new ScriptOptimization(MapKeyUtil.createKey(getNameSpace(),getConfigureName()),this.scriptExpressions);
             if (scriptOptimization.supportOptimize()) {
-                expressions = scriptOptimization.getScriptOptimizeExprssions();
+                expressions = scriptOptimization.optimize();
             }
             FunctionScript functionScript = this;
             //转化成istreamoperator 接口
