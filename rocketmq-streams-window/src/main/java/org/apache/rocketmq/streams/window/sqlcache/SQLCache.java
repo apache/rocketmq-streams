@@ -1,25 +1,21 @@
 package org.apache.rocketmq.streams.window.sqlcache;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMutilSplitMessageCache;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
-import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-import org.python.icu.impl.coll.BOCSU;
 
 /**
  * cache sql， async and batch commit
  */
-public class SQLCache extends AbstractMutilSplitMessageCache<ISQLElement> {
+public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
     protected Boolean isOpenCache=true;//if false，then execute sql when receive sql
     protected Set<String> firedWindowInstances=new HashSet<>();//fired window instance ，if the owned sqls have not commit， can cancel the sqls
     protected Map<String,Integer> windowInstance2Index=new HashMap<>();//set index to ISQLElement group by window instance

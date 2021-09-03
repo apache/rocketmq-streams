@@ -23,8 +23,12 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -53,6 +57,10 @@ public class DBSink extends AbstractSink {
     protected String userName;
     @ENVDependence
     protected String password;
+
+    protected boolean openSqlCache=false;
+
+    protected transient IMessageCache<String> sqlCache;//cache sql, batch submit sql
 
     /**
      * db串多数是名字，可以取个名字前缀，如果值为空，默认为此类的name，name为空，默认为简单类名
@@ -103,6 +111,25 @@ public class DBSink extends AbstractSink {
                 ResultSet metaResult = metaData.getColumns(connection.getCatalog(), "%", this.tableName, null);
                 this.metaData = MetaData.createMetaData(metaResult);
                 this.metaData.setTableName(this.tableName);
+                sqlCache=new MessageCache<>(new IMessageFlushCallBack<String>() {
+                    @Override public boolean flushMessage(List<String> sqls) {
+                        JDBCDriver dataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
+                        try {
+                            dataSource.executSqls(sqls);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
+                        } finally {
+                            if (dataSource != null) {
+                                dataSource.destroy();
+                            }
+                        }
+                        return true;
+                    }
+                });
+                ((MessageCache<String>) sqlCache).setAutoFlushTimeGap(100000);
+                ((MessageCache<String>) sqlCache).setAutoFlushSize(50);
+                sqlCache.openAutoFlush();
             }
             return super.initConfigurable();
         } catch (ClassNotFoundException | SQLException e) {
@@ -157,8 +184,20 @@ public class DBSink extends AbstractSink {
         }
     }
 
+    @Override public boolean checkpoint(Set<String> splitIds) {
+        if(sqlCache!=null){
+            sqlCache.flush(splitIds);
+        }
+        return true;
+    }
+
     protected void executeSQL(JDBCDriver dbDataSource, String sql) {
-        dbDataSource.execute(sql);
+        if(isOpenSqlCache()){
+            this.sqlCache.addCache(sql);
+        }else {
+            dbDataSource.execute(sql);
+        }
+
     }
 
     /**
@@ -237,5 +276,13 @@ public class DBSink extends AbstractSink {
 
     public void setTableName(String tableName) {
         this.tableName = tableName;
+    }
+
+    public boolean isOpenSqlCache() {
+        return openSqlCache;
+    }
+
+    public void setOpenSqlCache(boolean openSqlCache) {
+        this.openSqlCache = openSqlCache;
     }
 }
