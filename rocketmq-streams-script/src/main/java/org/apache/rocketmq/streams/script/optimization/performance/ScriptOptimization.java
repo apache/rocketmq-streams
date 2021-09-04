@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.script.optimization;
+package org.apache.rocketmq.streams.script.optimization.performance;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
+import org.apache.rocketmq.streams.common.optimization.cachefilter.ICacheFilter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
@@ -34,18 +35,24 @@ import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class ScriptOptimization {
+    protected String name;//function script namespace,name
 
-    protected Map<String, HyperscanRegex> varName2HyperscanRegex = new HashMap<>();//一个变量名对应一个表达式库
-    protected Map<String, List<OptimizationScriptExpression>> varName2OptimizationScriptExpression = new HashMap<>();//一个变量名对应一组优化表达式
-
-    protected List<IScriptExpression> scriptExpressions;
-    //新变量名和表达式的映射关系
-    protected Map<String, IScriptExpression> newFieldName2Expressions = new HashMap<>();
-
-    protected Set<String> fieldNames = new HashSet<>();//正则表达式用到的字段名
 
     /**
-     * 是否启动优化
+     * optimizate expression
+     */
+    protected ScriptExpressionGroupsProxy scriptExpressionGroupsProxy =new ScriptExpressionGroupsProxy(160,1000000);
+
+    //the optimizated script
+    protected List<IScriptExpression> scriptExpressions;
+
+
+    //newFieldName created in the script
+    protected Map<String, IScriptExpression> newFieldName2Expressions = new HashMap<>();
+
+
+    /**
+     * Optimization once
      */
     protected AtomicBoolean startOptimization = new AtomicBoolean(false);
 
@@ -54,8 +61,14 @@ public class ScriptOptimization {
      *
      * @param scriptExpressions
      */
-    public ScriptOptimization(List<IScriptExpression> scriptExpressions) {
+    public ScriptOptimization(String name,List<IScriptExpression> scriptExpressions) {
+        this.name=name;
         this.scriptExpressions = scriptExpressions;
+
+        /**
+         * get all new fieldname created in this script
+         * the expression which used new fieldname can not optimize
+         */
         for (IScriptExpression scriptExpression : scriptExpressions) {
             if (GroupScriptExpression.class.isInstance(scriptExpression)) {
                 continue;
@@ -78,148 +91,55 @@ public class ScriptOptimization {
         return false;
     }
 
-    public List<IScriptExpression> getScriptOptimizeExprssions() {
-        optimize();
-        return scriptExpressions;
-    }
+
 
     /**
      * 把表达式拆成3段，创建变量的，正则类，其他。正则类用HyperscanRegex做优化
      */
-    protected void optimize() {
+    public List<IScriptExpression> optimize() {
         if (!startOptimization.compareAndSet(false, true)) {
-            return;
+            return this.scriptExpressions;
         }
-        List<IScriptExpression> newExpressions = new ArrayList<>();//最终输出的表达式列表
+        Set<String> newVarNames=new HashSet<>();
+        List<IScriptExpression> allScriptExpressions = new ArrayList<>();//最终输出的表达式列表
+        List<IScriptExpression> proxyExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
         List<IScriptExpression> lastExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
         List<IScriptExpression> mapExpressions = new ArrayList<>();//如果是trim，cast，concat等函数，优先执行
         for (IScriptExpression scriptExpression : scriptExpressions) {
-            IScriptExpression newScriptExprssion = optimize(scriptExpression);
-            if (newScriptExprssion != null) {
-                //增加需要提前执行的表达式到list
-                String functionName = newScriptExprssion.getFunctionName();
-                if (functionName != null) {
-                    functionName = functionName.toLowerCase();
-                    if ("trim".equals(functionName) || "lower".equals(functionName) || "concat".equals(functionName)) {
-                        mapExpressions.add(newScriptExprssion);
-                        if (ScriptExpression.class.isInstance(newScriptExprssion)) {
-                            ScriptExpression expression = (ScriptExpression)newScriptExprssion;
-                            newFieldName2Expressions.remove(expression.getNewFieldName());
-                        }
-                        continue;
-                    }
-                }
 
-                lastExpressions.add(newScriptExprssion);
+            Set<String> newFieldNames = scriptExpression.getNewFieldNames();
+            if (newFieldNames != null&&newFieldNames.size() > 0) {
+                String newFieldName = newFieldNames.iterator().next();
+                newVarNames.add(newFieldName);
             }
 
-        }
-        newExpressions.addAll(mapExpressions);//把优先执行的表达式添加上
-        addOptimizationExpression(newExpressions);//把优化后的表达式增加到list中
-        newExpressions.addAll(lastExpressions);//把剩余的表达式增加到list中
 
-        this.scriptExpressions = newExpressions;
+
+
+
+            IScriptExpression scriptExpressionProxy = createProxy(scriptExpression,newVarNames);
+            String functionName = scriptExpressionProxy.getFunctionName();
+            if(scriptExpressionProxy instanceof AbstractScriptProxy){
+                proxyExpressions.add(scriptExpressionProxy);
+            }else if("trim".equals(functionName) || "lower".equals(functionName) || "concat".equals(functionName)){
+                mapExpressions.add(scriptExpressionProxy);
+            }else {
+                lastExpressions.add(scriptExpressionProxy);
+            }
+        }
+        allScriptExpressions.addAll(mapExpressions);//把优先执行的表达式添加上
+        if(this.scriptExpressionGroupsProxy.scriptExpressions.size()>0){
+            allScriptExpressions.add(this.scriptExpressionGroupsProxy);
+        }
+        allScriptExpressions.addAll(lastExpressions);//把剩余的表达式增加到list中
+
+        this.scriptExpressions=allScriptExpressions;
+        this.scriptExpressionGroupsProxy.removeLessCount();
+        return this.scriptExpressions;
     }
 
-    /**
-     * 把优化后的表达式放入表达式列表中
-     *
-     * @param newExpressions
-     */
-    protected void addOptimizationExpression(List<IScriptExpression> newExpressions) {
-        mergeOptimizationExpressionByVarName();
-        Iterator<Entry<String, List<OptimizationScriptExpression>>> it
-            = this.varName2OptimizationScriptExpression.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, List<OptimizationScriptExpression>> entry = it.next();
-            List<OptimizationScriptExpression> optimizationScriptExpressionList = entry.getValue();
-            /**
-             * 如果表达式个数小于5，不做优化
-             */
-            if (optimizationScriptExpressionList.size() <= 5) {
-                for (OptimizationScriptExpression optimizationScriptExpression : optimizationScriptExpressionList) {
-                    newExpressions.add(optimizationScriptExpression.getExpression());
-                }
-                continue;
-            }
-            HyperscanRegexScriptExpression hyperscanRegexScriptExpression = new HyperscanRegexScriptExpression(entry.getKey(), entry.getValue(), newExpressions);
-            newExpressions.add(hyperscanRegexScriptExpression);
-        }
 
-    }
 
-    /**
-     * 多个表达式组装成一个优化的表达式
-     */
-    protected class HyperscanRegexScriptExpression extends ScriptExpression {
-        protected String varName;
-        protected List<OptimizationScriptExpression> optimizationScriptExpressionList;
-        protected HyperscanRegex hyperscanRegex = new HyperscanRegex();
-        protected List<IScriptExpression> newScriptExpressions;
-        protected boolean iscompileSuccess = true;
-
-        public HyperscanRegexScriptExpression(String varName, List<OptimizationScriptExpression> optimizationScriptExpressionList, List<IScriptExpression> newScriptExpressions) {
-            this.varName = varName;
-            this.optimizationScriptExpressionList = optimizationScriptExpressionList;
-            for (OptimizationScriptExpression optimizationScriptExpression : optimizationScriptExpressionList) {
-                hyperscanRegex.addRegex(optimizationScriptExpression.regex, optimizationScriptExpression);
-            }
-            this.newScriptExpressions = newScriptExpressions;
-            try {
-                hyperscanRegex.compile();
-            } catch (Exception e) {
-                iscompileSuccess = false;
-                for (OptimizationScriptExpression optimizationScriptExpression : optimizationScriptExpressionList) {
-                    newScriptExpressions.add(optimizationScriptExpression.getExpression());
-                }
-            }
-
-        }
-
-        @Override
-        public Object executeExpression(IMessage message, FunctionContext context) {
-            if (!iscompileSuccess) {
-                return null;
-            }
-            String msg = message.getMessageBody().getString(varName);
-            Set result = hyperscanRegex.matchExpression(msg);
-            for (OptimizationScriptExpression optimizationScriptExpression : optimizationScriptExpressionList) {
-                if (result.contains(optimizationScriptExpression)) {
-                    boolean value = (Boolean)optimizationScriptExpression.expression.executeExpression(message, context);
-                    message.getMessageBody().put(optimizationScriptExpression.getNewFieldName(), value);
-                } else {
-                    message.getMessageBody().put(optimizationScriptExpression.getNewFieldName(), false);
-                }
-            }
-            return null;
-        }
-    }
-
-    /**
-     * 二次优化，如果一个变量和lower（变量），则合并成一个分组中
-     */
-    protected void mergeOptimizationExpressionByVarName() {
-
-        Iterator<Entry<String, List<OptimizationScriptExpression>>> it
-            = this.varName2OptimizationScriptExpression.entrySet().iterator();
-        String tmpVarName = "____lower";
-        while (it.hasNext()) {
-            Entry<String, List<OptimizationScriptExpression>> entry = it.next();
-            String varName = entry.getKey();
-            if (varName.startsWith(tmpVarName)) {
-                String oriVarName = varName.replace(tmpVarName + "_", "");
-                int lastIndex = oriVarName.lastIndexOf("_");
-                oriVarName = oriVarName.substring(0, lastIndex);
-                if (this.varName2OptimizationScriptExpression.containsKey(oriVarName)) {
-                    List<OptimizationScriptExpression> value = varName2OptimizationScriptExpression.get(varName);
-                    List<OptimizationScriptExpression> dstValue = varName2OptimizationScriptExpression.get(oriVarName);//找到非lower对应的分组
-                    dstValue.addAll(value);
-                    it.remove();
-                    ;
-                }
-            }
-        }
-    }
 
     /**
      * 如果脚本中有较多的正则表达式，则统一注册到正则库，并行执行。
@@ -227,49 +147,32 @@ public class ScriptOptimization {
      * @param scriptExpression
      * @return
      */
-    protected IScriptExpression optimize(IScriptExpression scriptExpression) {
-        IFunctionOptimization functionOptimization = getFunctionOptimization(scriptExpression);
-        if (functionOptimization == null) {
+    protected IScriptExpression createProxy(IScriptExpression scriptExpression,Set<String> newVarNames) {
+        AbstractScriptProxy scriptProxy = ScriptProxyFactory.getInstance().create(scriptExpression);
+        if (scriptProxy == null) {
             return scriptExpression;
         }
+
         List<String> dependentFields = scriptExpression.getDependentFields();
         /**
          * 如果依赖的字段是其他脚本产生的，则不做优化
          */
         for (String fieldName : dependentFields) {
-            if (newFieldName2Expressions.containsKey(fieldName)) {
+            if (newFieldName2Expressions.containsKey(fieldName)&&!newVarNames.contains(fieldName)) {
                 return scriptExpression;
             }
         }
-        /**
-         * 优化的表达式
-         */
-        OptimizationScriptExpression optimizationScriptExpression = functionOptimization.optimize(scriptExpression);
-        String varName = optimizationScriptExpression.getVarName();
-        List<OptimizationScriptExpression> optimizationScriptExpressionList = this.varName2OptimizationScriptExpression.get(varName);
-        if (optimizationScriptExpressionList == null) {
-            optimizationScriptExpressionList = new ArrayList<>();
-            this.varName2OptimizationScriptExpression.put(varName, optimizationScriptExpressionList);
-        }
-        optimizationScriptExpressionList.add(optimizationScriptExpression);
-        return null;
-    }
 
-    private static List<IFunctionOptimization> functionOptimizations = new ArrayList<>();
-
-    static {
-        functionOptimizations.add(new RegexOptimization());
-        functionOptimizations.add(new EqualsOptimization());
-    }
-
-    protected IFunctionOptimization getFunctionOptimization(IScriptExpression expression) {
-        for (IFunctionOptimization functionOptimization : functionOptimizations) {
-            if (functionOptimization.support(expression)) {
-                return functionOptimization;
+        this.scriptExpressionGroupsProxy.addScriptExpression(scriptProxy);
+        List<ICacheFilter> cacheFilters=scriptProxy.getCacheFilters();
+        if(cacheFilters!=null){
+            for(ICacheFilter cacheFilter:cacheFilters){
+                this.scriptExpressionGroupsProxy.addOptimizationExpression(this.name,cacheFilter);
             }
         }
-        return null;
+        return scriptProxy;
     }
+
 
     public static void main(String[] args) {
         String scriptValue = "source='netstat_ob';\n"

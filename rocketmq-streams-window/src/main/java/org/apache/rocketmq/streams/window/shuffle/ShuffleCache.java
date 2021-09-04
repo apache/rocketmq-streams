@@ -24,8 +24,8 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 /**
  *
- * save receiver messages into cache
- * when checkpoint/autoflush/flush， process cache message
+ * save receiver messages into cachefilter
+ * when checkpoint/autoflush/flush， process cachefilter message
  *
  * */
 public class ShuffleCache extends WindowCache {

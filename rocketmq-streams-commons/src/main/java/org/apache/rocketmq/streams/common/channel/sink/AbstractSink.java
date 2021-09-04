@@ -127,7 +127,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     public boolean flush(Set<String> splitIds) {
         int size = messageCache.flush(splitIds);
         if (size > 0) {
-            System.out.println( " finish flush data " + size);
+            System.out.println(this.getClass().getSimpleName()+ " finish flush data " + size);
         }
 
         return size > 0;
@@ -170,6 +170,22 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
             sourceState.getQueueId2Offsets().put(queueId, messageOffset);
         }
         return success;
+    }
+
+    @Override public boolean checkpoint(Set<String> splitIds) {
+        return flush(splitIds);
+    }
+
+    @Override public boolean checkpoint(String... splitIds) {
+        if(splitIds==null){
+            return false;
+        }
+        Set<String> splitSet=new HashSet<>();
+        for(String splitId: splitIds){
+            splitSet.add(splitId);
+        }
+
+        return checkpoint(splitSet);
     }
 
     @Override

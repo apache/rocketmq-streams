@@ -32,11 +32,11 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
-public abstract class AbstractMutilSplitMessageCache<R> extends MessageCache<R> {
+public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> {
     protected ConcurrentHashMap<String, MessageCache<IMessage>> queueMessageCaches = new ConcurrentHashMap();
     protected transient Boolean isOpenAutoFlush=true;
     protected transient ExecutorService executorService;
-    public AbstractMutilSplitMessageCache(
+    public AbstractMultiSplitMessageCache(
         IMessageFlushCallBack<R> flushCallBack) {
         super(null);
         this.executorService=new ThreadPoolExecutor(10, 10,

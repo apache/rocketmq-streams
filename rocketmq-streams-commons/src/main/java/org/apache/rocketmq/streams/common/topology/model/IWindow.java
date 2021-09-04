@@ -96,6 +96,5 @@ public interface IWindow
 
     IWindowCheckpoint getWindowCache();
     interface IWindowCheckpoint extends ISink<org.apache.rocketmq.streams.common.channel.sink.AbstractSink>{
-        void checkpoint(Set<String> queueIds);
     }
 }
