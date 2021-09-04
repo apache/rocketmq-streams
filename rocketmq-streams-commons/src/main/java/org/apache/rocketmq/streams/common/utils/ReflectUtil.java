@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -895,4 +896,13 @@ public class ReflectUtil {
         return methodName;
     }
 
+    public static Object forInstance(Class clazz,Class[] classes, Object[] objects) {
+        try {
+            Constructor constructor= clazz.getConstructor(classes);
+            return constructor.newInstance(objects);
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
+
+    }
 }

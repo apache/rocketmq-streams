@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.window.source;
 
-import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,19 +30,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMutilSplitMessageCache;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 
 public class WindowRireSource extends AbstractSupportOffsetResetSource implements IStreamOperator {
     protected static final Log LOG = LogFactory.getLog(WindowRireSource.class);
@@ -298,7 +294,7 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
     }
 
 
-    protected class WindowInstanceCache extends AbstractMutilSplitMessageCache<WindowInstance>{
+    protected class WindowInstanceCache extends AbstractMultiSplitMessageCache<WindowInstance> {
 
         public WindowInstanceCache() {
             super(new IMessageFlushCallBack<WindowInstance>() {

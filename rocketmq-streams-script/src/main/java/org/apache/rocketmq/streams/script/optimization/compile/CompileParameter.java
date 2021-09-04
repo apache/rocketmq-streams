@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.script.optimization;
+package org.apache.rocketmq.streams.script.optimization.compile;
 
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.context.FunctionContext;

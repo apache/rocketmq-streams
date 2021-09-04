@@ -231,8 +231,14 @@ public class GroupScriptExpression implements IScriptExpression {
         this.elseIfExpressions = elseIfExpressions;
     }
 
+    public IScriptExpression getIfExpresssion() {
+        return ifExpresssion;
+    }
+
+
     public List<IScriptExpression> getElseExpressions() {
         return elseExpressions;
     }
+
 
 }

@@ -67,6 +67,11 @@ public class RegexFunction {
         if (FunctionUtils.isConstant(pattern)) {
             pattern = FunctionUtils.getConstant(pattern);
         }
+        Boolean cacheResult=context.getFilterCache(pattern,ori);
+        if(cacheResult!=null){
+            return cacheResult;
+        }
+
         return StringUtil.matchRegex(ori, pattern);
     }
 

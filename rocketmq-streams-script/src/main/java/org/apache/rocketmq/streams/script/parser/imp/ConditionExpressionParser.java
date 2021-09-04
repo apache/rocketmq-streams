@@ -221,6 +221,7 @@ public class ConditionExpressionParser implements IScriptExpressionParser {
         value = value.replace("‘", "'");
         value = value.replace("’", "'");
         List<IScriptExpression> scriptExpressions = FunctionParser.getInstance().parse(value);
+        System.out.println();
     }
 
 }

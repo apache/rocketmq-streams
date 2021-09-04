@@ -55,11 +55,11 @@ public abstract class AbstractWindowTest implements Serializable {
             })
             .window(TumblingWindow.of(Time.seconds(5)))
             .fireMode(2).waterMark(100000000)
-            .setMaxMsgGap(80L)
+            .setMaxMsgGap(10L)
             .groupBy("name")
             .setTimeField("time")
             .sum("total","sum_total")
-            .setLocalStorageOnly(true)
+            .setLocalStorageOnly(isLocalOnly)
             .toDataSteam()
             .forEach(new ForEachFunction<JSONObject>() {
                 AtomicInteger sum = new AtomicInteger(0) ;
