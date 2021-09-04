@@ -79,6 +79,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public <C extends AbstractContext<T>> void syncContext(C subContext) {
+        this.putAll(subContext);
         this.setValues(subContext.getValues());
         this.setConfigurableService(subContext.getConfigurableService());
         this.setSplitModel(subContext.isSplitModel());
@@ -89,6 +90,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
+        subContext.putAll(this);
         subContext.setValues(this.getValues());
         subContext.setConfigurableService(this.getConfigurableService());
         subContext.setSplitModel(this.isSplitModel());
@@ -96,6 +98,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.setSplitMessages(this.getSplitMessages());
         subContext.monitor = this.monitor;
         subContext.isBreak = isBreak;
+
         return subContext;
     }
 
@@ -143,6 +146,26 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     public void openSplitModel() {
         isSplitModel = true;
     }
+
+    /**
+     * cache filter（regex，like，equals）result
+     */
+    private static String FILTER_CACHE_PREPIX="__filter_cache_prefix";
+    public void setFilterCache(String expressionStr,String varValue, boolean result){
+        this.put(MapKeyUtil.createKey(FILTER_CACHE_PREPIX,expressionStr,varValue),result);
+    }
+
+    /**
+     * get cache result
+     * @param expressionStr
+     * @param varValue
+     * @return
+     */
+    public Boolean getFilterCache(String expressionStr,String varValue){
+        String key=MapKeyUtil.createKey(FILTER_CACHE_PREPIX,expressionStr,varValue);
+        return (Boolean) this.get(key);
+    }
+
 
     /**
      * 获取基于字段缓存的某些值

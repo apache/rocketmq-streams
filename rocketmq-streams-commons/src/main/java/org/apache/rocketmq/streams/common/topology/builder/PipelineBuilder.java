@@ -83,7 +83,8 @@ public class PipelineBuilder implements Serializable {
      * @param source 数据源
      */
     public void setSource(ISource source) {
-        this.addConfigurables(source);
+        source.createStageChain(this);
+        source.addConfigurables(this);
         this.pipeline.setSource(source);
     }
 

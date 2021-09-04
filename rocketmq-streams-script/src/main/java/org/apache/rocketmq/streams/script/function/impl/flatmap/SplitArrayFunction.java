@@ -132,6 +132,9 @@ public class SplitArrayFunction {
         context.openSplitModel();
         for (int i = 0; i < values.length; i++) {
             String value = values[i];
+            if("null".equals(value.toLowerCase())){
+                continue;
+            }
             IMessage newMessage = channelMessage.deepCopy();
             newMessage.getMessageBody().put(FunctionType.UDTF.name() + "." + 0, value);
             newMessage.getHeader().setTraceId(channelMessage.getHeader().getTraceId() + "_" + i);

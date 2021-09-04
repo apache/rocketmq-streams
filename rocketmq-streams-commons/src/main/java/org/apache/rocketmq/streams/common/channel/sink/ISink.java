@@ -78,6 +78,21 @@ public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>,
     boolean flush();
 
     /**
+     * 如果支持批量保存，此方法完成数据的全部写入
+     *
+     * @return
+     */
+    boolean checkpoint(Set<String> splitIds);
+
+
+
+    /**
+     * 如果支持批量保存，此方法完成数据的全部写入
+     *
+     * @return
+     */
+    boolean checkpoint(String... splitIds);
+    /**
      * 调用这个方法后，不必调用flush，由框架定时或定批完成刷新
      */
     void openAutoFlush();
