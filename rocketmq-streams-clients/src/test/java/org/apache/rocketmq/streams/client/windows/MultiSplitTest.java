@@ -17,12 +17,20 @@
 package org.apache.rocketmq.streams.client.windows;
 
 import com.alibaba.fastjson.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
@@ -41,9 +49,9 @@ import org.apache.rocketmq.streams.window.storage.WindowStorage;
 import org.junit.Test;
 
 public class MultiSplitTest extends SingleSplitTest {
-    protected String topic="TOPIC_DIPPER_SYSTEM_MSG_6";
+    protected String topic = "TOPIC_DIPPER_SYSTEM_MSG_6";
 
-    protected DataStream createSourceDataStream(){
+    protected DataStream createSourceDataStream() {
 //          String dir="/tmp/rockstmq-streams-1";
 //        FileUtil.deleteFile(dir);
 //        ComponentCreator.getProperties().setProperty("window.debug","true");
@@ -52,39 +60,36 @@ public class MultiSplitTest extends SingleSplitTest {
 //
 //
         return StreamBuilder.dataStream("namespace", "name1")
-            .fromRocketmq(topic,"window_test",true,null);
+                .fromRocketmq(topic, "window_test", true, null);
     }
 
 
-    protected int getSourceCount(){
+    protected int getSourceCount() {
         return 88121;
     }
 
     /**
-     *  validate the window result  meet expectations
+     * validate the window result  meet expectations
      */
     @Test
-    public void testWindowResult(){
+    public void testWindowResult() {
         super.testWindowResult(getSourceCount());
     }
 
     /**
-     *
      * @throws InterruptedException
      */
     @Test
     public void testFireMode0() throws InterruptedException {
 
-        super.executeWindowStream(false,5, IWindow.DEFAULTFIRE_MODE,0,20l);
+        super.executeWindowStream(false, 5, IWindow.DEFAULTFIRE_MODE, 0, 20l);
     }
-
 
 
     @Test
     public void testFireMode1() throws InterruptedException {
-        super.executeWindowStream(false,5,IWindow.MULTI_WINDOW_INSTANCE_MODE,0,20l);
+        super.executeWindowStream(false, 5, IWindow.MULTI_WINDOW_INSTANCE_MODE, 0, 20l);
     }
-
 
 
     @Test
@@ -93,11 +98,12 @@ public class MultiSplitTest extends SingleSplitTest {
     }
 
     @Test
-    public void testRoketmqConsumner(){
-        AtomicInteger count=new AtomicInteger(0);
+    public void testRoketmqConsumner() {
+        AtomicInteger count = new AtomicInteger(0);
         createSourceDataStream().map(new MapFunction<JSONObject, JSONObject>() {
 
-            @Override public JSONObject map(JSONObject message) throws Exception {
+            @Override
+            public JSONObject map(JSONObject message) throws Exception {
                 System.out.println(count.incrementAndGet());
                 return message;
             }
@@ -106,9 +112,9 @@ public class MultiSplitTest extends SingleSplitTest {
 
 
     @Test
-    public void testInsertWindowMsg(){
+    public void testInsertWindowMsg() {
         StreamBuilder.dataStream("namespace", "name1")
-            .fromFile(filePath,true).toRocketmq(topic).start();
+                .fromFile(filePath, true).toRocketmq(topic).start();
     }
 
 
