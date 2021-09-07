@@ -61,21 +61,10 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
     @Override
     public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
 
-
-        //do nothigh
     }
     @Override
     public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
-        //if(message.getHeader().isNeedFlush()){
-        //    if(message.getHeader().getCheckpointQueueIds()!=null&&message.getHeader().getCheckpointQueueIds().size()>0){
-        //        window.getWindowCache().flush(message.getHeader().getCheckpointQueueIds());
-        //    }else {
-        //        Set<String> queueIds=new HashSet<>();
-        //        queueIds.add(message.getHeader().getQueueId());
-        //        window.getWindowCache().flush(queueIds);
-        //    }
-        //
-        //}
+
     }
 
     @Override

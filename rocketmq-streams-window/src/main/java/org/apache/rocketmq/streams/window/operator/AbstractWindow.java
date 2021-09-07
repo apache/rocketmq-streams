@@ -619,8 +619,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     }
 
     @Override
-    public void setFireReceiver(
-        PiplineRecieverAfterCurrentNode fireReceiver) {
+    public void setFireReceiver(PiplineRecieverAfterCurrentNode fireReceiver) {
         this.fireReceiver = fireReceiver;
     }
 

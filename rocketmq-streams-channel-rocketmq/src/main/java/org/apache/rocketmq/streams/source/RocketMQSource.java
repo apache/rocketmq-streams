@@ -291,7 +291,7 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                     ConcurrentMap<MessageQueue, AtomicLong> offsetTable = ReflectUtil.getDeclaredField(this, "offsetTable");
                     DebugWriter.getInstance(getTopic()).writeSaveOffset(mq, offsetTable.get(mq));
                 }
-                LOG.info("the queue Id is " + new RocketMQMessageQueue(mq).getQueueId() + ",rocketmq start save offset，the save time is " + DateUtil.getCurrentTimeString());
+//                LOG.info("the queue Id is " + new RocketMQMessageQueue(mq).getQueueId() + ",rocketmq start save offset，the save time is " + DateUtil.getCurrentTimeString());
                 super.updateConsumeOffsetToBroker(mq, offset, isOneway);
             }
         };

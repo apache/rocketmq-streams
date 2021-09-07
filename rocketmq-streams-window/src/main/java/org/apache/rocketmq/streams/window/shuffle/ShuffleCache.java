@@ -85,14 +85,14 @@ public class ShuffleCache extends WindowCache {
      */
     protected void saveSplitProgress(String queueId, List<IMessage> messages) {
         Map<String,String> queueId2OrigOffset=new HashMap<>();
-        Set<String> oriQueueIds=new HashSet<>();
+//        Set<String> oriQueueIds=new HashSet<>();
         Boolean isLong=false;
         for(IMessage message:messages){
             isLong=message.getMessageBody().getBoolean(ORIGIN_QUEUE_IS_LONG);
             String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
             String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
             queueId2OrigOffset.put(oriQueueId,oriOffset);
-            oriQueueIds.add(oriQueueId);
+//            oriQueueIds.add(oriQueueId);
         }
         Map<String,WindowMaxValue> windowMaxValueMap=window.getWindowMaxValueManager().saveMaxOffset(isLong,window.getConfigureName(),queueId,queueId2OrigOffset);
         window.getSqlCache().addCache(new SplitSQLElement(queueId,ORMUtil.createBatchReplacetSQL(new ArrayList<>(windowMaxValueMap.values()))));
