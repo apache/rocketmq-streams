@@ -30,7 +30,7 @@ public class OutputPrintChannel extends AbstractSink {
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
         for (IMessage msg : messages) {
-            System.out.println(msg.getMessageBody().toJSONString());
+            System.out.println(msg.getMessageValue());
         }
         return false;
     }
