@@ -135,7 +135,7 @@ public class DataStream implements Serializable {
                         if (result instanceof JSONObject) {
                             subMessage=new Message((JSONObject)t);
                         } else {
-                            subMessage=new Message(new UserDefinedMessage(result));
+                            subMessage=new Message(new UserDefinedMessage(t));
                         }
                         splitMessages.add(subMessage);
                     }
