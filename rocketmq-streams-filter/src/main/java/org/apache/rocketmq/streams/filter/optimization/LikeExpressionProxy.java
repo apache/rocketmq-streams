@@ -13,4 +13,5 @@ public class LikeExpressionProxy extends AbstractExpressionProxy {
     @Override public boolean support(Expression oriExpression) {
         return LikeFunction.isLikeFunciton(oriExpression.getFunctionName()) && DataTypeUtil.isString(oriExpression.getDataType()) && oriExpression.getValue() != null;
     }
+
 }
