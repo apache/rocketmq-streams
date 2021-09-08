@@ -23,6 +23,9 @@ public class RocketMQSourceExample1 {
     public static void main(String[] args) {
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
 
+        /**
+         * 1、before run this case, make sure some data has already been rocketmq.
+         */
         source.fromRocketmq(
                 RocketMQSourceExample2.RMQ_TOPIC,
                 RocketMQSourceExample2.RMQ_CONSUMER_GROUP_NAME,

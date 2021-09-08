@@ -28,6 +28,9 @@ public class RocketMQSourceExample3 {
     public static final String RMQ_CONSUMER_GROUP_NAME = "test-group-03";
     public static final String TAGS = "*";
 
+    /**
+     * 1、before run this case, make sure some data has already been rocketmq.
+     */
     public static void main(String[] args) {
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
 
