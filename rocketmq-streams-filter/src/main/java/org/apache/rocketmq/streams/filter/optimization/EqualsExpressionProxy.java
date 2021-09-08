@@ -13,4 +13,8 @@ public class EqualsExpressionProxy extends AbstractExpressionProxy {
     @Override public boolean support(Expression oriExpression) {
         return Equals.isEqualFunction(oriExpression.getFunctionName()) && DataTypeUtil.isString(oriExpression.getDataType()) && oriExpression.getValue() != null;
     }
+
+    @Override public String getExpression() {
+        return null;
+    }
 }
