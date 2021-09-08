@@ -96,15 +96,15 @@ public class ScriptOptimization {
     /**
      * 把表达式拆成3段，创建变量的，正则类，其他。正则类用HyperscanRegex做优化
      */
-    public List<IScriptExpression> optimize() {
+    public ScriptExpressionGroupsProxy optimize() {
         if (!startOptimization.compareAndSet(false, true)) {
-            return this.scriptExpressions;
+            return this.scriptExpressionGroupsProxy;
         }
         Set<String> newVarNames=new HashSet<>();
-        List<IScriptExpression> allScriptExpressions = new ArrayList<>();//最终输出的表达式列表
-        List<IScriptExpression> proxyExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
-        List<IScriptExpression> lastExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
-        List<IScriptExpression> mapExpressions = new ArrayList<>();//如果是trim，cast，concat等函数，优先执行
+//        List<IScriptExpression> allScriptExpressions = new ArrayList<>();//最终输出的表达式列表
+//        List<IScriptExpression> proxyExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
+//        List<IScriptExpression> lastExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
+//        List<IScriptExpression> mapExpressions = new ArrayList<>();//如果是trim，cast，concat等函数，优先执行
         for (IScriptExpression scriptExpression : scriptExpressions) {
 
             Set<String> newFieldNames = scriptExpression.getNewFieldNames();
@@ -113,29 +113,22 @@ public class ScriptOptimization {
                 newVarNames.add(newFieldName);
             }
 
+            createProxy(scriptExpression,newVarNames);
 
 
 
-
-            IScriptExpression scriptExpressionProxy = createProxy(scriptExpression,newVarNames);
-            String functionName = scriptExpressionProxy.getFunctionName();
-            if(scriptExpressionProxy instanceof AbstractScriptProxy){
-                proxyExpressions.add(scriptExpressionProxy);
-            }else if("trim".equals(functionName) || "lower".equals(functionName) || "concat".equals(functionName)){
-                mapExpressions.add(scriptExpressionProxy);
-            }else {
-                lastExpressions.add(scriptExpressionProxy);
-            }
+//            IScriptExpression scriptExpressionProxy =
+//            String functionName = scriptExpressionProxy.getFunctionName();
+//            if(scriptExpressionProxy instanceof AbstractScriptProxy){
+//               // proxyExpressions.add(scriptExpressionProxy);
+//            }else if("trim".equals(functionName) || "lower".equals(functionName) || "concat".equals(functionName)){
+//               // mapExpressions.add(scriptExpressionProxy);
+//            }else {
+//                //lastExpressions.add(scriptExpressionProxy);
+//            }
         }
-        allScriptExpressions.addAll(mapExpressions);//把优先执行的表达式添加上
-        if(this.scriptExpressionGroupsProxy.scriptExpressions.size()>0){
-            allScriptExpressions.add(this.scriptExpressionGroupsProxy);
-        }
-        allScriptExpressions.addAll(lastExpressions);//把剩余的表达式增加到list中
-
-        this.scriptExpressions=allScriptExpressions;
         this.scriptExpressionGroupsProxy.removeLessCount();
-        return this.scriptExpressions;
+       return scriptExpressionGroupsProxy;
     }
 
 

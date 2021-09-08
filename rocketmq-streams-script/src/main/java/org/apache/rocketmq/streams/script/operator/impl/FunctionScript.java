@@ -38,6 +38,7 @@ import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
+import org.apache.rocketmq.streams.script.optimization.performance.ScriptExpressionGroupsProxy;
 import org.apache.rocketmq.streams.script.optimization.performance.ScriptOptimization;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
@@ -54,7 +55,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
      * 脚本解析的表达式列表
      */
     private transient List<IScriptExpression> scriptExpressions = new ArrayList<IScriptExpression>();
-
+    protected transient ScriptExpressionGroupsProxy scriptExpressionGroupsProxy;
     /**
      * 表达式，转化成streamoperator接口列表，可以在上层中使用
      */
@@ -88,7 +89,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
             //表达式优化，在运行中收集信息，减少解析查找的时间
             ScriptOptimization scriptOptimization = new ScriptOptimization(MapKeyUtil.createKey(getNameSpace(),getConfigureName()),this.scriptExpressions);
             if (scriptOptimization.supportOptimize()) {
-                expressions = scriptOptimization.optimize();
+                scriptExpressionGroupsProxy= scriptOptimization.optimize();
             }
 
             //转化成istreamoperator 接口

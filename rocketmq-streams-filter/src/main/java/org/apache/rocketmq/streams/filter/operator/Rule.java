@@ -125,7 +125,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         initVar(configurableService);
         initAction(configurableService);
         initMetaData(configurableService);
-        //this.optimize();
+       // this.optimize();
         // groupExpressionManager.compile();
     }
 
