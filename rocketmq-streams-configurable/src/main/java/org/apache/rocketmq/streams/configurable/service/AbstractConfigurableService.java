@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.configurable.service;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
@@ -133,9 +135,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         if (configures != null && configures.isQuerySuccess() && configures.getConfigurables() != null) {
             // List<Configure> configureList = filterConfigure(configures.getConfigure());
             List<IConfigurable> configurables = configures.getConfigurables();
-            List<IConfigurable> configurableList = checkAndUpdateConfigurables(namespace, configurables,
-                tempType2ConfigurableMap, tempName2ConfigurableMap,
-                configures.getConfigurables());
+            List<IConfigurable> configurableList = checkAndUpdateConfigurables(namespace, configurables, tempType2ConfigurableMap, tempName2ConfigurableMap, configures.getConfigurables());
             // this.namespace2ConfigurableMap = namespace2ConfigurableMap;
             for (IConfigurable configurable : configurableList) {
                 if (configurable instanceof IAfterConfigurableRefreshListener) {
