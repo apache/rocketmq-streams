@@ -62,7 +62,7 @@ public class DBSink extends AbstractSink {
     @ENVDependence
     protected String password;
 
-    protected boolean openSqlCache=false;
+    protected boolean openSqlCache = true;
 
     protected transient IMessageCache<String> sqlCache;//cache sql, batch submit sql
 
