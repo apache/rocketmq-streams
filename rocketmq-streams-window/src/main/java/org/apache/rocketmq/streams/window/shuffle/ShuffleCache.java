@@ -20,12 +20,9 @@ package org.apache.rocketmq.streams.window.shuffle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
@@ -34,10 +31,7 @@ import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.offset.WindowMaxValue;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SplitSQLElement;
-import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 /**
  *
@@ -140,6 +134,7 @@ public class ShuffleCache extends WindowCache {
 
         }
     }
+
 
 //
 //    public synchronized void addNeedFlushWindowInstance(WindowInstance windowInstance){
