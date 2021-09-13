@@ -50,6 +50,9 @@ public interface IWindow
      */
     Integer DEFAULT_WINDOW_SLIDE = 1;
 
+
+    Integer DEFAULT_WINDOW_SESSION_TIMEOUT = 10;
+
     // protected transient ExecutorService deleteService = Executors.newSingleThreadExecutor();
 
     /**
@@ -71,6 +74,8 @@ public interface IWindow
      * hop window type
      */
     String HOP_WINDOW = "hop";
+
+    String SESSION_WINDOW = "session";
 
     /**
      * hop window type

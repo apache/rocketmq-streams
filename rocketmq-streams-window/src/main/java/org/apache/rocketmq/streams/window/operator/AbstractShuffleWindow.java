@@ -26,7 +26,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
-import org.apache.rocketmq.streams.window.source.WindowRireSource;
+import org.apache.rocketmq.streams.window.source.WindowFireSource;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
 public abstract class AbstractShuffleWindow extends AbstractWindow implements IAfterConfigurableRefreshListener {
@@ -44,7 +44,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         if (hasCreated.compareAndSet(false, true)) {
-            this.windowFireSource = new WindowRireSource(this);
+            this.windowFireSource = new WindowFireSource(this);
             this.windowFireSource.init();
             this.windowFireSource.start(getFireReceiver());
             this.shuffleChannel = new ShuffleChannel(this);
