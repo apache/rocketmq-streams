@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.window.shuffle;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -383,23 +384,29 @@ public class ShuffleChannel extends AbstractSystemChannel {
     }
 
     public JSONObject createMsg(JSONArray messages, ISplit split) {
-
         JSONObject msg = new JSONObject();
-
-        msg.put(SHUFFLE_QUEUE_ID, split.getQueueId());//分片id
-        msg.put(SHUFFLE_MESSAGES, messages);//合并的消息
-        msg.put(MSG_OWNER, getDynamicPropertyValue());//消息owner
-
-        StringBuilder traceIds = new StringBuilder();
-        for (int i = 0; i < messages.size(); i++) {
-            JSONObject object = messages.getJSONObject(i);
-            if (object.containsKey(WindowCache.ORIGIN_MESSAGE_TRACE_ID)) {
-                traceIds.append(object.getString(WindowCache.ORIGIN_MESSAGE_TRACE_ID)).append(";");
+        //分片id
+        msg.put(SHUFFLE_QUEUE_ID, split.getQueueId());
+        //合并的消息
+        msg.put(SHUFFLE_MESSAGES, messages);
+        //消息owner
+        msg.put(MSG_OWNER, getDynamicPropertyValue());
+        //
+        try {
+            List<String> traceList = new ArrayList<>();
+            List<String> groupByList = new ArrayList<>();
+            for (int i = 0; i < messages.size(); i++) {
+                JSONObject object = messages.getJSONObject(i);
+                groupByList.add(object.getString("SHUFFLE_KEY"));
+                traceList.add(object.getJSONObject("MessageHeader").getString("traceId"));
             }
+            String traceInfo = StringUtils.join(traceList);
+            String groupInfo = StringUtils.join(groupByList);
+            msg.put(SHUFFLE_TRACE_ID, StringUtils.join(traceList));
+            TraceUtil.debug(traceInfo, "origin message out", split.getQueueId(), groupInfo, getConfigureName());
+        } catch (Exception e) {
+            //do nothing
         }
-        msg.put(SHUFFLE_TRACE_ID, traceIds);
-        TraceUtil.debug(traceIds.toString(), "origin message out", split.getQueueId());
-
         return msg;
     }
 
