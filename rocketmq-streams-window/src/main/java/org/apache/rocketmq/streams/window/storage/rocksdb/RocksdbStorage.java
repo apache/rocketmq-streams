@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.storage.rocksdb;
 
+import com.alibaba.fastjson.JSONArray;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
@@ -175,6 +177,69 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
             throw new RuntimeException("can not get value from rocksdb ", e);
         }
 
+    }
+
+    @Override public void multiPutList(Map<String, List<T>> elements) {
+        if (CollectionUtil.isEmpty(elements)) {
+            return;
+        }
+        try {
+            WriteBatch writeBatch = new WriteBatch();
+            Iterator<Entry<String, List<T>>> it = elements.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<String, List<T>> entry = it.next();
+                String key = entry.getKey();
+                List<T> valueList = entry.getValue();
+                JSONArray array = new JSONArray();
+                for (T value : valueList) {
+                    array.add(value.toJsonObject());
+                }
+                writeBatch.put(key.getBytes(UTF8), array.toJSONString().getBytes(UTF8));
+            }
+            WriteOptions writeOptions = new WriteOptions();
+            writeOptions.setSync(false);
+            writeOptions.setDisableWAL(true);
+            rocksDB.write(writeOptions, writeBatch);
+            writeBatch.close();
+            writeOptions.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("put data to rocksdb error", e);
+        }
+    }
+
+    @Override public Map<String, List<T>> multiGetList(Class<T> clazz, List<String> keys) {
+        if (CollectionUtil.isEmpty(keys)) {
+            return new HashMap<>(4);
+        }
+        List<byte[]> keyByteList = new ArrayList<>();
+        for (String key : keys) {
+            keyByteList.add(getKeyBytes(key));
+        }
+        try {
+            Map<String, List<T>> resultMap = new HashMap<>();
+            Map<byte[], byte[]> map = rocksDB.multiGet(keyByteList);
+            int i = 0;
+            Iterator<Entry<byte[], byte[]>> it = map.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<byte[], byte[]> entry = it.next();
+                String key = getValueFromByte(entry.getKey());
+                String value = getValueFromByte(entry.getValue());
+                JSONArray array = JSONArray.parseArray(value);
+                List<T> valueList = new ArrayList<>();
+                for (int index = 0; index < array.size(); index++) {
+                    String objectString = array.getString(index);
+                    T valueObject = ReflectUtil.forInstance(clazz);
+                    valueObject.toObject(objectString);
+                    valueList.add(valueObject);
+                }
+                resultMap.put(key, valueList);
+            }
+            return resultMap;
+        } catch (RocksDBException e) {
+            e.printStackTrace();
+            throw new RuntimeException("can not get multi value from rocksdb! ", e);
+        }
     }
 
     @Override
