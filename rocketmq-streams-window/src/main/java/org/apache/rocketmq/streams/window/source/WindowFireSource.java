@@ -40,10 +40,12 @@ import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.window.operator.impl.SessionWindow;
 
-public class WindowRireSource extends AbstractSupportOffsetResetSource implements IStreamOperator {
-    protected static final Log LOG = LogFactory.getLog(WindowRireSource.class);
+public class WindowFireSource extends AbstractSupportOffsetResetSource implements IStreamOperator {
+    protected static final Log LOG = LogFactory.getLog(WindowFireSource.class);
     private AbstractWindow window;
+    //TODO maxEventTime和fireTime都是相对时间，但是这个更新时间是绝对时间，使用起来会很别扭
     protected transient Long eventTimeLastUpdateTime;
     protected transient ScheduledExecutorService fireCheckScheduler;//检查是否触发
     protected transient ScheduledExecutorService checkpointScheduler;
@@ -56,7 +58,7 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
     //<windowInstanceTriggerId,<queueId，offset>>
     protected transient ConcurrentHashMap<String,Map<String,String>> windowInstanceQueueOffsets=new ConcurrentHashMap<>();
 
-    public WindowRireSource(AbstractWindow window){
+    public WindowFireSource(AbstractWindow window){
         this.window=window;
     }
 
@@ -108,8 +110,13 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
                         }
                     });
                     WindowInstance windowInstance = windowInstanceList.get(0);
+                    //TODO 每一秒执行一个循环
                     while (windowInstance!=null){
-                        boolean success= executeFireTask(windowInstance,false);
+                        boolean isStartNow = false;
+                        if (SessionWindow.SESSION_WINDOW_BEGIN_TIME.equalsIgnoreCase(windowInstance.getStartTime())) {
+                            isStartNow = true;
+                        }
+                        boolean success= executeFireTask(windowInstance,isStartNow);
                         if(success){
                             windowInstances.remove(windowInstance.createWindowInstanceTriggerId());
                         }
@@ -133,7 +140,6 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
                         }
                         windowInstance=windowInstanceList.get(0);
                     }
-
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -266,7 +272,9 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
          * 未到触发时间
          */
         Long maxEventTime=this.window.getMaxEventTime(windowInstance.getSplitId());
+        maxEventTime = System.currentTimeMillis();
         if(maxEventTime==null){
+            //TODO 有无可能尝试时间为null？
             return new FireResult();
         }
         if(maxEventTime-fireTime.getTime()>=3000){
@@ -277,10 +285,12 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
             if(eventTimeLastUpdateTime==null){
                 return new FireResult();
             }
-            int gap=(int)(System.currentTimeMillis()-eventTimeLastUpdateTime);
-            if(window.getMsgMaxGapSecond()!=null&&gap>window.getMsgMaxGapSecond()*1000){
-                LOG.warn("the fire reason is exceed the gap "+gap+" window instance id is "+windowInstanceTriggerId);
-                return new FireResult(true,1);
+            if (isTest) {
+                int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
+                if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
+                    LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
+                    return new FireResult(true, 1);
+                }
             }
             return new FireResult();
         }
