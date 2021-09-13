@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.window.storage.db;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.AbstractWindowStorage;
 import org.apache.rocketmq.streams.window.storage.IRemoteStorage;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
@@ -47,12 +49,41 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         return sql;
     }
 
+    @Override public String multiPutListSQL(Map<String, List<T>> infoMap) {
+        if (CollectionUtil.isNotEmpty(infoMap)) {
+            List<T> valueList = duplicate(infoMap);
+            return ORMUtil.createBatchReplacetSQL(valueList);
+        }
+        return null;
+    }
+
+    /**
+     * the list value has the same store key, add suffix for session window
+     *
+     * @param infoMap
+     * @return
+     */
+    private List<T> duplicate(Map<String, List<T>> infoMap) {
+        List<T> resultList = new ArrayList<>();
+        Iterator<Map.Entry<String, List<T>>> iterator = infoMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, List<T>> entry = iterator.next();
+            List<T> valueList = entry.getValue();
+            for (int index = 0; index < valueList.size(); index++) {
+                //TODO 是否要进行clone
+                T value = valueList.get(index);
+                value.setMsgKey(value.getMsgKey() + "_" + index);
+                resultList.add(value);
+            }
+        }
+        return resultList;
+    }
+
     @Override
     public void multiPut(Map<String, T> values) {
         if (CollectionUtil.isEmpty(values)) {
             return;
         }
-
         ORMUtil.batchReplaceInto(values.values());
     }
 
@@ -76,6 +107,49 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
             map.put(key, value);
         }
         return map;
+    }
+
+    @Override public void multiPutList(Map<String, List<T>> elements) {
+        if (CollectionUtil.isEmpty(elements)) {
+            return;
+        }
+        List<T> valueList = duplicate(elements);
+        ORMUtil.batchReplaceInto(valueList);
+    }
+
+    /**
+     * the key in db is md5(key)_index
+     *
+     * @param clazz
+     * @param keys
+     * @return
+     */
+    @Override public Map<String, List<T>> multiGetList(Class<T> clazz, List<String> keys) {
+        if (CollectionUtil.isEmpty(keys)) {
+            return new HashMap<>(4);
+        }
+        Map<String, String> recordMap = new HashMap<>(keys.size());
+        List<String> dbKeyList = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            String md5Value = StringUtil.createMD5Str(key);
+            dbKeyList.add(md5Value);
+            recordMap.put(md5Value, key);
+        }
+        List<T> values = ORMUtil.queryForList("select * from " + ORMUtil.getTableName(clazz) +
+            " where left(msg_key,24) in (" + SQLUtil.createInSql(dbKeyList) + " )", new HashMap<>(4), clazz);
+        Map<String, List<T>> resultMap = new HashMap<>(keys.size());
+        for (T value : values) {
+            String dbKeyWithoutSuffix = value.getMsgKey().substring(0, 24);
+            value.setMsgKey(dbKeyWithoutSuffix);
+            String key = recordMap.get(dbKeyWithoutSuffix);
+            List<T> valueList = resultMap.getOrDefault(key, null);
+            if (valueList == null) {
+                valueList = new ArrayList<>();
+                resultMap.put(key, valueList);
+            }
+            valueList.add(value);
+        }
+        return resultMap;
     }
 
     @Override
@@ -130,6 +204,8 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         String sql = "delete from " + ORMUtil.getTableName(clazz) + " where window_instance_id = '" + StringUtil.createMD5Str(windowInstanceId) + "'";
         return sql;
     }
+
+
 
     public static class DBIterator<T extends WindowBaseValue> extends WindowBaseValueIterator<T> {
         private LinkedList<T> container = new LinkedList<>();
