@@ -264,7 +264,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
             calProjectColumn(window, message);
             String traceId = message.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_TRACE_ID);
             if (!StringUtil.isEmpty(traceId)) {
-                TraceUtil.debug(traceId, "window value result", getComputedColumnResult());
+                TraceUtil.debug(traceId, "window value result", decodeSQLContent(getComputedColumnResult()));
             }
         } catch (Exception e) {
             LOG.error("failed in calculating the message", e);

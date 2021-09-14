@@ -106,8 +106,7 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
 
     @Override
     public WindowBaseValueIterator<T> loadWindowInstanceSplitData(String localStorePrefix, String queueId, String windowInstanceId, String key, Class<T> clazz) {
-        String keyPrefix = MapKeyUtil.createKey(windowInstanceId, key);
-//        String keyPrefix = MapKeyUtil.createKey(queueId, windowInstanceId, key);
+        String keyPrefix = MapKeyUtil.createKey(queueId, windowInstanceId, key);
         if (StringUtil.isNotEmpty(localStorePrefix)) {
             keyPrefix = localStorePrefix + keyPrefix;
         }
