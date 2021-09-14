@@ -17,16 +17,12 @@
 package org.apache.rocketmq.streams.db.sink;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.Lists;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.model.ServiceName;
-
-import java.util.List;
-import java.util.Properties;
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(DBSinkBuilder.TYPE)
@@ -39,21 +35,9 @@ public class DBSinkBuilder implements IChannelBuilder {
         sink.setUrl(properties.getProperty("url"));
         sink.setUserName(properties.getProperty("userName"));
         sink.setPassword(properties.getProperty("password"));
-        List<MetaDataField> fieldList = metaData.getMetaDataFields();
-
-        List<String> insertFields = Lists.newArrayList();
-        List<String> insertValues = Lists.newArrayList();
-        List<String> duplicateKeys = Lists.newArrayList();
-        fieldList.forEach(field -> {
-            String fieldName = field.getFieldName();
-            insertFields.add(fieldName);
-            insertValues.add("'#{" + fieldName + "}'");
-            duplicateKeys.add(fieldName + " = VALUES(" + fieldName + ")");
-        });
-
-        String sql = "insert into " + properties.getProperty("tableName") + "(" + String.join(",", insertFields) + ") values (" + String.join(",", insertValues) + ")  ";
-        sink.setInsertSQLTemplate(sql);
-        sink.setDuplicateSQLTemplate(" on duplicate key update " + String.join(",", duplicateKeys));
+        sink.setTableName(properties.getProperty("tableName"));
+        sink.setSqlMode(properties.getProperty("sqlMode"));
+        sink.setMetaData(metaData);
         return sink;
     }
 
