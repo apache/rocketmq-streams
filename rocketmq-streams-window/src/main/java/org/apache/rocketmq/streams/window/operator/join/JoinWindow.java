@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -128,7 +129,11 @@ public class JoinWindow extends AbstractShuffleWindow {
             List<WindowBaseValue> tmpMessages = new ArrayList<>();
             int count = 0;
             while (iterator.hasNext()) {
-                tmpMessages.add(iterator.next());
+                WindowBaseValue windowBaseValue = iterator.next();
+                if (windowBaseValue == null) {
+                    continue;
+                }
+                tmpMessages.add(windowBaseValue);
                 count++;
                 if (count == 100) {
                     sendMessage(msg, tmpMessages);
@@ -146,7 +151,9 @@ public class JoinWindow extends AbstractShuffleWindow {
 
         List<WindowInstance> instances = new ArrayList<>();
         for (Map.Entry<String, WindowInstance> entry : this.windowInstanceMap.entrySet()) {
-            instances.add(entry.getValue());
+            if (queueId.equalsIgnoreCase(entry.getValue().getSplitId())) {
+                instances.add(entry.getValue());
+            }
         }
         Iterator<WindowInstance> windowInstanceIter = instances.iterator();
         return new Iterator<WindowBaseValue>() {
@@ -159,7 +166,7 @@ public class JoinWindow extends AbstractShuffleWindow {
                 if (iterator != null && iterator.hasNext()) {
                     return true;
                 }
-                while (windowInstanceIter.hasNext()) {
+                if (windowInstanceIter.hasNext()) {
                     WindowInstance instance = windowInstanceIter.next();
                     iterator = storage.loadWindowInstanceSplitData(null, queueId,
                         instance.createWindowInstanceId(),
@@ -241,12 +248,16 @@ public class JoinWindow extends AbstractShuffleWindow {
     public List<JSONObject> connectInnerJoin(IMessage message, List<Map<String, Object>> rows, String rightAsName) {
         List<JSONObject> result = new ArrayList<>();
         String routeLabel = message.getHeader().getMsgRouteFromLable();
+        String traceId = message.getHeader().getTraceId();
+        int index = 1;
         if (LABEL_LEFT.equalsIgnoreCase(routeLabel)) {
             JSONObject messageBody = message.getMessageBody();
             for (Map<String, Object> raw : rows) {
                 //                addAsName(raw, rightAsName);
                 JSONObject object = (JSONObject)messageBody.clone();
                 object.fluentPutAll(addAsName(raw, rightAsName));
+                object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
+                index++;
                 result.add(object);
             }
         } else {
@@ -255,6 +266,8 @@ public class JoinWindow extends AbstractShuffleWindow {
             for (Map<String, Object> raw : rows) {
                 JSONObject object = (JSONObject)messageBody.clone();
                 object.fluentPutAll(raw);
+                object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
+                index++;
                 result.add(object);
             }
         }
@@ -297,6 +310,11 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     protected String createStoreKeyPrefix(IMessage message, String routeLabel, WindowInstance windowInstance) {
         String shuffleKey = message.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
+        String shuffleId = shuffleChannel.getChannelQueue(shuffleKey).getQueueId();
+        String windowNamespace = getNameSpace();
+        String windowName = getConfigureName();
+        String startTime = windowInstance.getStartTime();
+        String endTime = windowInstance.getEndTime();
         String storeKey = MapKeyUtil.createKey(shuffleKey, routeLabel);
         return storeKey;
     }
@@ -396,27 +414,6 @@ public class JoinWindow extends AbstractShuffleWindow {
         return JoinState.class;
     }
 
-    //    @Override
-    //    public void finishWindowProcessAndSend2Receiver(List<IMessage> messageList,WindowInstance windowInstance) {
-    //        for (IMessage message : messageList) {
-    //            List<Map<String, Object>> result = joinOperator.dealJoin(message);
-    //            List<Map<String,Object>> rows = matchRows(message.getMessageBody(), result);
-    //            String rightAsName = message.getMessageBody().getString("rightAsName");
-    //            String joinType = message.getMessageBody().getString("joinType");
-    //            List<JSONObject> connectMsgs = joinOperator.connectJoin(message, rows, joinType, rightAsName);
-    //            for (int i=0; i < connectMsgs.size(); i++) {
-    //                if (i == connectMsgs.size() -1) {
-    //                    sendMessage(connectMsgs.get(i), true);
-    //                } else {
-    //                    sendMessage(connectMsgs.get(i), false);
-    //                }
-    //
-    //            }
-    //
-    //        }
-    //        //todo 完成处理
-    //        //todo 发送消息到下一个节点 sendFireMessage();
-    //    }
 
     /**
      * window触发后的清理工作

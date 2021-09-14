@@ -152,7 +152,9 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
         }
         Set<ChainPipeline> set = new HashSet<>();
         for (Pipeline pipeline : pipelines) {
-            set.add((ChainPipeline)pipeline);
+            if (pipeline != null) {
+                set.add((ChainPipeline)pipeline);
+            }
         }
         sendSystem(message, context, set);
     }
