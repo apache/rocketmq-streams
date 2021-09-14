@@ -14,14 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.script.optimization;
 
+package org.apache.rocketmq.streams.script.optimization.performance;
+
+import org.apache.rocketmq.streams.common.optimization.cachefilter.ICacheFilter;
+import org.apache.rocketmq.streams.common.optimization.cachefilter.ICacheFilterBulider;
+import org.apache.rocketmq.streams.script.function.impl.condition.EqualsFunction;
 import org.apache.rocketmq.streams.script.function.impl.string.RegexFunction;
-import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
-public class RegexOptimization extends AbstractFunctionOptimization {
+public class RegexProxy extends SimpleScriptExpressionProxy  {
+    public RegexProxy(IScriptExpression origExpression) {
+        super(origExpression);
+    }
+
     @Override
     public boolean supportOptimization(IScriptExpression scriptExpression) {
         String functionName = scriptExpression.getFunctionName();
@@ -29,15 +36,12 @@ public class RegexOptimization extends AbstractFunctionOptimization {
         if (match) {
             return true;
         }
-        return RegexFunction.isNotRegexFunction(functionName);
+        return false;
     }
 
-    @Override
-    public OptimizationScriptExpression optimize(IScriptExpression scriptExpression) {
-        String functionName = scriptExpression.getFunctionName();
-        ScriptExpression expression = (ScriptExpression)scriptExpression;
-        String varName = getParameterValue((IScriptParamter)scriptExpression.getScriptParamters().get(0));
-        String regex = getParameterValue((IScriptParamter)scriptExpression.getScriptParamters().get(1));
-        return new OptimizationScriptExpression(varName, regex, expression.getNewFieldName(), expression, RegexFunction.isNotRegexFunction(functionName));
+    @Override protected String getVarName() {
+       return getParameterValue((IScriptParamter)this.origExpression.getScriptParamters().get(0));
     }
+
+
 }

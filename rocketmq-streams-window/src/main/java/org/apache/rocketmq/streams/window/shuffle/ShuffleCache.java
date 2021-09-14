@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.rocketmq.streams.window.shuffle;
 
 import java.util.ArrayList;
@@ -24,8 +41,8 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 /**
  *
- * save receiver messages into cache
- * when checkpoint/autoflush/flush， process cache message
+ * save receiver messages into cachefilter
+ * when checkpoint/autoflush/flush， process cachefilter message
  *
  * */
 public class ShuffleCache extends WindowCache {
@@ -68,14 +85,14 @@ public class ShuffleCache extends WindowCache {
      */
     protected void saveSplitProgress(String queueId, List<IMessage> messages) {
         Map<String,String> queueId2OrigOffset=new HashMap<>();
-        Set<String> oriQueueIds=new HashSet<>();
+//        Set<String> oriQueueIds=new HashSet<>();
         Boolean isLong=false;
         for(IMessage message:messages){
             isLong=message.getMessageBody().getBoolean(ORIGIN_QUEUE_IS_LONG);
             String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
             String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
             queueId2OrigOffset.put(oriQueueId,oriOffset);
-            oriQueueIds.add(oriQueueId);
+//            oriQueueIds.add(oriQueueId);
         }
         Map<String,WindowMaxValue> windowMaxValueMap=window.getWindowMaxValueManager().saveMaxOffset(isLong,window.getConfigureName(),queueId,queueId2OrigOffset);
         window.getSqlCache().addCache(new SplitSQLElement(queueId,ORMUtil.createBatchReplacetSQL(new ArrayList<>(windowMaxValueMap.values()))));

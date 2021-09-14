@@ -18,12 +18,16 @@ package org.apache.rocketmq.streams.examples.rocketmqsource;
 
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
-import org.apache.rocketmq.streams.source.RocketMQSource;
+import org.apache.rocketmq.streams.client.transform.window.Time;
+import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
+
+import java.util.Arrays;
 
 public class RocketMQSourceExample2 {
     public static final String NAMESRV_ADDRESS = "127.0.0.1:9876";
-    public static final String RMQ_TOPIC = "topic_tiger_0901_01";
-    public static final String RMQ_CONSUMER_GROUP_NAME = "test-group-10";
+    public static final String RMQ_TOPIC = "NormalTestTopic";
+    public static final String RMQ_CONSUMER_GROUP_NAME = "test-group-01";
     public static final String TAGS = "*";
 
     public static void main(String[] args) {
@@ -34,9 +38,26 @@ public class RocketMQSourceExample2 {
                 RMQ_CONSUMER_GROUP_NAME,
                 false,
                 NAMESRV_ADDRESS)
+                .forEach((message)->{
+                    System.out.println("forEach: before===========");
+                    System.out.println("forEach: "+message);
+                    System.out.println("forEach: after===========");
+                })
                 .map(message -> message)
+                .filter((value) -> {
+                    System.out.println("filter: ===========");
+                    String messageValue = (String)value;
+                    return !messageValue.contains("RocketMQ");
+                })
+                .flatMap((message)->{
+                    String value = (String) message;
+                    String[] result = value.split(" ");
+                    return Arrays.asList(result);
+                })
                 .toPrint(1)
                 .start();
 
     }
+
+
 }

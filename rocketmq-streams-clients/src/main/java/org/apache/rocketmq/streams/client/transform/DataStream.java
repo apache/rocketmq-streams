@@ -135,7 +135,7 @@ public class DataStream implements Serializable {
                         if (result instanceof JSONObject) {
                             subMessage=new Message((JSONObject)t);
                         } else {
-                            subMessage=new Message(new UserDefinedMessage(result));
+                            subMessage=new Message(new UserDefinedMessage(t));
                         }
                         splitMessages.add(subMessage);
                     }
@@ -401,6 +401,16 @@ public class DataStream implements Serializable {
         }
 
         this.otherPipelineBuilders.addAll(rightSource.otherPipelineBuilders);
+    }
+
+    public DataStreamAction toFile(String filePath,int batchSize,boolean isAppend) {
+        FileSink fileChannel = new FileSink(filePath,isAppend);
+        if(batchSize>0){
+            fileChannel.setBatchSize(batchSize);
+        }
+        ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);
+        mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
     public DataStreamAction toFile(String filePath,boolean isAppend) {
         FileSink fileChannel = new FileSink(filePath,isAppend);

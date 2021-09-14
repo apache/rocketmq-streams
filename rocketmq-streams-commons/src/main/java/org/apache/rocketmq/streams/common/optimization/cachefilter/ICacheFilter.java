@@ -14,25 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.script.optimization;
 
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
+package org.apache.rocketmq.streams.common.optimization.cachefilter;
 
-public interface IFunctionOptimization {
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 
-    /**
-     * 是否支持这个函数的优化
-     *
-     * @param scriptExpression
-     * @return
-     */
-    boolean support(IScriptExpression scriptExpression);
+/**
+ * proxy a expression/function
+ * @param <T>
+ */
+public interface ICacheFilter<T> {
 
     /**
-     * 完成表达式优化，返回优化后的值
-     *
-     * @param scriptExpression
+     * 执行filter ，if cache return value directly，else calculte value and put cache
+     * @param message
+     * @param context
      * @return
      */
-    OptimizationScriptExpression optimize(IScriptExpression scriptExpression);
+    boolean execute(IMessage message, AbstractContext context);
+
+
+    boolean executeOrigExpression(IMessage message, AbstractContext context);
+    /**
+     *
+     * @return expression's var name
+     */
+    String getVarName();
+
+    /**
+     *
+     * @return ori expression
+     */
+    T getOriExpression();
 }
