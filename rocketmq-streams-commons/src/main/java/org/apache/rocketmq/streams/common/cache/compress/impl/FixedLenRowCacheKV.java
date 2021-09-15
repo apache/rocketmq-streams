@@ -133,8 +133,8 @@ public class FixedLenRowCacheKV {
             Object o = values[i];
             byte[] byteValue = null;
             if (dataType instanceof SetDataType) {
-                byteValue = new byte[] {(byte)i};
-                add2Set(i, (Set<String>)o);
+                byteValue = new byte[] {(byte) i};
+                add2Set(i, (Set<String>) o);
             } else {
                 byteValue = dataType.toBytes(o, false);
             }

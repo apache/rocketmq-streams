@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.field;
 
+import com.google.common.collect.Lists;
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -29,17 +31,17 @@ public class FieldFunction {
 
     @FunctionMethod(value = "field", alias = "get", comment = "获取字段值")
     public <T> T getFieldValue(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "字段的名称，不需要引号") String fieldName) {
+        @FunctionParamter(value = "string", comment = "字段的名称，不需要引号") String fieldName) {
         String name = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(name)) {
             name = fieldName;
         }
-        return (T)message.getMessageBody().get(name);
+        return (T) message.getMessageBody().get(name);
     }
 
     @FunctionMethod(value = "char_length", alias = "len", comment = "求字段代码字符串或常量的长度")
     public int len(IMessage message, FunctionContext context,
-                   @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName) {
         String value = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(value)) {
             return 0;
@@ -49,7 +51,7 @@ public class FieldFunction {
 
     @FunctionMethod(value = "lower", alias = "low", comment = "把字符串转换称小写")
     public String lower(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName) {
         String value = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(value)) {
             return null;
@@ -59,7 +61,7 @@ public class FieldFunction {
 
     @FunctionMethod(value = "concat", comment = "连接字符串")
     public String concat(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
         StringBuilder sb = new StringBuilder();
         for (String fieldName : fieldNames) {
             String value = FunctionUtils.getValueString(message, context, fieldName);
@@ -70,28 +72,30 @@ public class FieldFunction {
 
     @FunctionMethod(value = "concat_ws", alias = "concat_sign", comment = "通过分隔符把字符串拼接在一起")
     public String concat_ws(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "代表分隔符的字段名或常量") String sign,
-                            @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
-        StringBuilder sb = new StringBuilder();
-        boolean isFirst = true;
+        @FunctionParamter(value = "string", comment = "代表分隔符的字段名或常量") String sign,
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
         sign = FunctionUtils.getValueString(message, context, sign);
-        for (String fieldName : fieldNames) {
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                sb.append(sign);
-            }
-            String value = FunctionUtils.getValueString(message, context, fieldName);
-            sb.append(value);
+        if (sign == null) {
+            sign = ",";
         }
-        return sb.toString();
+        List<String> values = Lists.newArrayList();
+        for (String fieldName : fieldNames) {
+            String value = FunctionUtils.getValueString(message, context, fieldName);
+            if (value != null) {
+                values.add(value);
+            }
+        }
+        if (values.isEmpty()) {
+            return null;
+        }
+        return String.join(sign, values);
     }
 
     @FunctionMethod(value = "lpad", comment = "在原串左边补n个pad字符串，如果原串长度小于len，则截断，使得整个字符串长度为len")
     public String lpad(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String ori,
-                       @FunctionParamter(value = "string", comment = "代表字符串长度字段名，数字或常量") String lenStr,
-                       @FunctionParamter(value = "string", comment = "代表补齐字符串的字段名或常量") String pad) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String ori,
+        @FunctionParamter(value = "string", comment = "代表字符串长度字段名，数字或常量") String lenStr,
+        @FunctionParamter(value = "string", comment = "代表补齐字符串的字段名或常量") String pad) {
         if (StringUtil.isEmpty(ori) || pad == null) {
             return null;
         }
@@ -121,9 +125,9 @@ public class FieldFunction {
 
     @FunctionMethod(value = "rpad", comment = "在原串左边补n个pad字符串，如果原串长度小于len，则截断，使得整个字符串长度为len")
     public String rpad(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String ori,
-                       @FunctionParamter(value = "string", comment = "代表字符串长度字段名，数字或常量") String lenStr,
-                       @FunctionParamter(value = "string", comment = "代表补齐字符串的字段名或常量") String pad) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String ori,
+        @FunctionParamter(value = "string", comment = "代表字符串长度字段名，数字或常量") String lenStr,
+        @FunctionParamter(value = "string", comment = "代表补齐字符串的字段名或常量") String pad) {
         if (StringUtil.isEmpty(ori) || pad == null) {
             return null;
         }

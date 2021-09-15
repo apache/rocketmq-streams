@@ -18,9 +18,11 @@
 package org.apache.rocketmq.streams.client;
 
 import com.google.common.collect.Maps;
+
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
 import org.apache.rocketmq.streams.client.strategy.Strategy;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -79,11 +81,11 @@ public class DataStreamAction extends DataStream {
         }
 
         ConfigurableComponent configurableComponent = ComponentCreator.getComponent(mainPipelineBuilder.getPipelineNameSpace(), ConfigurableComponent.class, kvs);
-        ChainPipeline pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
+        ChainPipeline<?> pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
         pipeline.startChannel();
         if (this.otherPipelineBuilders != null) {
             for (PipelineBuilder builder : otherPipelineBuilders) {
-                ChainPipeline otherPipeline = builder.build(configurableComponent.getService());
+                ChainPipeline<?> otherPipeline = builder.build(configurableComponent.getService());
                 otherPipeline.startChannel();
             }
         }

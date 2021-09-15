@@ -17,13 +17,7 @@
 package org.apache.rocketmq.streams.db.sink;
 
 import com.alibaba.fastjson.JSONObject;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Lists;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
@@ -38,12 +32,22 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Set;
+
 /**
  * 主要用于写db，输入可以是一个insert/replace 模版，也可以是metadata对象，二者选一即可。都支持批量插入，提高吞吐 sql 模版：insert into table(column1,column2,column3)values('#{var1}',#{var2},'#{var3}') MetaData:主要是描述每个字段的类型，是否必须 二者选一个即可。sql模式，系统会把一批（batchSize）数据拼成一个大sql。metadata模式，基于字段描述，最终也是拼成一个大sql
  */
 public class DBSink extends AbstractSink {
 
     protected String insertSQLTemplate;//完成插入部分的工作，和metadata二选一。insert into table(column1,column2,column3)values('#{var1}',#{var2},'#{var3}')
+
+    protected String duplicateSQLTemplate; //通过on duplicate key update 来对已经存在的信息进行更新
 
     protected MetaData metaData;//可以指定meta data，和insertSQL二选一
 
@@ -58,7 +62,7 @@ public class DBSink extends AbstractSink {
     @ENVDependence
     protected String password;
 
-    protected boolean openSqlCache=false;
+    protected boolean openSqlCache = true;
 
     protected transient IMessageCache<String> sqlCache;//cache sql, batch submit sql
 
@@ -111,26 +115,27 @@ public class DBSink extends AbstractSink {
                 ResultSet metaResult = metaData.getColumns(connection.getCatalog(), "%", this.tableName, null);
                 this.metaData = MetaData.createMetaData(metaResult);
                 this.metaData.setTableName(this.tableName);
-                sqlCache=new MessageCache<>(new IMessageFlushCallBack<String>() {
-                    @Override public boolean flushMessage(List<String> sqls) {
-                        JDBCDriver dataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
-                        try {
-                            dataSource.executSqls(sqls);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            throw new RuntimeException(e);
-                        } finally {
-                            if (dataSource != null) {
-                                dataSource.destroy();
-                            }
-                        }
-                        return true;
-                    }
-                });
-                ((MessageCache<String>) sqlCache).setAutoFlushTimeGap(100000);
-                ((MessageCache<String>) sqlCache).setAutoFlushSize(50);
-                sqlCache.openAutoFlush();
             }
+            sqlCache = new MessageCache<>(new IMessageFlushCallBack<String>() {
+                @Override
+                public boolean flushMessage(List<String> sqls) {
+                    JDBCDriver dataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
+                    try {
+                        dataSource.executSqls(sqls);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    } finally {
+                        if (dataSource != null) {
+                            dataSource.destroy();
+                        }
+                    }
+                    return true;
+                }
+            });
+            ((MessageCache<String>) sqlCache).setAutoFlushTimeGap(100000);
+            ((MessageCache<String>) sqlCache).setAutoFlushSize(50);
+            sqlCache.openAutoFlush();
             return super.initConfigurable();
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
@@ -148,7 +153,8 @@ public class DBSink extends AbstractSink {
             List<JSONObject> messages = convertJsonObjectFromMessage(messageList);
             if (StringUtil.isEmpty(insertSQLTemplate) && metaData != null) {
                 String sql = SQLUtil.createInsertSql(metaData, messages.get(0));
-                sql = sql + SQLUtil.createInsertValuesSQL(metaData, messages.subList(1, messages.size()));
+                sql += SQLUtil.createInsertValuesSQL(metaData, messages.subList(1, messages.size()));
+                sql += this.duplicateSQLTemplate;
                 executeSQL(dbDataSource, sql);
                 return true;
             }
@@ -156,26 +162,17 @@ public class DBSink extends AbstractSink {
             if (StringUtil.isEmpty(insertValueSQL) || insertSQLTemplate.replace(insertValueSQL, "").contains("#{")) {
                 for (JSONObject message : messages) {
                     String sql = parseSQL(message, insertSQLTemplate);
+                    sql += this.duplicateSQLTemplate;
                     executeSQL(dbDataSource, sql);
                 }
                 return true;
             } else {
-                StringBuilder sb = new StringBuilder();
-                String insertSQL;
-                boolean isFirst = true;
-                int i = 0;
+                List<String> subInsert = Lists.newArrayList();
                 for (JSONObject message : messages) {
-                    insertSQL = parseSQL(message, insertValueSQL);
-                    if (isFirst) {
-                        isFirst = false;
-                    } else {
-                        sb.append(",");
-                    }
-                    i++;
-
-                    sb.append(insertSQL);
+                    subInsert.add(parseSQL(message, insertValueSQL));
                 }
-                insertSQL = this.insertSQLTemplate.replace(insertValueSQL, sb.toString());
+                String insertSQL = this.insertSQLTemplate.replace(insertValueSQL, String.join(",", subInsert));
+                insertSQL += this.duplicateSQLTemplate;
                 executeSQL(dbDataSource, insertSQL);
                 return true;
             }
@@ -184,17 +181,18 @@ public class DBSink extends AbstractSink {
         }
     }
 
-    @Override public boolean checkpoint(Set<String> splitIds) {
-        if(sqlCache!=null){
+    @Override
+    public boolean checkpoint(Set<String> splitIds) {
+        if (sqlCache != null) {
             sqlCache.flush(splitIds);
         }
         return true;
     }
 
     protected void executeSQL(JDBCDriver dbDataSource, String sql) {
-        if(isOpenSqlCache()){
+        if (isOpenSqlCache()) {
             this.sqlCache.addCache(sql);
-        }else {
+        } else {
             dbDataSource.execute(sql);
         }
 
@@ -284,5 +282,13 @@ public class DBSink extends AbstractSink {
 
     public void setOpenSqlCache(boolean openSqlCache) {
         this.openSqlCache = openSqlCache;
+    }
+
+    public String getDuplicateSQLTemplate() {
+        return duplicateSQLTemplate;
+    }
+
+    public void setDuplicateSQLTemplate(String duplicateSQLTemplate) {
+        this.duplicateSQLTemplate = duplicateSQLTemplate;
     }
 }
