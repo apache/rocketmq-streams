@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.common.cache.compress;
 
 /**
  * kv提供的对外接口,通过二进制实现存储，减少java对象带来的头部开销。 需要指定初始容量，会在创建对象时分配内存。
- *
  */
 public interface ICacheKV<T> {
 

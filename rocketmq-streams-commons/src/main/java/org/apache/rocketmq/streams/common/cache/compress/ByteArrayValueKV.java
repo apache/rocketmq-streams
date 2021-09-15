@@ -89,18 +89,13 @@ public class ByteArrayValueKV extends CacheKV<byte[]> {
 
     @Override
     public int calMemory() {
-        int value = super.calMemory() + (this.conflicts.getConflictIndex() + 1) * this.conflicts
-            .getBlockSize();
-        return value;
+        return super.calMemory() + (this.conflicts.getConflictIndex() + 1) * this.conflicts.getBlockSize();
     }
 
     @Override
     public boolean contains(String key) {
         byte[] bytes = get(key);
-        if (bytes == null) {
-            return false;
-        }
-        return true;
+        return bytes != null;
     }
 
 }

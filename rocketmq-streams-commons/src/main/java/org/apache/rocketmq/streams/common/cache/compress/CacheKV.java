@@ -75,7 +75,9 @@ public abstract class CacheKV<T> implements ICacheKV<T> {
     public abstract void put(String key, T value);
 
     public T remove(String key) {
-        if (StringUtil.isEmpty(key)) { return null; }
+        if (StringUtil.isEmpty(key)) {
+            return null;
+        }
         MapElementContext context = queryMapElementByHashCode(key);
         /**
          * TODO:
@@ -113,11 +115,11 @@ public abstract class CacheKV<T> implements ICacheKV<T> {
 
         KVElement mapElement = context.mapElement;
         //如果没有发生冲突，说明当前节点无被占用，直接写入
-        if (context.isOccurConflict == false) {
+        if (!context.isOccurConflict) {
             size++;
 
             mapElement.keyHashCode.flush(mapElement.getKeyHashCode());
-            if (mapElement.isNoValue() == false) {
+            if (!mapElement.isNoValue()) {
                 mapElement.value.flush(value);
             }
 
@@ -125,7 +127,7 @@ public abstract class CacheKV<T> implements ICacheKV<T> {
         } else {
             //如果key已经存在，覆盖value
             if (context.isMatchKey) {
-                if (mapElement.isNoValue() == false) {
+                if (!mapElement.isNoValue()) {
                     if (!supportUpdate) {
                         return false;
                     }
@@ -280,7 +282,7 @@ public abstract class CacheKV<T> implements ICacheKV<T> {
             this.mapAddress = mapAddress;
             this.mapElement = mapElement;
             this.isMatchKey = isMatchKey;
-            if (mapElement.isEmpty() == false) {
+            if (!mapElement.isEmpty()) {
                 isOccurConflict = true;
             }
         }
@@ -327,7 +329,7 @@ public abstract class CacheKV<T> implements ICacheKV<T> {
         }
 
         public boolean isEmpty() {
-            return isConflict == false && conflictIndex == 0 && offset == 0;
+            return !isConflict && conflictIndex == 0 && offset == 0;
         }
 
         /**
@@ -356,14 +358,14 @@ public abstract class CacheKV<T> implements ICacheKV<T> {
         public byte[] createBytes() {
             byte[] bytes = NumberUtils.toByte(offset);
             int value = 0;
-            byte fisrtByte = (byte)(conflictIndex & 0xff);
+            byte fisrtByte = (byte) (conflictIndex & 0xff);
             if (isConflict) {
                 value = (fisrtByte | (1 << 7));//把第一位变成1
             } else {
                 return bytes;
             }
 
-            bytes[bytes.length - 1] = (byte)(value & 0xff);
+            bytes[bytes.length - 1] = (byte) (value & 0xff);
             return bytes;
         }
     }

@@ -35,7 +35,6 @@ import org.junit.Assert;
 
 /**
  * 支持key是string，value是int的场景，支持size不大于10000000.只支持int，long，boolean，string类型
- *
  */
 public class IntValueKV extends CacheKV<Integer> {
 
@@ -79,9 +78,7 @@ public class IntValueKV extends CacheKV<Integer> {
 
     @Override
     public int calMemory() {
-        int value = super.calMemory() + (this.conflicts.getConflictIndex() + 1) * this.conflicts
-            .getBlockSize();
-        return value;
+        return super.calMemory() + (this.conflicts.getConflictIndex() + 1) * this.conflicts.getBlockSize();
     }
 
     /**
@@ -89,9 +86,6 @@ public class IntValueKV extends CacheKV<Integer> {
      *
      * @return
      */
-    //public Integer remove(String key) {
-    //    return null;
-    //}
     public IntValueKV(int capacity) {
         super(capacity);
     }

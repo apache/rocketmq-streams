@@ -17,15 +17,16 @@
 package org.apache.rocketmq.streams.db.sink;
 
 import com.google.auto.service.AutoService;
-import java.util.List;
-import java.util.Properties;
+import com.google.common.collect.Lists;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.model.ServiceName;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+
+import java.util.List;
+import java.util.Properties;
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(DBSinkBuilder.TYPE)
@@ -36,29 +37,23 @@ public class DBSinkBuilder implements IChannelBuilder {
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
         DBSink sink = new DBSink();
         sink.setUrl(properties.getProperty("url"));
-        sink.setUserName("userName");
-        sink.setPassword("password");
+        sink.setUserName(properties.getProperty("userName"));
+        sink.setPassword(properties.getProperty("password"));
         List<MetaDataField> fieldList = metaData.getMetaDataFields();
-        StringBuilder insertSQL = new StringBuilder();
-        StringBuilder insertValueSQL = new StringBuilder();
-        boolean isFirst = true;
-        for (MetaDataField field : fieldList) {
+
+        List<String> insertFields = Lists.newArrayList();
+        List<String> insertValues = Lists.newArrayList();
+        List<String> duplicateKeys = Lists.newArrayList();
+        fieldList.forEach(field -> {
             String fieldName = field.getFieldName();
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                insertSQL.append(",");
-                insertValueSQL.append(",");
-            }
-            insertSQL.append(fieldName);
-            if (DataTypeUtil.isNumber(field.getDataType())) {
-                insertValueSQL.append(fieldName);
-            } else {
-                insertValueSQL.append("'#{" + fieldName + "}'");
-            }
-        }
-        String sql = "insert into " + properties.getProperty("tableName") + "(" + insertSQL.toString() + ")values(" + insertValueSQL.toString() + ")";
+            insertFields.add(fieldName);
+            insertValues.add("'#{" + fieldName + "}'");
+            duplicateKeys.add(fieldName + " = VALUES(" + fieldName + ")");
+        });
+
+        String sql = "insert into " + properties.getProperty("tableName") + "(" + String.join(",", insertFields) + ") values (" + String.join(",", insertValues) + ")  ";
         sink.setInsertSQLTemplate(sql);
+        sink.setDuplicateSQLTemplate(" on duplicate key update " + String.join(",", duplicateKeys));
         return sink;
     }
 
