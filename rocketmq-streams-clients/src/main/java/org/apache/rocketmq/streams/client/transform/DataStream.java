@@ -73,7 +73,8 @@ public class DataStream implements Serializable {
         this.currentChainStage = currentChainStage;
     }
 
-    public DataStream(PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
+    public DataStream(PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
+        ChainStage<?> currentChainStage) {
         this.mainPipelineBuilder = pipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
@@ -97,11 +98,11 @@ public class DataStream implements Serializable {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 try {
-                    O o = (O)(message.getMessageValue());
-                    T result = (T)mapFunction.map(o);
+                    O o = (O) (message.getMessageValue());
+                    T result = (T) mapFunction.map(o);
                     if (result != message.getMessageValue()) {
                         if (result instanceof JSONObject) {
-                            message.setMessageBody((JSONObject)result);
+                            message.setMessageBody((JSONObject) result);
                         } else {
                             message.setMessageBody(new UserDefinedMessage(result));
                         }
@@ -118,28 +119,28 @@ public class DataStream implements Serializable {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
 
-
     public <T, O> DataStream flatMap(FlatMapFunction<T, O> mapFunction) {
         StageBuilder stageBuilder = new StageBuilder() {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 try {
-                    O o = (O)(message.getMessageValue());
-                    List<T> result =(List<T>)mapFunction.flatMap(o);
-                    if(result==null||result.size()==0){
+                    O o = (O) (message.getMessageValue());
+                    List<T> result = (List<T>) mapFunction.flatMap(o);
+                    if (result == null || result.size() == 0) {
                         context.breakExecute();
                     }
-                    List<IMessage> splitMessages=new ArrayList<>();
-                    for(T t:result){
-                        Message subMessage=null;
+                    List<IMessage> splitMessages = new ArrayList<>();
+                    for (T t : result) {
+                        Message subMessage = null;
                         if (result instanceof JSONObject) {
-                            subMessage=new Message((JSONObject)t);
+                            subMessage = new Message((JSONObject) t);
                         } else {
-                            subMessage=new Message(new UserDefinedMessage(t));
+                            subMessage = new Message(new UserDefinedMessage(t));
                         }
                         splitMessages.add(subMessage);
                     }
-                    context.openSplitModel();;
+                    context.openSplitModel();
+                    ;
                     context.setSplitMessages(splitMessages);
                     return null;
                 } catch (Exception e) {
@@ -159,7 +160,7 @@ public class DataStream implements Serializable {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 try {
-                    boolean isFilter = filterFunction.filter((O)message.getMessageValue());
+                    boolean isFilter = filterFunction.filter((O) message.getMessageValue());
                     if (isFilter) {
                         context.breakExecute();
                     }
@@ -232,7 +233,7 @@ public class DataStream implements Serializable {
         Union union = new Union();
 
         //处理左流，做流的isMain设置成true
-        UDFUnionChainStage chainStage = (UDFUnionChainStage)this.mainPipelineBuilder.createStage(union);
+        UDFUnionChainStage chainStage = (UDFUnionChainStage) this.mainPipelineBuilder.createStage(union);
         chainStage.setMainStream(true);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, chainStage);
 
@@ -272,7 +273,8 @@ public class DataStream implements Serializable {
      * @param sqlOrTableName
      * @return
      */
-    public JoinStream join(String url, String userName, String password, String sqlOrTableName, long pollingTimeMintue) {
+    public JoinStream join(String url, String userName, String password, String sqlOrTableName,
+        long pollingTimeMintue) {
         return join(url, userName, password, sqlOrTableName, null, pollingTimeMintue);
     }
 
@@ -285,7 +287,8 @@ public class DataStream implements Serializable {
      * @param sqlOrTableName
      * @return
      */
-    public JoinStream join(String url, String userName, String password, String sqlOrTableName, String jdbcDriver, long pollingTimeMinute) {
+    public JoinStream join(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
+        long pollingTimeMinute) {
         DBDim dbDim = new DBDim();
         dbDim.setUrl(url);
         dbDim.setUserName(userName);
@@ -308,7 +311,7 @@ public class DataStream implements Serializable {
         StageBuilder selfChainStage = new StageBuilder() {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
-                forEachFunction.foreach((O)message.getMessageValue());
+                forEachFunction.foreach((O) message.getMessageValue());
                 return null;
             }
         };
@@ -367,7 +370,6 @@ public class DataStream implements Serializable {
             return;
         }
 
-
         ConfigurableComponent configurableComponent = ComponentCreator.getComponent(mainPipelineBuilder.getPipelineNameSpace(), ConfigurableComponent.class, ConfigureFileKey.CONNECT_TYPE + ":memory");
         ChainPipeline pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
         pipeline.startChannel();
@@ -403,21 +405,23 @@ public class DataStream implements Serializable {
         this.otherPipelineBuilders.addAll(rightSource.otherPipelineBuilders);
     }
 
-    public DataStreamAction toFile(String filePath,int batchSize,boolean isAppend) {
-        FileSink fileChannel = new FileSink(filePath,isAppend);
-        if(batchSize>0){
+    public DataStreamAction toFile(String filePath, int batchSize, boolean isAppend) {
+        FileSink fileChannel = new FileSink(filePath, isAppend);
+        if (batchSize > 0) {
             fileChannel.setBatchSize(batchSize);
         }
         ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);
         mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
-    public DataStreamAction toFile(String filePath,boolean isAppend) {
-        FileSink fileChannel = new FileSink(filePath,isAppend);
+
+    public DataStreamAction toFile(String filePath, boolean isAppend) {
+        FileSink fileChannel = new FileSink(filePath, isAppend);
         ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);
         mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
+
     public DataStreamAction toFile(String filePath) {
         FileSink fileChannel = new FileSink(filePath);
         ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);
@@ -440,28 +444,26 @@ public class DataStream implements Serializable {
     }
 
     public DataStreamAction toDB(String url, String userName, String password, String tableName) {
-        DBSink dbChannel = new DBSink(url, userName, password);
-        dbChannel.setTableName(tableName);
+        DBSink dbChannel = new DBSink(url, userName, password, tableName);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(dbChannel);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
     public DataStreamAction toRocketmq(String topic) {
-        return toRocketmq(topic, "*", null,-1, null);
+        return toRocketmq(topic, "*", null, -1, null);
     }
 
-
-    public DataStreamAction toRocketmq(String topic,String namesrvAddr) {
-        return toRocketmq(topic, "*", null,-1, namesrvAddr);
+    public DataStreamAction toRocketmq(String topic, String namesrvAddr) {
+        return toRocketmq(topic, "*", null, -1, namesrvAddr);
     }
 
     public DataStreamAction toRocketmq(String topic, String tags,
-                                       String namesrvAddr) {
-        return toRocketmq(topic, tags,null,-1, namesrvAddr);
+        String namesrvAddr) {
+        return toRocketmq(topic, tags, null, -1, namesrvAddr);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags,String groupName, int batchSize,  String namesrvAddr) {
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String namesrvAddr) {
         RocketMQSink rocketMQSink = new RocketMQSink();
         rocketMQSink.setTopic(topic);
         rocketMQSink.setTags(tags);

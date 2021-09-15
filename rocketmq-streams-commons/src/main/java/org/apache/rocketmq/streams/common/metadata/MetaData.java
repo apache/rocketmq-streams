@@ -164,7 +164,7 @@ public class MetaData extends AbstractMetaData {
     }
 
     public static String getTableName(Class clazz) {
-        TableClassName tableClass = (TableClassName)clazz.getAnnotation(TableClassName.class);
+        TableClassName tableClass = (TableClassName) clazz.getAnnotation(TableClassName.class);
         if (tableClass != null) {
             String className = tableClass.value();
             if (StringUtil.isNotEmpty(className)) {
