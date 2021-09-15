@@ -84,7 +84,12 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             context.breakExecute();
             return null;
         }
-        TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
+        try {
+
+            TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
+        } catch (Exception e) {
+            LOG.error("t.getMessageBody() parse error", e);
+        }
         IStageHandle handle = selectHandle(t, context);
         if (handle == null) {
             return t;
