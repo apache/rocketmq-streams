@@ -128,7 +128,7 @@ public class OverWindow extends AbstractWindow {
 
     @Override
     protected boolean initConfigurable() {
-        return true;
+        return super.initConfigurable();
     }
 
     @Override
