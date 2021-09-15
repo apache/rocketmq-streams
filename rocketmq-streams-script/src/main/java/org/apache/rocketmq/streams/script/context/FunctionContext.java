@@ -48,7 +48,7 @@ public class FunctionContext<T extends IMessage>
 
     @Override
     public AbstractContext copy() {
-        IMessage message = this.message.copy();
+        IMessage message = this.message.deepCopy();
         FunctionContext context = new FunctionContext(message);
         super.copyProperty(context);
         context.setFunctionService(this.functionService);

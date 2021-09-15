@@ -80,14 +80,14 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
             /**
              * 主要是输出可能影响线上数据，可以通过配置文件的开关，把所有的输出，都指定到一个其他输出中
              */
-            if(openMockChannel()){
-                if(mockSink!=null){
+            if (openMockChannel()) {
+                if (mockSink != null) {
                     mockSink.batchAdd(message.deepCopy());
                     return message;
                 }
                 return message;
             }
-            sink.batchAdd(message);
+            sink.batchAdd(message.deepCopy());
 
             return message;
         }
@@ -100,23 +100,23 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
 
     @Override
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
-        ISink realSink=null;
-        if(openMockChannel()&&mockSink!=null){
-            realSink=mockSink;
-        }else {
-            realSink=sink;
+        ISink realSink = null;
+        if (openMockChannel() && mockSink != null) {
+            realSink = mockSink;
+        } else {
+            realSink = sink;
         }
-        if(message.getHeader().isNeedFlush()){
-            Set<String> queueIds=new HashSet<>();
-            if(message.getHeader().getCheckpointQueueIds()!=null){
+        if (message.getHeader().isNeedFlush()) {
+            Set<String> queueIds = new HashSet<>();
+            if (message.getHeader().getCheckpointQueueIds() != null) {
                 queueIds.addAll(message.getHeader().getCheckpointQueueIds());
             }
-            if(StringUtil.isNotEmpty(message.getHeader().getQueueId())){
+            if (StringUtil.isNotEmpty(message.getHeader().getQueueId())) {
                 queueIds.add(message.getHeader().getQueueId());
             }
             realSink.checkpoint(queueIds);
         }
-        CheckPointState checkPointState=  new CheckPointState();
+        CheckPointState checkPointState = new CheckPointState();
         checkPointState.setQueueIdAndOffset(realSink.getFinishedQueueIdAndOffsets(checkPointMessage));
         checkPointMessage.reply(checkPointState);
 
@@ -182,33 +182,33 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
 
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        sink=configurableService.queryConfigurable(ISink.TYPE, sinkName);
-        if(sink==null){
+        sink = configurableService.queryConfigurable(ISink.TYPE, sinkName);
+        if (sink == null) {
             sink = configurableService.queryConfigurable(IChannel.TYPE, sinkName);
         }
 
         metaData = configurableService.queryConfigurable(MetaData.TYPE, metaDataName);
-        mockSink=getMockChannel(configurableService,sink.getNameSpace());
+        mockSink = getMockChannel(configurableService, sink.getNameSpace());
     }
 
-    private ISink getMockChannel(IConfigurableService configurableService,String nameSpace) {
-        String type=ComponentCreator.getProperties().getProperty("out.mock.type");
-        if(type==null){
+    private ISink getMockChannel(IConfigurableService configurableService, String nameSpace) {
+        String type = ComponentCreator.getProperties().getProperty("out.mock.type");
+        if (type == null) {
             return null;
         }
-        ISink mockSink= configurableService.queryConfigurable(ISink.TYPE,OUT_MOCK_SWITCH+"_"+type);
-        if(mockSink==null){
-            mockSink= configurableService.queryConfigurable(IChannel.TYPE,OUT_MOCK_SWITCH+"_"+type);
+        ISink mockSink = configurableService.queryConfigurable(ISink.TYPE, OUT_MOCK_SWITCH + "_" + type);
+        if (mockSink == null) {
+            mockSink = configurableService.queryConfigurable(IChannel.TYPE, OUT_MOCK_SWITCH + "_" + type);
         }
         return mockSink;
     }
 
-    protected boolean openMockChannel(){
-        String swtich=ComponentCreator.getProperties().getProperty(OUT_MOCK_SWITCH);
-        if(swtich==null){
+    protected boolean openMockChannel() {
+        String swtich = ComponentCreator.getProperties().getProperty(OUT_MOCK_SWITCH);
+        if (swtich == null) {
             return false;
         }
-        if("true".equals(swtich)){
+        if ("true".equals(swtich)) {
             return true;
         }
         return false;

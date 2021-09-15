@@ -51,7 +51,7 @@ public class KVElement {
     }
 
     public static byte[] createByteArray(CacheKV.MapAddress nextAddress, byte[] keyHashCode, int value,
-                                         int elementSize) {
+        int elementSize) {
         KVElement element = new KVElement(nextAddress, keyHashCode, value);
         element.setElementSize(elementSize);
         return element.getBytes();
