@@ -109,6 +109,10 @@ public class WindowInstance extends Entity implements Serializable {
         return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime);
     }
 
+    public String createWindowInstanceIdWithoutSplitid() {
+        return MapKeyUtil.createKey(windowNameSpace, windowName, windowInstanceName, startTime, endTime);
+    }
+
     public String createWindowInstanceTriggerId(){
         return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime,fireTime);
     }
