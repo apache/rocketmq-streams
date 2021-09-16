@@ -24,7 +24,10 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.cachefilter.AbstractCacheFilter;
 import org.apache.rocketmq.streams.common.optimization.cachefilter.ICacheFilter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.operator.expression.ScriptParameter;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
+import org.apache.rocketmq.streams.script.service.IScriptParamter;
+import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public abstract class SimpleScriptExpressionProxy extends AbstractScriptProxy {
 
@@ -39,7 +42,7 @@ public abstract class SimpleScriptExpressionProxy extends AbstractScriptProxy {
             synchronized (this){
                 if(this.optimizationExpressions==null){
                     List<ICacheFilter> optimizationExpressions=new ArrayList<>();
-                    optimizationExpressions.add(new AbstractCacheFilter(getVarName(),this.origExpression) {
+                    optimizationExpressions.add(new AbstractCacheFilter<IScriptExpression>(getVarName(),this.origExpression) {
                         @Override public boolean executeOrigExpression(IMessage message, AbstractContext context) {
                             FunctionContext functionContext = new FunctionContext(message);
                             if (context != null) {
@@ -52,6 +55,10 @@ public abstract class SimpleScriptExpressionProxy extends AbstractScriptProxy {
                             }
                             return isMatch;
                         }
+
+                        @Override public String getExpression() {
+                            return getParameterValue((IScriptParamter)origExpression.getScriptParamters().get(1));
+                        }
                     });
                     this.optimizationExpressions=optimizationExpressions;
                 }
@@ -60,6 +67,7 @@ public abstract class SimpleScriptExpressionProxy extends AbstractScriptProxy {
         return this.optimizationExpressions;
 
     }
+
 
 
     @Override public Object executeExpression(IMessage message, FunctionContext context) {

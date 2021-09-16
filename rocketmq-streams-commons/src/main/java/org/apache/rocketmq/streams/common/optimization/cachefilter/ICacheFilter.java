@@ -47,4 +47,10 @@ public interface ICacheFilter<T> {
      * @return ori expression
      */
     T getOriExpression();
+
+    /**
+     * get expression ,ex:regex string
+     * @return
+     */
+    String getExpression();
 }

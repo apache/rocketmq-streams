@@ -150,22 +150,23 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     /**
      * cache filter（regex，like，equals）result
      */
-    private static String FILTER_CACHE_PREPIX="__filter_cache_prefix";
-    public void setFilterCache(String expressionStr,String varValue, boolean result){
-        this.put(MapKeyUtil.createKey(FILTER_CACHE_PREPIX,expressionStr,varValue),result);
+    private static String FILTER_CACHE_PREPIX = "__filter_cache_prefix";
+
+    public void setFilterCache(String expressionStr, String varValue, boolean result) {
+        this.put(MapKeyUtil.createKey(FILTER_CACHE_PREPIX, expressionStr, varValue), result);
     }
 
     /**
      * get cache result
+     *
      * @param expressionStr
      * @param varValue
      * @return
      */
-    public Boolean getFilterCache(String expressionStr,String varValue){
-        String key=MapKeyUtil.createKey(FILTER_CACHE_PREPIX,expressionStr,varValue);
+    public Boolean getFilterCache(String expressionStr, String varValue) {
+        String key = MapKeyUtil.createKey(FILTER_CACHE_PREPIX, expressionStr, varValue);
         return (Boolean) this.get(key);
     }
-
 
     /**
      * 获取基于字段缓存的某些值
@@ -176,7 +177,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
      */
     @Deprecated
     public <T> T getValue(String fieldName) {
-        return (T)values.get(fieldName);
+        return (T) values.get(fieldName);
     }
 
     /**
@@ -222,7 +223,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public static <R, C extends AbstractContext> List<IMessage> executeScript(IMessage channelMessage, C context,
-                                                                              List<? extends IBaseStreamOperator<IMessage, R, C>> scriptExpressions) {
+        List<? extends IBaseStreamOperator<IMessage, R, C>> scriptExpressions) {
         List<IMessage> messages = new ArrayList<>();
         if (scriptExpressions == null) {
             return messages;
@@ -356,7 +357,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         context.setSplitModel(this.isSplitModel());
         List<T> messages = new ArrayList<>();
         for (T tmp : this.getSplitMessages()) {
-            messages.add(tmp.copy());
+            messages.add(tmp.deepCopy());
         }
         context.setSplitMessages(messages);
         context.monitor = this.monitor;

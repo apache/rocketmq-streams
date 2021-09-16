@@ -85,6 +85,12 @@ public class SubStringIndexFunction {
                                  @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer startIndex,
                                  @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer endIndex) {
         oriMsg = FunctionUtils.getValueString(message, context, oriMsg);
+        int msgLength = oriMsg.length();
+        if (startIndex >= msgLength) {
+            return "";
+        } else if (endIndex > msgLength) {
+            endIndex = msgLength;
+        }
         return oriMsg.substring(startIndex, endIndex);
     }
 
