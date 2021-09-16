@@ -210,7 +210,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             Map<String, Set<WindowInstance>> queueId2WindowInstances = new HashMap<>();
             for (WindowInstance windowInstance : allWindowInstances) {
                 windowInstance.setNewWindowInstance(false);
-                window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceTriggerId(), windowInstance);
+                window.registerWindowInstance(windowInstance);
                 window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
                 String queueId = windowInstance.getSplitId();
                 window.getStorage().loadSplitData2Local(queueId, windowInstance.createWindowInstanceId(), window.getWindowBaseValueClass(), new WindowRowOperator(windowInstance, queueId, window));
