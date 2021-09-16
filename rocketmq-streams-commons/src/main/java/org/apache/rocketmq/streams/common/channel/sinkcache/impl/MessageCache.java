@@ -42,7 +42,6 @@ public class MessageCache<R> implements IMessageCache<R> {
     protected volatile int autoFlushSize=300;
     protected volatile int autoFlushTimeGap=1000;
 
-    protected transient AtomicBoolean LOCK=new AtomicBoolean(false);
 
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
         this.flushCallBack = flushCallBack;

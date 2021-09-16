@@ -506,18 +506,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
             StringUtil.createMD5Str(clonedValue.getWindowInstancePartitionId()));
         return clonedValue;
     }
-    //
-    //public WindowValue toOriginValue(boolean supportOutDate) {
-    //    WindowValue clonedValue = clone();
-    //    String windowInstanceId = WindowInstance.getWindowInstanceId(getNameSpace(), getConfigureName(), getStartTime(),
-    //        getEndTime(), getFireTime(), supportOutDate);
-    //    clonedValue.setMsgKey(MapKeyUtil
-    //        .createKey(getPartition(), windowInstanceId, getGroupBy()));
-    //    clonedValue.setWindowInstanceId(windowInstanceId);
-    //    clonedValue.setWindowInstancePartitionId(
-    //        MapKeyUtil.createKey(windowInstanceId, getPartition()));
-    //    return clonedValue;
-    //}
+
 
     public Long getLastUpdateTime() {
         return lastUpdateTime;
