@@ -46,6 +46,9 @@ public class ScriptServiceImpl implements IScriptService {
     @Override
     public List<IMessage> executeScript(IMessage message, FunctionContext context, AbstractScript<List<IMessage>, FunctionContext> script) {
         script.doMessage(message, context);
+        if(context.isSplitModel()){
+            return context.getSplitMessages();
+        }
         List<IMessage> messages = new ArrayList<>();
         messages.add(message);
         return messages;

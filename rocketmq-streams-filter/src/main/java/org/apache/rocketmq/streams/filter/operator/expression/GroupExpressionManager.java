@@ -26,7 +26,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
+import org.apache.rocketmq.streams.common.optimization.LikeRegex;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 
@@ -45,14 +47,23 @@ public class GroupExpressionManager {
 
     public void compile() {
         for (Expression expression : rule.getExpressionMap().values()) {
-            if (SimpleExpression.class.isInstance(expression) && RegexFunction.isRegex(expression.getFunctionName())) {
+            if (SimpleExpression.class.isInstance(expression) &&(RegexFunction.isRegex(expression.getFunctionName())|| LikeFunction.isLikeFunciton(expression.getFunctionName()))) {
                 String varName = expression.getVarName();
                 HyperscanRegex hyperscanRegex = hyperscanRegexMap.get(varName);
                 if (hyperscanRegex == null) {
                     hyperscanRegex = new HyperscanRegex();
                     hyperscanRegexMap.put(varName, hyperscanRegex);
                 }
-                hyperscanRegex.addRegex((String)expression.getValue(), expression.getConfigureName());
+                if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
+                    String like=(String)expression.getValue();
+                    LikeRegex likeRegex=new LikeRegex(like);
+                    hyperscanRegex.addRegex(likeRegex.createRegex(),expression.getConfigureName());
+                }else if(RegexFunction.isRegex(expression.getFunctionName())){
+                    hyperscanRegex.addRegex((String)expression.getValue(), expression.getConfigureName());
+                }else {
+                    throw new RuntimeException("can not support other function name "+ expression.getFunctionName());
+                }
+
             }
         }
         for (HyperscanRegex hyperscanRegex : hyperscanRegexMap.values()) {

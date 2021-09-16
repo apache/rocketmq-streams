@@ -65,6 +65,9 @@ public class JsonValueFunction {
         } else {
             bean = JSON.parseObject(value);
         }
+        if(bean==null){
+            return null;
+        }
         return ReflectUtil.getBeanFieldOrJsonValue(bean, pattern);
     }
 

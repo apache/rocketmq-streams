@@ -29,16 +29,20 @@ import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 
+/**
+ *  group by var name from all expression
+ */
 public class GroupExpression extends Expression<List<Expression>> {
     protected Rule rule;
     protected String varName;
     protected static IntValueKV cache = new IntValueKV(3000000);
     protected boolean isOrRelation = true;//是否是or关系
     protected Map<String, Boolean> expressionName2Result = new HashMap<>();//正则类表达式的名字和结果的映射
-    protected Set<String> regeExpressionNameSet = new HashSet<>();//正则类表达式的名字
+    protected Set<String> regexExpressionNameSet = new HashSet<>();//正则类表达式的名字
 
     public GroupExpression(Rule rule, String varName, boolean isOrRelation) {
         this.rule = rule;
@@ -107,13 +111,16 @@ public class GroupExpression extends Expression<List<Expression>> {
 
     public void addExpressionName(Expression expression) {
         if (RegexFunction.isRegex(expression.getFunctionName())) {
-            regeExpressionNameSet.add(expression.getConfigureName());
+            regexExpressionNameSet.add(expression.getConfigureName());
+        }
+        if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
+            regexExpressionNameSet.add(expression.getConfigureName());
         }
         getValue().add(expression);
     }
 
     public void setRegexResult(Set<String> allRegexResult) {
-        Iterator<String> it = regeExpressionNameSet.iterator();
+        Iterator<String> it = regexExpressionNameSet.iterator();
         while (it.hasNext()) {
             String name = it.next();
             Boolean value = allRegexResult.contains(name);
