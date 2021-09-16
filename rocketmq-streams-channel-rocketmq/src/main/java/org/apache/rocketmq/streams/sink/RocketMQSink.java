@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -44,21 +45,27 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 public class RocketMQSink extends AbstractSupportShuffleSink {
 
-    protected static final Log LOG = LogFactory.getLog(RocketMQSink.class);
+    private static final Log LOG = LogFactory.getLog(RocketMQSink.class);
     @ENVDependence
-    protected String tags = "*";
+    private String tags = "*";
 
-    protected String topic;
-    protected String groupName;
+    private String topic;
+    private String groupName;
 
-    private transient List<DefaultMQPushConsumer> consumers=new ArrayList<>();
-    protected transient DefaultMQProducer producer;
+    private transient List<DefaultMQPushConsumer> consumers = new ArrayList<>();
+    private transient DefaultMQProducer producer;
 
-    protected Long pullIntervalMs;
-    protected String namesrvAddr;
+    private Long pullIntervalMs;
+    private String namesrvAddr;
 
+    public RocketMQSink() {
+    }
 
-    public RocketMQSink(){}
+    public RocketMQSink(String namesrvAddr, String topic, String groupName) {
+        this.namesrvAddr = namesrvAddr;
+        this.topic = topic;
+        this.groupName = groupName;
+    }
 
 
     @Override
@@ -81,45 +88,45 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         initProducer();
 
         try {
-            Map<String,List<Message>> msgsByQueueId=new HashMap<>();// group by queueId, if the message not contains queue info ,the set default string as default queueId
-            Map<String, MessageQueue> messageQueueMap=new HashMap<>();//if has queue id in message, save the map for queueid 2 messagequeeue
-            String defaultQueueId="<null>";//message is not contains queue ,use default
-            for(IMessage msg:messages){
+            Map<String, List<Message>> msgsByQueueId = new HashMap<>();// group by queueId, if the message not contains queue info ,the set default string as default queueId
+            Map<String, MessageQueue> messageQueueMap = new HashMap<>();//if has queue id in message, save the map for queueid 2 messagequeeue
+            String defaultQueueId = "<null>";//message is not contains queue ,use default
+            for (IMessage msg : messages) {
                 ISplit<RocketMQMessageQueue, MessageQueue> channelQueue = getSplit(msg);
-                String queueId=defaultQueueId;
+                String queueId = defaultQueueId;
                 if (channelQueue != null) {
-                    queueId=channelQueue.getQueueId();
-                    RocketMQMessageQueue metaqMessageQueue=(RocketMQMessageQueue)channelQueue;
-                    messageQueueMap.put(queueId,metaqMessageQueue.getQueue());
+                    queueId = channelQueue.getQueueId();
+                    RocketMQMessageQueue metaqMessageQueue = (RocketMQMessageQueue) channelQueue;
+                    messageQueueMap.put(queueId, metaqMessageQueue.getQueue());
                 }
-                List<Message> messageList=msgsByQueueId.get(queueId);
-                if(messageList==null){
-                    messageList=new ArrayList<>();
-                    msgsByQueueId.put(queueId,messageList);
+                List<Message> messageList = msgsByQueueId.get(queueId);
+                if (messageList == null) {
+                    messageList = new ArrayList<>();
+                    msgsByQueueId.put(queueId, messageList);
                 }
                 messageList.add(new Message(topic, tags, null, msg.getMessageBody().toJSONString().getBytes("UTF-8")));
             }
-            List<Message> messageList=msgsByQueueId.get(defaultQueueId);
-            if(messageList!=null){
-                for(Message message:messageList){
+            List<Message> messageList = msgsByQueueId.get(defaultQueueId);
+            if (messageList != null) {
+                for (Message message : messageList) {
                     producer.sendOneway(message);
                 }
                 messageQueueMap.remove(defaultQueueId);
             }
-            if(messageQueueMap.size()<=0){
+            if (messageQueueMap.size() <= 0) {
                 return true;
             }
-            for(String queueId:msgsByQueueId.keySet()){
-                messageList=msgsByQueueId.get(queueId);
-                for(Message message:messageList){
-                    MessageQueue queue=messageQueueMap.get(queueId);
-                    producer.send(message,queue);
+            for (String queueId : msgsByQueueId.keySet()) {
+                messageList = msgsByQueueId.get(queueId);
+                for (Message message : messageList) {
+                    MessageQueue queue = messageQueueMap.get(queueId);
+                    producer.send(message, queue);
                 }
 
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("batch insert error ",e);
+            throw new RuntimeException("batch insert error ", e);
         }
 
         return true;
@@ -127,19 +134,21 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
 
     protected void initProducer() {
-        if(producer==null){
-            synchronized (this){
-                if(producer==null){
+        if (producer == null) {
+            synchronized (this) {
+                if (producer == null) {
                     destroy();
                     producer = new DefaultMQProducer(groupName + "producer", true, null);
                     try {
-                        if (this.namesrvAddr != null && !"".equalsIgnoreCase(this.namesrvAddr)) {
-                            producer.setNamesrvAddr(this.namesrvAddr);
+                        if (this.namesrvAddr == null || "".equals(this.namesrvAddr)) {
+                            throw new RuntimeException("namesrvAddr can not be null.");
                         }
+
+                        producer.setNamesrvAddr(this.namesrvAddr);
                         producer.start();
                     } catch (Exception e) {
                         setInitSuccess(false);
-                        throw new RuntimeException("创建队列失败," + topic + ",msg=" + e.getMessage(), e);
+                        throw new RuntimeException("create producer failed," + topic + ",msg=" + e.getMessage(), e);
                     }
                 }
             }
@@ -151,7 +160,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         if (producer != null) {
             try {
                 producer.shutdown();
-                producer=null;
+                producer = null;
             } catch (Throwable t) {
                 if (LOG.isWarnEnabled()) {
                     LOG.warn(t.getMessage(), t);
@@ -160,14 +169,6 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         }
     }
 
-    public static void main(String[] args) {
-        String topic = "shuffle_TOPIC_DIPPER_SYSTEM_MSG_6_namespace_name1";
-        RocketMQSink metaqSink = new RocketMQSink();
-        metaqSink.setTopic(topic);
-        metaqSink.setSplitNum(5);
-        metaqSink.init();
-        System.out.println(metaqSink.getSplitList().size());
-    }
 
     @Override
     public void destroy() {
@@ -195,7 +196,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                 }
             }
 
-            //defaultMQAdminExt.createTopic(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC, topic, splitNum, 1);
+
             defaultMQAdminExt.createTopic(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC, topic, splitNum, 1);
         } catch (Exception e) {
             e.printStackTrace();
@@ -209,7 +210,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     @Override
     public List<ISplit> getSplitList() {
         initProducer();
-        List<ISplit> messageQueues=new ArrayList<>();
+        List<ISplit> messageQueues = new ArrayList<>();
         try {
 
             if (messageQueues == null || messageQueues.size() == 0) {
@@ -223,7 +224,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                 Collections.sort(queueList);
                 messageQueues = queueList;
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -232,13 +233,13 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     @Override
     public int getSplitNum() {
-        List<ISplit> splits=getSplitList();
-        if(splits==null||splits.size()==0){
+        List<ISplit> splits = getSplitList();
+        if (splits == null || splits.size() == 0) {
             return 0;
         }
-        Set<Integer> splitNames=new HashSet<>();
-        for(ISplit split:splits){
-            MessageQueue messageQueue= (MessageQueue)split.getQueue();
+        Set<Integer> splitNames = new HashSet<>();
+        for (ISplit split : splits) {
+            MessageQueue messageQueue = (MessageQueue) split.getQueue();
             splitNames.add(messageQueue.getQueueId());
         }
         return splitNames.size();
