@@ -31,39 +31,40 @@ public class CaseScriptExpressionProxy extends AbstractScriptProxy {
     }
 
     @Override public List<ICacheFilter> getCacheFilters() {
-        List<ICacheFilter> result=new ArrayList<>();
-        GroupScriptExpression groupScriptExpression=(GroupScriptExpression)this.origExpression;
-        recursion(groupScriptExpression,result);
+        List<ICacheFilter> result = new ArrayList<>();
+        GroupScriptExpression groupScriptExpression = (GroupScriptExpression) this.origExpression;
+        recursion(groupScriptExpression, result);
         return result;
     }
 
     /**
      * recursion else if GroupScriptExpression list
+     *
      * @param groupScriptExpression
      * @param cacheFilters
      */
-    protected void recursion(GroupScriptExpression groupScriptExpression,List<ICacheFilter> cacheFilters){
-        IScriptExpression scriptExpression= groupScriptExpression.getIfExpresssion();
-        AbstractScriptProxy abstractExpressionProxy= ScriptProxyFactory.getInstance().create(scriptExpression);
-        if(abstractExpressionProxy!=null){
+    protected void recursion(GroupScriptExpression groupScriptExpression, List<ICacheFilter> cacheFilters) {
+        IScriptExpression scriptExpression = groupScriptExpression.getIfExpresssion();
+        AbstractScriptProxy abstractExpressionProxy = ScriptProxyFactory.getInstance().create(scriptExpression);
+        if (abstractExpressionProxy != null) {
             groupScriptExpression.setIfExpresssion(abstractExpressionProxy);
             cacheFilters.addAll(abstractExpressionProxy.getCacheFilters());
         }
-        if(groupScriptExpression.getElseIfExpressions()!=null){
-            for(GroupScriptExpression expression:groupScriptExpression.getElseIfExpressions()){
-                recursion(expression,cacheFilters);
+        if (groupScriptExpression.getElseIfExpressions() != null) {
+            for (GroupScriptExpression expression : groupScriptExpression.getElseIfExpressions()) {
+                recursion(expression, cacheFilters);
             }
         }
     }
 
     @Override public boolean supportOptimization(IScriptExpression scriptExpression) {
-         if(scriptExpression instanceof GroupScriptExpression){
-             return true;
-         }
-         return false;
+        if (scriptExpression instanceof GroupScriptExpression) {
+            return true;
+        }
+        return false;
     }
 
     @Override public Object executeExpression(IMessage message, FunctionContext context) {
-        return this.origExpression.executeExpression(message,context);
+        return this.origExpression.executeExpression(message, context);
     }
 }

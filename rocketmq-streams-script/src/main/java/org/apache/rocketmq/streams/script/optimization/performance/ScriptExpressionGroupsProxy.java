@@ -30,28 +30,31 @@ import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 public class ScriptExpressionGroupsProxy extends CacheFilterManager implements IScriptExpression {
-    protected List<IScriptExpression> scriptExpressions=new ArrayList<>();
+    protected List<IScriptExpression> scriptExpressions = new ArrayList<>();
 
     public ScriptExpressionGroupsProxy(int elementCount, int capacity) {
         super(elementCount, capacity);
     }
+
     public void removeLessCount() {
-        Map<String, CacheFilterGroup> newFilterOptimizationMap=new HashMap<>();
-        for(String varName:this.filterOptimizationMap.keySet()){
-            CacheFilterGroup cacheFilterGroup =this.filterOptimizationMap.get(varName);
-            if(cacheFilterGroup.getSize()>5){
-                newFilterOptimizationMap.put(varName,cacheFilterGroup);
+        Map<String, CacheFilterGroup> newFilterOptimizationMap = new HashMap<>();
+        for (String varName : this.filterOptimizationMap.keySet()) {
+            CacheFilterGroup cacheFilterGroup = this.filterOptimizationMap.get(varName);
+            if (cacheFilterGroup.getSize() > 5) {
+                newFilterOptimizationMap.put(varName, cacheFilterGroup);
             }
         }
-        this.filterOptimizationMap=newFilterOptimizationMap;
+        this.filterOptimizationMap = newFilterOptimizationMap;
     }
-    public void addScriptExpression(IScriptExpression scriptExpression){
+
+    public void addScriptExpression(IScriptExpression scriptExpression) {
         this.scriptExpressions.add(scriptExpression);
     }
+
     @Override public Object executeExpression(IMessage message, FunctionContext context) {
-        this.execute(message,context);
-        for(IScriptExpression scriptExpression:scriptExpressions){
-            scriptExpression.executeExpression(message,context);
+        this.execute(message, context);
+        for (IScriptExpression scriptExpression : scriptExpressions) {
+            scriptExpression.executeExpression(message, context);
         }
         return null;
     }
@@ -83,6 +86,5 @@ public class ScriptExpressionGroupsProxy extends CacheFilterManager implements I
     @Override public Set<String> getNewFieldNames() {
         return null;
     }
-
 
 }
