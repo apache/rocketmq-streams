@@ -135,6 +135,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
             return;
         }
         className2InnerInterface.put(name, interfaceObject);
+        className2InnerInterface.put(name.toUpperCase(), interfaceObject);
     }
 
     /**
@@ -151,6 +152,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
             functionType = FunctionType.UDAF;
             String name = ((UDAFFunction)udaf).value();
             this.className2InnerInterface.put(name, bean);
+            this.className2InnerInterface.put(name.toUpperCase(), bean);
             return;
         }
 
