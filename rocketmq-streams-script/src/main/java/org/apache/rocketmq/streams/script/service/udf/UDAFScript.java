@@ -66,10 +66,6 @@ public abstract class UDAFScript<T, ACC> extends UDFScript implements IAccumulat
         }
     }
 
-    @Override
-    protected boolean initConfigurable() {
-        return true;
-    }
 
     @Override
     protected boolean initBeanClass(IFunctionService iFunctionService) {

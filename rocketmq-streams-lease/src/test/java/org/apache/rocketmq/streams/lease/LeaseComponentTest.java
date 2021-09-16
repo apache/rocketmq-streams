@@ -49,8 +49,8 @@ public class LeaseComponentTest {
 
     @Test
     public void testLease() throws InterruptedException {
-        String leaseName = "lease.test";
-        int leaseTime = 5;
+        String leaseName = "lease.test";//自己取个名字，和其他租约不同就行，可以用source 的namespace+configurableName
+        int leaseTime = 5;//租期，时间是秒。如果机器挂了，
         LeaseComponent.getInstance().getService().startLeaseTask(leaseName, leaseTime, new ILeaseGetCallback() {
             @Override
             public void callback(Date nextLeaseDate) {

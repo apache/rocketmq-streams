@@ -31,10 +31,8 @@ import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
-import org.apache.rocketmq.streams.script.function.impl.string.RegexFunction;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.optimization.compile.CompileScriptExpression;
-import org.apache.rocketmq.streams.script.optimization.performance.ScriptExpressionGroupsProxy;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
@@ -70,35 +68,11 @@ public class ScriptExpression implements IScriptExpression {
                     FunctionUtils.getValue(message, context, value.toString()));
                 return value;
             }
-
             Object value = null;
-
-
-            if(RegexFunction.isRegexFunction(functionName)){
-                ScriptParameter varParameter=(ScriptParameter) getParameters().get(0);
-                ScriptParameter regexParameter=(ScriptParameter) getParameters().get(1);
-                String varName=getParameterValue(varParameter);
-                String expression=getParameterValue(regexParameter);
-                if(varName!=null||expression!=null){
-                    value= ScriptExpressionGroupsProxy.inFilterCache(varName,expression,message,context);
-                }
-
-
-            }
-            if(value!=null){
-                if (StringUtil.isNotEmpty(newFieldName) && value != null) {
-                    setValue2Var(message, context, newFieldName, value);
-                }
-                return value;
-            }
             if (compileScriptExpression != null) {
                 value = compileScriptExpression.execute(message, context);
             } else {
                 value = execute(message, context);
-            }
-
-            if (StringUtil.isNotEmpty(newFieldName) && value != null) {
-                setValue2Var(message, context, newFieldName, value);
             }
 
             //monitor.setResult(value);
@@ -120,17 +94,6 @@ public class ScriptExpression implements IScriptExpression {
             throw new RuntimeException(e);
         }
 
-    }
-
-    protected String getParameterValue(IScriptParamter scriptParamter) {
-        if (!ScriptParameter.class.isInstance(scriptParamter)) {
-            return null;
-        }
-        ScriptParameter parameter = (ScriptParameter)scriptParamter;
-        if (parameter.getRigthVarName() != null) {
-            return null;
-        }
-        return FunctionUtils.getConstant(parameter.getLeftVarName());
     }
 
     private ScriptComponent scriptComponent = ScriptComponent.getInstance();
@@ -161,7 +124,10 @@ public class ScriptExpression implements IScriptExpression {
         }
         Object value = functionConfigure.execute(ps);
             compileScriptExpression = new CompileScriptExpression(this, functionConfigure);
-
+        if (StringUtil.isNotEmpty(newFieldName) && value != null) {
+            setValue2Var(message, context, newFieldName, value);
+            //message.getMessageBody().put(newFieldName, value);
+        }
         return value;
     }
 
