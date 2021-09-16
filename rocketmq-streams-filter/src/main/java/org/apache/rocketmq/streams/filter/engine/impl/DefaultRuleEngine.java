@@ -253,7 +253,7 @@ public class DefaultRuleEngine implements IRuleEngine {
             if (rule.getExpressionName() == null) {
                 return false;
             }
-            // rule.getGroupExpressionManager().matchAndSetResult(context,rule);
+            rule.getGroupExpressionManager().matchAndSetResult(context,rule);
             Expression expression = context.getExpression(rule.getExpressionName());
             if (expression == null) {
                 return false;

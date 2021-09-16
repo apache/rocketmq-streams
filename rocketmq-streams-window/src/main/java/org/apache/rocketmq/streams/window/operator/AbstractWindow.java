@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
 import com.alibaba.fastjson.JSONObject;
 
 import org.apache.commons.lang3.StringUtils;
@@ -467,6 +468,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
 
     /**
      * 获取window处理的消息中最大的时间
+     *
      * @param msg
      * @return
      */
@@ -475,7 +477,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     }
 
     public Long getMaxEventTime(String queueId) {
-       return this.eventTimeManager.getMaxEventTime(queueId);
+        return this.eventTimeManager.getMaxEventTime(queueId);
     }
 
     /**
