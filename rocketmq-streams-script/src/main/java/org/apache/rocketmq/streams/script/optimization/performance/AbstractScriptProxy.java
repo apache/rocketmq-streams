@@ -29,26 +29,25 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public abstract class AbstractScriptProxy implements IScriptExpression {
     protected IScriptExpression origExpression;
+
     public AbstractScriptProxy(IScriptExpression origExpression) {
-        this.origExpression=origExpression;
+        this.origExpression = origExpression;
     }
 
     public abstract List<ICacheFilter> getCacheFilters();
 
+    public abstract boolean supportOptimization(IScriptExpression scriptExpression);
 
-
-    public abstract boolean supportOptimization(IScriptExpression scriptExpression) ;
     protected String getParameterValue(IScriptParamter scriptParamter) {
         if (!ScriptParameter.class.isInstance(scriptParamter)) {
             return null;
         }
-        ScriptParameter parameter = (ScriptParameter)scriptParamter;
+        ScriptParameter parameter = (ScriptParameter) scriptParamter;
         if (parameter.getRigthVarName() != null) {
             return null;
         }
         return FunctionUtils.getConstant(parameter.getLeftVarName());
     }
-
 
     @Override public List<IScriptParamter> getScriptParamters() {
         return this.origExpression.getScriptParamters();
@@ -63,7 +62,7 @@ public abstract class AbstractScriptProxy implements IScriptExpression {
     }
 
     @Override public Object getScriptParamter(IMessage message, FunctionContext context) {
-        return this.origExpression.getScriptParamter(message,context);
+        return this.origExpression.getScriptParamter(message, context);
     }
 
     public void setOrigExpression(IScriptExpression origExpression) {

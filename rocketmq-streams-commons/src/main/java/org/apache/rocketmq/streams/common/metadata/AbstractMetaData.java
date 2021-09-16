@@ -197,7 +197,7 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable
         Iterator i$ = this.metaDataFields.iterator();
 
         while (i$.hasNext()) {
-            MetaDataField<T> field = (MetaDataField)i$.next();
+            MetaDataField<T> field = (MetaDataField) i$.next();
             jsonArray.add(field.toJson());
         }
 

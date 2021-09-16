@@ -23,26 +23,25 @@ import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
 
 public abstract class MutilValueKV<T> implements ICacheKV<T> {
     //按固定大小分割存储
-    protected List<ICacheKV<T>> valueKVS=new ArrayList<>();
+    protected List<ICacheKV<T>> valueKVS = new ArrayList<>();
     //当前存储的索引
-    protected int currentIndex=0;
+    protected int currentIndex = 0;
     //每个分片的大小
     protected int capacity;
 
-    public MutilValueKV(int capacity){
-        this.capacity=capacity;
+    public MutilValueKV(int capacity) {
+        this.capacity = capacity;
     }
-
 
     @Override
     public T get(String key) {
-        if(valueKVS==null){
+        if (valueKVS == null) {
             return null;
         }
-        for(ICacheKV<T> cacheKV:valueKVS){
-            if(cacheKV!=null){
-               T value=cacheKV.get(key);
-                if(value!=null){
+        for (ICacheKV<T> cacheKV : valueKVS) {
+            if (cacheKV != null) {
+                T value = cacheKV.get(key);
+                if (value != null) {
                     return value;
                 }
             }
@@ -52,39 +51,38 @@ public abstract class MutilValueKV<T> implements ICacheKV<T> {
 
     @Override
     public void put(String key, T value) {
-        if(valueKVS==null){
+        if (valueKVS == null) {
             return;
         }
-        ICacheKV<T> cacheKV= valueKVS.get(currentIndex);
-        if(cacheKV.getSize()>=capacity){
-            synchronized (this){
-                cacheKV= valueKVS.get(currentIndex);
-                if(cacheKV.getSize()>=capacity){
-                    cacheKV=create();
+        ICacheKV<T> cacheKV = valueKVS.get(currentIndex);
+        if (cacheKV.getSize() >= capacity) {
+            synchronized (this) {
+                cacheKV = valueKVS.get(currentIndex);
+                if (cacheKV.getSize() >= capacity) {
+                    cacheKV = create();
                     valueKVS.add(cacheKV);
                     currentIndex++;
                 }
             }
         }
-        cacheKV.put(key,value);
+        cacheKV.put(key, value);
     }
 
     @Override
     public boolean contains(String key) {
-        if(valueKVS==null){
+        if (valueKVS == null) {
             return false;
         }
-        for(ICacheKV<T> cacheKV:valueKVS){
-            if(cacheKV!=null){
-                boolean isMatch=cacheKV.contains(key);
-                if(isMatch){
+        for (ICacheKV<T> cacheKV : valueKVS) {
+            if (cacheKV != null) {
+                boolean isMatch = cacheKV.contains(key);
+                if (isMatch) {
                     return true;
                 }
             }
         }
         return false;
     }
-
 
     protected abstract ICacheKV<T> create();
 

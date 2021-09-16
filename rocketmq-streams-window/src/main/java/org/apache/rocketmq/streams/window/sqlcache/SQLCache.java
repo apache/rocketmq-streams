@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
@@ -34,9 +35,9 @@ import org.apache.rocketmq.streams.db.driver.JDBCDriver;
  */
 
 public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
-    protected Boolean isOpenCache=true;//if false，then execute sql when receive sql
-    protected Set<String> firedWindowInstances=new HashSet<>();//fired window instance ，if the owned sqls have not commit， can cancel the sqls
-    protected Map<String,Integer> windowInstance2Index=new HashMap<>();//set index to ISQLElement group by window instance
+    protected Boolean isOpenCache = true;//if false，then execute sql when receive sql
+    protected Set<String> firedWindowInstances = new HashSet<>();//fired window instance ，if the owned sqls have not commit， can cancel the sqls
+    protected Map<String, Integer> windowInstance2Index = new HashMap<>();//set index to ISQLElement group by window instance
 
     protected boolean isLocalOnly;
 
@@ -45,7 +46,7 @@ public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
         this.isLocalOnly = isLocalOnly;
         this.flushCallBack = new MessageFlushCallBack(new SQLCacheCallback());
         this.setBatchSize(1000);
-        this.setAutoFlushTimeGap(30 * 1000);
+        this.setAutoFlushTimeGap(10 * 1000);
         this.setAutoFlushSize(100);
         this.openAutoFlush();
     }
