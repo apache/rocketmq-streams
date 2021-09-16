@@ -65,6 +65,8 @@ public abstract class AbstractExpressionProxy extends Expression implements ICac
     @Override public Expression getOriExpression() {
         return oriExpression;
     }
-
+    @Override public String getExpression() {
+        return this.oriExpression.getValue().toString();
+    }
 
 }

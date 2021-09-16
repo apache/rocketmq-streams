@@ -59,6 +59,15 @@ public class ByteArray {
         return res;
     }
 
+    public long castLong(int offset, int size) {
+        int index = startIndex + offset;
+        long res = 0L;
+        for (int i = 0; i < size; i++) {
+            res += (long) (bytes[i + index] & 0xff) << (i * 8);
+        }
+        return res;
+    }
+
     public byte getByte(int offset) {
         int index = startIndex + offset;
         return bytes[index];
@@ -94,9 +103,9 @@ public class ByteArray {
     protected void flush(int value) {
         for (int i = 0; i < 4; i++) {
             if (i == 0) {
-                this.bytes[i + this.startIndex] = (byte)(value & 0xff);
+                this.bytes[i + this.startIndex] = (byte) (value & 0xff);
             } else {
-                this.bytes[i + this.startIndex] = (byte)(value >> (i * 8) & 0xff);
+                this.bytes[i + this.startIndex] = (byte) (value >> (i * 8) & 0xff);
             }
         }
     }

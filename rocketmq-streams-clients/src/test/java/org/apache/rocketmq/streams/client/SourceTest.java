@@ -48,4 +48,12 @@ public class SourceTest {
             .toFile("/tmp/aegis_proc.txt",true)
         .start();
     }
+
+    @Test
+    public void testImportMsgFromNet(){
+        DataStreamSource.create("tmp","tmp")
+            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG","chris_test","T_MSG_NETSTAT",true,null)
+            .toFile("/tmp/aegis_net.txt",true)
+            .start();
+    }
 }

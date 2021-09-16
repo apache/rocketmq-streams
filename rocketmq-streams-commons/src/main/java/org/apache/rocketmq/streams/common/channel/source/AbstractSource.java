@@ -73,6 +73,8 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      */
     protected int maxFetchLogGroupSize = 100;
 
+    protected List<String> logFingerprintFields;//log fingerprint to filter msg quickly
+
     /**
      * 数据源投递消息的算子，此算子用来接收source的数据，做处理
      */
@@ -515,6 +517,14 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     public void setCheckpointTime(long checkpointTime) {
         this.checkpointTime = checkpointTime;
+    }
+
+    public List<String> getLogFingerprintFields() {
+        return logFingerprintFields;
+    }
+
+    public void setLogFingerprintFields(List<String> logFingerprintFields) {
+        this.logFingerprintFields = logFingerprintFields;
     }
 
     @Override
