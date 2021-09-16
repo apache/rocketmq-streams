@@ -23,18 +23,25 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.SQLUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.db.DBStorage;
 import org.apache.rocketmq.streams.window.storage.rocksdb.RocksdbStorage;
 
@@ -106,9 +113,20 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
         remoteStorage.multiPut(values);
     }
 
+    /**
+     * used in session window only
+     *
+     * @param values
+     * @param windowInstanceId
+     * @param queueId
+     * @param sqlCache
+     */
     public void multiPutList(Map<String, List<T>> values, String windowInstanceId, String queueId, SQLCache sqlCache) {
         localStorage.multiPutList(values);
         if (!isLocalStorageOnly) {
+            //delete all values first
+            deleteRemoteValue(values.keySet());
+            //
             if (shufflePartitionManager.isWindowInstanceFinishInit(queueId, windowInstanceId)) {
                 if (sqlCache != null) {
                     sqlCache.addCache(new SQLElement(queueId, windowInstanceId, ((IRemoteStorage) this.remoteStorage).multiPutListSQL(values)));
@@ -119,6 +137,14 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
             }
             remoteStorage.multiPutList(values);
         }
+    }
+
+    private void deleteRemoteValue(Set<String> storeKeyList) {
+        if (CollectionUtil.isEmpty(storeKeyList)) {
+            return;
+        }
+        String sql = "delete from " + ORMUtil.getTableName(WindowValue.class) + " where " + SQLUtil.createLikeSql(storeKeyList.stream().map(key -> Pair.of("msg_key", StringUtil.createMD5Str(key))).collect(Collectors.toList()));
+        ORMUtil.executeSQL(sql, new HashMap<>(4));
     }
 
     @Override public Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz) {

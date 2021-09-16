@@ -375,10 +375,9 @@ public class WindowValue extends WindowBaseValue implements Serializable {
     /**
      * merge the group which has the same group by value and different split id
      */
-    private static WindowValue mergeWindowValue(AbstractWindow window, List<WindowValue> valueList) {
+    public static WindowValue mergeWindowValue(AbstractWindow window, List<WindowValue> valueList) {
         WindowValue lastWindowValue = new WindowValue(valueList.get(0));
-        lastWindowValue.computedColumnResult = (Map<String, Object>)JSON.parse(
-            valueList.get(0).getComputedColumnResult());
+        lastWindowValue.setComputedColumnResult(valueList.get(0).getComputedColumnResult());
         //
         for (Entry<String, List<FunctionExecutor>> entry : window.getColumnExecuteMap().entrySet()) {
             String computedColumn = entry.getKey();
