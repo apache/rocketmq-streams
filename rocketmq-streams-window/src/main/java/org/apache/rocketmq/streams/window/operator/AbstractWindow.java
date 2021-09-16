@@ -167,7 +167,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected transient Map<String, String> columnProjectMap = new HashMap<>();
 
     /**
-     * 当前计算节点的PipeLine里的Window实例对象，方便基于时间快速定位 key：namespace;configName(这里理解成windowName);startTime;endTime value：WindowInstance
+     * 当前计算节点的PipeLine里的Window实例对象
      */
     protected transient ConcurrentHashMap<String, WindowInstance> windowInstanceMap = new ConcurrentHashMap<>();
 
@@ -465,6 +465,38 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             queueId);
     }
 
+    public WindowInstance registerWindowInstance(WindowInstance windowInstance) {
+        return registerWindowInstance(windowInstance.createWindowInstanceTriggerId(), windowInstance);
+    }
+
+    /**
+     * register window instance with indexId key
+     * @param indexId
+     * @param windowInstance
+     */
+    protected WindowInstance registerWindowInstance(String indexId, WindowInstance windowInstance) {
+        return windowInstanceMap.putIfAbsent(indexId, windowInstance);
+    }
+
+    /**
+     * search window instance by using index id, return null if not exist
+     *
+     * @param indexId
+     * @return
+     */
+    public WindowInstance searchWindowInstance(String indexId) {
+        return windowInstanceMap.getOrDefault(indexId, null);
+    }
+
+    /**
+     * logout window instance by using index id
+     *
+     * @param indexId
+     */
+    public void logoutWindowInstance(String indexId) {
+        windowInstanceMap.remove(indexId);
+    }
+
     /**
      * 获取window处理的消息中最大的时间
      *
@@ -606,11 +638,11 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         this.sizeInterval = sizeInterval;
     }
 
-    public ConcurrentHashMap<String, WindowInstance> getWindowInstanceMap() {
+    private ConcurrentHashMap<String, WindowInstance> getWindowInstanceMap() {
         return windowInstanceMap;
     }
 
-    public void setWindowInstanceMap(
+    private void setWindowInstanceMap(
         ConcurrentHashMap<String, WindowInstance> windowInstanceMap) {
         this.windowInstanceMap = windowInstanceMap;
     }
