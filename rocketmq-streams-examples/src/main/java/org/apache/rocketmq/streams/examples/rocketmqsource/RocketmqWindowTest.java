@@ -24,19 +24,24 @@ import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.*;
+
 public class RocketmqWindowTest {
-    public static final String NAMESRV_ADDRESS = "127.0.0.1:9876";
-    public static final String RMQ_TOPIC = "NormalTestTopic";
-    public static final String RMQ_CONSUMER_GROUP_NAME = "group-01";
-    public static final String TAGS = "*";
 
     /**
      * 1、before run this case, make sure some data has already been rocketmq.
      * 2、rocketmq allow create topic automatically.
      */
     public static void main(String[] args) {
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
 
+        try {
+            Thread.sleep(1000 * 10);
+        } catch (InterruptedException e) {
+        }
+        System.out.println("begin streams code.");
+
+        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
         source.fromRocketmq(
                 RMQ_TOPIC,
                 RMQ_CONSUMER_GROUP_NAME,
@@ -53,8 +58,10 @@ public class RocketmqWindowTest {
                 })
                 //must convert message to json.
                 .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.seconds(1)))
-                .groupBy("field-1", "field-2")
+                .window(TumblingWindow.of(Time.seconds(5)))
+                .groupBy("ProjectName")
+                .sum("OutFlow", "OutFlow")
+                .sum("InFlow", "InFlow")
                 .count("total")
                 .waterMark(1)
                 .setLocalStorageOnly(true)

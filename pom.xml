@@ -112,7 +112,7 @@
                         <exclude>.asf.yaml</exclude>
                         <exclude>README.md</exclude>
                         <exclude>README-Chinese.md</exclude>
-                        <exclude>QUICKSTART.md</exclude>
+                        <exclude>quick_start.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>

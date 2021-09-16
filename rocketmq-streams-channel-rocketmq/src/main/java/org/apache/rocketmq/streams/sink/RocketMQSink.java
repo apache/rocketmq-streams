@@ -17,16 +17,6 @@
 
 package org.apache.rocketmq.streams.sink;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -42,6 +32,8 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+
+import java.util.*;
 
 public class RocketMQSink extends AbstractSupportShuffleSink {
 
@@ -120,6 +112,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                 messageList = msgsByQueueId.get(queueId);
                 for (Message message : messageList) {
                     MessageQueue queue = messageQueueMap.get(queueId);
+                    System.out.println("send message to rocketmq,topic:" + topic + ",queueId:" + queue.getQueueId() + ",message: "+ new String(message.getBody()));
                     producer.send(message, queue);
                 }
 

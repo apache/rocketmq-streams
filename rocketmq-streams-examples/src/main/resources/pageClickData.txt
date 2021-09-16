@@ -1,0 +1,11 @@
+{"userId":"1","eventTime":"10","method":"GET","url":"page-1"}
+{"userId":"2","eventTime":"20","method":"POST","url":"page-2"}
+{"userId":"3","eventTime":"30","method":"GET","url":"page-3"}
+{"userId":"1","eventTime":"40","method":"DELETE","url":"page-2"}
+{"userId":"2","eventTime":"50","method":"POST","url":"page-3"}
+{"userId":"3","eventTime":"60","method":"GET","url":"page-1"}
+{"userId":"1","eventTime":"70","method":"GET","url":"page-2"}
+{"userId":"2","eventTime":"80","method":"PUT","url":"page-3"}
+{"userId":"3","eventTime":"90","method":"GET","url":"page-4"}
+{"userId":"4","eventTime":"100","method":"POST","url":"page-1"}
+

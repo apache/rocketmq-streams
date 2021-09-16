@@ -17,23 +17,32 @@
 
 package org.apache.rocketmq.streams.examples.rocketmqsource;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.*;
 
 public class RocketMQSourceExample3 {
-    public static final String NAMESRV_ADDRESS = "127.0.0.1:9876";
-    public static final String RMQ_TOPIC = "NormalTestTopic";
-    public static final String RMQ_CONSUMER_GROUP_NAME = "test-group-03";
-    public static final String TAGS = "*";
-
     /**
      * 1、before run this case, make sure some data has already been rocketmq.
      */
     public static void main(String[] args) {
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
 
+        try {
+            Thread.sleep(1000 * 3);
+        } catch (InterruptedException e) {
+        }
+
+        System.out.println("begin streams code.");
+
+        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
         source.fromRocketmq(
                 RMQ_TOPIC,
                 RMQ_CONSUMER_GROUP_NAME,
@@ -45,12 +54,19 @@ public class RocketMQSourceExample3 {
                 .map(message -> message)
                 .filter((value) -> {
                     String messageValue = (String) value;
-                    return messageValue.contains("RocketMQ");
+                    return !messageValue.contains("InFlow");
                 })
                 .flatMap((message) -> {
-                    String value = (String) message;
-                    String[] result = value.split(" ");
-                    return Arrays.asList(result);
+                    JSONObject jsonObject = JSONObject.parseObject((String) message);
+                    Set<Map.Entry<String, Object>> entries = jsonObject.entrySet();
+
+                    List<String> result = new ArrayList<>();
+
+                    for (Map.Entry<String, Object> entry : entries) {
+                        String str = entry.getKey() + ":" + entry.getValue();
+                        result.add(str);
+                    }
+                    return result;
                 })
                 .toPrint(1)
                 .start();
