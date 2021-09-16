@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -130,13 +131,15 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         }
         Map<String, String> recordMap = new HashMap<>(keys.size());
         List<String> dbKeyList = new ArrayList<>(keys.size());
+        List<Pair<String,String>> variableAndValue = new ArrayList<>(keys.size());
         for (String key : keys) {
             String md5Value = StringUtil.createMD5Str(key);
             dbKeyList.add(md5Value);
             recordMap.put(md5Value, key);
+            variableAndValue.add(Pair.of("msg_key", md5Value + "%"));
         }
         List<T> values = ORMUtil.queryForList("select * from " + ORMUtil.getTableName(clazz) +
-            " where left(msg_key,24) in (" + SQLUtil.createInSql(dbKeyList) + " )", new HashMap<>(4), clazz);
+            " where "+SQLUtil.createLikeSql(variableAndValue), new HashMap<>(4), clazz);
         Map<String, List<T>> resultMap = new HashMap<>(keys.size());
         for (T value : values) {
             String dbKeyWithoutSuffix = value.getMsgKey().substring(0, 24);
