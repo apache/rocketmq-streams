@@ -20,10 +20,11 @@ package org.apache.rocketmq.streams.client.transform.window;
 public class HoppingWindow {
     /**
      * 滑动窗口信息
+     *
      * @return
      */
-    public static WindowInfo of(Time windowSize,Time windowSlide){
-        WindowInfo windowInfo=new WindowInfo();
+    public static WindowInfo of(Time windowSize, Time windowSlide) {
+        WindowInfo windowInfo = new WindowInfo();
         windowInfo.setType(WindowInfo.HOPPING_WINDOW);
         windowInfo.setWindowSize(windowSize);
         windowInfo.setWindowSlide(windowSlide);
