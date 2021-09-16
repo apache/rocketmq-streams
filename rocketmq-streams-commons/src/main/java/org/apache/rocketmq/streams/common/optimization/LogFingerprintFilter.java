@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.optimization;
 
+import java.io.Serializable;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
@@ -25,7 +26,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
  * 存储日志指纹，对于相同的日志指纹的规则，可以不用计算直接过滤掉
  * 主要用在数据源重复率比较高的场景
  */
-public class LogFingerprintFilter {
+public class LogFingerprintFilter{
     protected static final int MAX_COUNT = 3000000;
     protected int maxCount = MAX_COUNT;
     protected IntValueKV noFireMessages = new IntValueKV(MAX_COUNT);

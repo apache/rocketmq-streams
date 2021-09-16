@@ -537,6 +537,9 @@ public class ReflectUtil {
         Object result = null;
         Object modelBean = bean;// ChannelMessage
         for (String name : fieldNames) {// messageBody.type
+            if(modelBean==null){
+                return null;
+            }
             if (JSONObject.class.isInstance(modelBean)) {
                 result = getJsonItemValue(modelBean, clazz, name);
             } else if (JSONArray.class.isInstance(modelBean)) {

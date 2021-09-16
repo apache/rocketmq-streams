@@ -81,9 +81,9 @@ public class OptimizationRegex {
             }
         }
         //String regex2Optimization=regex+":"+this.toString();
-        //List<String> regexs=new ArrayList<>();
-        //regexs.add(regex2Optimization);
-        //FileUtil.write("/Users/yuanxiaodong/Documents/dipper_engine/regex.txt",regexs,true);
+        //List<String> allRegexs=new ArrayList<>();
+        //allRegexs.add(regex2Optimization);
+        //FileUtil.write("/Users/yuanxiaodong/Documents/dipper_engine/regex.txt",allRegexs,true);
 
     }
 
