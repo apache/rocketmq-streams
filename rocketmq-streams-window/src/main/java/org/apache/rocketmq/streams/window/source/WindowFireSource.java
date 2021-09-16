@@ -181,7 +181,7 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
         String windowInstanceTriggerId=windowInstance.createWindowInstanceTriggerId();
         WindowInstance old= windowInstances.putIfAbsent(windowInstanceTriggerId,windowInstance);
         if(old==null){
-            window.getWindowInstanceMap().put(windowInstanceTriggerId,windowInstance);
+            window.registerWindowInstance(windowInstance);
         }
         LOG.debug("register window instance into manager, instance key: " + windowInstanceTriggerId);
     }
@@ -272,10 +272,9 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
          * 未到触发时间
          */
         Long maxEventTime=this.window.getMaxEventTime(windowInstance.getSplitId());
-        maxEventTime = System.currentTimeMillis();
         if(maxEventTime==null){
-            //TODO 有无可能尝试时间为null？
-            return new FireResult();
+            //TODO
+            maxEventTime = System.currentTimeMillis();
         }
         if(maxEventTime-fireTime.getTime()>=3000){
             return new FireResult(true,0);
