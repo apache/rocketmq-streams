@@ -116,7 +116,7 @@ public class MetaDataField<T> extends Entity implements IJsonable {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("fieldName", fieldName);
         if (dataType == null) {
-            dataType = (DataType)new StringDataType();
+            dataType = (DataType) new StringDataType();
         }
         jsonObject.put("dataType", dataType.toJson());
         jsonObject.put("isRequired", isRequired);
@@ -134,8 +134,8 @@ public class MetaDataField<T> extends Entity implements IJsonable {
         this.isPrimary = jsonObject.getBoolean("isPrimary");
     }
 
-    public static DataType getDataTypeByStr(String dataType) {
-        DataType dt = null;
+    public static DataType<?> getDataTypeByStr(String dataType) {
+        DataType<?> dt = null;
         if ("String".equals(dataType)) {
             dt = new StringDataType();
         } else if ("long".equals(dataType)) {
@@ -152,22 +152,20 @@ public class MetaDataField<T> extends Entity implements IJsonable {
         return dt;
     }
 
-    public static String getDataTypeStrByType(DataType dataType) {
-        String dataTypestr = "";
-        if (StringDataType.class.isInstance(dataType)) {
-            dataTypestr = "String";
-        } else if (LongDataType.class.isInstance(dataType)) {
-            dataTypestr = "long";
-        } else if (IntDataType.class.isInstance(dataType)) {
-            dataTypestr = "int";
-        } else if (FloatDataType.class.isInstance(dataType)) {
-            dataTypestr = "float";
-        } else if (Boolean.class.isInstance(dataType)) {
-            dataTypestr = "boolean";
+    public static String getDataTypeStrByType(DataType<?> dataType) {
+        String dataTypeStr = "";
+        if (dataType instanceof StringDataType) {
+            dataTypeStr = "String";
+        } else if (dataType instanceof LongDataType) {
+            dataTypeStr = "long";
+        } else if (dataType instanceof IntDataType) {
+            dataTypeStr = "int";
+        } else if (dataType instanceof FloatDataType) {
+            dataTypeStr = "float";
         } else {
-            dataTypestr = "String";
+            dataTypeStr = "String";
         }
-        return dataTypestr;
+        return dataTypeStr;
     }
 
 }

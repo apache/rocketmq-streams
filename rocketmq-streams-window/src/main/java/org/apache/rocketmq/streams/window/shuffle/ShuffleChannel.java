@@ -67,7 +67,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     protected static final Log LOG = LogFactory.getLog(ShuffleChannel.class);
 
     protected static final String SHUFFLE_QUEUE_ID = "SHUFFLE_QUEUE_ID";
-
+    protected static final String SHUFFLE_OFFSET = "SHUFFLE_OFFSET";
     protected static final String SHUFFLE_MESSAGES = "SHUFFLE_MESSAGES";
     protected String MSG_OWNER = "MSG_OWNER";//消息所属的window
 
@@ -158,6 +158,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
         for (Object obj : messages) {
             IMessage message = new Message((JSONObject) obj);
             message.getHeader().setQueueId(queueId);
+            message.getMessageBody().put(SHUFFLE_OFFSET, oriMessage.getHeader().getOffset());
             window.updateMaxEventTime(message);
             if (isRepeateMessage(message, queueId)) {
                 continue;
