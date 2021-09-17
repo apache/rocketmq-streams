@@ -25,21 +25,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.alibaba.fastjson.JSONObject;
 
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAfterCurrentNode;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
-import org.apache.rocketmq.streams.common.topology.stages.udf.IRedurce;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
@@ -67,9 +68,7 @@ import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -146,14 +145,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     /**
      * 默认为空，窗口的触发类似flink，在测试模式下，因为消息有界，期望当消息发送完成后能触发，可以设置两条消息的最大间隔，超过这个间隔，将直接触发消息
      */
-    protected Long msgMaxGapSecond;
+    protected Long msgMaxGapSecond=10L;
 
     /**
      * 是否支持过期数据的计算 过期：当前时间大于数据所在窗口的触发时间
      */
     protected int fireMode=0;//0:普通触发,firetime后收到数据丢弃；1:多实例多次独立触发，在watermark时间内，同starttime，endtime创建多个实例，多次触发；2.单实例，多次独立触发，每次触发是最新值
 
-    protected boolean isLocalStorageOnly=false;//是否只用本地存储，可以提高性能，但不保证可靠性
+    protected boolean isLocalStorageOnly=true;//是否只用本地存储，可以提高性能，但不保证可靠性
     protected String reduceSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient IReducer reducer;
     /**
@@ -191,7 +190,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected volatile transient WindowCache windowCache;
     protected transient WindowStorage storage;
     protected transient WindowRireSource windowFireSource;
-
+    protected transient SQLCache sqlCache;
     protected transient EventTimeManager eventTimeManager;
 
     //create and save window instacne max partitionNum and window max eventTime
@@ -210,6 +209,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         if(!ORMUtil.hasConfigueDB()){
             isLocalStorageOnly=true;
         }
+        sqlCache=new SQLCache(isLocalStorageOnly);
         AbstractWindow window=this;
         windowCache=new WindowCache(){
 
@@ -232,7 +232,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             reducer = InstantiationUtil.deserializeObject(bytes);
         }
         eventTimeManager=new EventTimeManager();
-        windowMaxValueManager = new WindowMaxValueManager(this);
+        windowMaxValueManager = new WindowMaxValueManager(this,sqlCache);
         return success;
     }
 
@@ -358,15 +358,13 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return MapKeyUtil.createKey(values);
     }
 
-    public abstract void clearFire(List<WindowInstance> windowInstances);
+    public abstract void clearFireWindowInstance(WindowInstance windowInstance);
 
     public void clearFire(WindowInstance windowInstance){
         if(windowInstance==null){
             return;
         }
-        List<WindowInstance>windowInstances=new ArrayList<>();
-        windowInstances.add(windowInstance);
-        clearFire(windowInstances);
+        clearFireWindowInstance(windowInstance);
     }
 
     /**
@@ -464,25 +462,13 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @return
      */
     public List<WindowInstance> queryOrCreateWindowInstance(IMessage message,String queueId) {
-        List<WindowInstance> windowInstances=WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
+        return  WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
             queueId);
-//        if(fireMode==2){
-//            if(windowInstances==null){
-//                return null;
-//            }
-//            for(WindowInstance windowInstance:windowInstances){
-//                Date endTime=DateUtil.parseTime(windowInstance.getEndTime());
-//                Date lastFireTimne=DateUtil.addDate(TimeUnit.SECONDS,endTime,getWaterMarkMinute()*timeUnitAdjust);
-//                //if fireMode==2， need clear data in lastFireTime
-//                WindowInstance lastClearWindowInstance=createWindowInstance(windowInstance.getStartTime(),windowInstance.getEndTime(),DateUtil.format(lastFireTimne),queueId);
-//                getWindowFireSource().registFireWindowInstanceIfNotExist(lastClearWindowInstance,this);
-//            }
-//        }
-        return windowInstances;
     }
 
     /**
      * 获取window处理的消息中最大的时间
+     *
      * @param msg
      * @return
      */
@@ -491,7 +477,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     }
 
     public Long getMaxEventTime(String queueId) {
-       return this.eventTimeManager.getMaxEventTime(queueId);
+        return this.eventTimeManager.getMaxEventTime(queueId);
     }
 
     /**
@@ -501,6 +487,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      */
     public void sendFireMessage(List<WindowValue> windowValueList,String queueId) {
         int count = 0;
+        List<IMessage> msgs=new ArrayList<>();
         for (WindowValue windowValue : windowValueList) {
             JSONObject message = new JSONObject();
 
@@ -527,14 +514,22 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             //can keep offset in order
             Long offset=((fireTime-baseTime)/1000*10+sameFireCount)*100000000+windowValue.getPartitionNum();
             message.put("windowInstanceId",windowValue.getWindowInstancePartitionId());
+            message.put("start_time",windowValue.getStartTime());
+            message.put("end_time",windowValue.getEndTime());
             message.put("offset",offset);
             Message newMessage=windowFireSource.createMessage(message,queueId,offset+"",false);
             newMessage.getHeader().setOffsetIsLong(true);
             if (count == windowValueList.size() - 1) {
                 newMessage.getHeader().setNeedFlush(true);
             }
+            msgs.add(newMessage);
             windowFireSource.executeMessage(newMessage);
+
             count++;
+        }
+
+        if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
+            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowFire(this,msgs,queueId);
         }
     }
 
@@ -626,8 +621,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     }
 
     @Override
-    public void setFireReceiver(
-        PiplineRecieverAfterCurrentNode fireReceiver) {
+    public void setFireReceiver(PiplineRecieverAfterCurrentNode fireReceiver) {
         this.fireReceiver = fireReceiver;
     }
 
@@ -755,4 +749,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     public EventTimeManager getEventTimeManager() {
         return eventTimeManager;
     }
+
+    public SQLCache getSqlCache() {
+        return sqlCache;
+    }
+
+    public void initWindowInstanceMaxSplitNum(WindowInstance instance){
+        getWindowMaxValueManager().initMaxSplitNum(instance,queryWindowInstanceMaxSplitNum(instance));
+    }
+
+    protected abstract Long queryWindowInstanceMaxSplitNum(WindowInstance instance);
 }

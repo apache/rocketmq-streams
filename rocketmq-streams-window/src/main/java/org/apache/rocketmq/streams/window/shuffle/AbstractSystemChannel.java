@@ -77,22 +77,22 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
             synchronized (this) {
                 if (!hasCreateShuffleChannel) {
                     ISource piplineSource = pipeline.getSource();
-                    ServiceLoaderComponent serviceLoaderComponent = ComponentCreator.getComponent(
-                        IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
+                    ServiceLoaderComponent serviceLoaderComponent = ComponentCreator.getComponent(IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
+
                     IChannelBuilder builder = (IChannelBuilder)serviceLoaderComponent.loadService(piplineSource.getClass().getSimpleName());
                     if (builder == null) {
                         throw new RuntimeException("can not create shuffle channel, not find channel builder " + piplineSource.toJson());
                     }
-                    if (!IShuffleChannelBuilder.class.isInstance(builder)) {
+                    if (!(builder instanceof IShuffleChannelBuilder)) {
                         throw new RuntimeException("can not create shuffle channel, builder not imp IShuffleChannelBuilder " + piplineSource.toJson());
                     }
                     IShuffleChannelBuilder shuffleChannelBuilder = (IShuffleChannelBuilder)builder;
                     ISink sink = shuffleChannelBuilder.createBySource(piplineSource);
-                    if (!MemoryChannel.class.isInstance(sink) && !AbstractSupportShuffleSink.class.isInstance(sink)) {
+                    if (!(sink instanceof MemoryChannel) && !(sink instanceof AbstractSupportShuffleSink)) {
                         throw new RuntimeException("can not create shuffle channel, sink not extends AbstractSupportShuffleSink " + piplineSource.toJson());
                     }
                     ISource source = null;
-                    if (MemoryChannel.class.isInstance(sink)) {
+                    if (sink instanceof MemoryChannel) {
                         MemoryCache memoryCache = new MemoryCache();
                         memoryCache.setNameSpace(createShuffleChannelNameSpace(pipeline));
                         memoryCache.setConfigureName(createShuffleChannelName(pipeline));
@@ -108,6 +108,7 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                     putDynamicPropertyValue(new HashSet<>(), properties);
 
                     AbstractSupportShuffleSink shuffleSink = (AbstractSupportShuffleSink)sink;
+                    //todo 为什么这里的分区数量要和源头topic的分区数量一直？
                     shuffleSink.setSplitNum(getShuffleSplitCount(shuffleSink));
                     shuffleSink.setNameSpace(createShuffleChannelNameSpace(pipeline));
                     shuffleSink.setConfigureName(createShuffleChannelName(pipeline));

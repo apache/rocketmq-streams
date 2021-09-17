@@ -225,22 +225,18 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         return createJson(message);
     }
 
-    /**
-     * 交给receiver执行后续逻辑
-     *
-     * @param channelMessage
-     * @return
-     */
+
     public AbstractContext executeMessage(Message channelMessage) {
         AbstractContext context = new Context(channelMessage);
-        if (isSplitInRemoving(channelMessage)) {
-            return context;
-        }
         if (!channelMessage.getHeader().isSystemMessage()) {
             messageQueueChangedCheck(channelMessage.getHeader());
         }
 
-        boolean needFlush = channelMessage.getHeader().isSystemMessage() == false && channelMessage.getHeader().isNeedFlush();
+        if (isSplitInRemoving(channelMessage)) {
+            return context;
+        }
+
+        boolean needFlush = !channelMessage.getHeader().isSystemMessage() && channelMessage.getHeader().isNeedFlush();
 
         if (receiver != null) {
             receiver.doMessage(channelMessage, context);
@@ -283,9 +279,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @param header
      */
     protected void messageQueueChangedCheck(MessageHeader header) {
-        if (supportNewSplitFind() && supportRemoveSplitFind()) {
-            return;
-        }
         Set<String> queueIds = new HashSet<>();
         String msgQueueId = header.getQueueId();
         if (StringUtil.isNotEmpty(msgQueueId)) {
@@ -296,7 +289,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             queueIds.addAll(checkpointQueueIds);
         }
         Set<String> newQueueIds = new HashSet<>();
-        Set<String> removeQueueIds = new HashSet<>();
+
         for (String queueId : queueIds) {
             if (isNotDataSplit(queueId)) {
                 continue;

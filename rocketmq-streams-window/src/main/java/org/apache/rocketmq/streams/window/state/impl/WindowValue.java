@@ -244,7 +244,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                 this.maxOffset.put(queueId, offset);
             } else {
                 //如果比最大的offset 小或等于，则直接丢弃掉消息
-                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data");
+                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data "+maxOffsetOfQueue+" "+message.getHeader().getOffset());
                 return false;
             }
         }
@@ -264,7 +264,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
             calProjectColumn(window, message);
             String traceId = message.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_TRACE_ID);
             if (!StringUtil.isEmpty(traceId)) {
-                TraceUtil.debug(traceId, "window value result", getComputedColumnResult());
+                TraceUtil.debug(traceId, "window value result", decodeSQLContent(getComputedColumnResult()));
             }
         } catch (Exception e) {
             LOG.error("failed in calculating the message", e);
@@ -506,18 +506,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
             StringUtil.createMD5Str(clonedValue.getWindowInstancePartitionId()));
         return clonedValue;
     }
-    //
-    //public WindowValue toOriginValue(boolean supportOutDate) {
-    //    WindowValue clonedValue = clone();
-    //    String windowInstanceId = WindowInstance.getWindowInstanceId(getNameSpace(), getConfigureName(), getStartTime(),
-    //        getEndTime(), getFireTime(), supportOutDate);
-    //    clonedValue.setMsgKey(MapKeyUtil
-    //        .createKey(getPartition(), windowInstanceId, getGroupBy()));
-    //    clonedValue.setWindowInstanceId(windowInstanceId);
-    //    clonedValue.setWindowInstancePartitionId(
-    //        MapKeyUtil.createKey(windowInstanceId, getPartition()));
-    //    return clonedValue;
-    //}
+
 
     public Long getLastUpdateTime() {
         return lastUpdateTime;

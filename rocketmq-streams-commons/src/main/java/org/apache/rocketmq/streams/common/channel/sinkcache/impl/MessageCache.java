@@ -43,6 +43,7 @@ public class MessageCache<R> implements IMessageCache<R> {
     protected volatile int autoFlushTimeGap = 1000;
 
 
+
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
         this.flushCallBack = flushCallBack;
     }

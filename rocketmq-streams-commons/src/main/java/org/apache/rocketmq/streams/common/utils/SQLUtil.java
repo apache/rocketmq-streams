@@ -414,7 +414,7 @@ public class SQLUtil {
                 if (!isString) {
                     stringBuilder.append(value);
                 } else {
-                    stringBuilder.append("'" + value + "'");
+                    StringBuilder append = stringBuilder.append("'" + value + "'");
                 }
 
             }

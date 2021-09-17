@@ -2,6 +2,7 @@ target/
 .DS_Store
 !.mvn/wrapper/maven-wrapper.jar
 *.versionsBackup
+.gradle/
 
 ### STS ###
 .apt_generated
@@ -23,4 +24,7 @@ build/
 nbbuild/
 dist/
 nbdist/
+
+dipper.cs
+dipper.properties
 
