@@ -50,22 +50,18 @@ import org.junit.Test;
 
 public class MultiSplitTest extends SingleSplitTest {
     protected String topic = "TOPIC_DIPPER_SYSTEM_MSG_6";
+    protected String group = "PID_DIPPER";
+    protected String nameServerAddress = "127.0.0.1:9876";
 
     protected DataStream createSourceDataStream() {
-//          String dir="/tmp/rockstmq-streams-1";
-//        FileUtil.deleteFile(dir);
-//        ComponentCreator.getProperties().setProperty("window.debug","true");
-//        ComponentCreator.getProperties().setProperty("window.debug.dir",dir);
-//        ComponentCreator.getProperties().setProperty("window.debug.countFileName","total");
-//
-//
+
         return StreamBuilder.dataStream("namespace", "name1")
                 .fromRocketmq(topic, "window_test", true, null);
     }
 
 
     protected int getSourceCount() {
-        return 88121;
+        return 10;
     }
 
     /**
@@ -114,7 +110,7 @@ public class MultiSplitTest extends SingleSplitTest {
     @Test
     public void testInsertWindowMsg() {
         StreamBuilder.dataStream("namespace", "name1")
-                .fromFile(filePath, true).toRocketmq(topic).start();
+                .fromFile(filePath, true).toRocketmq(topic, group, nameServerAddress).start();
     }
 
 
