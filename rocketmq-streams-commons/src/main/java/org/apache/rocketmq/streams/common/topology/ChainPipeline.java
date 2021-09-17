@@ -17,15 +17,20 @@
 package org.apache.rocketmq.streams.common.topology;
 
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.cache.compress.impl.LongValueKV;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -44,9 +49,15 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 /**
  * 数据流拓扑结构，包含了source 算子，sink
  */
-public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IAfterConfiguableRefreshListerner, Serializable {
+public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IAfterConfigurableRefreshListener, Serializable {
 
     private static final long serialVersionUID = -5189371682717444347L;
+
+    private final transient int duplicateCacheSize = 1000000;
+    private transient LongValueKV duplicateCache;
+    //    private transient Map<String, Long> duplicateCache;
+    private transient List<String> duplicateFields;
+    private transient int duplicateCacheExpirationTime;
 
     /**
      * 是否自动启动channel
@@ -91,6 +102,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     /**
      * 启动一个channel，并给channel应用pipeline
      */
+
     public void startChannel() {
         final String monitorName = createPipelineMonitorName();
         if (isInitSuccess()) {
@@ -104,8 +116,9 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 pipelineMonitorForChannel = IMonitor.createMonitor(this);
             }
             try {
-                source.start((IStreamOperator<T, T>)(message, context) -> {
+                source.start((IStreamOperator<T, T>) (message, context) -> {
                     //每条消息一个，监控整个链路
+
                     IMonitor pipelineMonitorForStage = context.startMonitor(monitorName);
                     pipelineMonitorForStage.setType(IMonitor.TYPE_DATAPROCESS);
                     message.getHeader().setPiplineName(this.getConfigureName());
@@ -127,9 +140,20 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
 
     }
 
+    private String createDuplicateKey(IMessage message) {
+        List<String> duplicateValues = Lists.newArrayList();
+        for (String field : duplicateFields) {
+            duplicateValues.add(message.getMessageBody().getString(field));
+        }
+        return StringUtil.createMD5Str(String.join("", duplicateValues));
+    }
+
     private String createPipelineMonitorName() {
         return MapKeyUtil.createKeyBySign(".", getType(), getNameSpace(), getConfigureName());
     }
+
+    private static AtomicInteger total = new AtomicInteger(0);
+    private static AtomicInteger hitCache = new AtomicInteger(0);
 
     /**
      * 可以替换某个阶段的阶段，而不用配置的阶段
@@ -141,6 +165,26 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
      */
     @Override
     protected T doMessageInner(T t, AbstractContext context, AbstractStage... replaceStage) {
+        if (this.duplicateCache != null && this.duplicateFields != null && !this.duplicateFields.isEmpty() && !t.getHeader().isSystemMessage()) {
+            total.incrementAndGet();
+            String duplicateKey = createDuplicateKey(t);
+            Long cacheTime = this.duplicateCache.get(duplicateKey);
+            Long currentTime = System.currentTimeMillis();
+            if (cacheTime != null && currentTime - cacheTime < this.duplicateCacheExpirationTime) {
+                hitCache.incrementAndGet();
+                context.breakExecute();
+                return t;
+            } else {
+                this.duplicateCache.put(duplicateKey, currentTime);
+                if (this.duplicateCache.getSize() > duplicateCacheSize) {
+                    this.duplicateCache = new LongValueKV(this.duplicateCacheSize);
+                }
+            }
+            if (total.get() % 5000 == 0) {
+                System.out.printf("total: %s, hit: %s%n", total.get(), hitCache.get());
+            }
+        }
+
         if (!t.getHeader().isSystemMessage()) {
             MessageGloableTrace.joinMessage(t);//关联全局监控器
         }
@@ -164,7 +208,8 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         return isTopology(this.channelNextStageLabel);
     }
 
-    public void doNextStages(AbstractContext context, String msgPrewSourceName, List<String> nextStageLabel, String prewSQLNodeName, AbstractStage... replaceStage) {
+    public void doNextStages(AbstractContext context, String msgPrewSourceName, List<String> nextStageLabel,
+        String prewSQLNodeName, AbstractStage... replaceStage) {
 
         if (!isTopology(nextStageLabel)) {
             return;
@@ -178,7 +223,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             if (size > 1) {
                 copyContext = context.copy();
             }
-            T msg = (T)copyContext.getMessage();
+            T msg = (T) copyContext.getMessage();
             AbstractStage oriStage = stageMap.get(lable);
             if (oriStage == null) {
                 if (stages != null && stages.size() > 0) {
@@ -224,7 +269,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 continue;
             } else {
                 if (ChainStage.class.isInstance(stage)) {
-                    ChainStage chainStage = (ChainStage)stage;
+                    ChainStage chainStage = (ChainStage) stage;
                     String msgSourceName = chainStage.getMsgSourceName();
                     if (StringUtil.isNotEmpty(msgSourceName)) {
                         msgPrewSourceName = msgSourceName;
@@ -286,7 +331,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         JSONObject jsonObject = null;
         if (stage instanceof ChainStage) {
             jsonObject = new JSONObject();
-            ChainStage chainStage = (ChainStage)stage;
+            ChainStage chainStage = (ChainStage) stage;
             return chainStage.toJsonObject();
             //String entityName = chainStage.getEntityName();
             ////todo 需要改写
@@ -324,18 +369,15 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         for (AbstractStage stage : getStages()) {
             stage.setPipeline(this);
-            if (IAfterConfiguableRefreshListerner.class.isInstance(stage)) {
-                if (AbstractConfigurable.class.isInstance(stage)) {
-                    AbstractConfigurable abstractConfigurable = (AbstractConfigurable)stage;
-                    if (abstractConfigurable.isInitSuccess() == false && this.isInitSuccess() == false) {
-                        this.setInitSuccess(false);
-                        return;
-                    }
+            if (stage instanceof IAfterConfigurableRefreshListener) {
+                if (!stage.isInitSuccess() && !this.isInitSuccess()) {
+                    this.setInitSuccess(false);
+                    return;
                 }
-                IAfterConfiguableRefreshListerner afterConfiguableRefreshListerner =
-                    (IAfterConfiguableRefreshListerner)stage;
+                IAfterConfigurableRefreshListener afterConfigurableRefreshListener =
+                    (IAfterConfigurableRefreshListener) stage;
 
-                afterConfiguableRefreshListerner.doProcessAfterRefreshConfigurable(configurableService);
+                afterConfigurableRefreshListener.doProcessAfterRefreshConfigurable(configurableService);
 
             }
         }
@@ -349,9 +391,9 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             startChannel();
         }
         this.source = source;
-        if (AbstractConfigurable.class.isInstance(source)) {
-            AbstractConfigurable abstractConfigurable = (AbstractConfigurable)source;
-            if (abstractConfigurable.isInitSuccess() == false && this.isInitSuccess()) {
+        if (source instanceof AbstractConfigurable) {
+            AbstractConfigurable abstractConfigurable = (AbstractConfigurable) source;
+            if (!abstractConfigurable.isInitSuccess() && this.isInitSuccess()) {
                 this.setInitSuccess(false);
                 return;
             }
@@ -361,6 +403,23 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         if ((isAutoStart || isPublish()) && isInitSuccess()) {
             startChannel();
         }
+
+        //增加去重的逻辑
+        String duplicateFieldNameStr = ComponentCreator.getProperties().getProperty(getConfigureName() + ".duplicate.fields.names");
+        if (duplicateFieldNameStr != null && !duplicateFieldNameStr.isEmpty()) {
+            this.duplicateFields = Lists.newArrayList();
+            this.duplicateFields.addAll(Arrays.asList(duplicateFieldNameStr.split(";")));
+        }
+        if (this.duplicateCache == null && this.duplicateFields != null) {
+            this.duplicateCache = new LongValueKV(this.duplicateCacheSize);
+        }
+        String duplicateCacheExpirationStr = ComponentCreator.getProperties().getProperty(getConfigureName() + ".duplicate.expiration.time");
+        if (duplicateCacheExpirationStr != null && !duplicateCacheExpirationStr.isEmpty()) {
+            this.duplicateCacheExpirationTime = Integer.parseInt(duplicateCacheExpirationStr);
+        } else {
+            this.duplicateCacheExpirationTime = 86400000;
+        }
+
     }
 
     public Map<String, AbstractStage> createStageMap() {

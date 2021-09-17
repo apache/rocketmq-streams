@@ -16,28 +16,24 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.model.Entity;
 
 /**
  * model for checkpoint，need save in store
  */
-public class CheckPoint extends Entity {
+public class CheckPoint<T> extends Entity {
+
     protected String sourceNamespace;
+    protected String pipelineName;
     protected String sourceName;
     protected String queueId;
-    protected String offset;
+    protected String topic;
 
-    public static String loadOffset(ISource source, String splitId) {
-        return null;
-        //Set<String> splits=new HashSet<>();
-        //splits.add(splitId);
-        //Map<String,String> queueId2Offset=loadOffset(source,splits);
-        //if(queueId2Offset==null||queueId2Offset.containsKey(splitId)==false){
-        //    return null;
-        //}
-        //return queueId2Offset.get(splitId);
-    }
+    protected T data;
+
+    protected JSONObject content;
 
     public String getQueueId() {
         return queueId;
@@ -47,13 +43,6 @@ public class CheckPoint extends Entity {
         this.queueId = queueId;
     }
 
-    public String getOffset() {
-        return offset;
-    }
-
-    public void setOffset(String offset) {
-        this.offset = offset;
-    }
 
     public String getSourceNamespace() {
         return sourceNamespace;
@@ -69,5 +58,74 @@ public class CheckPoint extends Entity {
 
     public void setSourceName(String sourceName) {
         this.sourceName = sourceName;
+    }
+
+    public String getPipelineName() {
+        return pipelineName;
+    }
+
+    public void setPipelineName(String pipelineName) {
+        this.pipelineName = pipelineName;
+    }
+
+    public JSONObject getContent() {
+        return content;
+    }
+
+    public void setContent(JSONObject content) {
+        this.content = content;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public SourceSnapShot toSnapShot(){
+        SourceSnapShot snapShot = new SourceSnapShot();
+        snapShot.setGmtCreate(gmtCreate);
+        snapShot.setGmtModified(gmtModified);
+        snapShot.setKey(CheckPointManager.createCheckPointKey(sourceName, queueId));
+        if(content == null){
+            content = new JSONObject();
+        }
+        content.put("offset", data);
+
+        snapShot.setValue(content.toString());
+        return snapShot;
+
+    }
+
+    public CheckPoint fromSnapShot(SourceSnapShot sourceSnapShot){
+
+        if(sourceSnapShot == null){
+            return null;
+        }
+
+        String key = sourceSnapShot.getKey();
+        String value = sourceSnapShot.getValue();
+        CheckPoint<String> checkPoint = new CheckPoint<>();
+        String[] tmp1 = CheckPointManager.parseCheckPointKey(key);
+        String[] tmp2 = tmp1[0].split(";");
+        checkPoint.setSourceNamespace(tmp2[0]);
+        checkPoint.setPipelineName(tmp2[1]);
+        checkPoint.setSourceName(tmp2[2]);
+        checkPoint.setQueueId(tmp1[1]);
+        checkPoint.setData(value);
+        checkPoint.setGmtCreate(sourceSnapShot.getGmtCreate());
+        checkPoint.setGmtModified(sourceSnapShot.getGmtModified());
+        return checkPoint;
+
     }
 }

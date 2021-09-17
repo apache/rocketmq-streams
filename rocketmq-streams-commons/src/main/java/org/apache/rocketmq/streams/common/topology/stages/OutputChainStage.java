@@ -25,7 +25,7 @@ import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMe
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -35,7 +35,7 @@ import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
-public class OutputChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfiguableRefreshListerner {
+public class OutputChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfigurableRefreshListener {
     public static final String OUT_MOCK_SWITCH = "out.mock.switch";//在配置文件中，是否打开mock的开关
 
     private String sinkName;
@@ -80,8 +80,8 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
             /**
              * 主要是输出可能影响线上数据，可以通过配置文件的开关，把所有的输出，都指定到一个其他输出中
              */
-            if(openMockChannel()){
-                if(mockSink!=null){
+            if (openMockChannel()) {
+                if (mockSink != null) {
                     mockSink.batchAdd(message);
                     return message;
                 }
@@ -100,23 +100,23 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
 
     @Override
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
-        ISink realSink=null;
-        if(openMockChannel()&&mockSink!=null){
-            realSink=mockSink;
-        }else {
-            realSink=sink;
+        ISink realSink = null;
+        if (openMockChannel() && mockSink != null) {
+            realSink = mockSink;
+        } else {
+            realSink = sink;
         }
-        if(message.getHeader().isNeedFlush()){
-            Set<String> queueIds=new HashSet<>();
-            if(message.getHeader().getCheckpointQueueIds()!=null){
+        if (message.getHeader().isNeedFlush()) {
+            Set<String> queueIds = new HashSet<>();
+            if (message.getHeader().getCheckpointQueueIds() != null) {
                 queueIds.addAll(message.getHeader().getCheckpointQueueIds());
             }
-            if(StringUtil.isNotEmpty(message.getHeader().getQueueId())){
+            if (StringUtil.isNotEmpty(message.getHeader().getQueueId())) {
                 queueIds.add(message.getHeader().getQueueId());
             }
-            realSink.flush(queueIds);
+            realSink.checkpoint(queueIds);
         }
-        CheckPointState checkPointState=  new CheckPointState();
+        CheckPointState checkPointState = new CheckPointState();
         checkPointState.setQueueIdAndOffset(realSink.getFinishedQueueIdAndOffsets(checkPointMessage));
         checkPointMessage.reply(checkPointState);
 
@@ -182,33 +182,33 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
 
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        sink=configurableService.queryConfigurable(ISink.TYPE, sinkName);
-        if(sink==null){
+        sink = configurableService.queryConfigurable(ISink.TYPE, sinkName);
+        if (sink == null) {
             sink = configurableService.queryConfigurable(IChannel.TYPE, sinkName);
         }
 
         metaData = configurableService.queryConfigurable(MetaData.TYPE, metaDataName);
-        mockSink=getMockChannel(configurableService,sink.getNameSpace());
+        mockSink = getMockChannel(configurableService, sink.getNameSpace());
     }
 
-    private ISink getMockChannel(IConfigurableService configurableService,String nameSpace) {
-        String type=ComponentCreator.getProperties().getProperty("out.mock.type");
-        if(type==null){
+    private ISink getMockChannel(IConfigurableService configurableService, String nameSpace) {
+        String type = ComponentCreator.getProperties().getProperty("out.mock.type");
+        if (type == null) {
             return null;
         }
-        ISink mockSink= configurableService.queryConfigurable(ISink.TYPE,OUT_MOCK_SWITCH+"_"+type);
-        if(mockSink==null){
-            mockSink= configurableService.queryConfigurable(IChannel.TYPE,OUT_MOCK_SWITCH+"_"+type);
+        ISink mockSink = configurableService.queryConfigurable(ISink.TYPE, OUT_MOCK_SWITCH + "_" + type);
+        if (mockSink == null) {
+            mockSink = configurableService.queryConfigurable(IChannel.TYPE, OUT_MOCK_SWITCH + "_" + type);
         }
         return mockSink;
     }
 
-    protected boolean openMockChannel(){
-        String swtich=ComponentCreator.getProperties().getProperty(OUT_MOCK_SWITCH);
-        if(swtich==null){
+    protected boolean openMockChannel() {
+        String swtich = ComponentCreator.getProperties().getProperty(OUT_MOCK_SWITCH);
+        if (swtich == null) {
             return false;
         }
-        if("true".equals(swtich)){
+        if ("true".equals(swtich)) {
             return true;
         }
         return false;

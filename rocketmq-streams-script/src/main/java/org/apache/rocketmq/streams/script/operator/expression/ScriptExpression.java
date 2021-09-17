@@ -32,7 +32,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
-import org.apache.rocketmq.streams.script.optimization.CompileScriptExpression;
+import org.apache.rocketmq.streams.script.optimization.compile.CompileScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
@@ -123,7 +123,7 @@ public class ScriptExpression implements IScriptExpression {
             System.out.println("");
         }
         Object value = functionConfigure.execute(ps);
-        compileScriptExpression = new CompileScriptExpression(this, functionConfigure);
+            compileScriptExpression = new CompileScriptExpression(this, functionConfigure);
         if (StringUtil.isNotEmpty(newFieldName) && value != null) {
             setValue2Var(message, context, newFieldName, value);
             //message.getMessageBody().put(newFieldName, value);

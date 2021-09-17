@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.common.channel.sinkcache.impl;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
-public class MultiSplitMessageCache extends AbstractMutilSplitMessageCache<IMessage> {
+public class MultiSplitMessageCache extends AbstractMultiSplitMessageCache<IMessage> {
 
     public MultiSplitMessageCache(
         IMessageFlushCallBack<IMessage> flushCallBack) {

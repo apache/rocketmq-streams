@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -63,13 +64,12 @@ public class ReflectUtil {
             AUTOWIRED_CLASS = null;
         }
     }
-
-    public static <T> T getDeclaredField(Object object, String fieldName) {
+    public static <T> T getDeclaredField(Class clazz, Object object, String fieldName) {
         try {
-            if (existMethodName(object.getClass(), getGetMethodName(fieldName))) {
+            if (existMethodName(clazz, getGetMethodName(fieldName))) {
                 return (T)invokeGetMethod(fieldName, object);
             }
-            Field field = object.getClass().getDeclaredField(fieldName);
+            Field field = clazz.getDeclaredField(fieldName);
             field.setAccessible(true);
             return (T)field.get(object);
         } catch (Exception e) {
@@ -79,6 +79,9 @@ public class ReflectUtil {
             }
             throw new RuntimeException("get field value error " + msg, e);
         }
+    }
+    public static <T> T getDeclaredField(Object object, String fieldName) {
+        return getDeclaredField(object.getClass(),object,fieldName);
     }
 
     public static List<Field> getDeclaredFieldsContainsParentClass(Class c) {
@@ -508,8 +511,12 @@ public class ReflectUtil {
     public static Object invoke(Object object, String methodName, Class[] classes, Object[] objects) {
         try {
             Class clazz = object.getClass();
-            Method method= clazz.getDeclaredMethod(methodName, classes);
-            method.setAccessible(true);
+            Method method=clazz.getMethod(methodName, classes);
+            if(method==null){
+                method= clazz.getDeclaredMethod(methodName, classes);
+                method.setAccessible(true);
+            }
+
             return method.invoke(object, objects);
         } catch (Exception e) {
             throw new RuntimeException(
@@ -530,6 +537,9 @@ public class ReflectUtil {
         Object result = null;
         Object modelBean = bean;// ChannelMessage
         for (String name : fieldNames) {// messageBody.type
+            if(modelBean==null){
+                return null;
+            }
             if (JSONObject.class.isInstance(modelBean)) {
                 result = getJsonItemValue(modelBean, clazz, name);
             } else if (JSONArray.class.isInstance(modelBean)) {
@@ -889,4 +899,13 @@ public class ReflectUtil {
         return methodName;
     }
 
+    public static Object forInstance(Class clazz,Class[] classes, Object[] objects) {
+        try {
+            Constructor constructor= clazz.getConstructor(classes);
+            return constructor.newInstance(objects);
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
+
+    }
 }

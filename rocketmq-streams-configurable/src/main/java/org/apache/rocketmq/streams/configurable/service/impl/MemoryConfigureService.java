@@ -21,18 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-<<<<<<< HEAD
-
-import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-=======
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
->>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 
 public class MemoryConfigureService extends AbstractConfigurableService {
 

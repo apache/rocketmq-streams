@@ -34,7 +34,8 @@ public class SQLUtil {
     private static final String INSERT_IGNORE = "INSERT IGNORE INTO";
     private static final String REPLACE = "REPLACE INTO";
 
-    public static String createReplacesInsertSql(MetaData metaData, Map<String, Object> fieldName2Value, Boolean containsIdField) {
+    public static String createReplacesInsertSql(MetaData metaData, Map<String, Object> fieldName2Value,
+        Boolean containsIdField) {
         String insertSQL = createInsertSql(metaData, fieldName2Value, containsIdField);
         insertSQL = insertSQL.replaceFirst(INSERT, REPLACE);
         return insertSQL;
@@ -60,7 +61,8 @@ public class SQLUtil {
         return stringBuilder.toString();
     }
 
-    public static String createIgnoreInsertSql(MetaData metaData, Map<String, Object> fieldName2Value, Boolean containsIdField) {
+    public static String createIgnoreInsertSql(MetaData metaData, Map<String, Object> fieldName2Value,
+        Boolean containsIdField) {
         String insertSQL = createInsertSql(metaData, fieldName2Value, containsIdField);
         insertSQL = insertSQL.replaceFirst(INSERT, INSERT_IGNORE);
         return insertSQL;
@@ -70,7 +72,8 @@ public class SQLUtil {
         return createInsertSql(metaData, fieldName2Value, null);
     }
 
-    public static String createInsertSql(MetaData metaData, Map<String, Object> fieldName2Value, Boolean containsIdField) {
+    public static String createInsertSql(MetaData metaData, Map<String, Object> fieldName2Value,
+        Boolean containsIdField) {
 
         StringBuilder sql = new StringBuilder(INSERT + " " + metaData.getTableName() + "(");
         StringBuilder fieldSql = new StringBuilder();
@@ -106,7 +109,8 @@ public class SQLUtil {
         return stringBuilder.toString();
     }
 
-    protected static String createInsertValuesSQL(MetaData metaData, Map<String, Object> fieldName2Value, StringBuilder fieldSql, StringBuilder valueSql) {
+    protected static String createInsertValuesSQL(MetaData metaData, Map<String, Object> fieldName2Value,
+        StringBuilder fieldSql, StringBuilder valueSql) {
         boolean isIncrement = true;
         if (fieldName2Value.containsKey(metaData.getIdFieldName())) {
             isIncrement = false;
@@ -114,7 +118,8 @@ public class SQLUtil {
         return createInsertValuesSQL(metaData, fieldName2Value, fieldSql, valueSql, isIncrement);
     }
 
-    protected static String createInsertValuesSQL(MetaData metaData, Map<String, Object> fieldName2Value, StringBuilder fieldSql, StringBuilder valueSql, boolean containsIdField) {
+    protected static String createInsertValuesSQL(MetaData metaData, Map<String, Object> fieldName2Value,
+        StringBuilder fieldSql, StringBuilder valueSql, boolean containsIdField) {
         boolean isFirst = true;
         valueSql.append("(");
         //if (fieldName2Value.containsKey(metaData.getIdFieldName())) {
@@ -172,16 +177,16 @@ public class SQLUtil {
             // }
             String result = null;
             if (DataTypeUtil.isDate(field.getDataType().getDataClass())) {
-                result = DateUtil.format((Date)value);
+                result = DateUtil.format((Date) value);
             } else if (JSONObject.class.isInstance(value)) {
-                result = ((JSONObject)value).toJSONString();
+                result = ((JSONObject) value).toJSONString();
             } else {
                 result = value.toString();
             }
             return "'" + handleSpecialCharInSql(result) + "'";
         } else {
             if (DataTypeUtil.isBoolean(field.getDataType().getDataClass())) {
-                boolean boolValue = (Boolean)value;
+                boolean boolValue = (Boolean) value;
                 return boolValue ? "1" : "0";
             }
             return value + "";
@@ -261,12 +266,12 @@ public class SQLUtil {
         if (object == null) {
             return ibatisSQL;
         }
-        if (object == null || StringUtil.isEmpty(ibatisSQL)) {
+        if (StringUtil.isEmpty(ibatisSQL)) {
             return null;
         }
 
         List<String> vars = parseIbatisSQLVars(ibatisSQL);
-        if (vars == null || vars.size() == 0) {
+        if (vars.size() == 0) {
             return ibatisSQL;
         }
         String sql = ibatisSQL;
@@ -274,19 +279,22 @@ public class SQLUtil {
             Object value = getBeanFieldValue(object, varName);
             String valueSQL = null;
 
-            if (value != null & !String.class.isInstance(value) && !Date.class.isInstance(value)) {
+            if (value != null & !(value instanceof String) && !Date.class.isInstance(value)) {
                 valueSQL = value.toString();
             }
-            if (value != null && String.class.isInstance(value)) {
+            if (value instanceof String) {
                 value = value.toString().replace("'", "''");
+                if (value.toString().contains("\\")) {
+                    value = value.toString().replaceAll("\\\\", "\\\\\\\\");
+                }
                 if (containsQuotation && (ibatisSQL.indexOf("'#{" + varName + "}'") > -1 || ibatisSQL.indexOf("`#{" + varName + "}`") > -1)) {
                     valueSQL = value + "";
                 } else {
                     valueSQL = "'" + value + "'";
                 }
             }
-            if (value != null && Date.class.isInstance(value)) {
-                String valueDate = DateUtil.format((Date)value);
+            if (value instanceof Date) {
+                String valueDate = DateUtil.format((Date) value);
                 if (containsQuotation && ibatisSQL.indexOf("'#{" + varName + "}'") > -1) {
                     valueSQL = valueDate;
                 } else {
@@ -314,20 +322,20 @@ public class SQLUtil {
     }
 
     protected static Object getBeanFieldValue(Object object, String varName) {
-        if (JSONObject.class.isInstance(object)) {
-            JSONObject jsonObject = (JSONObject)object;
+        if (object instanceof JSONObject) {
+            JSONObject jsonObject = (JSONObject) object;
             return jsonObject.get(varName);
-        } else if (Map.class.isInstance(object)) {
-            Map<String, Object> paras = (Map)object;
+        } else if (object instanceof Map) {
+            Map<String, Object> paras = (Map) object;
             return paras.get(varName);
         } else {
 
-            if (IConfigurable.class.isInstance(object) && varName.equals(IConfigurable.JSON_PROPERTY)) {
-                IConfigurable configurable = (IConfigurable)object;
+            if (object instanceof IConfigurable && varName.equals(IConfigurable.JSON_PROPERTY)) {
+                IConfigurable configurable = (IConfigurable) object;
                 return configurable.toJson();
             }
-            if (BasedConfigurable.class.isInstance(object) && varName.equals(IConfigurable.STATUS_PROPERTY)) {
-                BasedConfigurable basedConfigurable = (BasedConfigurable)object;
+            if (object instanceof BasedConfigurable && varName.equals(IConfigurable.STATUS_PROPERTY)) {
+                BasedConfigurable basedConfigurable = (BasedConfigurable) object;
                 return basedConfigurable.getStatus();
             }
             return ReflectUtil.getBeanFieldValue(object, varName);

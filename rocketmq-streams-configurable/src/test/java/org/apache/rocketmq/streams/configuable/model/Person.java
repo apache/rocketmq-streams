@@ -21,10 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-<<<<<<< HEAD
-
-=======
->>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 public class Person extends BasedConfigurable{

@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -24,7 +24,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 
-public class NewSQLChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfiguableRefreshListerner {
+public class NewSQLChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
     protected String sqlMessageProcessorName;
     protected transient IStreamOperator<IMessage, IMessage> messageProcessor;
 

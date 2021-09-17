@@ -123,14 +123,14 @@ public interface ConfigureFileKey {
     }
 
     /**
-     * shuffle相关配置，如果后面加上.namespace,则只对某个namespace生效，如window.shuffle.channel.type.namespace=metaq,相当于只对这个namespace配置
+     * shuffle相关配置，如果后面加上.namespace,则只对某个namespace生效，如window.shuffle.channel.type.namespace=rocketmq,相当于只对这个namespace配置
      */
 
     String WINDOW_SHUFFLE_CHANNEL_TYPE = "window.shuffle.channel.type";//window 做shuffle中转需要的消息队列类型
-    //比如metaq，需要topic，tags和group,属性值和字段名保持一致即可。配置如下:window.shuffle.channel.topic=abdc    window.shuffle.channel.tag=fdd
+    //比如rocketmq，需要topic，tags和group,属性值和字段名保持一致即可。配置如下:window.shuffle.channel.topic=abdc    window.shuffle.channel.tag=fdd
 
     String WINDOW_SHUFFLE_CHANNEL_PROPERTY_PREFIX = "window.shuffle.channel.";
-    String WINDOW_SYSTEM_MESSAGE_CHENNEL_OWNER = "window.system.message.channel.owner";//如果能做消息过滤，只过滤本window的消息，可以配置这个属性，如metaq的tags.不支持的会做客户端过滤
+    String WINDOW_SYSTEM_MESSAGE_CHENNEL_OWNER = "window.system.message.channel.owner";//如果能做消息过滤，只过滤本window的消息，可以配置这个属性，如rocketmq的tags.不支持的会做客户端过滤
 
     /**
      * 通知相关
@@ -139,5 +139,11 @@ public interface ConfigureFileKey {
     String WINDOW_SYSTEM_MESSAGE_CHENNEL_PROPERTY_PREFIX = "window.system.message.channel.";
 
     String LEASE_STORAGE_NAME = "DB";//通过这个配置，可以修改lease 的底层存储
+
+    String CHECKPOINT_STORAGE_NAME = "checkPointStorageName";
+
+    String IS_RECOVER_MODE = "isRecover";
+
+    String IS_ATOMIC_DB_SINK = "isAtomicDbSink";
 
 }

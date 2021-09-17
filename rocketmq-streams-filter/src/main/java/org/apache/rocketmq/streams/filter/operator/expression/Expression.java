@@ -36,9 +36,12 @@ import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
+import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
+import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
+import org.apache.rocketmq.streams.script.optimization.performance.ScriptExpressionGroupsProxy;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public class Expression<T> extends BasedConfigurable
@@ -53,9 +56,13 @@ public class Expression<T> extends BasedConfigurable
     @SuppressWarnings("rawtypes")
     private DataType dataType = new StringDataType(String.class);
     protected T value;
-
     public Expression copy() {
-        Expression expression = new Expression();
+        Expression expression=new Expression();
+        copy(expression);
+        return expression;
+    }
+
+    public void copy(Expression expression) {
         expression.setNameSpace(getNameSpace());
         expression.setType(getType());
         expression.setConfigureName(getConfigureName());
@@ -65,7 +72,6 @@ public class Expression<T> extends BasedConfigurable
         expression.setValue(value);
         expression.setPrivateDatas(privateDatas);
         expression.setAesFlag(aesFlag);
-        return expression;
     }
 
     // 前端处理使用
@@ -130,6 +136,14 @@ public class Expression<T> extends BasedConfigurable
     }
 
     public Boolean getExpressionValue(RuleContext context, Rule rule) {
+
+        if(RegexFunction.isRegex(functionName)|| LikeFunction.isLikeFunciton(functionName)){
+            Boolean value=ScriptExpressionGroupsProxy.inFilterCache(getVarName(),getValue().toString(),context.getMessage(),context);
+            if(value!=null){
+                return value;
+            }
+        }
+
         Boolean result = context.getExpressionValue(getConfigureName());
         if (result != null) {
             return result;

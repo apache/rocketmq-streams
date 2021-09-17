@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.common.context;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public <C extends AbstractContext<T>> void syncContext(C subContext) {
+        this.putAll(subContext);
         this.setValues(subContext.getValues());
         this.setConfigurableService(subContext.getConfigurableService());
         this.setSplitModel(subContext.isSplitModel());
@@ -88,6 +90,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
+        subContext.putAll(this);
         subContext.setValues(this.getValues());
         subContext.setConfigurableService(this.getConfigurableService());
         subContext.setSplitModel(this.isSplitModel());
@@ -95,6 +98,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.setSplitMessages(this.getSplitMessages());
         subContext.monitor = this.monitor;
         subContext.isBreak = isBreak;
+
         return subContext;
     }
 
@@ -128,9 +132,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         if (splitMessages == null) {
             return;
         }
-        for (T t : splitMessages) {
-            this.splitMessages.add(t);
-        }
+        this.splitMessages.addAll(Arrays.asList(splitMessages));
     }
 
     public void removeSpliteMessage(T message) {
@@ -146,6 +148,27 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     /**
+     * cache filter（regex，like，equals）result
+     */
+    private static String FILTER_CACHE_PREPIX = "__filter_cache_prefix";
+
+    public void setFilterCache(String expressionStr, String varValue, boolean result) {
+        this.put(MapKeyUtil.createKey(FILTER_CACHE_PREPIX, expressionStr, varValue), result);
+    }
+
+    /**
+     * get cache result
+     *
+     * @param expressionStr
+     * @param varValue
+     * @return
+     */
+    public Boolean getFilterCache(String expressionStr, String varValue) {
+        String key = MapKeyUtil.createKey(FILTER_CACHE_PREPIX, expressionStr, varValue);
+        return (Boolean) this.get(key);
+    }
+
+    /**
      * 获取基于字段缓存的某些值
      *
      * @param fieldName
@@ -154,7 +177,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
      */
     @Deprecated
     public <T> T getValue(String fieldName) {
-        return (T)values.get(fieldName);
+        return (T) values.get(fieldName);
     }
 
     /**
@@ -200,7 +223,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     }
 
     public static <R, C extends AbstractContext> List<IMessage> executeScript(IMessage channelMessage, C context,
-                                                                              List<? extends IBaseStreamOperator<IMessage, R, C>> scriptExpressions) {
+        List<? extends IBaseStreamOperator<IMessage, R, C>> scriptExpressions) {
         List<IMessage> messages = new ArrayList<>();
         if (scriptExpressions == null) {
             return messages;
@@ -334,7 +357,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         context.setSplitModel(this.isSplitModel());
         List<T> messages = new ArrayList<>();
         for (T tmp : this.getSplitMessages()) {
-            messages.add(tmp.copy());
+            messages.add(tmp.deepCopy());
         }
         context.setSplitMessages(messages);
         context.monitor = this.monitor;

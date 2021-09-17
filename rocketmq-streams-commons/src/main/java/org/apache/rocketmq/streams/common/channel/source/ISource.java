@@ -74,4 +74,22 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
      */
     long getCheckpointTime();
 
+    /**
+     *
+     * @param topic
+     */
+    void setTopic(String topic);
+
+    /**
+     *
+     * @return
+     */
+    String getTopic();
+
+    /**
+     * 创建checkpoint名字
+     * @return checkpoint key name
+     */
+    String createCheckPointName();
+
 }

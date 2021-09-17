@@ -81,6 +81,14 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
 
     }
 
+    @Override public boolean checkpoint(Set<String> splitIds) {
+        return sink.checkpoint(splitIds);
+    }
+
+    @Override public boolean checkpoint(String... splitIds) {
+        return sink.checkpoint(splitIds);
+    }
+
     @Override
     public boolean flush(String... splitIds) {
         return sink.flush(splitIds);
@@ -218,5 +226,15 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     public void setJsonData(Boolean isJsonData) {
         create();
         ((AbstractSource)source).setJsonData(isJsonData);
+    }
+
+    @Override
+    public String getTopic(){
+        return source.getTopic();
+    }
+
+    @Override
+    public void setTopic(String topic){
+        source.setTopic(topic);
     }
 }

@@ -16,8 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
-import java.io.Serializable;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -27,15 +26,15 @@ import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 
+import java.io.Serializable;
+
 /**
  * 给用户提供自定义的抽象类
  */
-public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage>
-    implements IStageBuilder<ChainStage>, Serializable, IAfterConfiguableRefreshListerner {
-
+public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage> implements IStageBuilder<ChainStage>, Serializable, IAfterConfigurableRefreshListener {
+    private static final long serialVersionUID = 1L;
     @Override
     protected boolean initConfigurable() {
-
         return true;
     }
 

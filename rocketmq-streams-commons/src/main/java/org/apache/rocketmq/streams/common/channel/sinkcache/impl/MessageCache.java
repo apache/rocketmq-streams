@@ -39,6 +39,9 @@ public class MessageCache<R> implements IMessageCache<R> {
     protected volatile transient ConcurrentLinkedQueue<R> dataQueue = new ConcurrentLinkedQueue<>();//缓存数据的消息队列
 
     protected AtomicBoolean openAutoFlushLock = new AtomicBoolean(false);
+    protected volatile int autoFlushSize = 300;
+    protected volatile int autoFlushTimeGap = 1000;
+
 
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
         this.flushCallBack = flushCallBack;
@@ -64,6 +67,8 @@ public class MessageCache<R> implements IMessageCache<R> {
     public void openAutoFlush() {
         if (openAutoFlushLock.compareAndSet(false, true)) {//可重入锁
             autoFlushTask = new DataSourceAutoFlushTask(true, this);
+            autoFlushTask.setAutoFlushSize(this.autoFlushSize);
+            autoFlushTask.setAutoFlushTimeGap(this.autoFlushTimeGap);
             Thread thread = new Thread(autoFlushTask);
             thread.start();
         }
@@ -77,17 +82,18 @@ public class MessageCache<R> implements IMessageCache<R> {
         }
     }
 
-    protected synchronized void offerQueue(R msg) {
+    protected  void offerQueue(R msg) {
         dataQueue.offer(msg);
+
     }
 
-    protected List<R> getMessagesFromQueue() {
+    protected List<R> getMessagesFromQueue(int size) {
         List<R> messages = new ArrayList<>();
-        ConcurrentLinkedQueue<R> tmp = dataQueue;
-        dataQueue = new ConcurrentLinkedQueue<>();
-        while (!tmp.isEmpty()) {
-            R msg = tmp.poll();
+        int count=0;
+        while (count<size) {
+            R msg = this.dataQueue.poll();
             messages.add(msg);
+            count++;
         }
         return messages;
     }
@@ -107,13 +113,14 @@ public class MessageCache<R> implements IMessageCache<R> {
         if (getMessageCount() == 0) {
             return 0;
         }
+        List<R> messages = null;
         synchronized (this) {
             if (getMessageCount() == 0) {
                 return 0;
             }
-            List<R> messages = null;
+            int size=this.dataQueue.size();
             messageCount = new AtomicInteger(0);
-            messages = getMessagesFromQueue();
+            messages = getMessagesFromQueue(size);
             flushCallBack.flushMessage(messages);
             return messages.size();
         }
@@ -123,6 +130,23 @@ public class MessageCache<R> implements IMessageCache<R> {
     @Override
     public int flush(Set<String> splitIds) {
         return flush();
+    }
+
+
+    public int getAutoFlushSize() {
+        return autoFlushSize;
+    }
+
+    public void setAutoFlushSize(int autoFlushSize) {
+        this.autoFlushSize = autoFlushSize;
+    }
+
+    public int getAutoFlushTimeGap() {
+        return autoFlushTimeGap;
+    }
+
+    public void setAutoFlushTimeGap(int autoFlushTimeGap) {
+        this.autoFlushTimeGap = autoFlushTimeGap;
     }
 
     @Override

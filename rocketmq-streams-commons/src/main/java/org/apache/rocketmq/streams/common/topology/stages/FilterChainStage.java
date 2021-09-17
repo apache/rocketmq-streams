@@ -28,7 +28,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.IComponent;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfiguableRefreshListerner;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -45,7 +45,7 @@ import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 
-public class FilterChainStage<T extends IMessage, R extends AbstractRule> extends AbstractStatelessChainStage<T> implements IAfterConfiguableRefreshListerner {
+public class FilterChainStage<T extends IMessage, R extends AbstractRule> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
     protected transient AtomicInteger count = new AtomicInteger(0);
     protected transient Map<String, Integer> map = new HashMap<>();
     private List<String> names;

@@ -17,12 +17,14 @@
 package org.apache.rocketmq.streams.common.channel.sink;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
@@ -30,8 +32,8 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MultiSplitMessa
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
-import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager.SourceState;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
+import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -71,14 +73,13 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         return batchAdd(fieldName2Value);
     }
 
-    public ISplit getSPlit(IMessage message) {
-        return (ISplit)message.getMessageBody().get(TARGET_QUEUE);
+    public ISplit getSplit(IMessage message) {
+        return (ISplit) message.getMessageBody().get(TARGET_QUEUE);
     }
 
     @Override
     public boolean batchAdd(IMessage fieldName2Value) {
         messageCache.addCache(fieldName2Value);
-
         return true;
     }
 
@@ -126,16 +127,20 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     @Override
     public boolean flush(Set<String> splitIds) {
         int size = messageCache.flush(splitIds);
+        if (size > 0) {
+            System.out.println(this.getClass().getSimpleName() + " finish flush data " + size);
+        }
+
         return size > 0;
     }
 
     @Override
     public boolean flush(String... splitIds) {
-        if(splitIds==null){
+        if (splitIds == null) {
             return true;
         }
-        Set<String> splitIdSet =new HashSet<>();
-        for(String splitId:splitIds){
+        Set<String> splitIdSet = new HashSet<>();
+        for (String splitId : splitIds) {
             splitIdSet.add(splitId);
         }
         return flush(splitIdSet);
@@ -166,6 +171,24 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
             sourceState.getQueueId2Offsets().put(queueId, messageOffset);
         }
         return success;
+    }
+
+    @Override
+    public boolean checkpoint(Set<String> splitIds) {
+        return flush(splitIds);
+    }
+
+    @Override
+    public boolean checkpoint(String... splitIds) {
+        if (splitIds == null) {
+            return false;
+        }
+        Set<String> splitSet = new HashSet<>();
+        for (String splitId : splitIds) {
+            splitSet.add(splitId);
+        }
+
+        return checkpoint(splitSet);
     }
 
     @Override
@@ -222,13 +245,13 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
 
     @Override
     public Map<String, MessageOffset> getFinishedQueueIdAndOffsets(CheckPointMessage checkPointMessage) {
-        String piplineName = null;
-        if (IConfigurableIdentification.class.isInstance(checkPointMessage.getStreamOperator())) {
-            IConfigurableIdentification configurable = (IConfigurableIdentification)checkPointMessage.getStreamOperator();
-            piplineName = configurable.getConfigureName();
+        String pipelineName = null;
+        if (checkPointMessage.getStreamOperator() instanceof IConfigurableIdentification) {
+            IConfigurableIdentification configurable = (IConfigurableIdentification) checkPointMessage.getStreamOperator();
+            pipelineName = configurable.getConfigureName();
         }
         SourceState sourceState = this.sourceName2State.get(
-            CheckPointManager.createSourceName(checkPointMessage.getSource(), piplineName));
+            CheckPointManager.createSourceName(checkPointMessage.getSource(), pipelineName));
         if (sourceState != null) {
             return sourceState.getQueueId2Offsets();
         }

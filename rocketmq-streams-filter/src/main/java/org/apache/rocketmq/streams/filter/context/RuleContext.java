@@ -317,7 +317,7 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
 
     @Override
     public AbstractContext copy() {
-        IMessage message = this.message.copy();
+        IMessage message = this.message.deepCopy();
         RuleContext context = new RuleContext(nameSpace, message.getMessageBody(), rule, contextConfigure);
         super.copyProperty(context);
         context.actionExecutor = actionExecutor;

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * 可以用sql中的like表示正则，系统负责完成转化
@@ -27,12 +28,15 @@ import org.apache.commons.logging.LogFactory;
 public class LikeRegex {
     private static final Log LOG = LogFactory.getLog(LikeRegex.class);
     public static final String SPECAIL_WORD = "%";
-    public static String[] regexSpecialWords = {"\\", "$", "(", ")", "*", "+", ".", "[", "]", "?", "^", "{", "}", "|"};
+    public static String[] regexSpecialWords = {"\\(", "\\)", "\\*", "\\+", "\\.", "\\[", "\\]", "\\?", "\\^", "\\{", "\\}", "\\|"};
+    //public static String[] regexSpecialWords = {"\\\\","\\$", "\\(", "\\)", "\\*", "\\+", "\\.", "\\[", "\\]", "\\?", "\\^", "\\{", "\\}", "\\|"};
 
     protected String likeStr;
     protected boolean isStartFlag = true;
     protected boolean isEndFlag = true;
+    protected boolean hasUnderline=false;
     protected List<String> quickMatchWord = new ArrayList<>();
+    protected List<Integer> specailWordIndex=new ArrayList<>();
 
     public LikeRegex(String likeStr) {
         this.likeStr = likeStr;
@@ -41,6 +45,9 @@ public class LikeRegex {
 
     public void parse() {
         String tmp = likeStr;
+        if(tmp.indexOf("_")!=-1){
+            hasUnderline=true;
+        }
         if (tmp == null) {
             return;
         }
@@ -59,12 +66,17 @@ public class LikeRegex {
         String[] words = tmp.split(SPECAIL_WORD);
         for (int i = 0; i < words.length; i++) {
             quickMatchWord.add(words[i]);
+            specailWordIndex.add(i);
         }
     }
 
     public boolean match(String content) {
         if (content == null) {
             return false;
+        }
+        if(hasUnderline){
+            String regex=createRegex();
+            return StringUtil.matchRegex(content,regex);
         }
         if (quickMatchWord == null || quickMatchWord.size() == 0) {
             LOG.warn("like may be parse error, words is empty " + likeStr);
@@ -88,6 +100,54 @@ public class LikeRegex {
             }
         }
         return true;
+    }
+
+    public String createRegex(){
+        StringBuilder regex=new StringBuilder();
+
+        boolean isFirst=true;
+        for(String word:this.quickMatchWord){
+            if(isFirst){
+                isFirst=false;
+            }else {
+                regex.append(".*");
+            }
+            String subRegex=word;
+
+            for(String regexSpecialWord:regexSpecialWords){
+                try {
+                    subRegex = subRegex.replaceAll(regexSpecialWord,"\\"+regexSpecialWord);
+
+                }catch (Exception e){
+                    LOG.error(regexSpecialWord+"  "+subRegex+"\r\n"+  e.getMessage(),e);
+                    throw new RuntimeException(e);
+                }
+            }
+
+            if (subRegex.indexOf("$")!=-1){
+                String newSubRegex="";
+                for(int i=0;i<subRegex.length();i++){
+                    String regexWord=subRegex.substring(i,1+i);
+                    if("$".equals(regexWord)){
+                        newSubRegex=newSubRegex+"\\$";
+                    }else {
+                        newSubRegex=newSubRegex+regexWord;
+                    }
+                }
+                subRegex=newSubRegex;
+            }
+            regex.append(subRegex);
+        }
+
+        String regexStr=regex.toString();
+        regexStr=regexStr.replaceAll("_",".");
+        if(!regexStr.startsWith(".")&&isStartFlag){
+            regexStr="^"+regexStr;
+        }
+        if(isEndFlag){
+            regexStr=regexStr+"$";
+        }
+        return regexStr;
     }
 
     public boolean startsWith(char[] content, String prefix, int toffset) {
@@ -166,9 +226,9 @@ public class LikeRegex {
 
     public static void main(String[] args) {
         String content = "xCurrentVersion\\Windows\\load";
-        String likeStr = "_Current_ersion\\Windows\\load%";
+        String likeStr = "$Current$ersionWindows?\\load$";
         LikeRegex likeRegex = new LikeRegex(likeStr);
-        likeRegex.parse();
-        System.out.println(likeRegex.match(content));
+
+        System.out.println(likeRegex.createRegex());
     }
 }

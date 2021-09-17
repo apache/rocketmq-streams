@@ -16,17 +16,6 @@
  */
 package org.apache.rocketmq.streams.configurable.service;
 
-<<<<<<< HEAD
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
-
-import java.util.Properties;
-
-=======
 import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,7 +24,6 @@ import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
->>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 public class ConfigurableServiceFactory {
     private static ServiceLoaderComponent<IConfigurableService> configurableServiceLoaderComponent =
         ServiceLoaderComponent.getInstance(IConfigurableService.class);

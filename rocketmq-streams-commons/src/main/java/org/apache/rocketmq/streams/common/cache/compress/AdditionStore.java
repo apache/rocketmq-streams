@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.common.cache.compress;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class AdditionStore {
 
     /**
@@ -104,8 +103,8 @@ public class AdditionStore {
         CacheKV.MapAddress address = new CacheKV.MapAddress(conflictIndex, conflictOffset);
         if (isVarLen) {
             int size = value.length;
-            bytes[conflictOffset] = (byte)(size & 0xff);
-            bytes[conflictOffset + 1] = (byte)(size >> 8 & 0xff);
+            bytes[conflictOffset] = (byte) (size & 0xff);
+            bytes[conflictOffset + 1] = (byte) (size >> 8 & 0xff);
             conflictOffset = conflictOffset + 2;
         }
         for (int i = 0; i < value.length; i++) {
@@ -131,7 +130,7 @@ public class AdditionStore {
         if (bytes == null) {
             return null;
         }
-        if (isVarLen == false) {
+        if (!isVarLen) {
             return new ByteArray(bytes, mapAddress.offset, elementSize);
         } else {
             int len = new ByteArray(bytes, mapAddress.offset, 2).castInt(0, 2);

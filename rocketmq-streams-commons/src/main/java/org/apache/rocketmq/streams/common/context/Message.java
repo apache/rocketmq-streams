@@ -94,6 +94,8 @@ public class Message implements IMessage {
             jsonObject.put(key, message.get(key));
         }
         Message message = new Message(jsonObject);
+        message.setSystemMessage(getSystemMessage());
+        message.isJsonMessage=isJsonMessage;
         message.header = getHeader().copy();
         return message;
     }

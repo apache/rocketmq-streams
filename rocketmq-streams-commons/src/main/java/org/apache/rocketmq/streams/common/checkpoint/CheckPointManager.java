@@ -16,176 +16,83 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
-import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
-public class CheckPointManager {
-    protected IMessageCache<CheckPointMessage> messageCache;
+import java.util.*;
+import java.util.Map.Entry;
+
+public class CheckPointManager extends BasedConfigurable {
+
     protected transient Map<String, Long> currentSplitAndLastUpdateTime = new HashMap<>();//保存这个实例处理的分片数
 
     protected transient Map<String, Long> removingSplits = new HashMap<>();//正在删除的分片
 
-    public CheckPointManager() {
-        messageCache = new MessageCache<>(new IMessageFlushCallBack<CheckPointMessage>() {
-            @Override
-            public boolean flushMessage(List<CheckPointMessage> messages) {
-                //合并最近的checkpoint，只存储一次，为了
-                Map<String, SourceState> sourceStateMap = mergeSourceState(messages);
-                saveCheckPoint(sourceStateMap);
-                return true;
-            }
-        });
-        messageCache.openAutoFlush();
+    protected transient ICheckPointStorage iCheckPointStorage;
+
+    public CheckPointManager(){
+        String name = ComponentCreator.getProperties().getProperty(ConfigureFileKey.CHECKPOINT_STORAGE_NAME);
+        iCheckPointStorage = CheckPointStorageFactory.getInstance().getStorage(name);
     }
 
-    public void flush() {
-        messageCache.flush();
-    }
 
-    public synchronized void addSplit(String splitId) {
-        this.currentSplitAndLastUpdateTime.put(splitId, System.currentTimeMillis());
+    public synchronized void addSplit(String splitId){
+        this.currentSplitAndLastUpdateTime.put(splitId,System.currentTimeMillis());
     }
-
-    public synchronized void removeSplit(String splitId) {
+    public synchronized void removeSplit(String splitId){
         this.currentSplitAndLastUpdateTime.remove(splitId);
     }
 
-    public boolean contains(String splitId) {
+    public boolean contains(String splitId){
         return this.currentSplitAndLastUpdateTime.containsKey(splitId);
     }
 
-    /**
-     * 可能有多次的offset合并在一起，对offset合并 合并包含两个逻辑：1.同1个CheckPointMessage中，选择最小的作为本次的offset
-     *
-     * @param messages
-     */
-    protected Map<String, SourceState> mergeSourceState(List<CheckPointMessage> messages) {
-        Map<String, SourceState> sourceStateMap = new HashMap<>();
-        for (CheckPointMessage checkPointMessage : messages) {
-            SourceState sourceState = createSourceState(checkPointMessage);
-            if (sourceState == null) {
-                continue;
-            }
-            String sourceName = sourceState.getSourceName();
-            SourceState existSourceState = sourceStateMap.get(sourceName);
-            if (existSourceState != null) {
-                SourceState lastSourceState = merge(sourceState, existSourceState);
-                sourceStateMap.put(sourceName, lastSourceState);
-            }
-        }
-        return sourceStateMap;
-    }
+    private final List<CheckPoint> fromSourceState(Map<String, SourceState> sourceStateMap){
 
-    /**
-     * 一个pipeline流程中，找最小的offset提交保存
-     *
-     * @param checkPointMessage
-     * @return
-     */
-    protected SourceState createSourceState(CheckPointMessage checkPointMessage) {
-        SourceState sourceState = new SourceState();
-        String pipelineName = null;
-        if (checkPointMessage.getStreamOperator() instanceof IConfigurableIdentification) {
-            IConfigurableIdentification configurable = (IConfigurableIdentification)checkPointMessage.getCheckPointStates();
-            pipelineName = configurable.getConfigureName();
-        }
-        Map<String, MessageOffset> queueId2Offsets = new HashMap<>();
-        sourceState.setSourceName(createSourceName(checkPointMessage.getSource(), pipelineName));
-        sourceState.setQueueId2Offsets(queueId2Offsets);
-
-        for (CheckPointState checkPointState : checkPointMessage.getCheckPointStates()) {
-            if (checkPointState.isReplyAnyOny()) {
-                continue;
-            }
-            if (checkPointState.isReplyRefuse()) {
-                return null;
-            }
-            for (Entry<String, MessageOffset> entry : checkPointState.getQueueIdAndOffset().entrySet()) {
-                String queueId = entry.getKey();
-                MessageOffset offset = entry.getValue();
-                MessageOffset existOffset = queueId2Offsets.get(queueId);
-                if (existOffset == null) {
-                    queueId2Offsets.put(queueId, offset);
-                } else {
-                    boolean isGreateThan = existOffset.greateThan(offset.getOffsetStr());
-                    if (isGreateThan) {
-                        queueId2Offsets.put(queueId, offset);
-                    } else {
-                        queueId2Offsets.put(queueId, existOffset);
-                    }
-                }
-            }
-        }
-        return sourceState;
-    }
-
-    /**
-     * 先查询现在数据源的分片，如果已经不处理的分片，不做保存 否则把结果保存到db中
-     *
-     * @param sourceStateMap
-     */
-    protected void saveCheckPoint(Map<String, SourceState> sourceStateMap) {
         List<CheckPoint> checkPoints = new ArrayList<>();
-        for (SourceState sourceState : sourceStateMap.values()) {
-            CheckPoint checkPoint = new CheckPoint();
-            //  checkPoint.setOffset();
-        }
-    }
 
-    /**
-     * 如果多次的checkpoint在一起，先合并再保存
-     *
-     * @param sourceState
-     * @param existSourceState
-     * @return
-     */
-    protected SourceState merge(SourceState sourceState, SourceState existSourceState) {
-        Iterator<Entry<String, MessageOffset>> it = sourceState.getQueueId2Offsets().entrySet()
-            .iterator();
-        while (it.hasNext()) {
-            Entry<String, MessageOffset> entry = it.next();
-            String queueId = entry.getKey();
-            MessageOffset offset = entry.getValue();
-            MessageOffset existOffset = existSourceState.getQueueId2Offsets().get(queueId);
-            if (existOffset == null) {
-                existSourceState.getQueueId2Offsets().put(queueId, offset);
-            } else {
-                boolean isGreaterThan = offset.greateThan(existOffset.getOffsetStr());
-                if (isGreaterThan) {
-                    existSourceState.getQueueId2Offsets().put(queueId, offset);
-                }
+        for(Entry<String, SourceState> entry : sourceStateMap.entrySet()){
+            String key = entry.getKey();
+            SourceState value = entry.getValue();
+            String[] ss = key.split("\\;");
+            assert ss.length == 3 : "key length must be three. format is namespace;pipelineName;sourceName" + key;
+            for(Entry<String, MessageOffset> tmpEntry : value.getQueueId2Offsets().entrySet()){
+                String queueId = tmpEntry.getKey();
+                String offset = tmpEntry.getValue().getMainOffset();
+                CheckPoint checkPoint = new CheckPoint();
+                checkPoint.setSourceNamespace(ss[0]);
+                checkPoint.setPipelineName(ss[1]);
+                checkPoint.setSourceName(ss[2]);
+                checkPoint.setQueueId(queueId);
+                checkPoint.setData(offset);
+                checkPoints.add(checkPoint);
             }
         }
-        return existSourceState;
+
+        return checkPoints;
+
     }
 
-    public void addCheckPointMessage(CheckPointMessage message) {
-        this.messageCache.addCache(message);
+    public void addCheckPointMessage(CheckPointMessage message){
+        this.iCheckPointStorage.addCheckPointMessage(message);
     }
 
-    //public boolean isRemovedSplit(String queueId) {
-    //    Long lastUpdateTime=this.currentSplitAndLastUpdateTime.get(queueId);
-    //    if(lastUpdateTime==null){
-    //        return false;
-    //    }
-    //    if(System.currentTimeMillis()-lastUpdateTime>10000*1000){
-    //        return true;
-    //    }
-    //    return false;
-    //}
+    public CheckPoint recover(ISource iSource, ISplit iSplit){
+        String isRecover =  ComponentCreator.getProperties().getProperty(ConfigureFileKey.IS_RECOVER_MODE);
+        if(isRecover != null && Boolean.valueOf(isRecover)){
+            String queueId = iSplit.getQueueId();
+            return iCheckPointStorage.recover(iSource, queueId);
+        }
+        return null;
+    }
+
 
     public void updateLastUpdate(String queueId) {
         addSplit(queueId);
@@ -195,53 +102,28 @@ public class CheckPointManager {
         return this.currentSplitAndLastUpdateTime.keySet();
     }
 
-    public static class SourceState {
-        protected String sourceName;
-        protected Map<String, MessageOffset> queueId2Offsets = new HashMap<>();
-
-        public String getSourceName() {
-            return sourceName;
-        }
-
-        public void setSourceName(String sourceName) {
-            this.sourceName = sourceName;
-        }
-
-        public Map<String, MessageOffset> getQueueId2Offsets() {
-            return queueId2Offsets;
-        }
-
-        public void setQueueId2Offsets(
-            Map<String, MessageOffset> queueId2Offsets) {
-            this.queueId2Offsets = queueId2Offsets;
-        }
+    public void flush(){
+        iCheckPointStorage.flush();
     }
+
+
+
 
     /**
      * 根据source进行划分，主要是针对双流join的场景
-     *
      * @param source
      * @return
      */
-    public static String createSourceName(ISource source, String piplineName) {
-        String namespace = null;
-        String name = null;
-        if (source != null) {
-            namespace = source.getNameSpace();
-            name = source.getConfigureName();
-        }
+    public static String createSourceName(ISource source, String pipelineName){
 
-        if (StringUtil.isEmpty(namespace)) {
-            namespace = "default_namespace";
+        if(StringUtil.isNotEmpty(pipelineName)){
+            return MapKeyUtil.createKey(source.createCheckPointName(), pipelineName);
         }
-        if (StringUtil.isEmpty(name)) {
-            name = "default_name";
-        }
-        if (StringUtil.isEmpty(piplineName)) {
-            piplineName = "default_piplineName";
-        }
-        return MapKeyUtil.createKey(namespace, piplineName, name);
+        return source.createCheckPointName();
     }
+
+
+
 
     public Map<String, Long> getCurrentSplitAndLastUpdateTime() {
         return currentSplitAndLastUpdateTime;
@@ -272,5 +154,44 @@ public class CheckPointManager {
             return false;
         }
         return true;
+    }
+
+    public static final String createCheckPointKey(String key, String queueId){
+        return key + "^^^" + queueId;
+    }
+
+    public static final String[] parseCheckPointKey(String checkPointKey){
+        return checkPointKey.split("\\^\\^\\^");
+    }
+
+    public static final String getNameSpaceFromCheckPointKey(String checkPointKey){
+        return parseCheckPointKey(checkPointKey)[0].split("\\;")[0];
+    }
+
+    public static final String getGroupNameFromCheckPointKey(String checkPointKey){
+        return parseCheckPointKey(checkPointKey)[0].split("\\;")[1];
+    }
+
+    public static final String getNameFromCheckPointKey(String checkPointKey){
+        return parseCheckPointKey(checkPointKey)[0].split("\\;")[2];
+    }
+
+    public static final String getTopicFromCheckPointKey(String checkPointKey){
+        return parseCheckPointKey(checkPointKey)[0].split("\\;")[3];
+    }
+
+    public static final String getQueueIdFromCheckPointKey(String checkPointKey){
+        return parseCheckPointKey(checkPointKey)[1];
+    }
+
+    public static void main(String[] args){
+        SourceSnapShot snapShot = new SourceSnapShot();
+        snapShot.setId(1L);
+        snapShot.setGmtCreate(new Date());
+        snapShot.setGmtModified(new Date());
+        snapShot.setKey("key");
+        snapShot.setValue("value");
+        System.out.println(ReflectUtil.serializeObject(snapShot));
+
     }
 }

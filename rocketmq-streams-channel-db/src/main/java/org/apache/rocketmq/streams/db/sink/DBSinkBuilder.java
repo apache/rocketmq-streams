@@ -16,30 +16,13 @@
  */
 package org.apache.rocketmq.streams.db.sink;
 
-<<<<<<< HEAD
-import java.util.List;
-import java.util.Properties;
-
-import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
-import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.model.ServiceName;
-import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.common.metadata.MetaDataField;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import com.google.auto.service.AutoService;
-=======
-import com.google.auto.service.AutoService;
-import java.util.List;
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.model.ServiceName;
-import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
->>>>>>> e0ae8a24f70a6cd27b9c35f1709fb7b3fbe42269
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(DBSinkBuilder.TYPE)
@@ -50,29 +33,11 @@ public class DBSinkBuilder implements IChannelBuilder {
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
         DBSink sink = new DBSink();
         sink.setUrl(properties.getProperty("url"));
-        sink.setUserName("userName");
-        sink.setPassword("password");
-        List<MetaDataField> fieldList = metaData.getMetaDataFields();
-        StringBuilder insertSQL = new StringBuilder();
-        StringBuilder insertValueSQL = new StringBuilder();
-        boolean isFirst = true;
-        for (MetaDataField field : fieldList) {
-            String fieldName = field.getFieldName();
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                insertSQL.append(",");
-                insertValueSQL.append(",");
-            }
-            insertSQL.append(fieldName);
-            if (DataTypeUtil.isNumber(field.getDataType())) {
-                insertValueSQL.append(fieldName);
-            } else {
-                insertValueSQL.append("'#{" + fieldName + "}'");
-            }
-        }
-        String sql = "insert into " + properties.getProperty("tableName") + "(" + insertSQL.toString() + ")values(" + insertValueSQL.toString() + ")";
-        sink.setInsertSQLTemplate(sql);
+        sink.setUserName(properties.getProperty("userName"));
+        sink.setPassword(properties.getProperty("password"));
+        sink.setTableName(properties.getProperty("tableName"));
+        sink.setSqlMode(properties.getProperty("sqlMode"));
+        sink.setMetaData(metaData);
         return sink;
     }
 

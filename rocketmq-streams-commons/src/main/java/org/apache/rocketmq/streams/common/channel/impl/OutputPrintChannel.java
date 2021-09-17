@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.common.channel.impl;
 
 import java.util.List;
+
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
@@ -26,19 +27,11 @@ import org.apache.rocketmq.streams.common.utils.PrintUtil;
  */
 public class OutputPrintChannel extends AbstractSink {
 
-    private static int counter = 1;
-    private transient boolean start = false;
-    private static long startTime = System.currentTimeMillis();
-    private static long begin = startTime;
-    private static int step = 40000;
-
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
-        StringBuilder stringBuilder = new StringBuilder();
         for (IMessage msg : messages) {
-            stringBuilder.append(msg.getMessageValue().toString() + PrintUtil.LINE);
+            //System.out.println(msg.getMessageValue());
         }
-        System.out.println(stringBuilder.toString());
         return false;
     }
 

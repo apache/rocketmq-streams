@@ -18,13 +18,19 @@
 package org.apache.rocketmq.streams.client;
 
 import com.google.common.collect.Maps;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import org.apache.rocketmq.streams.client.strategy.LogFingerprintStrategy;
 import org.apache.rocketmq.streams.client.strategy.Strategy;
 import org.apache.rocketmq.streams.client.transform.DataStream;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.optimization.LogFingerprintFilter;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
@@ -45,6 +51,21 @@ public class DataStreamAction extends DataStream {
     public DataStreamAction with(Strategy... strategies) {
         Properties properties = new Properties();
         for (Strategy strategy : strategies) {
+
+            if(strategy instanceof LogFingerprintStrategy){
+                ISource source=this.mainPipelineBuilder.getPipeline().getSource();
+                if(source instanceof AbstractSource){
+                    AbstractSource abstractSource=(AbstractSource)source;
+                    String[] logFingerprintFields=((LogFingerprintStrategy)strategy).getLogFingerprintFields();
+                    if(logFingerprintFields!=null){
+                        List<String> logFingerprintFieldList=new ArrayList<>();
+                        for(String loglogFingerprintField:logFingerprintFields){
+                            logFingerprintFieldList.add(loglogFingerprintField);
+                        }
+                        abstractSource.setLogFingerprintFields(logFingerprintFieldList);
+                    }
+                }
+            }
             properties.putAll(strategy.getStrategyProperties());
         }
         ComponentCreator.createProperties(properties);

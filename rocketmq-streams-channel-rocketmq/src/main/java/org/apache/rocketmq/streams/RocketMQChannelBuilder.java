@@ -19,7 +19,9 @@ package org.apache.rocketmq.streams;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.auto.service.AutoService;
+
 import java.util.Properties;
+
 import org.apache.rocketmq.streams.common.channel.builder.AbstractSupportShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
@@ -31,32 +33,32 @@ import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
 @AutoService(IChannelBuilder.class)
-@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource")
+@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource", name = "metaq")
 public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     public static final String TYPE = "rocketmq";
 
     @Override
     public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
 
-        RocketMQSource rocketMQSource = (RocketMQSource) ConfigurableUtil.create(RocketMQSource.class.getName(),namespace,name,createFormatProperty(properties),null);
+        RocketMQSource rocketMQSource = (RocketMQSource) ConfigurableUtil.create(RocketMQSource.class.getName(), namespace, name, createFormatProperty(properties), null);
         return rocketMQSource;
     }
 
-    protected JSONObject createFormatProperty(Properties properties){
-        JSONObject formatProperties=new JSONObject();
-        for(Object object:properties.keySet()){
-            String key=(String)object;
+    protected JSONObject createFormatProperty(Properties properties) {
+        JSONObject formatProperties = new JSONObject();
+        for (Object object : properties.keySet()) {
+            String key = (String) object;
             if ("type".equals(key)) {
                 continue;
             }
-            formatProperties.put(key,properties.getProperty(key));
+            formatProperties.put(key, properties.getProperty(key));
         }
-        IChannelBuilder.formatPropertiesName(formatProperties,properties,"topic","topic");
-        IChannelBuilder.formatPropertiesName(formatProperties,properties,"tags","tag");
-        IChannelBuilder.formatPropertiesName(formatProperties,properties,"maxThread","thread.max.count");
-        IChannelBuilder.formatPropertiesName(formatProperties,properties,"pullIntervalMs","pullIntervalMs");
-        IChannelBuilder.formatPropertiesName(formatProperties,properties,"offsetTime","offsetTime");
-        IChannelBuilder.formatPropertiesName(formatProperties,properties,"namesrvAddr","namesrvAddr");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "topic", "topic");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "tags", "tag");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "thread.max.count");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "pullIntervalMs", "pullIntervalMs");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "offsetTime", "offsetTime");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "namesrvAddr", "namesrvAddr");
         if (properties.getProperty("group") != null) {
             String group = properties.getProperty("group");
             if (group.startsWith("GID_")) {
@@ -78,12 +80,17 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
 
     @Override
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
-        RocketMQSink rocketMQSink = (RocketMQSink) ConfigurableUtil.create(RocketMQSink.class.getName(),namespace,name,createFormatProperty(properties),null);
+        RocketMQSink rocketMQSink = (RocketMQSink) ConfigurableUtil.create(RocketMQSink.class.getName(), namespace, name, createFormatProperty(properties), null);
         return rocketMQSink;
     }
 
     @Override
-    public ISink createBySource(ISource piplineSoure) {
-        return null;
+    public ISink createBySource(ISource pipelineSource) {
+        RocketMQSource source = (RocketMQSource) pipelineSource;
+        RocketMQSink sink = new RocketMQSink();
+        sink.setNamesrvAddr(source.getNamesrvAddr());
+        sink.setTopic(source.getTopic());
+        sink.setTags(source.getTags());
+        return sink;
     }
 }

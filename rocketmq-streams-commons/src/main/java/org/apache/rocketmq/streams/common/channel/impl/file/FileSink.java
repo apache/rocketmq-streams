@@ -131,6 +131,14 @@ public class FileSink extends AbstractSupportShuffleSink {
             synchronized (this) {
                 if (!writerInitFlag) {
                     try {
+                        File file=new File(filePath);
+                        File dir=file.getParentFile();
+                        if(dir.exists()==false){
+                            dir.mkdirs();
+                        }
+                        if(file.exists()==false){
+                            file.createNewFile();
+                        }
                         writer = new BufferedWriter(new FileWriter(filePath, needAppend));
                         writerInitFlag = true;
                     } catch (Exception e) {
