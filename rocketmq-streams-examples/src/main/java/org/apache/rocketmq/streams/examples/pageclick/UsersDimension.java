@@ -17,7 +17,7 @@
  *
  */
 
-package org.apache.rocketmq.streams.examples.rocketmqsource;
+package org.apache.rocketmq.streams.examples.pageclick;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.StreamBuilder;
@@ -25,17 +25,22 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.examples.rocketmqsource.ProducerFromFile;
 
 
-public class PageClick {
+public class UsersDimension {
     private static final String topic = "pageClick";
     private static final String namesrv = "127.0.0.1:9876";
 
+    /**
+     * 5s时间范围内，统计某个用户点击网页次数
+     * @param args
+     */
     public static void main(String[] args) {
         ProducerFromFile.produce("pageClickData.txt",namesrv, topic);
 
         try {
-            Thread.sleep(1000 * 10);
+            Thread.sleep(1000 * 3);
         } catch (InterruptedException e) {
         }
         System.out.println("begin streams code.");
@@ -44,8 +49,9 @@ public class PageClick {
         DataStreamSource source = StreamBuilder.dataStream("pageClickNS", "pageClickPL");
         source.fromRocketmq(topic, "pageClickGroup", false, namesrv)
                 .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.seconds(5)))
+                .window(TumblingWindow.of(Time.minutes(1)))
                 .groupBy("userId")
+                .setTimeField("eventTime")
                 .count("total")
                 .waterMark(1)
                 .setLocalStorageOnly(true)
@@ -55,5 +61,7 @@ public class PageClick {
                 .start();
 
     }
+
+
 
 }

@@ -36,7 +36,7 @@ public class RocketmqWindowTest {
         ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
 
         try {
-            Thread.sleep(1000 * 10);
+            Thread.sleep(1000 * 3);
         } catch (InterruptedException e) {
         }
         System.out.println("begin streams code.");
@@ -58,12 +58,12 @@ public class RocketmqWindowTest {
                 })
                 //must convert message to json.
                 .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.seconds(5)))
-                .groupBy("ProjectName")
+                .window(TumblingWindow.of(Time.seconds(10)))
+                .groupBy("ProjectName","LogStore")
                 .sum("OutFlow", "OutFlow")
                 .sum("InFlow", "InFlow")
                 .count("total")
-                .waterMark(1)
+                .waterMark(5)
                 .setLocalStorageOnly(true)
                 .toDataSteam()
                 .toPrint(1)

@@ -112,7 +112,6 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                 messageList = msgsByQueueId.get(queueId);
                 for (Message message : messageList) {
                     MessageQueue queue = messageQueueMap.get(queueId);
-                    System.out.println("send message to rocketmq,topic:" + topic + ",queueId:" + queue.getQueueId() + ",message: "+ new String(message.getBody()));
                     producer.send(message, queue);
                 }
 

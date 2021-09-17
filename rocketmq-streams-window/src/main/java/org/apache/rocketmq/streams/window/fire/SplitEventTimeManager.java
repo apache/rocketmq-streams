@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SplitEventTimeManager {
     protected static final Log LOG = LogFactory.getLog(SplitEventTimeManager.class);
-    protected Map<String,Long> messageSplitId2MaxTime=new HashMap<>();
+    protected static Map<String,Long> messageSplitId2MaxTime=new HashMap<>();
     private AtomicInteger queueIdCount=new AtomicInteger(0);
     protected Long lastUpdateTime;
 

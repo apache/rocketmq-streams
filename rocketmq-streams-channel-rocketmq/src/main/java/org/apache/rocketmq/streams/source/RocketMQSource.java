@@ -122,7 +122,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                         String data = new String(msg.getBody(), CHARSET);
                         JSONObject jsonObject = create(data);
 
-                        System.out.println("received data from rocketmq, topic:" + topic + ",queueId:" + msg.getQueueId() + ".data: "+ jsonObject);
 
                         String queueId = RocketMQMessageQueue.getQueueId(context.getMessageQueue());
                         String offset = msg.getQueueOffset() + "";
