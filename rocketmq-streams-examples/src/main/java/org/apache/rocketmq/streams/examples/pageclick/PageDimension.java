@@ -56,7 +56,7 @@ public class PageDimension {
                 .waterMark(1)
                 .setLocalStorageOnly(true)
                 .toDataSteam()
-                .toFile("/Users/nize/result.txt")
+                .toFile("/home/result.txt")
                 .with(WindowStrategy.highPerformance())
                 .start();
     }
@@ -65,7 +65,7 @@ public class PageDimension {
     public void findMax() {
 
         DataStreamSource source = StreamBuilder.dataStream("ns-1", "pl-1");
-        source.fromFile("/Users/nize/result.txt", false)
+        source.fromFile("/home/result.txt", false)
                 .map(message -> JSONObject.parseObject((String) message))
                 .window(TumblingWindow.of(Time.seconds(5)))
                 .groupBy("start_time","end_time")
