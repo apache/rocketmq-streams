@@ -29,18 +29,18 @@ public interface IStorage<T> {
      * @param key
      * @param value
      */
-    void put(String key,T value);
+    void put(String key, T value);
 
     //多组key value批量存储
-    void mutilPut(Map<String,T> keyValue);
+    void mutilPut(Map<String, T> keyValue);
 
     //获取单个key的值
-    T get(Class<T> clazz,IKeyGenerator keyGenerator,String key);
+    T get(Class<T> clazz, IKeyGenerator keyGenerator, String key);
 
     //获取多个key的值
-    Map<String,T> mutilGet(Class<T> clazz,IKeyGenerator keyGenerator,String... keyValues);
+    Map<String,T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, String... keyValues);
     //获取多个key的值
-    Map<String,T> mutilGet(Class< T> clazz,IKeyGenerator keyGenerator, List<String> keys);
+    Map<String,T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, List<String> keys);
 
     /**
      * remove keys
@@ -52,27 +52,29 @@ public interface IStorage<T> {
      * remove keys by prefix
      * @param keyPrefix
      */
-    void removeKeyPrefix(IKeyGenerator keyGenerator,String keyPrefix);
+    void removeKeyPrefix(IKeyGenerator keyGenerator, String keyPrefix);
 
     /*
         create Iterator by key prefix
      */
-    Iterator<T> iterateByPrefix(IKeyGenerator keyGenerator,String keyPrefix,Class<T> clazz);
+    Iterator<T> iterateByPrefix(IKeyGenerator keyGenerator, String keyPrefix, Class<T> clazz);
 
 
-    T putIfAbsent(T t,Class<T> clazz);
+    T putIfAbsent(T t, Class<T> clazz);
 
 
-    int count(IKeyGenerator keyGenerator,String key);
+    int count(IKeyGenerator keyGenerator, String key);
 
-    int incrementAndGet(IKeyGenerator keyGenerator,String key);
-
-
-    Iterator<T> queryByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator,String keyPrefix, Object startIndexValue,Object endIndexValue,Class<T> clazz);
+    int incrementAndGet(IKeyGenerator keyGenerator, String key);
 
 
+    Iterator<T> queryByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator, String keyPrefix, Object startIndexValue,
+        Object endIndexValue, Class<T> clazz);
 
-    void loadByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator,String keyPrefix, Object startIndexValue,Object endIndexValue,
-        IRowOperator rowOperator,Class<T> clazz);
+
+
+    void loadByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator, String keyPrefix, Object startIndexValue,
+        Object endIndexValue,
+        IRowOperator rowOperator, Class<T> clazz);
 
 }

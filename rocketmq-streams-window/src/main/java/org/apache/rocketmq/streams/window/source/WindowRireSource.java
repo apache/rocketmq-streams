@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.window.source;
 
-import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,18 +30,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMutilSplitMessageCache;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 
 public class WindowRireSource extends AbstractSupportOffsetResetSource implements IStreamOperator {
     protected static final Log LOG = LogFactory.getLog(WindowRireSource.class);
@@ -56,7 +53,7 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
     protected transient ConcurrentHashMap<String,WindowInstance> firingWindowInstances=new ConcurrentHashMap<>();
 
 
-    //<windowinstanceId,<queueId，offset>>
+    //<windowInstanceTriggerId,<queueId，offset>>
     protected transient ConcurrentHashMap<String,Map<String,String>> windowInstanceQueueOffsets=new ConcurrentHashMap<>();
 
     public WindowRireSource(AbstractWindow window){
@@ -114,7 +111,7 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
                     while (windowInstance!=null){
                         boolean success= executeFireTask(windowInstance,false);
                         if(success){
-                            windowInstances.remove(windowInstance.createWindowInstanceId());
+                            windowInstances.remove(windowInstance.createWindowInstanceTriggerId());
                         }
                         if(windowInstances.size()==0){
                             break;
@@ -175,56 +172,39 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
      * @param windowInstance
      */
     public void registFireWindowInstanceIfNotExist(WindowInstance windowInstance, AbstractWindow window){
-        String windowInstanceId=windowInstance.createWindowInstanceId();
-        WindowInstance old= windowInstances.putIfAbsent(windowInstanceId,windowInstance);
+        String windowInstanceTriggerId=windowInstance.createWindowInstanceTriggerId();
+        WindowInstance old= windowInstances.putIfAbsent(windowInstanceTriggerId,windowInstance);
         if(old==null){
-            window.getWindowInstanceMap().put(windowInstanceId,windowInstance);
+            window.getWindowInstanceMap().put(windowInstanceTriggerId,windowInstance);
         }
-        LOG.debug("register window instance into manager, instance key: " + windowInstance.createWindowInstanceId());
+        LOG.debug("register window instance into manager, instance key: " + windowInstanceTriggerId);
     }
     /**
      * 注册一个window instance
      * @param windowInstance
      */
     public void updateWindowInstanceLastUpdateTime(WindowInstance windowInstance){
-        String windowInstanceId=windowInstance.createWindowInstanceId();
+        String windowInstanceTriggerId=windowInstance.createWindowInstanceTriggerId();
         this.eventTimeLastUpdateTime=System.currentTimeMillis();
-
-
-        windowInstances.putIfAbsent(windowInstanceId,windowInstance);
-
+        windowInstances.putIfAbsent(windowInstanceTriggerId,windowInstance);
     }
     /**
      * 触发窗口
      * @param windowInstance
      */
     public boolean executeFireTask(WindowInstance windowInstance,boolean startNow) {
-        String windowInstanceId=windowInstance.createWindowInstanceId();
-//        JSONObject fireMsg=new JSONObject();
-//        Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
-//        fireMsg.put("start_time",windowInstance.getStartTime());
-//        fireMsg.put("end_time",windowInstance.getEndTime());
-//        fireMsg.put("fire_time",windowInstance.getFireTime());
-//        fireMsg.put("queueid",windowInstance.getSplitId());
-//        fireMsg.put("lastUpdateTime", DateUtil.format(new Date(eventTimeLastUpdateTime)));
-//        fireMsg.put("sign","abc*********************************************abc");
-//        List<IMessage> messages=new ArrayList<>();
-//        messages.add(new Message(fireMsg));
-//        ShuffleChannel.write2File(window,messages,windowInstance,windowInstance.getSplitId());
-        if (canFire(windowInstance)) {
+        String windowInstanceTriggerId=windowInstance.createWindowInstanceTriggerId();
+        FireResult fireResult=canFire(windowInstance);
+        if (fireResult.isCanFire()) {
             //maybe firimg
-            if (firingWindowInstances.containsKey(windowInstanceId)) {
+            if (firingWindowInstances.containsKey(windowInstanceTriggerId)) {
                 //System.out.println("has firing");
 
                 return true;
             }
-            //maybe fired
-            //if (!window.getWindowInstanceMap().containsKey(windowInstanceId)) {
-            //    return true;
-            //}
             //start firing
-            DebugWriter.getDebugWriter(window.getConfigureName()).writeFireWindowInstance(windowInstance,eventTimeLastUpdateTime);
-            firingWindowInstances.put(windowInstanceId, windowInstance);
+            DebugWriter.getDebugWriter(window.getConfigureName()).writeFireWindowInstance(windowInstance,eventTimeLastUpdateTime,this.window.getMaxEventTime(windowInstance.getSplitId()),fireResult.getReason());
+            firingWindowInstances.put(windowInstanceTriggerId, windowInstance);
             if(startNow){
                 fireWindowInstance(windowInstance);
             }else {
@@ -244,9 +224,9 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
                 LOG.error("window instance is null!");
                 return;
             }
-            String windowInstanceId = windowInstance.createWindowInstanceId();
+            String windowInstanceTriggerId = windowInstance.createWindowInstanceTriggerId();
             if (window == null) {
-                LOG.error(windowInstanceId + "'s window object have been removed!");
+                LOG.error(windowInstanceTriggerId + "'s window object have been removed!");
                 return;
             }
 
@@ -254,10 +234,9 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
             if(windowInstance.getLastMaxUpdateTime()==null){
                 windowInstance.setLastMaxUpdateTime(window.getMaxEventTime(windowInstance.getSplitId()));
             }
-            int fireCount=window.fireWindowInstance(windowInstance,windowInstanceQueueOffsets.get(windowInstanceId));
-            LOG.debug("fire instance("+windowInstance.createWindowInstanceId()+" fire count is "+fireCount);
-            firingWindowInstances.remove(windowInstanceId);
-            //this.maxEventTimes.remove(windowInstanceId);
+            int fireCount=window.fireWindowInstance(windowInstance,null);
+            LOG.debug("fire instance("+windowInstanceTriggerId+" fire count is "+fireCount);
+            firingWindowInstances.remove(windowInstanceTriggerId);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -269,37 +248,44 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
      * @param windowInstance
      * @return
      */
-    protected boolean canFire(WindowInstance windowInstance) {
-        String windowInstanceId=windowInstance.createWindowInstanceId();
+    protected FireResult canFire(WindowInstance windowInstance) {
+        String windowInstanceTriggerId=windowInstance.createWindowInstanceTriggerId();
         if(window == null){
-            LOG.warn(windowInstanceId + " can't find window!");
-            return false;
+            LOG.warn(windowInstanceTriggerId + " can't find window!");
+            return new FireResult();
         }
         Date fireTime=DateUtil.parseTime(windowInstance.getFireTime());
+        Boolean isTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+        if(isTest){
+            if(System.currentTimeMillis()-fireTime.getTime()>0){
+                System.out.println("window instance is fired");
+                return new FireResult(true,3);
+            }
+        }
         /**
          * 未到触发时间
          */
         Long maxEventTime=this.window.getMaxEventTime(windowInstance.getSplitId());
         if(maxEventTime==null){
-            return false;
+            return new FireResult();
         }
         if(maxEventTime-fireTime.getTime()>=3000){
-            return true;
+            return new FireResult(true,0);
         }
         if(maxEventTime-fireTime.getTime()<3000){
             Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
             if(eventTimeLastUpdateTime==null){
-                return false;
+                return new FireResult();
             }
             int gap=(int)(System.currentTimeMillis()-eventTimeLastUpdateTime);
             if(window.getMsgMaxGapSecond()!=null&&gap>window.getMsgMaxGapSecond()*1000){
-                LOG.warn("the fire reason is exceed the gap "+gap+" window instance id is "+windowInstanceId);
-                return true;
+                LOG.warn("the fire reason is exceed the gap "+gap+" window instance id is "+windowInstanceTriggerId);
+                return new FireResult(true,1);
             }
-            return false;
+            return new FireResult();
         }
 
-        return true;
+        return new FireResult(true,0);
     }
 
     @Override
@@ -308,7 +294,7 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
     }
 
 
-    protected class WindowInstanceCache extends AbstractMutilSplitMessageCache<WindowInstance>{
+    protected class WindowInstanceCache extends AbstractMultiSplitMessageCache<WindowInstance> {
 
         public WindowInstanceCache() {
             super(new IMessageFlushCallBack<WindowInstance>() {
@@ -338,6 +324,28 @@ public class WindowRireSource extends AbstractSupportOffsetResetSource implement
         @Override
         protected String createSplitId(WindowInstance windowInstance) {
             return windowInstance.getSplitId();
+        }
+    }
+
+    protected class FireResult{
+        protected boolean canFire=false;
+        protected int reason=-1;//0:event time;1:timeout;-1:nothign
+        public FireResult(boolean canFire,int reason){
+            this.canFire=canFire;
+            this.reason=reason;
+        }
+
+        public FireResult(){
+            this.canFire=false;
+            this.reason=-1;
+        }
+
+        public boolean isCanFire() {
+            return canFire;
+        }
+
+        public int getReason() {
+            return reason;
         }
     }
 
