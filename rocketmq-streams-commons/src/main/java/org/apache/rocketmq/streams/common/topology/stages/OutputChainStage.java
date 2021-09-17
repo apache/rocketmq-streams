@@ -88,7 +88,6 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
                 return message;
             }
             sink.batchAdd(message);
-
             return message;
         }
 

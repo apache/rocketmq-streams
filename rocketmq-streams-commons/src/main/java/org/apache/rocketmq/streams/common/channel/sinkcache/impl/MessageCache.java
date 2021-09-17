@@ -39,8 +39,8 @@ public class MessageCache<R> implements IMessageCache<R> {
     protected volatile transient ConcurrentLinkedQueue<R> dataQueue = new ConcurrentLinkedQueue<>();//缓存数据的消息队列
 
     protected AtomicBoolean openAutoFlushLock = new AtomicBoolean(false);
-    protected volatile int autoFlushSize = 300;
-    protected volatile int autoFlushTimeGap = 1000;
+    protected volatile int autoFlushSize=300;
+    protected volatile int autoFlushTimeGap=1000;
 
 
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
