@@ -74,4 +74,9 @@ public class MemoryChannel extends AbstractChannel {
             }
         };
     }
+
+    @Override
+    public String createCheckPointName() {
+        return "memory-source";
+    }
 }
