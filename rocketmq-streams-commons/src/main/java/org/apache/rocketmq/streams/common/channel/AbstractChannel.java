@@ -227,4 +227,14 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
         create();
         ((AbstractSource)source).setJsonData(isJsonData);
     }
+
+    @Override
+    public String getTopic(){
+        return source.getTopic();
+    }
+
+    @Override
+    public void setTopic(String topic){
+        source.setTopic(topic);
+    }
 }

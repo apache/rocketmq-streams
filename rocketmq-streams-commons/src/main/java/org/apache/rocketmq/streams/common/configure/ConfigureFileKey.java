@@ -140,4 +140,10 @@ public interface ConfigureFileKey {
 
     String LEASE_STORAGE_NAME = "DB";//通过这个配置，可以修改lease 的底层存储
 
+    String CHECKPOINT_STORAGE_NAME = "checkPointStorageName";
+
+    String IS_RECOVER_MODE = "isRecover";
+
+    String IS_ATOMIC_DB_SINK = "isAtomicDbSink";
+
 }
