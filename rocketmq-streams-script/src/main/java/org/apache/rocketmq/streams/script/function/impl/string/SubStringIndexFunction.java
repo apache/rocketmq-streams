@@ -95,7 +95,7 @@ public class SubStringIndexFunction {
         return oriMsg.substring(startIndex, endIndex);
     }
 
-    @FunctionMethod(value = "substr", alias = "substr_index", comment = "截取从指定的索引startIndex处开始扩展到此字符串的结尾")
+    @FunctionMethod(value = "substr", alias = "blink_substring", comment = "截取从指定的索引startIndex处开始扩展到此字符串的结尾")
     public String substringindex(IMessage message, FunctionContext context,
                                  @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
                                  @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer startIndex) {
