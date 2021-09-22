@@ -1,7 +1,7 @@
 ## rocketmq-streams 快速搭建
 ---
 ### 前言
-本文档主要介绍如何基于rocketmq-streams快熟搭建流处理任务，搭建过程中某些例子会用到rocketmq，可以参考[rocketmq搭建文档见文档](https://rocketmq.apache.org/docs/quick-start/)
+本文档主要介绍如何基于rocketmq-streams快速搭建流处理任务，搭建过程中某些例子会用到rocketmq，可以参考[rocketmq搭建文档](https://rocketmq.apache.org/docs/quick-start/)
 
 
 ### 1、源码构建

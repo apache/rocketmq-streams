@@ -19,7 +19,7 @@ public class FileSourceExample {
 ### 2、分时间段，统计分组中某字段的和
 
 #### 2.1 安装rocketmq
-可以参考[rocketmq搭建文档见文档](https://rocketmq.apache.org/docs/quick-start/)
+可以参考[rocketmq搭建文档](https://rocketmq.apache.org/docs/quick-start/)
 
 #### 2.2 源数据
 [源数据](./../rocketmq-streams-examples/src/main/resources/data.txt)
@@ -136,7 +136,7 @@ data.text数据运行的结果部分如下：
 ```java
     public void findMax() {
         DataStreamSource source = StreamBuilder.dataStream("ns-1", "pl-1");
-        source.fromFile("/Users/nize/result.txt", false)
+        source.fromFile("/home/result.txt", false)
         .map(message -> JSONObject.parseObject((String) message))
         .window(TumblingWindow.of(Time.seconds(5)))
         .groupBy("start_time","end_time")
@@ -146,7 +146,7 @@ data.text数据运行的结果部分如下：
         .toDataSteam()
         .toPrint(1)
         .start();
-        }
+   }
 
 ```
 得到结果：
