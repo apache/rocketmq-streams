@@ -47,11 +47,12 @@ import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueI
 /**
  * an implementation of session window to save extra memory for different group by window instances
  *
- * @author arthur
+ *  @author arthur
  */
-public class SessionWindow extends WindowOperator {
+public class SessionOperator extends WindowOperator {
 
-    protected static final Log LOG = LogFactory.getLog(SessionWindow.class);
+
+    protected static final Log LOG = LogFactory.getLog(SessionOperator.class);
 
     public static final String SESSION_WINDOW_BEGIN_TIME = "1970-01-01";
 
@@ -62,11 +63,19 @@ public class SessionWindow extends WindowOperator {
     private static final String ORDER_BY_FIRE_TIME_PREFIX = "_order_by_fire_time_";
 
     /**
-     * 会话窗口的超时时间，时间单位时秒
+     * 会话窗口的超时时间，时间单位时秒，默认10分钟
      */
     protected int sessionTimeOut = 10 * 60;
 
     private transient Object lock = new Object();
+
+    public SessionOperator() {
+
+    }
+
+    public SessionOperator(Integer timeout) {
+        this.sessionTimeOut = Optional.ofNullable(timeout).orElse(sessionTimeOut);
+    }
 
     public int getSessionTimeOut() {
         return sessionTimeOut;
@@ -213,6 +222,7 @@ public class SessionWindow extends WindowOperator {
                 //clean order storage as sort field 'fireTime' changed
                 String existPartitionNumKey = createPrefixKey(value, windowInstance, queueId);
                 deletePrefixKeyList.add(existPartitionNumKey);
+                deletePrefixValue(deletePrefixKeyList);
                 //
                 value.setFireTime(DateUtil.format(sessionFire, SESSION_DATETIME_PATTERN));
                 return value;
@@ -222,8 +232,6 @@ public class SessionWindow extends WindowOperator {
                 return value;
             }
         }
-        //
-        deletePrefixValue(deletePrefixKeyList);
         //
         WindowValue newValue = createWindowValue(queueId, groupByValue, windowInstance, message, storeKey);
         valueList.add(newValue);
