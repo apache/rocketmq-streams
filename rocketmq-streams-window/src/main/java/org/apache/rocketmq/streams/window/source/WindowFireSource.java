@@ -40,7 +40,7 @@ import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.operator.impl.SessionWindow;
+import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
 
 public class WindowFireSource extends AbstractSupportOffsetResetSource implements IStreamOperator {
     protected static final Log LOG = LogFactory.getLog(WindowFireSource.class);
@@ -113,7 +113,7 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
                     //TODO 每一秒执行一个循环
                     while (windowInstance!=null){
                         boolean isStartNow = false;
-                        if (SessionWindow.SESSION_WINDOW_BEGIN_TIME.equalsIgnoreCase(windowInstance.getStartTime())) {
+                        if (SessionOperator.SESSION_WINDOW_BEGIN_TIME.equalsIgnoreCase(windowInstance.getStartTime())) {
                             isStartNow = true;
                         }
                         boolean success= executeFireTask(windowInstance,isStartNow);
@@ -145,7 +145,7 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
                 }
             }
 
-        },0,1, TimeUnit.SECONDS);
+        }, 10, 1, TimeUnit.SECONDS);
 
         //定时发送checkpoint，提交和保存数据。在pull模式会有用
         //fireCheckScheduler.scheduleWithFixedDelay(new Runnable() {
