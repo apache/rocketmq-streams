@@ -86,6 +86,11 @@ public interface IWindow
     int FIRE_DELAY_SECOND = 1;//触发延迟
 
     /**
+     * the delay time of system (ms)
+     */
+    Integer SYS_DELAY_TIME = 3000;
+
+    /**
      * 窗口触发后，需要执行的逻辑
      *
      * @param receiver
