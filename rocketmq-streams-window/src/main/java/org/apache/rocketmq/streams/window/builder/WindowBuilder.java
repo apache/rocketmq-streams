@@ -22,7 +22,7 @@ import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.OverWindow;
-import org.apache.rocketmq.streams.window.operator.impl.SessionWindow;
+import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
 import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
 
@@ -40,7 +40,7 @@ public class WindowBuilder {
             default:
                 return new WindowOperator();
             case IWindow.SESSION_WINDOW:
-                return new SessionWindow();
+                return new SessionOperator();
         }
     }
 
