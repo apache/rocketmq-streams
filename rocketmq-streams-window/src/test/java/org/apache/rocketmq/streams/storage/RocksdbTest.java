@@ -8,8 +8,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
-import org.apache.rocketmq.streams.window.operator.impl.SessionWindow;
-import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
+import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
@@ -53,8 +52,8 @@ public class RocksdbTest {
         RocksdbStorage storage = new RocksdbStorage<>();
         //
         WindowInstance windowInstance = new WindowInstance();
-        windowInstance.setStartTime(SessionWindow.SESSION_WINDOW_BEGIN_TIME);
-        windowInstance.setEndTime(SessionWindow.SESSION_WINDOW_END_TIME);
+        windowInstance.setStartTime(SessionOperator.SESSION_WINDOW_BEGIN_TIME);
+        windowInstance.setEndTime(SessionOperator.SESSION_WINDOW_END_TIME);
         windowInstance.setFireTime("2021-09-07 12:00:00");
         //
         Map<String, WindowValue> valueMap = new HashMap<>();

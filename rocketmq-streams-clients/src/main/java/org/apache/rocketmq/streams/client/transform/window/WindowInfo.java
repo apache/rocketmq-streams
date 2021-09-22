@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.client.transform.window;
 
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.operator.impl.SessionWindow;
+import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
 
 /**
@@ -26,10 +26,16 @@ import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
 public class WindowInfo {
     public static int HOPPING_WINDOW = 1;//滑动窗口
     public static int TUMBLING_WINDOW = 2;//滚动窗口
-    public static int SESSION_WINDOW = 23;
+    public static int SESSION_WINDOW = 3;
     protected int type;//window类型 hopping，Tumbling
     protected Time windowSize;//窗口大小
     protected Time windowSlide;//滑动大小
+    /**
+     * 会话窗口的超时时间
+     */
+    protected Time sessionTimeout;
+
+    protected String timeField;
 
     /**
      * 创建窗口
@@ -48,9 +54,8 @@ public class WindowInfo {
             window.setTimeUnitAdjust(1);
             window.setSizeInterval(windowSize.getValue());
         } else if (type == SESSION_WINDOW) {
-            window = new SessionWindow();
-            window.setTimeUnitAdjust(1);
-            window.setSizeInterval(windowSize.getValue());
+            window = new SessionOperator(sessionTimeout.getValue());
+            window.setTimeFieldName(timeField);
         } else {
             throw new RuntimeException("can not support the type ,expect 1，2，3。actual is " + type);
         }
@@ -79,5 +84,21 @@ public class WindowInfo {
 
     public void setWindowSlide(Time windowSlide) {
         this.windowSlide = windowSlide;
+    }
+
+    public Time getSessionTimeout() {
+        return sessionTimeout;
+    }
+
+    public void setSessionTimeout(Time sessionTimeout) {
+        this.sessionTimeout = sessionTimeout;
+    }
+
+    public String getTimeField() {
+        return timeField;
+    }
+
+    public void setTimeField(String timeField) {
+        this.timeField = timeField;
     }
 }
