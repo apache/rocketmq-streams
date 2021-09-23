@@ -19,10 +19,11 @@ package org.apache.rocketmq.streams.client.transform;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
-
-import java.nio.charset.StandardCharsets;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.client.DataStreamAction;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
@@ -35,7 +36,12 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
-import org.apache.rocketmq.streams.common.functions.*;
+import org.apache.rocketmq.streams.common.functions.FilterFunction;
+import org.apache.rocketmq.streams.common.functions.FlatMapFunction;
+import org.apache.rocketmq.streams.common.functions.ForEachFunction;
+import org.apache.rocketmq.streams.common.functions.ForEachMessageFunction;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
+import org.apache.rocketmq.streams.common.functions.SplitFunction;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
@@ -53,9 +59,6 @@ import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.window.builder.WindowBuilder;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
-
-import java.io.Serializable;
-import java.util.Set;
 
 public class DataStream implements Serializable {
 
@@ -450,28 +453,38 @@ public class DataStream implements Serializable {
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-    public DataStreamAction toRocketmq(String topic) {
-        return toRocketmq(topic, "*", null, -1, null);
+    public DataStreamAction toRocketmq(String topic, String groupName, String nameServerAddress) {
+        return toRocketmq(topic, "*", groupName, -1, nameServerAddress, null, false);
     }
 
-    public DataStreamAction toRocketmq(String topic, String namesrvAddr) {
-        return toRocketmq(topic, "*", null, -1, namesrvAddr);
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, String nameServerAddress,
+        String clusterName,
+        boolean order) {
+        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, clusterName, order);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags,
-        String namesrvAddr) {
-        return toRocketmq(topic, tags, null, -1, namesrvAddr);
-    }
-
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String namesrvAddr) {
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String nameServerAddress,
+        String clusterName, boolean order) {
         RocketMQSink rocketMQSink = new RocketMQSink();
-        rocketMQSink.setTopic(topic);
-        rocketMQSink.setTags(tags);
-        rocketMQSink.setGroupName(groupName);
-        rocketMQSink.setNamesrvAddr(namesrvAddr);
+        if (StringUtils.isNotBlank(topic)) {
+            rocketMQSink.setTopic(topic);
+        }
+        if (StringUtils.isNotBlank(tags)) {
+            rocketMQSink.setTags(tags);
+        }
+        if (StringUtils.isNotBlank(groupName)) {
+            rocketMQSink.setGroupName(groupName);
+        }
+        if (StringUtils.isNotBlank(nameServerAddress)) {
+            rocketMQSink.setNamesrvAddr(nameServerAddress);
+        }
+        if (StringUtils.isNotBlank(clusterName)) {
+            rocketMQSink.setClusterName(clusterName);
+        }
         if (batchSize > 0) {
             rocketMQSink.setBatchSize(batchSize);
         }
+        rocketMQSink.setOrder(order);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(rocketMQSink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
