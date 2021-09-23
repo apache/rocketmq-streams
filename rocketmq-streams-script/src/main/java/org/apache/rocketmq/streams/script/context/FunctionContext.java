@@ -35,16 +35,7 @@ public class FunctionContext<T extends IMessage>
         super(message);
     }
 
-    @Override
-    public T breakExecute() {
-        isContinue = false;
-        return message;
-    }
 
-    @Override
-    public T getMessage() {
-        return message;
-    }
 
     @Override
     public AbstractContext copy() {

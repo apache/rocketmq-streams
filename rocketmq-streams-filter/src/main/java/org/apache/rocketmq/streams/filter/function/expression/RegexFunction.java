@@ -33,8 +33,6 @@ import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
 
 public class RegexFunction extends AbstractExpressionFunction {
 
-    protected static CalculationResultCache calculationResultCache = CalculationResultCache.getInstance();
-
     private static final Log LOG = LogFactory.getLog(RegexFunction.class);
     private static final int REGEX_TIME_OUT = -1;
 
@@ -57,10 +55,10 @@ public class RegexFunction extends AbstractExpressionFunction {
     @FunctionMethod("regex")
     @FunctionMethodAilas("正则匹配")
     public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
-        if (!expression.volidate()) {
-            return false;
+        Boolean cacheResult=context.matchFromCache(expression.getVarName(),(String) expression.getValue());
+        if(cacheResult!=null){
+            return cacheResult;
         }
-        Message message = context.getMessage();
 
         Var var = context.getVar(rule.getConfigureName(), expression.getVarName());
         if (var == null) {
@@ -81,23 +79,12 @@ public class RegexFunction extends AbstractExpressionFunction {
         varString = String.valueOf(varObject).trim();
         regex = String.valueOf(valueObject).trim();
 
-        Boolean cacheResult=context.getFilterCache(regex,varString);
-        if(cacheResult!=null){
-            return cacheResult;
-        }
 
-        Boolean isMatch = calculationResultCache.match(regex, varString);
-        if (isMatch != null) {
-            return isMatch;
-        }
         boolean value = false;
         if (caseInsensitive()) {
             value = StringUtil.matchRegexCaseInsensitive(varString, regex);
         } else {
             value = StringUtil.matchRegex(varString, regex);
-        }
-        if (isMatch == null) {
-            calculationResultCache.registeRegex(regex, varString, value);
         }
         return value;
     }

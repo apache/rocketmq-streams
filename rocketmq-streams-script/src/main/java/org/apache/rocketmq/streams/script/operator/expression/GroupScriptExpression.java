@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
@@ -39,6 +40,7 @@ public class GroupScriptExpression implements IScriptExpression {
     private List<IScriptExpression> elseExpressions;
 
     private String scriptParameterStr;
+    protected List<? extends AbstractRule> rules;
 
     protected List<GroupScriptExpression> elseIfExpressions = new ArrayList<>();
 
@@ -56,36 +58,45 @@ public class GroupScriptExpression implements IScriptExpression {
 
     @Override
     public Object executeExpression(IMessage channelMessage, FunctionContext context) {
-        Boolean result = (Boolean)ifExpresssion.executeExpression(channelMessage, context);
-        Object value = null;
-        if (result) {
-            if (thenExpresssions != null) {
-                for (IScriptExpression scriptExpression : thenExpresssions) {
-                    value = scriptExpression.executeExpression(channelMessage, context);
-                }
+        if(rules!=null){
+            for(AbstractRule rule:rules){
+               rule.doMessage(channelMessage,context);
             }
-            return value;
-        }
-        if (elseIfExpressions != null && elseIfExpressions.size() > 0) {
-            for (int i = elseIfExpressions.size() - 1; i >= 0; i--) {
-                GroupScriptExpression expression = elseIfExpressions.get(i);
-                boolean success = (Boolean)expression.ifExpresssion.executeExpression(channelMessage, context);
-                if (success) {
-                    if (expression.thenExpresssions != null) {
-                        for (IScriptExpression scriptExpression : expression.thenExpresssions) {
-                            value = scriptExpression.executeExpression(channelMessage, context);
-                        }
+            return null;
+        }else {
+            Boolean result = (Boolean)ifExpresssion.executeExpression(channelMessage, context);
+            Object value = null;
+            if (result) {
+                if (thenExpresssions != null) {
+                    for (IScriptExpression scriptExpression : thenExpresssions) {
+                        value = scriptExpression.executeExpression(channelMessage, context);
                     }
-                    return value;
+                }
+                return value;
+            }
+            if (elseIfExpressions != null && elseIfExpressions.size() > 0) {
+                for (int i = elseIfExpressions.size() - 1; i >= 0; i--) {
+                    GroupScriptExpression expression = elseIfExpressions.get(i);
+                    boolean success = (Boolean)expression.ifExpresssion.executeExpression(channelMessage, context);
+                    if (success) {
+                        if (expression.thenExpresssions != null) {
+                            for (IScriptExpression scriptExpression : expression.thenExpresssions) {
+                                value = scriptExpression.executeExpression(channelMessage, context);
+                            }
+                        }
+                        return value;
+                    }
                 }
             }
         }
+
+
         if (elseExpressions != null) {
             for (IScriptExpression scriptExpression : elseExpressions) {
-                value = scriptExpression.executeExpression(channelMessage, context);
+                return scriptExpression.executeExpression(channelMessage, context);
             }
         }
-        return value;
+        return null;
     }
 
     @Override
@@ -240,5 +251,15 @@ public class GroupScriptExpression implements IScriptExpression {
         return elseExpressions;
     }
 
+    public List<? extends AbstractRule> getRules() {
+        return rules;
+    }
 
+    public void setRules(List<? extends AbstractRule> rules) {
+        this.rules = rules;
+    }
+
+    public List<IScriptExpression> getThenExpresssions() {
+        return thenExpresssions;
+    }
 }

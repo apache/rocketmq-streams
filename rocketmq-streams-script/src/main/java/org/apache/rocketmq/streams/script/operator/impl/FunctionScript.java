@@ -32,17 +32,21 @@ import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
+import org.apache.rocketmq.streams.script.operator.expression.ICaseWhenCompile;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.optimization.performance.ScriptExpressionGroupsProxy;
 import org.apache.rocketmq.streams.script.optimization.performance.ScriptOptimization;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
+import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
 /**
  * * 对外提供的脚本算子，通过输入脚本，来实现业务逻辑 * 脚本存储的成员变量是value字段
@@ -81,6 +85,13 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
         value = value.replace("‘", "'");
         value = value.replace("’", "'");
         this.scriptExpressions = FunctionParser.getInstance().parse(value);
+        ICaseWhenCompile caseWhenCompile=null;
+        // optimize case when
+//        ServiceLoaderComponent serviceLoaderComponent=ServiceLoaderComponent.getInstance(ICaseWhenCompile.class);
+//        List<ICaseWhenCompile> caseWhenCompiles=serviceLoaderComponent.loadService();
+//        if(caseWhenCompiles!=null&&caseWhenCompiles.size()>0){
+//            caseWhenCompile=caseWhenCompiles.get(0);
+//        }
         if (this.scriptExpressions == null) {
             LOG.debug("empty function");
         } else {
@@ -94,6 +105,11 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
 
             //转化成istreamoperator 接口
             for (IScriptExpression scriptExpression : expressions) {
+                if(caseWhenCompile!=null&&scriptExpression instanceof GroupScriptExpression){
+                    GroupScriptExpression groupScriptExpression=(GroupScriptExpression)scriptExpression;
+                    List<? extends AbstractRule> rules=caseWhenCompile.compile(groupScriptExpression);
+                    groupScriptExpression.setRules(rules);
+                }
                 receivers.add((message, context) -> {
                     scriptExpression.executeExpression(message, context);
                     return message;

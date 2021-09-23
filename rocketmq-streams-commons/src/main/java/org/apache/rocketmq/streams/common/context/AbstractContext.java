@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.common.interfaces.IBaseStreamOperator;
 import org.apache.rocketmq.streams.common.model.ThreadContext;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
+import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public abstract class AbstractContext<T extends IMessage> extends HashMap {
@@ -61,6 +62,9 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
 
     protected volatile IMonitor monitor = null;
 
+
+    protected QuickFilterResult quickFilterResult;
+
     public AbstractContext(T message) {
         this.message = message;
     }
@@ -87,6 +91,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.setSplitMessages(subContext.getSplitMessages());
         this.monitor = subContext.monitor;
         this.isBreak = subContext.isBreak;
+        this.quickFilterResult=subContext.quickFilterResult;
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
@@ -98,8 +103,22 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.setSplitMessages(this.getSplitMessages());
         subContext.monitor = this.monitor;
         subContext.isBreak = isBreak;
+        subContext.quickFilterResult=quickFilterResult;
 
         return subContext;
+    }
+
+    /**
+     * match from cache , if not exist cache return null
+     * @param varName
+     * @param expression
+     * @return
+     */
+    public Boolean matchFromCache(String varName,String expression){
+        if(quickFilterResult!=null){
+            return quickFilterResult.isMatch(varName,expression);
+        }
+        return null;
     }
 
     public void resetIsContinue() {
@@ -156,17 +175,6 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.put(MapKeyUtil.createKey(FILTER_CACHE_PREPIX, expressionStr, varValue), result);
     }
 
-    /**
-     * get cache result
-     *
-     * @param expressionStr
-     * @param varValue
-     * @return
-     */
-    public Boolean getFilterCache(String expressionStr, String varValue) {
-        String key = MapKeyUtil.createKey(FILTER_CACHE_PREPIX, expressionStr, varValue);
-        return (Boolean) this.get(key);
-    }
 
     /**
      * 获取基于字段缓存的某些值
@@ -382,5 +390,9 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
 
     public void setBreak(boolean aBreak) {
         isBreak = aBreak;
+    }
+
+    public void setQuickFilterResult(QuickFilterResult quickFilterResult) {
+        this.quickFilterResult = quickFilterResult;
     }
 }
