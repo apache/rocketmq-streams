@@ -69,7 +69,7 @@
         <commons-logging.version>1.1</commons-logging.version>
         <spring.version>3.2.13.RELEASE</spring.version>
         <auto-service.version>1.0-rc5</auto-service.version>
-        <mysql-connector.version>5.1.40</mysql-connector.version>
+        <mysql-connector.version>8.0.26</mysql-connector.version>
         <fastjson.version>1.2.78</fastjson.version>
         <quartz.version>2.2.1</quartz.version>
         <httpclient.version>4.5.2</httpclient.version>
@@ -118,6 +118,7 @@
                         <exclude>*/*.iml</exclude>
                         <exclude>**/*.txt</exclude>
                         <exclude>**/*.cs</exclude>
+                        <exclude>**/*.sql</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -282,6 +283,12 @@
                 <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-dbinit</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
 
             <!-- ================================================= -->
             <!-- rocketmq library -->
