@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.window.shuffle;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -94,6 +95,28 @@ public class ShuffleChannel extends AbstractSystemChannel {
         channelConfig = new HashMap<>();
         channelConfig.put(CHANNEL_PROPERTY_KEY_PREFIX, ConfigureFileKey.WINDOW_SHUFFLE_CHANNEL_PROPERTY_PREFIX);
         channelConfig.put(CHANNEL_TYPE, ConfigureFileKey.WINDOW_SHUFFLE_CHANNEL_TYPE);
+
+
+        this.shuffleCache = new ShuffleCache(window);
+        this.shuffleCache.init();
+        this.shuffleCache.openAutoFlush();
+
+
+    }
+
+    protected transient AtomicBoolean hasStart=new AtomicBoolean(false);
+    @Override public void startChannel() {
+        if(hasStart.compareAndSet(false,true)){
+            init();
+            super.startChannel();
+        }
+
+    }
+
+    /**
+     * init shuffle channel
+     */
+    public void init(){
         this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
 
         this.producer = createSink(window.getNameSpace(), window.getConfigureName());
@@ -103,11 +126,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         if (this.consumer instanceof AbstractSource) {
             ((AbstractSource) this.consumer).setJsonData(true);
         }
-
-        this.shuffleCache = new ShuffleCache(window);
-        this.shuffleCache.init();
-        this.shuffleCache.openAutoFlush();
-
         if (producer != null && (queueList == null || queueList.size() == 0)) {
             queueList = producer.getSplitList();
             Map<String, ISplit> tmp = new ConcurrentHashMap<>();
@@ -118,7 +136,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
             this.queueMap = tmp;
         }
     }
-
 
     /**
      * 接收到分片信息，如果是系统消息，做缓存刷新，否则把消息放入缓存，同时计算存储的有效性

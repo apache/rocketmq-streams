@@ -125,8 +125,10 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         initVar(configurableService);
         initAction(configurableService);
         initMetaData(configurableService);
-        this.optimize();
-        groupExpressionManager.compile();
+        if(supportHyperscan){
+            this.optimize();
+            groupExpressionManager.compile();
+        }
     }
 
     public void addAction(ChannelAction action) {
@@ -330,7 +332,9 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     @Override
     public Boolean doMessage(IMessage message, AbstractContext context) {
-        return execute(message.getMessageBody());
+
+        List<Rule> fireRules= filterComponent.executeRule(message,context,this);
+        return fireRules!=null&&fireRules.size()>0;
     }
 
     public static final String FIRE_RULES = "fireRules";

@@ -247,9 +247,20 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
 
             }
             int i = 0;
+            ChainPipeline pipline = (ChainPipeline)getPipeline();
+            String filterName = getLabel();
             for (String name : names) {
                 AbstractRule rule = configurableService.queryConfigurable(AbstractRule.TYPE, name);
                 rules[i] = (R)rule;
+
+                /**
+                 * open hyperscan to optimaztion mutil regex
+                 */
+                String key = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName,"open_hyperscan");
+                String openHyperscan = ComponentCreator.getProperties().getProperty(key);
+                if(openHyperscan!=null&&Boolean.valueOf(openHyperscan)){
+                    rule.setSupportHyperscan(true);
+                }
                 ruleName2JsonObject.put(rules[i].getConfigureName(), rules[i].toOutputJson());
                 i++;
             }

@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.script.function.service;
 
 import java.lang.reflect.Method;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.function.model.FunctionType;
@@ -88,6 +89,8 @@ public interface IFunctionService {
      */
     FunctionConfigure getFunctionConfigure(String functionName, Object... parameters);
 
+
+    DataType getReturnDataType(String functionName);
     /**
      * 执行函数，或先找到合适的FunctionConfigure，然后执行反射。函数带message，context前缀
      *

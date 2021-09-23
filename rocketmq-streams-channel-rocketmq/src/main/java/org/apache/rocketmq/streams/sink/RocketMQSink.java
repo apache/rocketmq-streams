@@ -140,11 +140,14 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                     destroy();
                     producer = new DefaultMQProducer(groupName + "producer", true, null);
                     try {
-                        if (this.namesrvAddr == null || "".equals(this.namesrvAddr)) {
-                            throw new RuntimeException("namesrvAddr can not be null.");
-                        }
+                        //please not use the code，the name srv addr may be empty in jmenv
+//                        if (this.namesrvAddr == null || "".equals(this.namesrvAddr)) {
+//                            throw new RuntimeException("namesrvAddr can not be null.");
+//                        }
 
-                        producer.setNamesrvAddr(this.namesrvAddr);
+                        if(StringUtil.isNotEmpty(this.namesrvAddr)){
+                            producer.setNamesrvAddr(this.namesrvAddr);
+                        }
                         producer.start();
                     } catch (Exception e) {
                         setInitSuccess(false);

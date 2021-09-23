@@ -139,4 +139,8 @@ public class HyperscanRegex<T> {
         }
         return fireExpressions;
     }
+
+    public int size(){
+        return allRegexs.size();
+    }
 }

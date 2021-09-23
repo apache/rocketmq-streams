@@ -113,9 +113,9 @@ public class GroupExpression extends Expression<List<Expression>> {
         if (RegexFunction.isRegex(expression.getFunctionName())) {
             regexExpressionNameSet.add(expression.getConfigureName());
         }
-        if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
-            regexExpressionNameSet.add(expression.getConfigureName());
-        }
+//        if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
+//            regexExpressionNameSet.add(expression.getConfigureName());
+//        }
         getValue().add(expression);
     }
 

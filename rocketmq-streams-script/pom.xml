@@ -30,7 +30,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-streams-commons</artifactId>
+            <artifactId>rocketmq-streams-serviceloader</artifactId>
         </dependency>
         <dependency>
             <groupId>io.krakens</groupId>
