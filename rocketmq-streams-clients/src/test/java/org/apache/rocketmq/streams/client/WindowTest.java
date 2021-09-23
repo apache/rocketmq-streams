@@ -134,32 +134,34 @@ public class WindowTest implements Serializable {
         userC.put("flag", 1);
         behaviorList.add(userC.toJSONString());
 
-        String dataFilePath = "/tmp/behavior.txt";
-        File dataFile = new File(dataFilePath);
-        dataFile.deleteOnExit();
+        File dataFile = null;
         try {
+            dataFile = File.createTempFile("behavior", ".txt");
             FileUtils.writeLines(dataFile, behaviorList);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        String resultFilePath = "/tmp/behavior.txt.session";
-        File resultFile = new File(resultFilePath);
-        resultFile.deleteOnExit();
+        File resultFile = null;
+        try {
+            resultFile = File.createTempFile("behavior.txt", ".session");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         StreamBuilder.dataStream("namespace", "session_test")
-            .fromFile(dataFilePath, false)
+            .fromFile(dataFile.getAbsolutePath(), false)
             .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
             .window(SessionWindow.of(Time.seconds(5), "time"))
             .groupBy("user")
             .setLocalStorageOnly(true)
             .sum("flag", "count")
             .toDataSteam()
-            .toFile(resultFilePath).start(true);
+            .toFile(resultFile.getAbsolutePath()).start(true);
 
         try {
             Thread.sleep(1 * 60 * 1000);
-            List<String> sessionList = FileUtils.readLines(new File(resultFilePath), "UTF-8");
+            List<String> sessionList = FileUtils.readLines(resultFile, "UTF-8");
             Map<String, List<Pair<Pair<String, String>, Integer>>> sessionMap = new HashMap<>(4);
             for (String line : sessionList) {
                 JSONObject object = JSONObject.parseObject(line);
@@ -180,7 +182,6 @@ public class WindowTest implements Serializable {
             Assert.assertEquals("2021-09-09 10:00:06", sessionMap.get("userC").get(1).getLeft().getLeft());
             Assert.assertEquals(1, sessionMap.get("userB").size());
 
-            System.exit(0);
         } catch (Exception e) {
             e.printStackTrace();
         }
