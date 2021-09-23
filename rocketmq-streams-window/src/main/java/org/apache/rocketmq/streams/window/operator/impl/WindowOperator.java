@@ -36,8 +36,16 @@ import org.apache.rocketmq.streams.window.storage.IWindowStorage;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowOperator extends AbstractShuffleWindow {
@@ -72,7 +80,7 @@ public class WindowOperator extends AbstractShuffleWindow {
     protected transient AtomicInteger shuffleCount=new AtomicInteger(0);
     protected transient AtomicInteger fireCountAccumulator=new AtomicInteger(0);
     @Override
-    public int fireWindowInstance(WindowInstance instance, String queueId,Map<String,String> queueId2Offset) {
+    public int fireWindowInstance(WindowInstance instance, String queueId, Map<String,String> queueId2Offset) {
         List<WindowValue> windowValues=new ArrayList<>();
         int fireCount=0;
         long startTime=System.currentTimeMillis();

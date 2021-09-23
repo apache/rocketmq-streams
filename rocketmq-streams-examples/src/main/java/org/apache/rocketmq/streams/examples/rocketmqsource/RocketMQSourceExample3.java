@@ -26,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.*;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
 
 public class RocketMQSourceExample3 {
     /**

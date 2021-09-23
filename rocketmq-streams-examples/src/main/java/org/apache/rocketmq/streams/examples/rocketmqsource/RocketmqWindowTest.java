@@ -24,7 +24,9 @@ import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.*;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
 
 public class RocketmqWindowTest {
 

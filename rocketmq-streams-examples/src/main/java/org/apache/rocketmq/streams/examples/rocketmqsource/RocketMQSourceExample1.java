@@ -19,7 +19,10 @@ package org.apache.rocketmq.streams.examples.rocketmqsource;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.*;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
+
 
 public class RocketMQSourceExample1 {
     public static void main(String[] args) {
