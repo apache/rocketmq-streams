@@ -24,17 +24,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.TopicList;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
@@ -42,6 +38,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.command.CommandUtil;
 
 public class RocketMQSink extends AbstractSupportShuffleSink {
 
@@ -51,6 +48,8 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     private String topic;
     private String groupName;
+    private String clusterName = "DefaultCluster";
+    private boolean order = false;
 
     private transient List<DefaultMQPushConsumer> consumers = new ArrayList<>();
     private transient DefaultMQProducer producer;
@@ -67,7 +66,11 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         this.groupName = groupName;
     }
 
-
+    public RocketMQSink(String namesrvAddr, String topic, String groupName, String clusterName, boolean order) {
+        this.namesrvAddr = namesrvAddr;
+        this.topic = topic;
+        this.groupName = groupName;
+    }
     @Override
     protected boolean initConfigurable() {
         super.initConfigurable();
@@ -132,7 +135,6 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         return true;
     }
 
-
     protected void initProducer() {
         if (producer == null) {
             synchronized (this) {
@@ -172,7 +174,6 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         }
     }
 
-
     @Override
     public void destroy() {
         super.destroy();
@@ -186,29 +187,49 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     @Override
     protected void createTopicIfNotExist(int splitNum) {
+        if (StringUtil.isEmpty(topic)) {
+            LOG.error("Topic should be empty");
+            throw new RuntimeException("Topic should be empty");
+        }
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExt.setVipChannelEnabled(false);
         defaultMQAdminExt.setNamesrvAddr(this.getNamesrvAddr());
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setReadQueueNums(splitNum);
+        topicConfig.setWriteQueueNums(splitNum);
+        topicConfig.setTopicName(topic.trim());
+
         try {
             defaultMQAdminExt.start();
-            TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
-            for (String topic : topicList.getTopicList()) {
-                if (topic.equals(this.topic)) {
-                    return;
-                }
+            Set<String> masterSet =
+                CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
+            for (String master : masterSet) {
+                defaultMQAdminExt.createAndUpdateTopicConfig(master, topicConfig);
+                LOG.info("Create topic to success: " + master);
             }
 
-
-            defaultMQAdminExt.createTopic(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC, topic, splitNum, 1);
+            if (this.order) {
+                Set<String> brokerNameSet =
+                    CommandUtil.fetchBrokerNameByClusterName(defaultMQAdminExt, clusterName);
+                StringBuilder orderConf = new StringBuilder();
+                String splitor = "";
+                for (String s : brokerNameSet) {
+                    orderConf.append(splitor).append(s).append(":")
+                        .append(topicConfig.getWriteQueueNums());
+                    splitor = ";";
+                }
+                defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
+                    orderConf.toString(), true);
+                System.out.printf("set cluster orderConf. isOrder=%s, orderConf=[%s]", order, orderConf);
+            }
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("create topic error " + topic, e);
+            LOG.error("Create topic error", e);
+            throw new RuntimeException("Create topic error " + topic, e);
         } finally {
             defaultMQAdminExt.shutdown();
         }
     }
-
 
     @Override
     public List<ISplit> getSplitList() {
@@ -247,7 +268,6 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         }
         return splitNames.size();
     }
-
 
     public String getTags() {
         return tags;
@@ -305,4 +325,19 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         this.namesrvAddr = namesrvAddr;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public boolean isOrder() {
+        return order;
+    }
+
+    public void setOrder(boolean order) {
+        this.order = order;
+    }
 }
