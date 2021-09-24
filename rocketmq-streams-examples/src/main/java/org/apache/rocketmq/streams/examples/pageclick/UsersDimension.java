@@ -33,7 +33,7 @@ public class UsersDimension {
     private static final String namesrv = "127.0.0.1:9876";
 
     /**
-     * 5s时间范围内，统计某个用户点击网页次数
+     * Count the number of times a user clicks on a webpage within 5s
      * @param args
      */
     public static void main(String[] args) {

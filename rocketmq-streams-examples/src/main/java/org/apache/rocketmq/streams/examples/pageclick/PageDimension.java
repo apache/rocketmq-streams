@@ -33,7 +33,7 @@ public class PageDimension {
     private static final String namesrv = "127.0.0.1:9876";
 
     /**
-     * 在某段时间范围内，用户点击最多的某个网页是多少次数
+     * In a certain period of time, how many times did a user click on a certain webpage
      *
      * @param args
      */
