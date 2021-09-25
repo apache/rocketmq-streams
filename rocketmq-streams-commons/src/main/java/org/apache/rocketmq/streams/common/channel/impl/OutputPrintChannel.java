@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl;
 
-import java.util.List;
-
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.utils.PrintUtil;
+
+import java.util.List;
 
 /**
  * 测试使用，输出就是把消息打印出来
@@ -30,7 +29,7 @@ public class OutputPrintChannel extends AbstractSink {
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
         for (IMessage msg : messages) {
-            //System.out.println(msg.getMessageValue());
+            System.out.println(msg.getMessageValue());
         }
         return false;
     }
