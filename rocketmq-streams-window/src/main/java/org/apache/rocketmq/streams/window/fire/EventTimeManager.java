@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.streams.window.fire;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class EventTimeManager {
     private Map<String,SplitEventTimeManager> eventTimeManagerMap=new HashMap<>();
@@ -40,6 +40,8 @@ public class EventTimeManager {
                 }
             }
         }
+
+
         splitEventTimeManager.updateEventTime(message,window);
     }
 
