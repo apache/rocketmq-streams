@@ -28,7 +28,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class DataStreamTest implements Serializable {
 
