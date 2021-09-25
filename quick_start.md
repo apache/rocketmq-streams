@@ -57,7 +57,7 @@
 ```
 
 #### 2.3、编写业务代码
-Please see the [rocketmq-streams-examples](rocketmq-streams-examples/README.md)
+快速编写一个统计页面点击次数的小程序：Please see the [rocketmq-streams-examples](rocketmq-streams-examples/README.md)
 #### 2.4、运行
 - 前提：在从rocketmq中读取数据做流处理时，需要运行topic在rocketmq中自动创建，因为做groupBy操作时，需要用到rocketmq作为shuffle数据的读写目的地。
 - 命令：
