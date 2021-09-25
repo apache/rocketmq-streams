@@ -1,6 +1,6 @@
 ## rocketmq-streams-examples
 
-### 1、fileSource example
+### 1、File source example
 逐行读取文件数据，并打印出来。
 ```java
 public class FileSourceExample {
@@ -18,8 +18,8 @@ public class FileSourceExample {
 
 ### 2、分时间段，统计分组中某字段的和
 
-#### 2.1 安装rocketmq
-可以参考[rocketmq搭建文档](https://rocketmq.apache.org/docs/quick-start/)
+#### 2.1 安装 Apache RocketMQ
+可以参考[Apache RocketMQ 搭建文档](https://rocketmq.apache.org/docs/quick-start/)
 
 #### 2.2 源数据
 [源数据](./../rocketmq-streams-examples/src/main/resources/data.txt)
@@ -42,7 +42,7 @@ public class FileSourceExample {
 
 
 #### 2.4 结果说明
-这个例子中，使用rocketmq-streams消费rocketmq中的数据，并按照ProjectName和LogStore两个字段联合分组统计，两个字段的值相同，分为一组。
+这个例子中，使用 rocketmq-streams 消费 rocketmq 中的数据，并按照 ProjectName 和 LogStore 两个字段联合分组统计，两个字段的值相同，分为一组。
 分别统计每组的InFlow和OutFlow两字段累计和。
 
 data.text数据运行的结果部分如下：
