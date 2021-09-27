@@ -19,4 +19,5 @@ package org.apache.rocketmq.streams.common.functions;
 public interface FilterFunction<T> extends Function {
 
     boolean filter(T value) throws Exception;
+
 }
