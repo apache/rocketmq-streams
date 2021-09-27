@@ -41,6 +41,7 @@ import org.apache.rocketmq.streams.common.datatype.DateDataType;
 import org.apache.rocketmq.streams.common.datatype.DoubleDataType;
 import org.apache.rocketmq.streams.common.datatype.FloatDataType;
 import org.apache.rocketmq.streams.common.datatype.GenericParameterDataType;
+import org.apache.rocketmq.streams.common.datatype.HllDataType;
 import org.apache.rocketmq.streams.common.datatype.IJsonable;
 import org.apache.rocketmq.streams.common.datatype.IntDataType;
 import org.apache.rocketmq.streams.common.datatype.JavaBeanDataType;
@@ -69,6 +70,8 @@ public class DataTypeUtil {
     private static final Map<Integer, DataType> typeCode2DataType = new HashMap<>();
 
     static {
+        register(new HllDataType());
+
         register(new NumberDataType());
         register(new StringDataType());
         register(new IntDataType());
