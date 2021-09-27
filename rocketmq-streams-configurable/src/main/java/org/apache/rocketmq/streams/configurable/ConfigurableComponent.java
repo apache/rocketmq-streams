@@ -160,7 +160,7 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
     @SuppressWarnings("unchecked")
     @Override
     public <T> T queryConfigurable(String configurableType, String name) {
-        return (T)queryConfigurableByIdent(configurableType, name);
+        return (T) queryConfigurableByIdent(configurableType, name);
     }
 
     //protected void insertConfigurable(JSONObject message, IConfigurable configurable) {
@@ -170,7 +170,7 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
     @Override
     public String getNamespace() {
         if (AbstractConfigurableService.class.isInstance(configureService)) {
-            return ((AbstractConfigurableService)configureService).getNamespace();
+            return ((AbstractConfigurableService) configureService).getNamespace();
         }
         return namespace;
     }

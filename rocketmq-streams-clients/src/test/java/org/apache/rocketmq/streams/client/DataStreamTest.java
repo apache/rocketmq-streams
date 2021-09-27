@@ -46,74 +46,86 @@ public class DataStreamTest implements Serializable {
     @Test
     public void testFromFile() {
         dataStream
-                .fromFile("/Users/junjie.cheng/text.txt", false)
-                .map(message -> message + "--")
-                .toPrint(1)
-                .start();
+            .fromFile("/Users/junjie.cheng/text.txt", false)
+            .map(message -> message + "--")
+            .toPrint(1)
+            .start();
     }
 
     @Test
     public void testRocketmq() {
         DataStreamSource dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
         dataStream
-                .fromRocketmq("topic_xxxx01", "consumer_xxxx01", "127.0.0.1:9876")
-                .map(message -> message + "--")
-                .toPrint(1)
-                .start();
+            .fromRocketmq("topic_xxxx01", "consumer_xxxx01", "127.0.0.1:9876")
+            .map(message -> message + "--")
+            .toPrint(1)
+            .start();
     }
 
     @Test
     public void testDBCheckPoint() {
         dataStream
-                .fromRocketmq("topic_xxxx02", "consumer_xxxx02", "127.0.0.1:9876")
-                .map(message -> message + "--")
-                .toPrint(1)
-                .with(WindowStrategy.exactlyOnce("", "", ""))
-                .start();
+            .fromRocketmq("topic_xxxx02", "consumer_xxxx02", "127.0.0.1:9876")
+            .map(message -> message + "--")
+            .toPrint(1)
+            .with(WindowStrategy.exactlyOnce("", "", ""))
+            .start();
     }
 
     @Test
     public void testFileCheckPoint() {
         dataStream
-                .fromFile("/Users/junjie.cheng/text.txt", false)
-                .map(message -> message + "--")
-                .toPrint(1)
-                .with(WindowStrategy.highPerformance())
-                .start();
+            .fromFile("/Users/junjie.cheng/text.txt", false)
+            .map(message -> message + "--")
+            .toPrint(1)
+            .with(WindowStrategy.highPerformance())
+            .start();
     }
-
 
     @Test
     public void testWindow() {
         DataStreamSource dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
         dataStream
-                .fromRocketmq("topic_xxxx03", "consumer_xxxx03", "127.0.0.1:9876")
-                .map(new MapFunction<JSONObject, String>() {
+            .fromRocketmq("topic_xxxx03", "consumer_xxxx03", "127.0.0.1:9876")
+            .map(new MapFunction<JSONObject, String>() {
 
-                    @Override
-                    public JSONObject map(String message) throws Exception {
-                        JSONObject msg = JSONObject.parseObject(message);
-                        return msg;
-                    }
-                })
-                .window(TumblingWindow.of(Time.seconds(5)))
-                .groupBy("name", "age")
-                .count("c")
-                .sum("score", "scoreValue")
-                .toDataSteam()
-                .toPrint(1)
-                .with(WindowStrategy.exactlyOnce("", "", ""))
-                .start();
+                @Override
+                public JSONObject map(String message) throws Exception {
+                    JSONObject msg = JSONObject.parseObject(message);
+                    return msg;
+                }
+            })
+            .window(TumblingWindow.of(Time.seconds(5)))
+            .groupBy("name", "age")
+            .count("c")
+            .sum("score", "scoreValue")
+            .toDataSteam()
+            .toPrint(1)
+            .with(WindowStrategy.exactlyOnce("", "", ""))
+            .start();
+    }
+
+    @Test
+    public void testFingerPrintStrategy() {
+        dataStream
+            .fromFile("/Users/junjie.cheng/text.txt", false)
+            .map(message -> message + "--")
+            .toPrint(1)
+            .start();
+
     }
 
     @Test
     public void testBothStrategy() {
         dataStream
-                .fromRocketmq("topic_xxxx04", "consumer_xxxx04", "127.0.0.1:9876")
-                .map(message -> message + "--")
-                .toPrint(1)
-                .with()
-                .start();
+            .fromRocketmq("topic_xxxx04", "consumer_xxxx04", "127.0.0.1:9876")
+            .map(message -> message + "--")
+            .filter(message -> {
+                return true;
+            })
+            .toPrint(1)
+            .with()
+            .start();
     }
 
     @Test
