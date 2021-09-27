@@ -18,9 +18,10 @@ import org.junit.Test;
 
 public class RocksdbTest {
 
+    private static RocksdbStorage storage = new RocksdbStorage<>();
+
     @Test
     public void testMultiValues() {
-        RocksdbStorage storage = new RocksdbStorage<>();
         //
         List<WindowBaseValue> valueList = new ArrayList<>();
         WindowBaseValue value1 = new WindowBaseValue();
@@ -45,11 +46,49 @@ public class RocksdbTest {
         Assert.assertEquals(2, resultMap.get(key).size());
         Assert.assertEquals("2021-09-07 11:00:00", resultMap.get(key).get(0).getStartTime());
         Assert.assertEquals("2021-09-07 12:00:00", resultMap.get(key).get(1).getStartTime());
+        //
+        storage.removeKeys(theMap.keySet());
+    }
+
+    @Test
+    public void testOverwrite() {
+        //
+        List<WindowBaseValue> valueList = new ArrayList<>();
+        WindowBaseValue value1 = new WindowBaseValue();
+        value1.setStartTime("2021-09-07 11:00:00");
+        value1.setEndTime("2021-09-07 11:10:00");
+        value1.setFireTime("2021-09-07 11:11:00");
+        WindowBaseValue value2 = new WindowBaseValue();
+        value2.setStartTime("2021-09-07 12:00:00");
+        value2.setEndTime("2021-09-07 12:10:00");
+        value2.setFireTime("2021-09-07 12:11:00");
+        valueList.add(value1);
+        valueList.add(value2);
+        //
+        String key = "test";
+        Map<String, List<WindowBaseValue>> theMap = new HashMap<>();
+        theMap.put(key, valueList);
+        storage.multiPutList(theMap);
+        //
+        valueList = new ArrayList<>();
+        value1 = new WindowBaseValue();
+        value1.setStartTime("2021-09-11 11:00:00");
+        value1.setEndTime("2021-09-11 11:10:00");
+        value1.setFireTime("2021-09-11 11:11:00");
+        valueList.add(value1);
+        theMap.put(key, valueList);
+        storage.multiPutList(theMap);
+        Map<String, List<WindowBaseValue>> resultMap = storage.multiGetList(WindowBaseValue.class, new ArrayList<String>() {{
+            add(key);
+        }});
+        Assert.assertEquals(1, resultMap.size());
+        Assert.assertEquals("2021-09-11 11:00:00", resultMap.get(key).get(0).getStartTime());
+        //
+        storage.removeKeys(resultMap.keySet());
     }
 
     @Test
     public void testValueWithPrefix() {
-        RocksdbStorage storage = new RocksdbStorage<>();
         //
         WindowInstance windowInstance = new WindowInstance();
         windowInstance.setStartTime(SessionOperator.SESSION_WINDOW_BEGIN_TIME);
@@ -117,7 +156,8 @@ public class RocksdbTest {
         for (WindowValue value : valueList) {
             System.out.println(value.getStartTime() + " " + value.getEndTime() + " " + value.getFireTime() + " " + value.getPartitionNum());
         }
-
+        //
+        storage.removeKeys(valueMap.keySet());
     }
 
 }
