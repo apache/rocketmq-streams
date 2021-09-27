@@ -29,9 +29,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.client.transform.window.SessionWindow;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
-import org.apache.rocketmq.streams.common.channel.impl.memory.MemoryCache;
-import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
-import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.functions.ForEachFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
@@ -44,7 +41,7 @@ public class WindowTest implements Serializable {
     public void testWindow() {
         StreamBuilder.dataStream("namespace", "name")
             .fromFile("/Users/duheng/project/opensource/sls_100.txt", false)
-            .map((MapFunction<JSONObject, String>)message -> JSONObject.parseObject(message))
+            .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
             .window(TumblingWindow.of(Time.seconds(5)))
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(true)
@@ -184,9 +181,103 @@ public class WindowTest implements Serializable {
 
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            dataFile.deleteOnExit();
+            resultFile.deleteOnExit();
         }
 
     }
 
+    @Test
+    public void testCountDistinct() {
+        //dataset
+        List<String> behaviorList = new ArrayList<>();
+
+        JSONObject userA = new JSONObject();
+        userA.put("time", DateUtil.parse("2021-09-09 10:00:00"));
+        userA.put("user", "userA");
+        userA.put("page", "alibaba-inc.com");
+        behaviorList.add(userA.toJSONString());
+
+        userA = new JSONObject();
+        userA.put("time", DateUtil.parse("2021-09-09 10:01:00"));
+        userA.put("user", "userA");
+        userA.put("page", "sina.com");
+        behaviorList.add(userA.toJSONString());
+
+        userA = new JSONObject();
+        userA.put("time", DateUtil.parse("2021-09-09 10:03:00"));
+        userA.put("user", "userA");
+        userA.put("page", "alibaba-inc.com");
+        behaviorList.add(userA.toJSONString());
+
+        JSONObject userB = new JSONObject();
+        userB.put("time", DateUtil.parse("2021-09-09 10:00:00"));
+        userB.put("user", "userB");
+        userB.put("page", "sohu.com");
+        behaviorList.add(userB.toJSONString());
+
+        JSONObject userC = new JSONObject();
+        userC.put("time", DateUtil.parse("2021-09-09 10:00:00"));
+        userC.put("user", "userC");
+        userC.put("page", "qq.com");
+        behaviorList.add(userC.toJSONString());
+
+        userC = new JSONObject();
+        userC.put("time", DateUtil.parse("2021-09-09 10:03:06"));
+        userC.put("user", "userC");
+        userC.put("page", "qq.com");
+        behaviorList.add(userC.toJSONString());
+
+        File dataFile = null;
+        try {
+            dataFile = File.createTempFile("behavior", ".txt");
+            FileUtils.writeLines(dataFile, behaviorList);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        File resultFile = null;
+        try {
+            resultFile = File.createTempFile("behavior.txt", ".session");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        StreamBuilder.dataStream("namespace", "count_distinct_test")
+            .fromFile(dataFile.getAbsolutePath(), false)
+            .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
+            .window(TumblingWindow.of(Time.minutes(5), "time"))
+            .groupBy("user")
+            .setLocalStorageOnly(true)
+            .count_distinct("page", "pv")
+            .count_distinct_large("page", "pv_large")
+            .toDataSteam()
+            .toFile(resultFile.getAbsolutePath()).start(true);
+
+        try {
+            Thread.sleep(6 * 60 * 1000);
+            List<String> sessionList = FileUtils.readLines(resultFile, "UTF-8");
+            Map<String, Integer> statisticMap = new HashMap<>(4);
+            for (String line : sessionList) {
+                JSONObject object = JSONObject.parseObject(line);
+                String user = object.getString("user");
+                Integer userVisitCount = object.getInteger("pv");
+                Integer userVisitCountLarge = object.getInteger("pv_large");
+                Assert.assertEquals(userVisitCount, userVisitCountLarge);
+                statisticMap.put(user, userVisitCount);
+            }
+            Assert.assertEquals(3, statisticMap.size());
+            Assert.assertEquals(2, statisticMap.get("userA").longValue());
+            Assert.assertEquals(1, statisticMap.get("userB").longValue());
+            Assert.assertEquals(1, statisticMap.get("userC").longValue());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            dataFile.deleteOnExit();
+            resultFile.deleteOnExit();
+        }
+    }
 
 }
