@@ -55,10 +55,10 @@ public class WindowInfo {
             window.setSizeInterval(windowSize.getValue());
         } else if (type == SESSION_WINDOW) {
             window = new SessionOperator(sessionTimeout.getValue());
-            window.setTimeFieldName(timeField);
         } else {
             throw new RuntimeException("can not support the type ,expect 1，2，3。actual is " + type);
         }
+        window.setTimeFieldName(timeField);
         return window;
     }
 
