@@ -30,4 +30,12 @@ public class TumblingWindow {
         windowInfo.setWindowSize(time);
         return windowInfo;
     }
+
+    public static WindowInfo of(Time time, String timeField) {
+        WindowInfo windowInfo = new WindowInfo();
+        windowInfo.setType(WindowInfo.TUMBLING_WINDOW);
+        windowInfo.setWindowSize(time);
+        windowInfo.setTimeField(timeField);
+        return windowInfo;
+    }
 }
