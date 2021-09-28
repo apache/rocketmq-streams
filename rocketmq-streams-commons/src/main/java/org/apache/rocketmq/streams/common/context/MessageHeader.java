@@ -126,7 +126,7 @@ public class MessageHeader {
         header.msgRouteFromLable = msgRouteFromLable;
         header.logFingerprintValue = logFingerprintValue;
         header.messageQueue = messageQueue;
-        header.checkpointQueueIds=checkpointQueueIds;
+        header.checkpointQueueIds = checkpointQueueIds;
         return header;
     }
 
