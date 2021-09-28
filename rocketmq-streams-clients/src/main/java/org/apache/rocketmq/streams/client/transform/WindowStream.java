@@ -86,6 +86,14 @@ public class WindowStream {
         return this;
     }
 
+    public WindowStream count_distinct_2(String fieldName, String asName) {
+        String distinctName = "__" + fieldName + "_distinct_" + asName + "__";
+        String prefix = distinctName + "=distinct2(" + fieldName + ",HIT_WINDOW_INSTANCE_ID,SHUFFLE_KEY)";
+        String suffix = asName + "=count(" + distinctName + ")";
+        window.getSelectMap().put(asName, prefix + ";" + suffix);
+        return this;
+    }
+
     /**
      * count_distinct算子（数据量大，容忍较少错误率）
      *
