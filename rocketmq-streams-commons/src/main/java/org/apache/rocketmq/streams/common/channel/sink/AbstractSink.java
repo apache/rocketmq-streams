@@ -32,8 +32,8 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MultiSplitMessa
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
-import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager.SourceState;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
+import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.context.IMessage;

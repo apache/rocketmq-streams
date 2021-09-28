@@ -104,4 +104,8 @@ public class BitSetCache {
 
     }
 
+    public long size(){
+        return this.cache.getSize();
+    }
+
 }

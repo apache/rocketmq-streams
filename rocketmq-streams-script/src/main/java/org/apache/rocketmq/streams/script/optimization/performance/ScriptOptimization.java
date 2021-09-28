@@ -16,32 +16,40 @@
  */
 package org.apache.rocketmq.streams.script.optimization.performance;
 
-import org.apache.rocketmq.streams.common.optimization.cachefilter.ICacheFilter;
-import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
-import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
+import org.apache.rocketmq.streams.common.optimization.cachefilter.ICacheFilter;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
+import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
+import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
+import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class ScriptOptimization {
     protected String name;//function script namespace,name
 
+
     /**
      * optimizate expression
      */
-    protected ScriptExpressionGroupsProxy scriptExpressionGroupsProxy = new ScriptExpressionGroupsProxy(160, 1000000);
+    protected ScriptExpressionGroupsProxy scriptExpressionGroupsProxy =new ScriptExpressionGroupsProxy(160,1000000);
 
     //the optimizated script
     protected List<IScriptExpression> scriptExpressions;
 
+
     //newFieldName created in the script
     protected Map<String, IScriptExpression> newFieldName2Expressions = new HashMap<>();
+
 
     /**
      * Optimization once
@@ -53,8 +61,8 @@ public class ScriptOptimization {
      *
      * @param scriptExpressions
      */
-    public ScriptOptimization(String name, List<IScriptExpression> scriptExpressions) {
-        this.name = name;
+    public ScriptOptimization(String name,List<IScriptExpression> scriptExpressions) {
+        this.name=name;
         this.scriptExpressions = scriptExpressions;
 
         /**
@@ -83,46 +91,48 @@ public class ScriptOptimization {
         return false;
     }
 
+
+
     /**
      * 把表达式拆成3段，创建变量的，正则类，其他。正则类用HyperscanRegex做优化
      */
-    public List<IScriptExpression> optimize() {
+    public ScriptExpressionGroupsProxy optimize() {
         if (!startOptimization.compareAndSet(false, true)) {
-            return this.scriptExpressions;
+            return this.scriptExpressionGroupsProxy;
         }
-        Set<String> newVarNames = new HashSet<>();
-        List<IScriptExpression> allScriptExpressions = new ArrayList<>();//最终输出的表达式列表
-        List<IScriptExpression> proxyExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
-        List<IScriptExpression> lastExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
-        List<IScriptExpression> mapExpressions = new ArrayList<>();//如果是trim，cast，concat等函数，优先执行
+        Set<String> newVarNames=new HashSet<>();
+//        List<IScriptExpression> allScriptExpressions = new ArrayList<>();//最终输出的表达式列表
+//        List<IScriptExpression> proxyExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
+//        List<IScriptExpression> lastExpressions = new ArrayList<>();//最后执行的脚本，在执行完正则后执行的部分
+//        List<IScriptExpression> mapExpressions = new ArrayList<>();//如果是trim，cast，concat等函数，优先执行
         for (IScriptExpression scriptExpression : scriptExpressions) {
 
             Set<String> newFieldNames = scriptExpression.getNewFieldNames();
-            if (newFieldNames != null && newFieldNames.size() > 0) {
+            if (newFieldNames != null&&newFieldNames.size() > 0) {
                 String newFieldName = newFieldNames.iterator().next();
                 newVarNames.add(newFieldName);
             }
 
-            IScriptExpression scriptExpressionProxy = createProxy(scriptExpression, newVarNames);
-            String functionName = scriptExpressionProxy.getFunctionName();
-            if (scriptExpressionProxy instanceof AbstractScriptProxy) {
-                proxyExpressions.add(scriptExpressionProxy);
-            } else if ("trim".equals(functionName) || "lower".equals(functionName) || "concat".equals(functionName)) {
-                mapExpressions.add(scriptExpressionProxy);
-            } else {
-                lastExpressions.add(scriptExpressionProxy);
-            }
-        }
-        allScriptExpressions.addAll(mapExpressions);//把优先执行的表达式添加上
-        if (this.scriptExpressionGroupsProxy.scriptExpressions.size() > 0) {
-            allScriptExpressions.add(this.scriptExpressionGroupsProxy);
-        }
-        allScriptExpressions.addAll(lastExpressions);//把剩余的表达式增加到list中
+            createProxy(scriptExpression,newVarNames);
 
-        this.scriptExpressions = allScriptExpressions;
+
+
+//            IScriptExpression scriptExpressionProxy =
+//            String functionName = scriptExpressionProxy.getFunctionName();
+//            if(scriptExpressionProxy instanceof AbstractScriptProxy){
+//               // proxyExpressions.add(scriptExpressionProxy);
+//            }else if("trim".equals(functionName) || "lower".equals(functionName) || "concat".equals(functionName)){
+//               // mapExpressions.add(scriptExpressionProxy);
+//            }else {
+//                //lastExpressions.add(scriptExpressionProxy);
+//            }
+        }
         this.scriptExpressionGroupsProxy.removeLessCount();
-        return this.scriptExpressions;
+       return scriptExpressionGroupsProxy;
     }
+
+
+
 
     /**
      * 如果脚本中有较多的正则表达式，则统一注册到正则库，并行执行。
@@ -130,7 +140,7 @@ public class ScriptOptimization {
      * @param scriptExpression
      * @return
      */
-    protected IScriptExpression createProxy(IScriptExpression scriptExpression, Set<String> newVarNames) {
+    protected IScriptExpression createProxy(IScriptExpression scriptExpression,Set<String> newVarNames) {
         AbstractScriptProxy scriptProxy = ScriptProxyFactory.getInstance().create(scriptExpression);
         if (scriptProxy == null) {
             return scriptExpression;
@@ -141,20 +151,21 @@ public class ScriptOptimization {
          * 如果依赖的字段是其他脚本产生的，则不做优化
          */
         for (String fieldName : dependentFields) {
-            if (newFieldName2Expressions.containsKey(fieldName) && !newVarNames.contains(fieldName)) {
+            if (newFieldName2Expressions.containsKey(fieldName)&&!newVarNames.contains(fieldName)) {
                 return scriptExpression;
             }
         }
 
         this.scriptExpressionGroupsProxy.addScriptExpression(scriptProxy);
-        List<ICacheFilter> cacheFilters = scriptProxy.getCacheFilters();
-        if (cacheFilters != null) {
-            for (ICacheFilter cacheFilter : cacheFilters) {
-                this.scriptExpressionGroupsProxy.addOptimizationExpression(this.name, cacheFilter);
+        List<ICacheFilter> cacheFilters=scriptProxy.getCacheFilters();
+        if(cacheFilters!=null){
+            for(ICacheFilter cacheFilter:cacheFilters){
+                this.scriptExpressionGroupsProxy.addOptimizationExpression(this.name,cacheFilter);
             }
         }
         return scriptProxy;
     }
+
 
     public static void main(String[] args) {
         String scriptValue = "source='netstat_ob';\n"
