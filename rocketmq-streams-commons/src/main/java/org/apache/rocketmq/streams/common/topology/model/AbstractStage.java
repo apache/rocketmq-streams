@@ -19,8 +19,10 @@ package org.apache.rocketmq.streams.common.topology.model;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -28,13 +30,13 @@ import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
 import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
+import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 
 public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable
     implements IStreamOperator<T, T>, ISystemMessageProcessor {
-
-
 
     private static final Log LOG = LogFactory.getLog(AbstractStage.class);
 
@@ -48,6 +50,11 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
     protected String splitDataFieldName;
 
     protected transient Pipeline pipeline;
+
+    /**
+     * 源头stage
+     */
+    protected transient AbstractStage sourceStage;
 
     /**
      * 设置路由label，当需要做路由选择时需要设置
@@ -85,7 +92,6 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             return null;
         }
         try {
-
             TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
         } catch (Exception e) {
             LOG.error("t.getMessageBody() parse error", e);
@@ -97,9 +103,9 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         Object result = handle.doMessage(t, context);
         //
         if (!context.isContinue() || result == null) {
-            return (T)context.breakExecute();
+            return (T) context.breakExecute();
         }
-        return (T)result;
+        return (T) result;
     }
 
     /**
@@ -229,6 +235,64 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         String logFingerValue = message.getHeader().getLogFingerprintValue();
         if (logFingerprintFilter != null && logFingerValue != null) {
             logFingerprintFilter.addNoFireMessage(logFingerValue, logFingerFilterStageName);
+        }
+    }
+
+    /**
+     * 为最源头的stage加载指纹信息
+     */
+    protected void loadLogFinger() {
+        ChainPipeline<?> pipeline = (ChainPipeline<?>) getPipeline();
+        String filterName = getLabel();
+        if (!pipeline.isTopology()) {
+            List<?> stages = pipeline.getStages();
+            int i = 0;
+            for (Object stage : stages) {
+                if (stage == this) {
+                    break;
+                }
+                i++;
+            }
+            filterName = i + "";
+        }
+        String key = MapKeyUtil.createKeyBySign(".", pipeline.getNameSpace(), pipeline.getConfigureName(), filterName);
+        String logFingerFieldNames = ComponentCreator.getProperties().getProperty(key);
+        if (logFingerFieldNames == null) {
+            return;
+        }
+        sourceStage = getSourceStage();
+        sourceStage.setLogFingerFieldNames(logFingerFieldNames);
+        sourceStage.setLogFingerFilterStageName(key);
+        sourceStage.setLogFingerprintFilter(SQLLogFingerprintFilter.getInstance());
+    }
+
+    /**
+     * 发现最源头的stage
+     *
+     * @return
+     */
+    protected AbstractStage getSourceStage() {
+        ChainPipeline pipline = (ChainPipeline) getPipeline();
+        if (pipline.isTopology()) {
+            Map<String, AbstractStage> stageMap = pipline.createStageMap();
+            AbstractStage currentStage = this;
+            List<String> prewLables = currentStage.getPrevStageLabels();
+            while (prewLables != null && prewLables.size() > 0) {
+                if (prewLables.size() > 1) {
+                    return null;
+                }
+                String lable = prewLables.get(0);
+                AbstractStage stage = (AbstractStage) stageMap.get(lable);
+                if (stage != null) {
+                    currentStage = stage;
+                } else {
+                    return currentStage;
+                }
+                prewLables = currentStage.getPrevStageLabels();
+            }
+            return currentStage;
+        } else {
+            return (AbstractStage) pipline.getStages().get(0);
         }
     }
 

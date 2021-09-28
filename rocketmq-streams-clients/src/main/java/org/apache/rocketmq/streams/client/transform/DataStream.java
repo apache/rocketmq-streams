@@ -143,7 +143,6 @@ public class DataStream implements Serializable {
                         splitMessages.add(subMessage);
                     }
                     context.openSplitModel();
-                    ;
                     context.setSplitMessages(splitMessages);
                     return null;
                 } catch (Exception e) {
@@ -158,13 +157,17 @@ public class DataStream implements Serializable {
     }
 
     public <O> DataStream filter(final FilterFunction<O> filterFunction) {
-        StageBuilder mapUDFOperator = new StageBuilder() {
+        return filter(filterFunction, new String[] {});
+    }
 
+    public <O> DataStream filter(final FilterFunction<O> filterFunction, String... fingerprints) {
+        StageBuilder mapUDFOperator = new StageBuilder() {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 try {
-                    boolean isFilter = filterFunction.filter((O) message.getMessageValue());
-                    if (isFilter) {
+                    boolean tag = filterFunction.filter((O) message.getMessageValue());
+                    if (!tag) {
+                        context.put("NEED_USE_FINGER_PRINT", true);
                         context.breakExecute();
                     }
                 } catch (Exception e) {
@@ -175,6 +178,24 @@ public class DataStream implements Serializable {
         };
         ChainStage stage = this.mainPipelineBuilder.createStage(mapUDFOperator);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+
+        if (fingerprints.length > 0) {
+            ChainPipeline<?> pipeline = this.mainPipelineBuilder.getPipeline();
+            String filterName = stage.getLabel();
+            if (!pipeline.isTopology()) {
+                List<?> stages = pipeline.getStages();
+                int i = 0;
+                for (Object st : stages) {
+                    if (st == stage) {
+                        break;
+                    }
+                    i++;
+                }
+                filterName = i + "";
+            }
+            String key = MapKeyUtil.createKeyBySign(".", pipeline.getNameSpace(), pipeline.getConfigureName(), filterName);
+            ComponentCreator.getProperties().setProperty(key, String.join(",", fingerprints));
+        }
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
 
@@ -463,7 +484,8 @@ public class DataStream implements Serializable {
         return toRocketmq(topic, tags, groupName, -1, nameServerAddress, clusterName, order);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String nameServerAddress,
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize,
+        String nameServerAddress,
         String clusterName, boolean order) {
         RocketMQSink rocketMQSink = new RocketMQSink();
         if (StringUtils.isNotBlank(topic)) {
