@@ -250,8 +250,9 @@ public class WindowTest implements Serializable {
             .window(TumblingWindow.of(Time.minutes(5), "time"))
             .groupBy("user")
             .setLocalStorageOnly(true)
-            .count_distinct("page", "pv")
-            .count_distinct_large("page", "pv_large")
+            .count_distinct("page", "uv")
+            .count_distinct_large("page", "uv_large")
+            .count_distinct_2("page","uv_2")
             .toDataSteam()
             .toFile(resultFile.getAbsolutePath()).start(true);
 
@@ -262,9 +263,11 @@ public class WindowTest implements Serializable {
             for (String line : sessionList) {
                 JSONObject object = JSONObject.parseObject(line);
                 String user = object.getString("user");
-                Integer userVisitCount = object.getInteger("pv");
-                Integer userVisitCountLarge = object.getInteger("pv_large");
+                Integer userVisitCount = object.getInteger("uv");
+                Integer userVisitCountBasedRocksDB = object.getInteger("uv_2");
+                Integer userVisitCountLarge = object.getInteger("uv_large");
                 Assert.assertEquals(userVisitCount, userVisitCountLarge);
+                Assert.assertEquals(userVisitCount, userVisitCountBasedRocksDB);
                 statisticMap.put(user, userVisitCount);
             }
             Assert.assertEquals(3, statisticMap.size());
