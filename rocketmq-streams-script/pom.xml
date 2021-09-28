@@ -28,6 +28,11 @@
     <name>ROCKETMQ STREAMS :: script</name>
     <packaging>jar</packaging>
     <dependencies>
+        <!--rocketmq state-->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-state</artifactId>
+        </dependency>
         <!--hyperLogLog used in dv computation-->
         <dependency>
             <groupId>net.agkn</groupId>
