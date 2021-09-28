@@ -107,13 +107,20 @@ public class ShuffleCache extends WindowCache {
      * @param instance2Messages
      * @param windowInstanceMap
      */
-    protected void groupByWindowInstanceAndQueueId(List<IMessage> messageList, Map<Pair<String, String>, List<IMessage>> instance2Messages,
+    protected void groupByWindowInstanceAndQueueId(List<IMessage> messageList,
+        Map<Pair<String, String>, List<IMessage>> instance2Messages,
         Map<String, WindowInstance> windowInstanceMap) {
         for (IMessage message : messageList) {
-
-            List<WindowInstance> windowInstances = (List<WindowInstance>)message.getMessageBody().get(WindowInstance.class.getSimpleName());
+            //the queueId will be replace below, so get first here!
             String queueId = message.getHeader().getQueueId();
-            for(WindowInstance windowInstance:windowInstances){
+            String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
+            String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
+            Boolean isLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
+            message.getHeader().setQueueId(oriQueueId);
+            message.getHeader().setOffset(oriOffset);
+            message.getHeader().setOffsetIsLong(isLong);
+            List<WindowInstance> windowInstances = (List<WindowInstance>) message.getMessageBody().get(WindowInstance.class.getSimpleName());
+            for (WindowInstance windowInstance : windowInstances) {
                 String windowInstanceId = windowInstance.createWindowInstanceId();
                 Pair<String, String> queueIdAndInstanceKey = Pair.of(queueId, windowInstanceId);
                 List<IMessage> messages = instance2Messages.get(queueIdAndInstanceKey);
@@ -121,17 +128,13 @@ public class ShuffleCache extends WindowCache {
                     messages = new ArrayList<>();
                     instance2Messages.put(queueIdAndInstanceKey, messages);
                 }
-                messages.add(message);
+                //in case of changing message concurrently in hop window
+                IMessage cloneMessage = message.deepCopy();
+                //bring window instance id into accumulator computation
+                cloneMessage.getMessageBody().put("HIT_WINDOW_INSTANCE_ID", windowInstance.createWindowInstanceId());
+                messages.add(cloneMessage);
                 windowInstanceMap.put(windowInstanceId, windowInstance);
             }
-
-            String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
-            String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
-            Boolean isLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
-            message.getHeader().setQueueId(oriQueueId);
-            message.getHeader().setOffset(oriOffset);
-            message.getHeader().setOffsetIsLong(isLong);
-
         }
     }
 
