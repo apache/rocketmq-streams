@@ -21,6 +21,33 @@ public class RocksdbTest {
     private static RocksdbStorage storage = new RocksdbStorage<>();
 
     @Test
+    public void testMultiProcess() {
+        //
+        RocksdbStorage storage1 = new RocksdbStorage();
+        RocksdbStorage storage2 = new RocksdbStorage();
+        //
+        //
+        WindowBaseValue value1 = new WindowBaseValue();
+        value1.setStartTime("2021-09-07 11:00:00");
+        value1.setEndTime("2021-09-07 11:10:00");
+        value1.setFireTime("2021-09-07 11:11:00");
+        WindowBaseValue value2 = new WindowBaseValue();
+        value2.setStartTime("2021-09-07 12:00:00");
+        value2.setEndTime("2021-09-07 12:10:00");
+        value2.setFireTime("2021-09-07 12:11:00");
+        //
+        storage1.put("storage_1", value1);
+        storage2.put("storage_2", value2);
+        //
+        RocksdbStorage storage3 = new RocksdbStorage();
+        Map<String, WindowBaseValue> valueMap = storage3.multiGet(WindowBaseValue.class, new ArrayList<String>() {{
+            add("storage_1");
+            add("storage_2");
+        }});
+        Assert.assertEquals(2, valueMap.size());
+    }
+
+    @Test
     public void testMultiValues() {
         //
         List<WindowBaseValue> valueList = new ArrayList<>();
