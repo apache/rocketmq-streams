@@ -224,7 +224,7 @@ public class QuickExpressionExtractor {
         TopologyStage topologyStage=new TopologyStage(parents);
 
 
-        AbstractRule[] rules=stage.getRules();
+        List<AbstractRule> rules=stage.getRules();
         if(rules!=null){
             for(AbstractRule rule:rules){
                 parseRule(stage,(Rule) rule,quickExpressions,topologyStage);

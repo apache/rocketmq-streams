@@ -38,6 +38,10 @@ public class InFunction extends AbstractExpressionFunction {
      */
     private ICache<Object, Set<String>> cache = new SoftReferenceCache();
 
+    public static boolean matchFunction(String functionName){
+        return "in".equals(functionName)||"~in".equals(functionName);
+    }
+
     @Override
     @FunctionMethod(value = "in", alias = "~in")
     @FunctionMethodAilas("包含")

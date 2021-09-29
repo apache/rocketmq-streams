@@ -167,7 +167,7 @@ public class PiplineLogFingerprintAnalysis {
      */
     private Set<String> fetchLogFingerprint(FilterChainStage filterChainStage) {
         ChainPipeline pipline = (ChainPipeline)filterChainStage.getPipeline();
-        AbstractRule[] rules = filterChainStage.getRules();
+        List<AbstractRule> rules=filterChainStage.getRules();
         if (rules == null) {
             return null;
         }

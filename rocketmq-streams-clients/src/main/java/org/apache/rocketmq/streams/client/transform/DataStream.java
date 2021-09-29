@@ -47,13 +47,16 @@ import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.Union;
+import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.StageBuilder;
+import org.apache.rocketmq.streams.common.topology.stages.udf.UDFChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.UDFUnionChainStage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.db.sink.DBSink;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.apache.rocketmq.streams.filter.operator.FilterOperator;
+import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.script.operator.impl.ScriptOperator;
 import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.window.builder.WindowBuilder;
@@ -89,9 +92,16 @@ public class DataStream implements Serializable {
 
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
-
-    public DataStream filter(String expressions) {
-        ChainStage<?> stage = this.mainPipelineBuilder.createStage(new FilterOperator(expressions));
+    public DataStream filterByExpression(String expression,  String... logFingerFieldNames){
+        return filterByExpression(expression,false,logFingerFieldNames);
+    }
+    public DataStream filterByExpression(String expression,boolean openHyperscan, String... logFingerFieldNames) {
+        Rule rule=new FilterOperator(expression);
+        FilterChainStage stage = (FilterChainStage)this.mainPipelineBuilder.createStage(rule);
+        if(logFingerFieldNames!=null&&logFingerFieldNames.length>0){
+            stage.setFilterFieldNames(MapKeyUtil.createKeyBySign(",",logFingerFieldNames));
+        }
+        stage.setOpenHyperscan(openHyperscan);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
@@ -156,15 +166,18 @@ public class DataStream implements Serializable {
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
-
     public <O> DataStream filter(final FilterFunction<O> filterFunction) {
+        return filter(filterFunction,null);
+    }
+    public <O> DataStream filter(final FilterFunction<O> filterFunction,  String... logFingerFieldNames) {
         StageBuilder mapUDFOperator = new StageBuilder() {
 
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 try {
-                    boolean isFilter = filterFunction.filter((O) message.getMessageValue());
-                    if (isFilter) {
+                    boolean isMatch = filterFunction.filter((O) message.getMessageValue());
+                    if (!isMatch) {
+                        context.put("_logfinger",true);
                         context.breakExecute();
                     }
                 } catch (Exception e) {
@@ -173,7 +186,10 @@ public class DataStream implements Serializable {
                 return null;
             }
         };
-        ChainStage stage = this.mainPipelineBuilder.createStage(mapUDFOperator);
+        UDFChainStage stage =(UDFChainStage) this.mainPipelineBuilder.createStage(mapUDFOperator);
+        if(logFingerFieldNames!=null&&logFingerFieldNames.length>0){
+            stage.setFilterFieldNames(MapKeyUtil.createKeyBySign(",",logFingerFieldNames));
+        }
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }

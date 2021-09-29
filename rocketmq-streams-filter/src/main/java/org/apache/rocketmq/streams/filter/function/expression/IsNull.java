@@ -26,7 +26,9 @@ import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
 
 @Function
 public class IsNull extends AbstractExpressionFunction {
-
+    public static boolean matchFunction(String functionName){
+        return "isNull".equals(functionName)||"null".equals(functionName);
+    }
     @Override
     @FunctionMethod(value = "isNull", alias = "null")
     @FunctionMethodAilas("为空")

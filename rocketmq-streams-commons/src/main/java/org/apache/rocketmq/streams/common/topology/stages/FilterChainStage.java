@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.avalon.framework.component.Component;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.IComponent;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
@@ -50,12 +51,11 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
     protected transient Map<String, Integer> map = new HashMap<>();
     private List<String> names;
     protected String nameRegex;//通过名字匹配模式，加载一批规则，避免大批量输入规则名称
-    private transient R[] rules;
+    private transient List<R> rules;
     private transient Map<String, JSONObject> ruleName2JsonObject = new HashMap<>();
     public static transient Class componentClass = ReflectUtil.forClass("org.apache.rocketmq.streams.filter.FilterComponent");
-
-    protected transient AbstractStage sourceStage;
-
+    protected boolean openHyperscan=false;
+    protected static transient IComponent<IFilterService> component;
     public FilterChainStage() {
         setEntityName("filter");
     }
@@ -68,70 +68,24 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
-            StringBuffer builder = new StringBuffer();
-            if (rules != null) {
-                for (int i = 0; i < rules.length; i++) {
-                    if (rules[i] != null) {
-                        builder.append(rules[0].getExpressionName()).append(";");
-                    }
-                }
+            boolean isTrace=TraceUtil.hit(message.getHeader().getTraceId());
+            if(isTrace){
+                traceRuleInfo(message);
             }
-            TraceUtil.debug(message.getHeader().getTraceId(), "FilterChainStage",
-                builder.toString(), message.getMessageBody().toJSONString());
-            IComponent<IFilterService<R>> component = ComponentCreator.getComponent(null, componentClass);
-            // long start=System.currentTimeMillis();
+            if(component==null){
+                component = ComponentCreator.getComponent(null, componentClass);
+            }
             message.getHeader().setPiplineExecutorMonitor(new TopologyFilterMonitor());
             List<R> fireRules = component.getService().executeRule(message, context, rules);
-            //System.out.println("规则花费时间是:"+(System.currentTimeMillis()-start));
+
+            //not match rules
             if (fireRules == null || fireRules.size() == 0) {
-                addLogFingerprintFilter(message);
-                TopologyFilterMonitor monitor = message.getHeader().getPiplineExecutorMonitor();
-                if (monitor != null) {
-                    if (monitor.getNotFireExpression2DependentFields() != null) {
-
-                        Map<String, List<String>> notFireExpressions = monitor.getNotFireExpression2DependentFields();
-                        Iterator<Entry<String, List<String>>> it = notFireExpressions.entrySet()
-                            .iterator();
-                        String description = "the View  " + getOwnerSqlNodeTableName() + " break ,has " + notFireExpressions.size() + " expression not fire:" + PrintUtil.LINE;
-                        StringBuilder stringBuilder = new StringBuilder(description);
-                        int index = 1;
-                        while (it.hasNext()) {
-
-                            Entry<String, List<String>> entry = it.next();
-                            String expression = entry.getKey();
-                            List<String> dependentFields = entry.getValue();
-                            for (String dependentField : dependentFields) {
-                                List<String> scripts = findScriptByStage(dependentField);
-                                if (scripts != null) {
-                                    for (String script : scripts) {
-                                        stringBuilder.append(script + PrintUtil.LINE);
-                                    }
-
-                                }
-                            }
-                            stringBuilder.append("The " + index++ + " expression is " + PrintUtil.LINE + getExpressionDescription(expression, message) + PrintUtil.LINE);
-
-                        }
-                        TraceUtil.debug(message.getHeader().getTraceId(), "break rule", stringBuilder.toString());
-                    }
-
-                }
                 context.breakExecute();
-                return message;
+                addLogFingerprintToSource(message);
+                if(isTrace){
+                    traceFailExpression(message);
+                }
             }
-
-            JSONArray jsonArray = new JSONArray();
-            for (AbstractRule rule : fireRules) {
-                JSONObject jsonObject = ruleName2JsonObject.get(rule.getConfigureName());
-                jsonArray.add(jsonObject);
-            }
-            JSONArray fireRuleArray = message.getMessageBody().getJSONArray(AbstractRule.FIRE_RULES);
-            if (fireRuleArray == null) {
-                fireRuleArray = jsonArray;
-            } else {
-                fireRuleArray.addAll(jsonArray);
-            }
-            message.getMessageBody().put(AbstractRule.FIRE_RULES, fireRuleArray);
             return message;
         }
 
@@ -141,14 +95,71 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
         }
     };
 
-    /**
-     * 增加日志指纹
-     *
-     * @param message
-     */
-    protected void addLogFingerprintFilter(IMessage message) {
-        if (sourceStage != null) {
-            sourceStage.addLogFingerprint(message);
+    protected void traceRuleInfo(IMessage message) {
+        TopologyFilterMonitor monitor = message.getHeader().getPiplineExecutorMonitor();
+        if (monitor != null) {
+            if (monitor.getNotFireExpression2DependentFields() != null) {
+
+                Map<String, List<String>> notFireExpressions = monitor.getNotFireExpression2DependentFields();
+                Iterator<Entry<String, List<String>>> it = notFireExpressions.entrySet()
+                    .iterator();
+                String description = "the View  " + getOwnerSqlNodeTableName() + " break ,has " + notFireExpressions.size() + " expression not fire:" + PrintUtil.LINE;
+                StringBuilder stringBuilder = new StringBuilder(description);
+                int index = 1;
+                while (it.hasNext()) {
+
+                    Entry<String, List<String>> entry = it.next();
+                    String expression = entry.getKey();
+                    List<String> dependentFields = entry.getValue();
+                    for (String dependentField : dependentFields) {
+                        List<String> scripts = findScriptByStage(dependentField);
+                        if (scripts != null) {
+                            for (String script : scripts) {
+                                stringBuilder.append(script + PrintUtil.LINE);
+                            }
+
+                        }
+                    }
+                    stringBuilder.append("The " + index++ + " expression is " + PrintUtil.LINE + getExpressionDescription(expression, message) + PrintUtil.LINE);
+
+                }
+                TraceUtil.debug(message.getHeader().getTraceId(), "break rule", stringBuilder.toString());
+            }
+
+        }
+    }
+
+    protected void traceFailExpression(IMessage message) {
+        TopologyFilterMonitor monitor = message.getHeader().getPiplineExecutorMonitor();
+        if (monitor != null) {
+            if (monitor.getNotFireExpression2DependentFields() != null) {
+
+                Map<String, List<String>> notFireExpressions = monitor.getNotFireExpression2DependentFields();
+                Iterator<Entry<String, List<String>>> it = notFireExpressions.entrySet()
+                    .iterator();
+                String description = "the View  " + getOwnerSqlNodeTableName() + " break ,has " + notFireExpressions.size() + " expression not fire:" + PrintUtil.LINE;
+                StringBuilder stringBuilder = new StringBuilder(description);
+                int index = 1;
+                while (it.hasNext()) {
+
+                    Entry<String, List<String>> entry = it.next();
+                    String expression = entry.getKey();
+                    List<String> dependentFields = entry.getValue();
+                    for (String dependentField : dependentFields) {
+                        List<String> scripts = findScriptByStage(dependentField);
+                        if (scripts != null) {
+                            for (String script : scripts) {
+                                stringBuilder.append(script + PrintUtil.LINE);
+                            }
+
+                        }
+                    }
+                    stringBuilder.append("The " + index++ + " expression is " + PrintUtil.LINE + getExpressionDescription(expression, message) + PrintUtil.LINE);
+
+                }
+                TraceUtil.debug(message.getHeader().getTraceId(), "break rule", stringBuilder.toString());
+            }
+
         }
     }
 
@@ -235,33 +246,36 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
                     //rules[i]=(R)ruleList.get(i);
                     ruleName2JsonObject.put(ruleList.get(i).getConfigureName(), ruleList.get(i).toOutputJson());
                 }
-                rules = (R[])Array.newInstance(ruleList.get(0).getClass(), matchedRules.size());
-                for (int i = 0; i < rules.length; i++) {
-                    rules[i] = (R)matchedRules.get(i);
+                rules = new ArrayList<>();
+                for (int i = 0; i < rules.size(); i++) {
+                    rules.add((R)matchedRules.get(i));
                 }
             }
         } else {
             if (names != null && names.size() > 0) {
-                AbstractRule rule = configurableService.queryConfigurable(AbstractRule.TYPE, names.get(0));
-                rules = (R[])Array.newInstance(rule.getClass(), names.size());
-
+                rules = new ArrayList<>();
             }
             int i = 0;
             ChainPipeline pipline = (ChainPipeline)getPipeline();
             String filterName = getLabel();
             for (String name : names) {
                 AbstractRule rule = configurableService.queryConfigurable(AbstractRule.TYPE, name);
-                rules[i] = (R)rule;
-
-                /**
-                 * open hyperscan to optimaztion mutil regex
-                 */
-                String key = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName,"open_hyperscan");
-                String openHyperscan = ComponentCreator.getProperties().getProperty(key);
-                if(openHyperscan!=null&&Boolean.valueOf(openHyperscan)){
-                    rule.setSupportHyperscan(true);
+                rules.add((R)rule);
+                if(!this.isOpenHyperscan()){
+                    /**
+                     * open hyperscan to optimaztion mutil regex
+                     */
+                    String key = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName,"open_hyperscan");
+                    String openHyperscan = ComponentCreator.getProperties().getProperty(key);
+                    if(openHyperscan!=null&&Boolean.valueOf(openHyperscan)){
+                        this.openHyperscan=true;
+                    }
                 }
-                ruleName2JsonObject.put(rules[i].getConfigureName(), rules[i].toOutputJson());
+              if(isOpenHyperscan()){
+                  rule.setSupportHyperscan(true);
+              }
+
+                ruleName2JsonObject.put(rules.get(i).getConfigureName(), rules.get(i).toOutputJson());
                 i++;
             }
         }
@@ -274,13 +288,13 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
         if (rules == null || rules.length == 0) {
             return;
         }
-        this.rules = (R[])Array.newInstance(rules[0].getClass(), rules.length);
+        this.rules = new ArrayList<>();
         if (names == null) {
             names = new ArrayList<>();
         }
         int i = 0;
         for (AbstractRule rule : rules) {
-            this.rules[i] = (R)rules[i];
+            this.rules.add ((R)rules[i]);
             names.add(rules[i].getConfigureName());
             ruleName2JsonObject.put(rules[i].getConfigureName(), rules[i].toOutputJson());
             i++;
@@ -289,68 +303,7 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
 
     }
 
-    /**
-     * 从配置文件加载日志指纹信息，如果存在做指纹优化
-     */
-    protected void loadLogFinger() {
-        ChainPipeline pipline = (ChainPipeline)getPipeline();
-        String filterName = getLabel();
-        if (pipline.isTopology() == false) {
-            List<AbstractStage> stages = pipline.getStages();
-            int i = 0;
-            for (AbstractStage stage : stages) {
-                if (stage == this) {
-                    break;
-                }
-                i++;
-            }
-            filterName = i + "";
-        }
-        String key = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName);
-        String logFingerFieldNames = ComponentCreator.getProperties().getProperty(key);
-        if (logFingerFieldNames == null) {
-            return;
-        }
-        sourceStage = getSourceStage();
-        int index = logFingerFieldNames.indexOf(";");
-        if (index != -1) {
-            String filterIndex = logFingerFieldNames.substring(0, index);
-            logFingerFieldNames = logFingerFieldNames.substring(index + 1);
-        }
-        sourceStage.setLogFingerFieldNames(logFingerFieldNames);
-        sourceStage.setLogFingerFilterStageName(key);
-        sourceStage.setLogFingerprintFilter(SQLLogFingerprintFilter.getInstance());
-    }
 
-    /**
-     * 发现最源头的stage
-     *
-     * @return
-     */
-    protected AbstractStage getSourceStage() {
-        ChainPipeline pipline = (ChainPipeline)getPipeline();
-        if (pipline.isTopology()) {
-            Map<String, AbstractStage> stageMap = pipline.createStageMap();
-            AbstractStage currentStage = this;
-            List<String> prewLables = currentStage.getPrevStageLabels();
-            while (prewLables != null && prewLables.size() > 0) {
-                if (prewLables.size() > 1) {
-                    return null;
-                }
-                String lable = prewLables.get(0);
-                AbstractStage stage = (AbstractStage)stageMap.get(lable);
-                if (stage != null) {
-                    currentStage = stage;
-                } else {
-                    return currentStage;
-                }
-                prewLables = currentStage.getPrevStageLabels();
-            }
-            return currentStage;
-        } else {
-            return (AbstractStage)pipline.getStages().get(0);
-        }
-    }
 
     public List<String> getNames() {
         return names;
@@ -368,7 +321,15 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
         this.nameRegex = nameRegex;
     }
 
-    public AbstractRule[] getRules() {
+    public List<R> getRules() {
         return rules;
+    }
+
+    public boolean isOpenHyperscan() {
+        return openHyperscan;
+    }
+
+    public void setOpenHyperscan(boolean openHyperscan) {
+        this.openHyperscan = openHyperscan;
     }
 }
