@@ -92,7 +92,7 @@ public class RocksdbState implements IKvState<String, String> {
     }
 
     @Override public String putIfAbsent(String key, String value) {
-        if (cache.search(key) <= 0) {
+        if (cache.search(key) > 0) {
             return null;
         }
         put(key, value);
