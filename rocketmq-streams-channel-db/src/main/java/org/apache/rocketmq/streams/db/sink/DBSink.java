@@ -25,6 +25,9 @@ import java.sql.ResultSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
@@ -34,15 +37,20 @@ import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.metadata.MetaDataUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 
 /**
  * 主要用于写db，输入可以是一个insert/replace 模版，也可以是metadata对象，二者选一即可。都支持批量插入，提高吞吐 sql 模版：insert into table(column1,column2,column3)values('#{var1}',#{var2},'#{var3}') MetaData:主要是描述每个字段的类型，是否必须 二者选一个即可。sql模式，系统会把一批（batchSize）数据拼成一个大sql。metadata模式，基于字段描述，最终也是拼成一个大sql
  */
 public class DBSink extends AbstractSink {
+
+    static final Log logger = LogFactory.getLog(DBSink.class);
+
     public static final String SQL_MODE_DEFAULT = "default";
     public static final String SQL_MODE_REPLACE = "replace";
     public static final String SQL_MODE_IGNORE = "ignore";
@@ -67,6 +75,9 @@ public class DBSink extends AbstractSink {
     protected boolean openSqlCache = true;
 
     protected transient IMessageCache<String> sqlCache;//cache sql, batch submit sql
+
+    boolean isMultiple = false; //是否多表
+
 
     /**
      * db串多数是名字，可以取个名字前缀，如果值为空，默认为此类的name，name为空，默认为简单类名
@@ -321,6 +332,53 @@ public class DBSink extends AbstractSink {
 
     public void setOpenSqlCache(boolean openSqlCache) {
         this.openSqlCache = openSqlCache;
+    }
+
+    public boolean isMultiple() {
+        return isMultiple;
+    }
+
+    public void setMultiple(boolean multiple) {
+        isMultiple = multiple;
+    }
+
+    /**
+     * 获取逻辑表名, 默认 logicTableName _ suffix模式
+     * @param realTableName
+     * @return
+     */
+    private final String subStrLogicTableName(String realTableName){
+        int len = realTableName.lastIndexOf("_");
+        String logicTableName = realTableName.substring(0, len);
+        return logicTableName;
+    }
+
+    /**
+     *
+     * @param sourceTableName
+     * @param targetTableName
+     * @return
+     */
+    private final String getCreateTableSqlFromOther(String sourceTableName, String targetTableName){
+
+        String createTableSql = MetaDataUtils.getCreateTableSqlByTableName(url, userName, password, sourceTableName);
+        if(createTableSql == null){
+            String errMsg = String.format("source table is not exist. multiple db sink must be dependency logic table meta for auto create sub table. logic table name is ", sourceTableName);
+            logger.error(errMsg);
+            throw new RuntimeException(errMsg);
+        }
+        createTableSql = createTableSql.replace(sourceTableName, targetTableName);
+        logger.info(String.format("createTableSql is %s", createTableSql));
+        return createTableSql;
+
+    }
+
+    /**
+     * 多sink场景
+     * @param createTableSql
+     */
+    private final void createTable(String createTableSql){
+        ORMUtil.executeSQL(url, userName, password, createTableSql, null);
     }
 
 }

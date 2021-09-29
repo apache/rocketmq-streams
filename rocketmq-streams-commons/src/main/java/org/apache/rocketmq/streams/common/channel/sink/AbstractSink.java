@@ -45,13 +45,11 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
  * 输出的接口抽象，针对json消息的场景
  */
 public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink> {
+
     private static final Log LOG = LogFactory.getLog(AbstractSink.class);
     public static String TARGET_QUEUE = "target_queue";//指定发送queue
-
     public static final int DEFAULT_BATCH_SIZE = 3000;
-
     protected transient IMessageCache<IMessage> messageCache;
-
     protected volatile int batchSize = DEFAULT_BATCH_SIZE;
     protected transient volatile Map<String, SourceState> sourceName2State = new HashMap<>();//保存完成刷新的queueid和offset
 
@@ -187,7 +185,6 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         for (String splitId : splitIds) {
             splitSet.add(splitId);
         }
-
         return checkpoint(splitSet);
     }
 
@@ -201,7 +198,6 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         if (size > 0) {
             System.out.println(name + " finish flush data " + size);
         }
-
         return true;
     }
 
