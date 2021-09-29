@@ -56,28 +56,28 @@ public class SimpleExpression extends Expression {
         setDataType(dataType);
     }
 
-    @Override
-    public Boolean getExpressionValue(RuleContext context, Rule rule) {
-        IExpressionOptimization expressionOptimization = getOptimize();
-        Boolean isHitCache = null;
-        String regex = null;
-        String value = null;
-        if (expressionOptimization != null) {
-            OptimizationExpression expression = expressionOptimization.optimize(this);
-            regex = expression.getRegex();
-            String varName = expression.getVarName();
-            value = context.getMessage().getMessageBody().getString(varName);
-            isHitCache = calculationResultCache.match(regex, value);
-            if (isHitCache != null) {
-                return isHitCache;
-            }
-        }
-        boolean isMatch = super.getExpressionValue(context, rule);
-        if (isHitCache == null && expressionOptimization != null) {
-            calculationResultCache.registeRegex(regex, value, isMatch);
-        }
-        return isMatch;
-    }
+//    @Override
+//    public Boolean getExpressionValue(RuleContext context, Rule rule) {
+//        IExpressionOptimization expressionOptimization = getOptimize();
+//        Boolean isHitCache = null;
+//        String regex = null;
+//        String value = null;
+//        if (expressionOptimization != null) {
+//            OptimizationExpression expression = expressionOptimization.optimize(this);
+//            regex = expression.getRegex();
+//            String varName = expression.getVarName();
+//            value = context.getMessage().getMessageBody().getString(varName);
+//            isHitCache = calculationResultCache.match(regex, value);
+//            if (isHitCache != null) {
+//                return isHitCache;
+//            }
+//        }
+//        boolean isMatch = super.getExpressionValue(context, rule);
+//        if (isHitCache == null && expressionOptimization != null) {
+//            calculationResultCache.registeRegex(regex, value, isMatch);
+//        }
+//        return isMatch;
+//    }
 
     /**
      * 找到函数对应的优化

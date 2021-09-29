@@ -29,7 +29,7 @@ public class TraceUtil {
 
     public static final String TRACE_ID_FLAG = "traceId";
 
-    private static final String RUNNING_MODE = "memory";
+    private static final String RUNNING_MODE = "true";
 
     public static final String IGNORE_TRACE_ID = "-1";
 
@@ -93,15 +93,16 @@ public class TraceUtil {
      * @return
      */
     public static boolean hit(String traceId) {
+        String type = ComponentCreator.getProperties().getProperty("dipper.trace.service.switch");
+        if (!RUNNING_MODE.equals(type)) {
+            return false;
+        }
         for (String white : whiteSet) {
             if (traceId.startsWith(white)) {
                 return true;
             }
         }
-        String type = ComponentCreator.getProperties().getProperty("dipper.configurable.service.type");
-        if (RUNNING_MODE.equals(type)) {
-            return true;
-        }
+
         return false;
     }
 

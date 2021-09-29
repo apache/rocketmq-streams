@@ -259,6 +259,9 @@ public class PipelineBuilder implements Serializable {
             this.pipeline.setChannelNextStageLabel(lableNames);
         } else {
             currentChainStage.setNextStageLabels(lableNames);
+            for(ChainStage stage:nextStages){
+                stage.getPrevStageLabels().add(currentChainStage.getLabel());
+            }
         }
     }
 

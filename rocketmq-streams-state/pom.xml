@@ -29,6 +29,9 @@
     <name>ROCKETMQ STREAMS :: state</name>
     <dependencies>
 
-
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-serviceloader</artifactId>
+        </dependency>
     </dependencies>
 </project>

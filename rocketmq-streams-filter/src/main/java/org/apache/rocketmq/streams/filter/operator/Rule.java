@@ -340,9 +340,8 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     public static final String FIRE_RULES = "fireRules";
 
     public boolean execute(JSONObject msg) {
-        RuleMessage ruleMessage = new RuleMessage(msg);
-        List<Rule> fireRules = filterComponent.excuteRule(ruleMessage, this);
-        msg.put(FIRE_RULES, createJsonArray(fireRules));
+        List<Rule> fireRules = filterComponent.excuteRule(msg, this);
+       // msg.put(FIRE_RULES, createJsonArray(fireRules));
         if (fireRules == null || fireRules.size() == 0) {
             return false;
         }
