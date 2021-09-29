@@ -31,6 +31,7 @@ import java.util.ServiceLoader;
 public class CheckPointStorageFactory {
 
     private static final Log logger = LogFactory.getLog(CheckPointStorageFactory.class);
+
     public static final String DEFAULT_CHECKPOINT_TYPE_NAME = "DB";
     private static CheckPointStorageFactory instance;
     private ServiceLoader<ICheckPointStorage> loader;
