@@ -205,7 +205,8 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable
         jsonObject.put("tableName", this.tableName);
         jsonObject.put("tableNameAlias", this.tableNameAlias);
         jsonObject.put("metaDataFields", jsonArray.toJSONString());
-        this.setJsonValue(jsonObject);
+//        this.setJsonValue(jsonObject);
+        this.getJsonValue(jsonObject);
         return jsonObject.toJSONString();
     }
 
@@ -245,6 +246,8 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable
         this.tableNameAlias = jsonObject.getString("tableNameAlias");
         this.metaDataFields = reourceFields;
         this.metaDataFieldMap = reourceFieldMap;
-        this.getJsonValue(jsonObject);
+//        this.getJsonValue(jsonObject);
+        this.setJsonValue(jsonObject);
+
     }
 }

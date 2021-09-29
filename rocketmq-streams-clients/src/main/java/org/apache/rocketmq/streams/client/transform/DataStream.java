@@ -20,7 +20,6 @@ package org.apache.rocketmq.streams.client.transform;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.streams.client.DataStreamAction;
@@ -46,6 +45,8 @@ import org.apache.rocketmq.streams.common.topology.stages.udf.UDFUnionChainStage
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.db.sink.DBSink;
+import org.apache.rocketmq.streams.db.sink.DynamicMultipleDBSink;
+import org.apache.rocketmq.streams.db.sink.EnhanceDBSink;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.apache.rocketmq.streams.filter.operator.FilterOperator;
 import org.apache.rocketmq.streams.script.operator.impl.ScriptOperator;
@@ -475,6 +476,24 @@ public class DataStream implements Serializable {
         ChainStage<?> output = this.mainPipelineBuilder.createStage(rocketMQSink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+    }
+
+    public DataStreamAction toEnhanceDBSink(String url, String userName, String password, String tableName){
+
+        EnhanceDBSink sink = new EnhanceDBSink(url, userName, password, tableName);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+
+    }
+
+    public DataStreamAction toMultiDB(String url, String userName, String password, String logicTableName, String fieldName){
+
+        DynamicMultipleDBSink sink = new DynamicMultipleDBSink(url, userName, password, logicTableName, fieldName);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+
     }
 
     public DataStreamAction to(ISink<?> sink) {

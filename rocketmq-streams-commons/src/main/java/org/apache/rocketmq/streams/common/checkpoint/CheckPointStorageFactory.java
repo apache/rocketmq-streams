@@ -31,11 +31,8 @@ import java.util.ServiceLoader;
 public class CheckPointStorageFactory {
 
     private static final Log logger = LogFactory.getLog(CheckPointStorageFactory.class);
-
     public static final String DEFAULT_CHECKPOINT_TYPE_NAME = "DB";
-
     private static CheckPointStorageFactory instance;
-
     private ServiceLoader<ICheckPointStorage> loader;
 
     private CheckPointStorageFactory() {
@@ -44,7 +41,7 @@ public class CheckPointStorageFactory {
         for(URL u : urls){
             String s = u.toString();
             if(s.contains("rocketmq-streams")){
-                logger.info(String.format("list class : %s", s));
+                logger.debug(String.format("list class : %s", s));
             }
         }
         loader = ServiceLoader.load(ICheckPointStorage.class);
