@@ -17,8 +17,11 @@
 
 package org.apache.rocketmq.streams.client.source;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
+import org.apache.rocketmq.streams.common.channel.impl.memory.MemoryCache;
+import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.source.RocketMQSource;
@@ -26,6 +29,7 @@ import org.apache.rocketmq.streams.source.RocketMQSource;
 import java.io.Serializable;
 
 public class DataStreamSource implements Serializable {
+
     protected PipelineBuilder mainPipelineBuilder;
 
     public DataStreamSource(String namespace, String pipelineName) {
@@ -63,6 +67,20 @@ public class DataStreamSource implements Serializable {
         rocketMQSource.setJsonData(isJson);
         rocketMQSource.setNamesrvAddr(namesrvAddress);
         this.mainPipelineBuilder.setSource(rocketMQSource);
+        return new DataStream(this.mainPipelineBuilder, null);
+    }
+
+    public DataStream fromArray(Object[] o){
+        MemoryCache cache = new MemoryCache(o);
+        return fromMemory(cache, o instanceof JSONObject[]);
+    }
+
+    public DataStream fromMemory(MemoryCache memoryCache, boolean isJson){
+        MemorySource memorySource=new MemorySource();
+        this.mainPipelineBuilder.addConfigurables(memoryCache);
+        memorySource.setMemoryCache(memoryCache);
+        memorySource.setJsonData(isJson);
+        this.mainPipelineBuilder.setSource(memorySource);
         return new DataStream(this.mainPipelineBuilder, null);
     }
 

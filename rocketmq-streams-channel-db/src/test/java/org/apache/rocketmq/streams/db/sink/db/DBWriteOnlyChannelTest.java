@@ -26,16 +26,15 @@ import org.junit.Test;
 
 public class DBWriteOnlyChannelTest {
 
-    private String URL = "jdbc:mysql://XXXXX:3306/yundun_soc?useUnicode=true&characterEncoding=utf8&autoReconnect=true";
-    protected String USER_NAME = "XXXX";
-    protected String PASSWORD = "XXXX";
+    private String URL = "*";
+    protected String USER_NAME = "*";
+    protected String PASSWORD = "*";
 
     @Test
     public void testOutputBySQL() {
         String sql = "insert into table(name,age) values('#{name}',#{age})";
         DBSink sink = new DBSink(sql, URL, USER_NAME, PASSWORD) {
-
-            /**
+            /**EnhanceDBSink
              * 因为不是真实表，会报错，把执行sql，改成打印sql
              */
             @Override
@@ -43,6 +42,7 @@ public class DBWriteOnlyChannelTest {
                 System.out.println(sql);
             }
         };
+        sink.init();
         for (int i = 0; i < 10; i++) {
             JSONObject msg = new JSONObject();
             msg.put("name", "chris" + i);

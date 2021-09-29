@@ -32,6 +32,9 @@ public abstract class AbstractMultiTableSink extends DBSink {
     protected transient AtomicLong messageCount = new AtomicLong(0);
     protected transient MultiTableSplitFunction<IMessage> multiTableSplitFunction;
 
+    public AbstractMultiTableSink(){
+    }
+
     public AbstractMultiTableSink(String url, String userName, String password) {
         this.url = url;
         this.userName = userName;
@@ -107,11 +110,12 @@ public abstract class AbstractMultiTableSink extends DBSink {
         sink.setPassword(password);
         sink.setUserName(userName);
         sink.setTableName(createTableName(splitId));
-        sink.openAutoFlush();
         sink.setBatchSize(batchSize);
         sink.setJdbcDriver(this.jdbcDriver);
         sink.setMessageCache(new SingleDBSinkCache(sink));
+        sink.setMultiple(true);
         sink.init();
+        sink.openAutoFlush();
         DBSink existDBSink = this.tableSinks.putIfAbsent(splitId, sink);
         if (existDBSink != null) {
             return existDBSink;

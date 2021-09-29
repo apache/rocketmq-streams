@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.streams.common.optimization.cachefilter;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
@@ -56,12 +55,8 @@ public class CacheFilterManager {
         }
     }
 
-
     protected static String createCacheKey(String varName){
         return MapKeyUtil.createKey(FILTER_CACHE_KEY,varName);
     }
-
-
-
 
 }
