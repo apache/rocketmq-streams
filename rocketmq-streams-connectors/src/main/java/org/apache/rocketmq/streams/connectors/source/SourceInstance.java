@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.checkpoint;
-
-
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-
-import java.util.List;
+package org.apache.rocketmq.streams.connectors.source;
 
 /**
- * @description 负责checkpoint的保存、恢复
+ * i个消息队列的实例，一个实例i个
  */
-public interface ICheckPointStorage {
+public class SourceInstance {
+    protected String sourceInstanceId;
 
-    String TYPE = "checkpoint_storage";
 
-    String getStorageName();
+    public SourceInstance(String sourceInstanceId){
+        this.sourceInstanceId=sourceInstanceId;
+    }
 
-    <T> void save(List<T> checkPointState);
+    public String getSourceInstanceId() {
+        return sourceInstanceId;
+    }
 
-    <T> T recover(ISource iSource, String queueID);
-
-    void flush();
-
-    void addCheckPointMessage(CheckPointMessage message);
-
-    void finish();
-
+    public void setSourceInstanceId(String sourceInstanceId) {
+        this.sourceInstanceId = sourceInstanceId;
+    }
 }

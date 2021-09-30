@@ -46,7 +46,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
  */
 public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink> {
 
-    private static final Log LOG = LogFactory.getLog(AbstractSink.class);
+    private static final Log logger = LogFactory.getLog(AbstractSink.class);
     public static String TARGET_QUEUE = "target_queue";//指定发送queue
     public static final int DEFAULT_BATCH_SIZE = 3000;
     protected transient IMessageCache<IMessage> messageCache;
@@ -125,10 +125,6 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     @Override
     public boolean flush(Set<String> splitIds) {
         int size = messageCache.flush(splitIds);
-        if (size > 0) {
-            System.out.println(this.getClass().getSimpleName() + " finish flush data " + size);
-        }
-
         return size > 0;
     }
 
@@ -196,7 +192,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         }
         int size = messageCache.flush();
         if (size > 0) {
-            System.out.println(name + " finish flush data " + size);
+            logger.info(String.format("%s finished flush data %d", name, size));
         }
         return true;
     }

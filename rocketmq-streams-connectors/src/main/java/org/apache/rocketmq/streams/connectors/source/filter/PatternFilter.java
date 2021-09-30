@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.checkpoint;
-
-
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-
-import java.util.List;
+package org.apache.rocketmq.streams.connectors.source.filter;
 
 /**
- * @description 负责checkpoint的保存、恢复
+ * @description
  */
-public interface ICheckPointStorage {
+public interface PatternFilter {
 
-    String TYPE = "checkpoint_storage";
+    static final String yyyyMMddHHmmss = "yyyyMMddHHmmss";
+    static final String yyyyMMdd = "yyyyMMdd";
 
-    String getStorageName();
+    static final String yyyyMMddHH = "yyyyMMddHH";
+    static final String yyyyMMddHHmm = "yyyyMMddHHmm";
 
-    <T> void save(List<T> checkPointState);
 
-    <T> T recover(ISource iSource, String queueID);
+    /**
+     * 根据sourceName和tableName判断是否符合
+     * @param sourceName
+     * @param tableName
+     * @return
+     */
+    boolean filter(String sourceName, String logicTableName, String tableName);
 
-    void flush();
+    PatternFilter setNext(PatternFilter filter);
 
-    void addCheckPointMessage(CheckPointMessage message);
-
-    void finish();
 
 }

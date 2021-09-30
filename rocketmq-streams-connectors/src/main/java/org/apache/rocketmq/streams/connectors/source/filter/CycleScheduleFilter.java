@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.checkpoint;
+package org.apache.rocketmq.streams.connectors.source.filter;
 
-
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-
+import java.io.Serializable;
 import java.util.List;
 
 /**
- * @description 负责checkpoint的保存、恢复
+ * @description
  */
-public interface ICheckPointStorage {
+public class CycleScheduleFilter extends AbstractPatternFilter implements Serializable {
 
-    String TYPE = "checkpoint_storage";
+    List<String> allPattern;
 
-    String getStorageName();
+    public CycleScheduleFilter(List<String> allPattern){
+        this.allPattern = allPattern;
+    }
 
-    <T> void save(List<T> checkPointState);
-
-    <T> T recover(ISource iSource, String queueID);
-
-    void flush();
-
-    void addCheckPointMessage(CheckPointMessage message);
-
-    void finish();
-
+    @Override
+    public boolean filter(String sourceName, String logicTableName, String tableName) {
+        return allPattern.contains(tableName);
+    }
 }

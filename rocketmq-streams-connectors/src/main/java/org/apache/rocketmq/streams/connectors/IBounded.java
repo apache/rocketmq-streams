@@ -14,30 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.checkpoint;
-
-
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-
-import java.util.List;
+package org.apache.rocketmq.streams.connectors;
 
 /**
- * @description 负责checkpoint的保存、恢复
+ * @description bounded stream interface
  */
-public interface ICheckPointStorage {
+@Deprecated
+public interface IBounded {
 
-    String TYPE = "checkpoint_storage";
-
-    String getStorageName();
-
-    <T> void save(List<T> checkPointState);
-
-    <T> T recover(ISource iSource, String queueID);
-
-    void flush();
-
-    void addCheckPointMessage(CheckPointMessage message);
-
-    void finish();
+    boolean isFinished();
 
 }

@@ -14,30 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.checkpoint;
+package org.apache.rocketmq.streams.connectors.source;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-
-import java.util.List;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 
 /**
- * @description 负责checkpoint的保存、恢复
+ * poll message，need balance
  */
-public interface ICheckPointStorage {
+public interface IPullSource<T extends ISource> extends ISource<T> {
 
-    String TYPE = "checkpoint_storage";
+    /**
+     * 拥有的分片格式
+     * @return
+     */
+    Collection<ISplit> ownerSplits();
 
-    String getStorageName();
+    /**
+     * get all split for the source
+     * @return
+     */
+    List<ISplit> fetchAllSplits();
 
-    <T> void save(List<T> checkPointState);
 
-    <T> T recover(ISource iSource, String queueID);
+    /**
+     * get all split for the source
+     * @return
+     */
+    Map<String, ISplit> getAllSplitMap();
 
-    void flush();
 
-    void addCheckPointMessage(CheckPointMessage message);
+    Long getPullIntervalMs();
 
-    void finish();
+    /**
+     * get cusor from store
+     * @return
+     */
+   String loadSplitOffset(ISplit split);
+
 
 }
