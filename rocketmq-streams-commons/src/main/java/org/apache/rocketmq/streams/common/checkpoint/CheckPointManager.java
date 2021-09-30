@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
+import java.util.*;
+
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -26,18 +28,14 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
-import java.util.*;
-import java.util.Map.Entry;
 
-public class CheckPointManager extends BasedConfigurable {
+public class CheckPointManager extends BasedConfigurable{
 
     protected transient Map<String, Long> currentSplitAndLastUpdateTime = new HashMap<>();//保存这个实例处理的分片数
-
     protected transient Map<String, Long> removingSplits = new HashMap<>();//正在删除的分片
-
     protected transient ICheckPointStorage iCheckPointStorage;
 
-    public CheckPointManager(){
+    public  CheckPointManager(){
         String name = ComponentCreator.getProperties().getProperty(ConfigureFileKey.CHECKPOINT_STORAGE_NAME);
         iCheckPointStorage = CheckPointStorageFactory.getInstance().getStorage(name);
     }
@@ -58,12 +56,12 @@ public class CheckPointManager extends BasedConfigurable {
 
         List<CheckPoint> checkPoints = new ArrayList<>();
 
-        for(Entry<String, SourceState> entry : sourceStateMap.entrySet()){
+        for(Map.Entry<String, SourceState> entry : sourceStateMap.entrySet()){
             String key = entry.getKey();
             SourceState value = entry.getValue();
             String[] ss = key.split("\\;");
             assert ss.length == 3 : "key length must be three. format is namespace;pipelineName;sourceName" + key;
-            for(Entry<String, MessageOffset> tmpEntry : value.getQueueId2Offsets().entrySet()){
+            for(Map.Entry<String, MessageOffset> tmpEntry : value.getQueueId2Offsets().entrySet()){
                 String queueId = tmpEntry.getKey();
                 String offset = tmpEntry.getValue().getMainOffset();
                 CheckPoint checkPoint = new CheckPoint();
@@ -106,8 +104,9 @@ public class CheckPointManager extends BasedConfigurable {
         iCheckPointStorage.flush();
     }
 
-
-
+    public void finish(){
+        iCheckPointStorage.finish();
+    }
 
     /**
      * 根据source进行划分，主要是针对双流join的场景
@@ -121,8 +120,6 @@ public class CheckPointManager extends BasedConfigurable {
         }
         return source.createCheckPointName();
     }
-
-
 
 
     public Map<String, Long> getCurrentSplitAndLastUpdateTime() {

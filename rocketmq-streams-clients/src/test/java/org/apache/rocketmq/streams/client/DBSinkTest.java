@@ -36,10 +36,14 @@ public class DBSinkTest {
 
     DataStreamSource dataStream;
 
-    String url = "*";
-    String userName = "*";
-    String password = "*";
-    String tableName = "*";
+//    String url = "*";
+//    String userName = "*";
+//    String password = "*";
+//    String tableName = "*";
+    static String url = "jdbc:mysql://sonar.mysql.rdstest.tbsite.net:3306/platform-service?serverTimezone=GMT%2b8";
+    static String userName = "platformservice";
+    static String password = "platformservice";
+    static String tableName = "table";
 
 
     @Before
