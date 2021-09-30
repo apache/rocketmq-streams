@@ -33,7 +33,6 @@ import java.util.List;
 public class DBCheckPointStorage extends AbstractCheckPointStorage {
 
     static final Log logger = LogFactory.getLog(DBCheckPointStorage.class);
-
     static final String STORAGE_NAME = "DB";
 
     public DBCheckPointStorage(){

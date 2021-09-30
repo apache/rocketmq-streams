@@ -48,7 +48,7 @@ public class SQLUtil {
      *               or
      *               `field1` = values(`field1`), `field2` = values(`field2`), `field3` = values(`field3`)
      */
-    private static String createMetadataFieldSegment(MetaData metaData, boolean containsIdField, boolean isDuplicateKey){
+    private static String createMetaDataFieldSegment(MetaData metaData, boolean containsIdField, boolean isDuplicateKey){
 
         List<MetaDataField> fields = metaData.getMetaDataFields();
         StringBuilder sb = new StringBuilder();
@@ -108,7 +108,7 @@ public class SQLUtil {
         sb.append(" ");
         sb.append(metaData.getTableName());
         sb.append("(");
-        sb.append(createMetadataFieldSegment(metaData, isContainsId, false));
+        sb.append(createMetaDataFieldSegment(metaData, isContainsId, false));
         sb.append(")");
         return sb.toString();
     }
@@ -179,7 +179,7 @@ public class SQLUtil {
         StringBuilder sb = new StringBuilder();
         sb.append(DUPLICATE_KEY);
         sb.append(" ");
-        sb.append(createMetadataFieldSegment(metaData, containsIdField, true));
+        sb.append(createMetaDataFieldSegment(metaData, containsIdField, true));
         return sb.toString();
     }
 

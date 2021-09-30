@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.checkpoint;
+package org.apache.rocketmq.streams.common.channel.source.systemmsg;
 
-
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-
-import java.util.List;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 
 /**
- * @description 负责checkpoint的保存、恢复
+ * @description
  */
-public interface ICheckPointStorage {
+public class ChangeTableNameMessage implements ISystemMessage {
 
-    String TYPE = "checkpoint_storage";
+    String scheduleCycle;
 
-    String getStorageName();
+    public ChangeTableNameMessage(){
 
-    <T> void save(List<T> checkPointState);
+    }
 
-    <T> T recover(ISource iSource, String queueID);
+    public ChangeTableNameMessage(String scheduleCycle){
+        this.scheduleCycle = scheduleCycle;
+    }
 
-    void flush();
+    public String getScheduleCycle() {
+        return scheduleCycle;
+    }
 
-    void addCheckPointMessage(CheckPointMessage message);
-
-    void finish();
-
+    public void setScheduleCycle(String scheduleCycle) {
+        this.scheduleCycle = scheduleCycle;
+    }
 }

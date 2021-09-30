@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.db.sink;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,8 +28,9 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.functions.MultiTableSplitFunction;
 
-public abstract class AbstractMultiTableSink extends DBSink {
-    protected transient ConcurrentHashMap<String, DBSink> tableSinks = new ConcurrentHashMap();
+public abstract class AbstractMultiTableSink extends EnhanceDBSink {
+
+    protected transient ConcurrentHashMap<String, EnhanceDBSink> tableSinks = new ConcurrentHashMap();
     protected transient AtomicLong messageCount = new AtomicLong(0);
     protected transient MultiTableSplitFunction<IMessage> multiTableSplitFunction;
 
@@ -42,9 +44,18 @@ public abstract class AbstractMultiTableSink extends DBSink {
     }
 
     @Override
+    protected boolean initConfigurable(){
+        Iterator<EnhanceDBSink> it = tableSinks.values().iterator();
+        while(it.hasNext()){
+            it.next().initConfigurable();
+        }
+        return true;
+    }
+
+    @Override
     public boolean batchAdd(IMessage message, ISplit split) {
 
-        DBSink sink = getOrCreateDBSink(split.getQueueId());
+        EnhanceDBSink sink = getOrCreateDBSink(split.getQueueId());
         boolean success = sink.batchAdd(message, split);
         long count = messageCount.incrementAndGet();
         if (count >= getBatchSize()) {
@@ -72,7 +83,7 @@ public abstract class AbstractMultiTableSink extends DBSink {
             return true;
         }
         for (String splitId : splitIds) {
-            DBSink sink = getOrCreateDBSink(splitId);
+            EnhanceDBSink sink = getOrCreateDBSink(splitId);
             sink.flush();
         }
         return true;
@@ -80,7 +91,7 @@ public abstract class AbstractMultiTableSink extends DBSink {
 
     @Override
     public boolean flush() {
-        for (DBSink dbSink : tableSinks.values()) {
+        for (EnhanceDBSink dbSink : tableSinks.values()) {
             dbSink.flush();
         }
         return true;
@@ -88,24 +99,24 @@ public abstract class AbstractMultiTableSink extends DBSink {
 
     @Override
     public void openAutoFlush() {
-        for (DBSink dbSink : tableSinks.values()) {
+        for (EnhanceDBSink dbSink : tableSinks.values()) {
             dbSink.openAutoFlush();
         }
     }
 
     @Override
     public void closeAutoFlush() {
-        for (DBSink dbSink : tableSinks.values()) {
+        for (EnhanceDBSink dbSink : tableSinks.values()) {
             dbSink.closeAutoFlush();
         }
     }
 
-    protected DBSink getOrCreateDBSink(String splitId) {
-        DBSink sink = this.tableSinks.get(splitId);
+    protected EnhanceDBSink getOrCreateDBSink(String splitId) {
+        EnhanceDBSink sink = this.tableSinks.get(splitId);
         if (sink != null) {
             return sink;
         }
-        sink = new DBSink();
+        sink = new EnhanceDBSink();
         sink.setUrl(url);
         sink.setPassword(password);
         sink.setUserName(userName);
@@ -116,7 +127,7 @@ public abstract class AbstractMultiTableSink extends DBSink {
         sink.setMultiple(true);
         sink.init();
         sink.openAutoFlush();
-        DBSink existDBSink = this.tableSinks.putIfAbsent(splitId, sink);
+        EnhanceDBSink existDBSink = this.tableSinks.putIfAbsent(splitId, sink);
         if (existDBSink != null) {
             return existDBSink;
         }
