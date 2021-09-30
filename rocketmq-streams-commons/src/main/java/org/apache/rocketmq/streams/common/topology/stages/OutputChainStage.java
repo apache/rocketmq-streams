@@ -113,6 +113,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
             if (StringUtil.isNotEmpty(message.getHeader().getQueueId())) {
                 queueIds.add(message.getHeader().getQueueId());
             }
+            //todo
             realSink.checkpoint(queueIds);
         }
         CheckPointState checkPointState = new CheckPointState();
