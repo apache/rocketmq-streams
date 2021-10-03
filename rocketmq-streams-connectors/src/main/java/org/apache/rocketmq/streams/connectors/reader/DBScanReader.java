@@ -44,42 +44,25 @@ import java.util.Map;
 public class DBScanReader implements ISplitReader, IBoundedSourceReader, Serializable {
 
     private static final long serialVersionUID = 8172403250050893288L;
-
     private static final Log logger = LogFactory.getLog(DBScanReader.class);
-
     static final String sqlTemplate = "select * from %s where id >= %d and id < %d";
 
     //是否完成了source的call back调用
     transient volatile boolean isFinishedCall = false;
-
     ISource iSource;
-
     String url;
-
     String userName;
-
     String password;
-
     String tableName;
-
     int batchSize;
-
     long offset;
-
     long offsetStart;
-
     long offsetEnd;
-
     long maxOffset;
-
     long minOffset;
-
     ISplit iSplit;
-
     transient List<PullMessage> pullMessages;
-
     volatile boolean interrupt = false;
-
     volatile boolean isClosed = false;
 
     public String getUrl() {
@@ -122,13 +105,6 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
         this.batchSize = batchSize;
     }
 
-//    public long getOffset() {
-//        return offset;
-//    }
-//
-//    public void setOffset(long offset) {
-//        this.offset = offset;
-//    }
 
     public ISplit getISplit() {
         return iSplit;
@@ -167,31 +143,21 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
 
     @Override
     public boolean next() {
-
         if(interrupt){
             return false;
         }
-
         if(isFinished()){
             finish();
             ThreadUtil.sleep(10 * 1000);
             return false;
         }
-
         JDBCDriver jdbcDriver = threadLocal.get();
-
         offsetEnd = offsetStart + batchSize;
-
         String batchQuery = String.format(sqlTemplate, tableName, offsetStart, offsetEnd);
-
         logger.debug(String.format("execute sql : %s", batchQuery));
-
         List<Map<String, Object>> resultData = jdbcDriver.queryForList(batchQuery);
-
         offsetStart = offsetEnd;
-
         pullMessages.clear();
-
         for(Map<String, Object> r : resultData){
             PullMessage msg = new PullMessage();
             JSONObject data = JSONObject.parseObject(JSON.toJSONString(r));
@@ -200,7 +166,6 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
             msg.setMessageOffset(new MessageOffset(String.valueOf(offset), true));
             pullMessages.add(msg);
         }
-
         return offsetStart - batchSize <= maxOffset;
     }
 
@@ -301,6 +266,5 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
         logger.info(String.format("create reader status %s.", readerStatus));
         ORMUtil.batchReplaceInto(readerStatus);
     }
-
 
 }

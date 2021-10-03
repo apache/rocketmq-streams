@@ -32,8 +32,6 @@ public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAf
     String logicTableName;
     String fieldName;
 
-//    transient MultiTableSplitFunction<IMessage> multiTableSplitFunction;
-
     public DynamicMultipleDBSink(){
     }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
-import java.util.*;
 
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -27,6 +26,8 @@ import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+
+import java.util.*;
 
 
 public class CheckPointManager extends BasedConfigurable{
@@ -55,7 +56,6 @@ public class CheckPointManager extends BasedConfigurable{
     private final List<CheckPoint> fromSourceState(Map<String, SourceState> sourceStateMap){
 
         List<CheckPoint> checkPoints = new ArrayList<>();
-
         for(Map.Entry<String, SourceState> entry : sourceStateMap.entrySet()){
             String key = entry.getKey();
             SourceState value = entry.getValue();

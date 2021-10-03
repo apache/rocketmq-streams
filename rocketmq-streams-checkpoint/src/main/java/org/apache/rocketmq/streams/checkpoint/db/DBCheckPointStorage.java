@@ -51,6 +51,11 @@ public class DBCheckPointStorage extends AbstractCheckPointStorage {
     }
 
     @Override
+    public void finish() {
+
+    }
+
+    @Override
     //todo
     public CheckPoint recover(ISource iSource, String queueId) {
         String sourceName = CheckPointManager.createSourceName(iSource, null);

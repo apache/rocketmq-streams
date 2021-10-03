@@ -32,19 +32,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class CycleSchedule implements Serializable {
 
     private static final long serialVersionUID = -5151597286296228754L;
-
     public static final int INIT_CYCLE_VERSION = 0;
-
     private static CycleSchedule INSTANCE;
-
     CyclePeriod cyclePeriod;
-
     AtomicLong cycleId = new AtomicLong(0);
-
     String expression;
-
     boolean isInit;
-
     //历史数据读取时使用,表示比起当前相差多少个调度周期
     final long cycleDiff;
 
@@ -81,8 +74,6 @@ public class CycleSchedule implements Serializable {
     private Date calCycleDateTime(Date date){
         return cyclePeriod.format(date);
     }
-
-
 
     public Cycle nextCycle(Date date){
         Date local = subMs(date);
@@ -174,17 +165,11 @@ public class CycleSchedule implements Serializable {
     public static class Cycle extends BasedConfigurable implements Serializable{
 
         private static final long serialVersionUID = 4842560538716388622L;
-
         Long cycleId;
-
         List<String> allPattern;
-
         String cycleDateStr;
-
         Integer cycleCount;
-
         String curDateStr;
-
         long cycleDiff;
 
         public Integer getCycleCount() {

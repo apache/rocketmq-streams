@@ -24,6 +24,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 
 public class SplitCloseFuture implements Future<Boolean> {
+
     protected ISplitReader reader;
     protected ISplit split;
 
