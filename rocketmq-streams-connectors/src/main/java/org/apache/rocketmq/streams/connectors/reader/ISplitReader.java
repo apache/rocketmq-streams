@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.streams.connectors.reader;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
