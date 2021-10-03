@@ -54,10 +54,8 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     @ENVDependence
     protected String groupName;//group name
     protected int maxThread = Runtime.getRuntime().availableProcessors();
-
     @ENVDependence
     protected String topic = "";
-
     /**
      * 多长时间做一次checkpoint
      */
@@ -70,7 +68,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * 每次拉取的最大条数，多用于消息队列
      */
     protected int maxFetchLogGroupSize = 100;
-
     protected List<String> logFingerprintFields;//log fingerprint to filter msg quickly
 
 

@@ -23,9 +23,13 @@ import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
+import org.apache.rocketmq.streams.common.channel.source.systemmsg.ChangeTableNameMessage;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataUtils;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
@@ -34,7 +38,9 @@ import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.ISqlTemplate;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.SqlTemplateFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -330,5 +336,37 @@ public class EnhanceDBSink extends AbstractSink {
 
     public void setJdbcDriver(String jdbcDriver) {
         this.jdbcDriver = jdbcDriver;
+    }
+
+    public void rename(String suffix){
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+        String rename1 = String.format("rename table %s to %s", tableName, tmpTableName.replace("tmp_", "re_") + "_" + suffix + "_" + format.format(new Date()));
+        String rename2 = String.format("rename table %s to %s", tmpTableName, tableName);
+        logger.info(String.format("exec rename1 %s", rename1));
+        logger.info(String.format("exec rename2 %s", rename2));
+        ORMUtil.executeSQL(rename1, null);
+        ORMUtil.executeSQL(rename2, null);
+
+    }
+
+    @Override
+    public void atomicSink(ISystemMessage iMessage){
+        if(isAtomic){
+            ChangeTableNameMessage message = (ChangeTableNameMessage)iMessage;
+            rename(message.getScheduleCycle());
+            try {
+                super.finish();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static boolean isAtomicConfiguration(){
+        String isAtomicDBSink = ComponentCreator.getProperties().getProperty(ConfigureFileKey.IS_ATOMIC_DB_SINK);
+        if(isAtomicDBSink == null){
+            return false;
+        }
+        return Boolean.parseBoolean(isAtomicDBSink);
     }
 }

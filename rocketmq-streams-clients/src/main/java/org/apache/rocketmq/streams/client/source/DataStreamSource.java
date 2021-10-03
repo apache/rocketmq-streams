@@ -130,6 +130,7 @@ public class DataStreamSource {
         source.setBatchSize(10);
         source.setLogicTableName(tablePattern);
         source.setBalanceTimeSecond(balanceSec);
+
         this.mainPipelineBuilder.setSource(source);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, (ChainStage)null);
     }

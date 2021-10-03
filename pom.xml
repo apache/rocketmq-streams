@@ -54,6 +54,7 @@
         <module>rocketmq-streams-examples</module>
         <module>rocketmq-streams-checkpoint</module>
         <module>rocketmq-streams-connectors</module>
+        <module>rocketmq-streams-connectors-blink</module>
     </modules>
 
     <properties>

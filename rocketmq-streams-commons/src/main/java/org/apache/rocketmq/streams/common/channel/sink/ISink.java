@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 
 
@@ -114,5 +115,8 @@ public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>,
     int getBatchSize();
 
     Map<String, MessageOffset> getFinishedQueueIdAndOffsets(CheckPointMessage checkPointMessage);
+
+    void atomicSink(ISystemMessage message);
+
 
 }

@@ -19,13 +19,11 @@ package org.apache.rocketmq.streams.db;
 import java.io.Serializable;
 
 /**
- * @create 2021-09-13 17:34:09
  * @description
  */
 public class CycleSplit extends DynamicMultipleDBSplit implements Serializable {
 
     private static final long serialVersionUID = 4309494143340650195L;
-
     String cyclePeriod;
 
     public CycleSplit(){

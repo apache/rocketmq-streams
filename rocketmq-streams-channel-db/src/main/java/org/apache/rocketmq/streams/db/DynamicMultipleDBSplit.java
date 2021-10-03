@@ -20,7 +20,6 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 
 /**
- * @create 2021-07-26 16:11:29
  * @description
  */
 public class DynamicMultipleDBSplit extends BasedConfigurable implements ISplit<DynamicMultipleDBSplit, String> {

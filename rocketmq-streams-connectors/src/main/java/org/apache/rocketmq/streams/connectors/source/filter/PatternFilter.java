@@ -21,11 +21,10 @@ package org.apache.rocketmq.streams.connectors.source.filter;
  */
 public interface PatternFilter {
 
-    static final String yyyyMMddHHmmss = "yyyyMMddHHmmss";
-    static final String yyyyMMdd = "yyyyMMdd";
-
-    static final String yyyyMMddHH = "yyyyMMddHH";
-    static final String yyyyMMddHHmm = "yyyyMMddHHmm";
+    String yyyyMMddHHmmss = "yyyyMMddHHmmss";
+    String yyyyMMdd = "yyyyMMdd";
+    String yyyyMMddHH = "yyyyMMddHH";
+    String yyyyMMddHHmm = "yyyyMMddHHmm";
 
 
     /**
