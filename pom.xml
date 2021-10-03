@@ -54,7 +54,6 @@
         <module>rocketmq-streams-examples</module>
         <module>rocketmq-streams-checkpoint</module>
         <module>rocketmq-streams-connectors</module>
-        <module>rocketmq-streams-connectors-blink</module>
     </modules>
 
     <properties>
@@ -282,6 +281,11 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-connectors</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
