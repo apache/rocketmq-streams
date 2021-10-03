@@ -45,22 +45,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSource implements IBoundedSource, Serializable {
 
     private static final long serialVersionUID = 6840988298037061128L;
-
     private static final Log logger = LogFactory.getLog(CycleDynamicMultipleDBScanSource.class);
 
     Map<String, Boolean> initReaderMap = new ConcurrentHashMap<>();
-
     CycleSchedule.Cycle cycle;
-
     transient AtomicInteger size = new AtomicInteger(0);
 
-    public AtomicInteger getSize() {
-        return size;
-    }
-
-    public void setSize(AtomicInteger size) {
-        this.size = size;
-    }
 
     public CycleDynamicMultipleDBScanSource(){
         super();
@@ -69,6 +59,14 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
     public CycleDynamicMultipleDBScanSource(CycleSchedule.Cycle cycle){
         super();
         this.cycle = cycle;
+    }
+
+    public AtomicInteger getSize() {
+        return size;
+    }
+
+    public void setSize(AtomicInteger size) {
+        this.size = size;
     }
 
     /**
@@ -180,7 +178,6 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
                     logger.info(String.format("source will be closed."));
                     sendChangeTableNameMessage(); //下发修改name的消息
                     ThreadUtil.sleep(1 * 1000);
-//                    clearReader(); //清理reader
                     finish();
                 }
 
@@ -203,22 +200,14 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
         return super.createCheckPointName();
     }
 
-//    @Override
-//    public String getConfigureName(){
-//        String configureName = super.getConfigureName();
-//        return configureName + ((CyclePatternFilter)chainFilter).getCurCycleDateTimeStr();
-//    }
-
     public synchronized int getTotalReader(){
         return size.get();
     }
 
     public static String createKey(ISource iSource){
-
         AbstractSource source = (AbstractSource)iSource;
         CycleSchedule.Cycle cycle = ((CycleDynamicMultipleDBScanSource)iSource).getCycle();
         return MapKeyUtil.createKey(source.getNameSpace(), source.getGroupName(), source.getConfigureName(), source.getTopic(), cycle.getCycleDateStr());
-
     }
 
 }

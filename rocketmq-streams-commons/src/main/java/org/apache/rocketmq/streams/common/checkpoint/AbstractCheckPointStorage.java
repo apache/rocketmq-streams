@@ -23,8 +23,8 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 
-
 import java.util.*;
+
 
 /**
  * @description
@@ -49,7 +49,7 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
                 return true;
             }
         });
-        ((MessageCache)messageCache).setAutoFlushSize(30);
+        ((MessageCache)messageCache).setAutoFlushSize(50);
         ((MessageCache)messageCache).setAutoFlushTimeGap(10 * 1000);
         messageCache.openAutoFlush();
     }
@@ -184,6 +184,7 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
         messageCache.addCache(message);
     }
 
+    @Override
     public void finish(){
         this.messageCache.closeAutoFlush();
     }

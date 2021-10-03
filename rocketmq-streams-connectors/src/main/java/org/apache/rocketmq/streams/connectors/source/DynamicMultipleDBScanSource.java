@@ -38,29 +38,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DynamicMultipleDBScanSource extends AbstractPullSource implements Serializable {
 
     private static final long serialVersionUID = 3987103552547019739L;
-
     private static final Log logger = LogFactory.getLog(DynamicMultipleDBScanSource.class);
-
     public static final int DEFAULT_BATCH_SIZE = 50;
-
     public static final int MAX_BATCH_SIZE = 100;
 
     String url;
-
     String userName;
-
     String password;
-
     String logicTableName;
-
     String suffix;
-
     int batchSize;
-
     List<String> tableNames;
-
     List<ISplit> splits;
-
     transient volatile AtomicBoolean statusCheckerStart = new AtomicBoolean(false);
 
     //todo
@@ -199,11 +188,5 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
     public void setFilter(PatternFilter filter) {
         this.filter = filter;
     }
-
-//    public static String createKey(ISource iSource){
-//        AbstractSource source = (AbstractSource)iSource;
-//        return MapKeyUtil.createKey(source.getNameSpace(), source.getGroupName(), source.getConfigureName(), source.getTopic());
-//    }
-
 
 }

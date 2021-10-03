@@ -98,6 +98,11 @@ public abstract class AbstractMultiTableSink extends EnhanceDBSink {
     }
 
     @Override
+    public boolean checkpoint(Set<String> splitIds) {
+        return flush();
+    }
+
+    @Override
     public void openAutoFlush() {
         for (EnhanceDBSink dbSink : tableSinks.values()) {
             dbSink.openAutoFlush();

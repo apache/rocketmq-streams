@@ -50,7 +50,6 @@ public class DataTypeUtil {
         register(new IntDataType());
         register(new LongDataType());
         register(new BooleanDataType());
-
         register(new DateDataType());
         register(new DoubleDataType());
         register(new FloatDataType());
@@ -138,6 +137,7 @@ public class DataTypeUtil {
             }
             case "datetime" : {
                 dbType2DataTypeMap.put("DATETIME", dataType);
+                break;
             }
 
         }

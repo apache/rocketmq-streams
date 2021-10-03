@@ -9,11 +9,24 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>rocketmp-streams-connectors</artifactId>
+    <artifactId>rocketmq-streams-connectors-blink</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-connectors</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.blink</groupId>
+            <artifactId>blink-connector-common</artifactId>
+        </dependency>
+
+    </dependencies>
 
 </project>

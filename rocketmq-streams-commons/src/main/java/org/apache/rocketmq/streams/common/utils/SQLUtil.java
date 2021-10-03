@@ -38,6 +38,28 @@ public class SQLUtil {
     private static final String DUPLICATE_KEY = "on duplicate key update";
 
     /**
+     * 创建 insert into duplicate 格式的语句
+     * @param metaData
+     * @param rows
+     * @return
+     *     eg :
+     *     insert into table_20210710000000(ds, `value`, data_time) values('1', '2', '2021-09-05 00:00:01') on duplicate key update
+     *          ds = values(ds), `value` = values(`value`), data_time = values(data_time);
+     *
+     */
+    public static String createInsertWithDuplicateKeyUpdateSql(MetaData metaData, List<? extends Map<String, Object>> rows){
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(createInsertSegment(metaData, false));
+        sb.append(" ");
+        sb.append(createValuesSegment(metaData, rows, false));
+        sb.append(" ");
+        sb.append(createDuplicateKeyUpdateSegment(metaData, false));
+        return sb.toString();
+
+    }
+
+    /**
      * 根据metadata创建field片段, 目前用在创建 insert 语句中 table(field1, field2, field3),
      * 或者 duplicate key中的 `field1` = values(`field1`), `field2` = values(`field2`), `field3` = values(`field3`)。
      *

@@ -38,13 +38,15 @@ import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
+import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * 输出的接口抽象，针对json消息的场景
  */
-public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink> {
+public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink>, ILifeCycle {
 
     private static final Log logger = LogFactory.getLog(AbstractSink.class);
     public static String TARGET_QUEUE = "target_queue";//指定发送queue
@@ -192,7 +194,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         }
         int size = messageCache.flush();
         if (size > 0) {
-            logger.info(String.format("%s finished flush data %d", name, size));
+            logger.debug(String.format("%s finished flush data %d", name, size));
         }
         return true;
     }
@@ -253,5 +255,20 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     public void setMessageCache(
         IMessageCache<IMessage> messageCache) {
         this.messageCache = messageCache;
+    }
+
+    @Override
+    public void atomicSink(ISystemMessage message){
+
+    }
+
+    @Override
+    public void finish() throws Exception {
+        this.closeAutoFlush();
+    }
+
+    @Override
+    public boolean isFinished() throws Exception {
+        return false;
     }
 }

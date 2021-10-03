@@ -98,7 +98,7 @@ public class MetaDataUtils {
             @Override
             public String function(Connection connection, DatabaseMetaData databaseMetaData, String catalog) throws SQLException {
                 String createTableSql = null;
-                String showTableSql = "show create table " + tableName + ";";
+                String showTableSql = "show create table " + "`" + tableName + "`" +";";
                 PreparedStatement ps = connection.prepareStatement(showTableSql);
                 ResultSet rs = ps.executeQuery();
                 while(rs.next()){

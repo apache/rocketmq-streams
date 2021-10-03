@@ -31,17 +31,15 @@ import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 
-public abstract class AbstractMetaData<T> extends BasedConfigurable
-    implements DataJsonable<Map<String, Object>> {
+public abstract class AbstractMetaData<T> extends BasedConfigurable implements DataJsonable<Map<String, Object>> {
+
     public static final String TYPE = "metaData";
     private String nameSpace;
     private String type = TYPE;
     private String configureName;
     protected List<MetaDataField<T>> metaDataFields = new ArrayList<MetaDataField<T>>();
     protected String dataSourceName;
-
     private String tableName;
-
     private String tableNameAlias;
 
     public AbstractMetaData() {
@@ -219,9 +217,8 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable
         JSONObject jsonObject = JSONObject.parseObject(jsonString);
         String jsonArrayString = jsonObject.getString("metaDataFields");
         JSONArray jsonArray = JSON.parseArray(jsonArrayString);
-        List<MetaDataField<T>> reourceFields = new ArrayList();
-        Map<String, MetaDataField<T>> reourceFieldMap = new HashMap();
-
+        List<MetaDataField<T>> resourceFields = new ArrayList();
+        Map<String, MetaDataField<T>> resourceFieldMap = new HashMap();
         for (int i = 0; i < jsonArray.size(); ++i) {
             String fieldJson = jsonArray.getString(i);
             MetaDataField<T> metaDataField = new MetaDataField();
@@ -237,15 +234,15 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable
             }
 
             metaDataField.setDataTypeStr(dataTypestr);
-            reourceFields.add(metaDataField);
-            reourceFieldMap.put(metaDataField.getFieldName(), metaDataField);
+            resourceFields.add(metaDataField);
+            resourceFieldMap.put(metaDataField.getFieldName(), metaDataField);
         }
 
         this.dataSourceName = jsonObject.getString("dataSourceName");
         this.tableName = jsonObject.getString("tableName");
         this.tableNameAlias = jsonObject.getString("tableNameAlias");
-        this.metaDataFields = reourceFields;
-        this.metaDataFieldMap = reourceFieldMap;
+        this.metaDataFields = resourceFields;
+        this.metaDataFieldMap = resourceFieldMap;
 //        this.getJsonValue(jsonObject);
         this.setJsonValue(jsonObject);
 

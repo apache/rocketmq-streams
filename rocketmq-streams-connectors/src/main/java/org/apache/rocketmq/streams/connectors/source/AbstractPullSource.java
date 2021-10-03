@@ -16,12 +16,18 @@
  */
 package org.apache.rocketmq.streams.connectors.source;
 
-import java.util.*;
-import java.util.concurrent.*;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -51,14 +57,10 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
 
     //可以有多种实现，通过名字选择不同的实现
     protected String balanceName = LeaseBalanceImpl.DB_BALANCE_NAME;
-
     //balance schedule time
     protected int balanceTimeSecond = 10;
     protected long pullIntervalMs;
-
     transient CheckPointManager checkPointManager = new CheckPointManager();
-
-    protected transient ScheduledFuture scheduledFuture;
 
     @Override
     protected boolean startSource() {
@@ -69,7 +71,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
         List<ISplit> allSplits = fetchAllSplits();
         SplitChanged splitChanged = balance.doBalance(allSplits,new ArrayList(ownerSplits.values()));
         doSplitChanged(splitChanged);
-        scheduledFuture = balanceExecutor.scheduleWithFixedDelay(new Runnable() {
+        balanceExecutor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 logger.info("balance running..... current splits is " + ownerSplits);
@@ -80,7 +82,6 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
         }, balanceTimeSecond, balanceTimeSecond, TimeUnit.SECONDS);
         return true;
     }
-
 
     @Override
     public Map<String, ISplit> getAllSplitMap() {
@@ -110,7 +111,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     }
 
 
-    protected synchronized void doSplitAddition(List<ISplit> changedSplits) {
+    protected void doSplitAddition(List<ISplit> changedSplits) {
         if(changedSplits == null){
             return;
         }
@@ -132,12 +133,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
                 public void run() {
                     logger.info("start running");
                     while (reader.isInterrupt() == false){
-//                        logger.info("start running while");
-
                         if(reader.next()){
-
-//                            logger.info("start running while next");
-
                             List<PullMessage> messages = reader.getMessage();
                             if(messages != null){
                                 for(PullMessage pullMessage:messages){
@@ -185,16 +181,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     }
 
     @Override
-    public void finish(){
-        closeReader();
-        scheduledFuture.cancel(true);
-        balanceExecutor.shutdown();
-        super.finish();
-    }
-
-    @Override
     public String loadSplitOffset(ISplit split) {
-//        return CheckPoint.loadOffset(this,split.getQueueId());
         String offset = null;
         CheckPoint<String> checkPoint = checkPointManager.recover(this, split);
         if(checkPoint != null){
@@ -205,18 +192,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
 
     protected abstract ISplitReader createSplitReader(ISplit split);
 
-    protected synchronized void closeReader(){
-        Iterator<Map.Entry<String, ISplit>> it = this.ownerSplits.entrySet().iterator();
-        while(it.hasNext()){
-            Map.Entry<String, ISplit> next = it.next();
-            String key = next.getKey();
-            this.splitReaders.get(key).interrupt();
-        }
-        ownerSplits.clear();
-        splitReaders.clear();
-    }
-
-    protected synchronized void doSplitRelease(List<ISplit> changedSplits) {
+    protected void doSplitRelease(List<ISplit> changedSplits) {
         boolean success = balance.getRemoveSplitLock();
         if(!success){
             return;
@@ -293,5 +269,3 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     }
 
 }
-
-

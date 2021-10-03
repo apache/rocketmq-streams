@@ -29,7 +29,6 @@ import java.io.Serializable;
 public class SourceSnapShot extends Entity implements Serializable {
 
     private static final long serialVersionUID = 4449170945607357658L;
-
     public final static MetaData snapshotTable = new MetaData();
 
     static{
@@ -42,8 +41,9 @@ public class SourceSnapShot extends Entity implements Serializable {
     }
 
     String key;
-
     String value;
+
+
 
     public String getKey() {
         return key;
