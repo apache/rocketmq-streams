@@ -43,8 +43,6 @@ public class SourceSnapShot extends Entity implements Serializable {
     String key;
     String value;
 
-
-
     public String getKey() {
         return key;
     }
