@@ -63,13 +63,15 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     private transient volatile Map<String, JDBCDriver> dataSourceMap = new HashMap<>();
     private String expressionStr;//表达式
 
-    protected transient GroupExpressionManager groupExpressionManager;
+//    protected transient GroupExpressionManager groupExpressionManager;
     /**
      * 如果已经完成varmap和expressionmap的初始化,主要是用于兼容老版本规则数据，新规则可以忽略这个字段，值设置为true
      */
     private transient boolean isFinishVarAndExpression = false;
 
-    public Rule() {groupExpressionManager = new GroupExpressionManager(this);}
+    public Rule() {
+//        groupExpressionManager = new GroupExpressionManager(this);
+    }
 
     public Rule(String namespace, String name, String expression) {
         this();
@@ -127,7 +129,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         initMetaData(configurableService);
         if(supportHyperscan){
             this.optimize();
-            groupExpressionManager.compile();
+//            groupExpressionManager.compile();
         }
     }
 
@@ -485,12 +487,11 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         Iterator<Entry<String, GroupExpression>> it = varName2ExpressionNames.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, GroupExpression> entry = it.next();
-            String varName = entry.getKey();
             GroupExpression groupExpression = entry.getValue();
             if (groupExpression.size() < 2) {
                 newExpressionNames.addAll(groupExpression.getAllExpressionNames());
             } else {
-                groupExpressionManager.addGroupExpression(groupExpression);
+//                groupExpressionManager.addGroupExpression(groupExpression);
                 expressionMap.put(groupExpression.getConfigureName(), groupExpression);
                 newExpressionNames.add(groupExpression.getConfigureName());
             }
@@ -532,8 +533,8 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         }
         return root;
     }
-
-    public GroupExpressionManager getGroupExpressionManager() {
-        return groupExpressionManager;
-    }
+//
+//    public GroupExpressionManager getGroupExpressionManager() {
+//        return groupExpressionManager;
+//    }
 }

@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.common.channel.impl;
 
 import java.util.List;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
@@ -26,12 +27,15 @@ import org.apache.rocketmq.streams.common.utils.PrintUtil;
  * 测试使用，输出就是把消息打印出来
  */
 public class OutputPrintChannel extends AbstractSink {
-
+    protected transient AtomicInteger count=new AtomicInteger(0);
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
         for (IMessage msg : messages) {
             System.out.println(msg.getMessageValue());
+            count.incrementAndGet();
         }
+
+        System.out.println("total fire msg is "+count.get());
         return false;
     }
 

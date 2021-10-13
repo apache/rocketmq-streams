@@ -45,7 +45,6 @@ import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
-import org.apache.rocketmq.streams.script.optimization.performance.ScriptExpressionGroupsProxy;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public class Expression<T> extends BasedConfigurable
@@ -183,6 +182,10 @@ public class Expression<T> extends BasedConfigurable
 //            return result;
 //        }
         try {
+            Boolean isMatch=context.matchFromCache(context.getMessage(),this);
+            if(isMatch!=null){
+                return isMatch;
+            }
             return doAction(context, rule);
 //            if (result != null) {
 //                context.putExpressionValue(getNameSpace(), getConfigureName(), result);

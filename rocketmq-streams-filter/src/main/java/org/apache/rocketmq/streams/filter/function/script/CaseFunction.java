@@ -63,7 +63,7 @@ public class CaseFunction {
         if (value.startsWith("(") && value.endsWith(")")) {
             String expression = value;
             Boolean result = ExpressionBuilder.executeExecute(System.currentTimeMillis() + "", expression,
-                message.getMessageBody());
+               message,context);
             //message.getHeader().getRegex2Value().put(value,result);
             return result;
         }

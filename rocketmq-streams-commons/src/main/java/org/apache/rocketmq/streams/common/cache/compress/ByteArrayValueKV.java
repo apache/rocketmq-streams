@@ -25,14 +25,16 @@ public class ByteArrayValueKV extends CacheKV<byte[]> {
 
     protected final static String CODE = "UTF-8";
     protected AdditionStore values;
-    protected boolean isFixedLength = false;//只有是定长时，才允许更新
-
-    public ByteArrayValueKV(int capacity, boolean isFixedLength) {
+    protected boolean isFixedLength=false;
+    public ByteArrayValueKV(int capacity) {
         super(capacity);
-        this.isFixedLength = isFixedLength;
-        if (isFixedLength) {
-            values = new AdditionStore(capacity);
-        }
+        values = new AdditionStore();
+    }
+
+    public ByteArrayValueKV(int capacity,int elementSize) {
+        super(capacity);
+        this.isFixedLength=true;
+        values = new AdditionStore(elementSize);
     }
 
     /**
@@ -64,12 +66,10 @@ public class ByteArrayValueKV extends CacheKV<byte[]> {
             return;
         }
 
-        if (isFixedLength) {
-            byte[] oriValue = get(key);
-            if (oriValue != null) {
-                if (oriValue.length != value.length) {
-                    throw new RuntimeException("the string must length equals ,but not。 the key is " + key + ", the ori value is " + oriValue + ", the put value is " + value);
-                }
+        byte[] oriValue = get(key);
+        if (oriValue != null) {
+            if (oriValue.length != value.length) {
+                throw new RuntimeException("the string must length equals ,but not。 the key is " + key + ", the ori value is " + oriValue + ", the put value is " + value);
             }
         }
         MapAddress address = null;
@@ -78,7 +78,7 @@ public class ByteArrayValueKV extends CacheKV<byte[]> {
         int offset = values.getConflictOffset();
         address = values.add2Store(value);
         byte[] bytes = address.createBytes();
-        boolean success = super.putInner(key, NumberUtils.toInt(bytes), isFixedLength);
+        boolean success = super.putInner(key, NumberUtils.toInt(bytes), true);
         if (!success) {//不支持更新，如果存在已经有的key，则不插入，并回退刚插入的数据
             values.setConflictOffset(offset);
             values.setConflictIndex(index);

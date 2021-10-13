@@ -55,10 +55,7 @@ public class RegexFunction extends AbstractExpressionFunction {
     @FunctionMethod("regex")
     @FunctionMethodAilas("正则匹配")
     public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
-        Boolean cacheResult=context.matchFromCache(expression.getVarName(),(String) expression.getValue());
-        if(cacheResult!=null){
-            return cacheResult;
-        }
+
 
         Var var = context.getVar(rule.getConfigureName(), expression.getVarName());
         if (var == null) {

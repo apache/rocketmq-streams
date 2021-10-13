@@ -72,7 +72,7 @@ public class GroupExpressionManager {
         }
     }
 
-    public void matchAndSetResult(RuleContext context, Rule rule) {
+    public void matchAndSetResult(RuleContext context) {
         Set<String> allRegexResult = new HashSet<>();
         JSONObject msg = context.getMessage().getMessageBody();
         Iterator<Entry<String, HyperscanRegex>> it = hyperscanRegexMap.entrySet().iterator();

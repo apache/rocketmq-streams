@@ -87,16 +87,16 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
     protected transient Long lastUpdateTime=null;
     @Override
     public T doMessage(T t, AbstractContext context) {
-        if(this.logFingerFieldNames!=null){
-            TOTAL.incrementAndGet();
-            if(lastUpdateTime==null){
-                lastUpdateTime=System.currentTimeMillis();
-            }
-            if(TOTAL.get() %1000==0){
-                long qps=TOTAL.get()*1000/(System.currentTimeMillis()-lastUpdateTime);
-                System.out.println("logfinger filter qps is "+qps+"  the filte rate is "+(double)FILTER.get()*100/(double)TOTAL.get()+"%");
-            }
-        }
+//        if(this.logFingerFieldNames!=null){
+//            TOTAL.incrementAndGet();
+//            if(lastUpdateTime==null){
+//                lastUpdateTime=System.currentTimeMillis();
+//            }
+//            if(TOTAL.get() %1000==0){
+//                long qps=TOTAL.get()*1000/(System.currentTimeMillis()-lastUpdateTime);
+//                System.out.println("logfinger filter qps is "+qps+"  the filte rate is "+(double)FILTER.get()*100/(double)TOTAL.get()+"%");
+//            }
+//        }
         if (filterByLogFingerprint(t)) {
             FILTER.incrementAndGet();
 
