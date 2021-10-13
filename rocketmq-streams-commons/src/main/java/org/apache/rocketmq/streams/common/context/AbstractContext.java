@@ -110,13 +110,12 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
 
     /**
      * match from cache , if not exist cache return null
-     * @param varName
      * @param expression
      * @return
      */
-    public Boolean matchFromCache(String varName,String expression){
+    public Boolean matchFromCache(IMessage message,Object expression){
         if(quickFilterResult!=null){
-            return quickFilterResult.isMatch(varName,expression);
+            return quickFilterResult.isMatch(message,expression);
         }
         return null;
     }

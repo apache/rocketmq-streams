@@ -29,20 +29,16 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IBaseStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
+import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
-import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
-import org.apache.rocketmq.streams.script.operator.expression.ICaseWhenCompile;
+import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
-import org.apache.rocketmq.streams.script.optimization.performance.ScriptExpressionGroupsProxy;
-import org.apache.rocketmq.streams.script.optimization.performance.ScriptOptimization;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
@@ -59,12 +55,14 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
      * 脚本解析的表达式列表
      */
     private transient List<IScriptExpression> scriptExpressions = new ArrayList<IScriptExpression>();
-    protected transient ScriptExpressionGroupsProxy scriptExpressionGroupsProxy;
+    //protected transient ScriptExpressionGroupsProxy scriptExpressionGroupsProxy;
     /**
      * 表达式，转化成streamoperator接口列表，可以在上层中使用
      */
     private transient List<IBaseStreamOperator<IMessage, IMessage, FunctionContext>> receivers = new ArrayList<>();
 
+
+    protected transient IScriptOptimization.IOptimizationCompiler optimizationCompiler;
     public FunctionScript() {setType(AbstractScript.TYPE);}
 
     public FunctionScript(String value) {
@@ -85,31 +83,22 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
         value = value.replace("‘", "'");
         value = value.replace("’", "'");
         this.scriptExpressions = FunctionParser.getInstance().parse(value);
-        ICaseWhenCompile caseWhenCompile=null;
+        IScriptOptimization scriptOptimization=null;
         // optimize case when
-//        ServiceLoaderComponent serviceLoaderComponent=ServiceLoaderComponent.getInstance(ICaseWhenCompile.class);
-//        List<ICaseWhenCompile> caseWhenCompiles=serviceLoaderComponent.loadService();
-//        if(caseWhenCompiles!=null&&caseWhenCompiles.size()>0){
-//            caseWhenCompile=caseWhenCompiles.get(0);
-//        }
+        ServiceLoaderComponent serviceLoaderComponent=ServiceLoaderComponent.getInstance(IScriptOptimization.class);
+        List<IScriptOptimization> scriptOptimizations=serviceLoaderComponent.loadService();
+        if(scriptOptimizations!=null&&scriptOptimizations.size()>0){
+            scriptOptimization=scriptOptimizations.get(0);
+        }
         if (this.scriptExpressions == null) {
             LOG.debug("empty function");
         } else {
-            List<IScriptExpression> expressions = this.scriptExpressions;
-
-            //表达式优化，在运行中收集信息，减少解析查找的时间
-            ScriptOptimization scriptOptimization = new ScriptOptimization(MapKeyUtil.createKey(getNameSpace(),getConfigureName()),this.scriptExpressions);
-            if (scriptOptimization.supportOptimize()) {
-                scriptExpressionGroupsProxy= scriptOptimization.optimize();
-            }
+            List<IScriptExpression> expressions=this.scriptExpressions;
+            this.optimizationCompiler=scriptOptimization.compile(this.scriptExpressions,this);
+            expressions =this.optimizationCompiler.getOptimizationExpressionList();
 
             //转化成istreamoperator 接口
             for (IScriptExpression scriptExpression : expressions) {
-                if(caseWhenCompile!=null&&scriptExpression instanceof GroupScriptExpression){
-                    GroupScriptExpression groupScriptExpression=(GroupScriptExpression)scriptExpression;
-                    List<? extends AbstractRule> rules=caseWhenCompile.compile(groupScriptExpression);
-                    groupScriptExpression.setRules(rules);
-                }
                 receivers.add((message, context) -> {
                     scriptExpression.executeExpression(message, context);
                     return message;
@@ -121,9 +110,15 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
 
     @Override
     public List<IMessage> doMessage(IMessage message, AbstractContext context) {
+
+
         FunctionContext functionContext = new FunctionContext(message);
         if (context != null) {
             context.syncSubContext(functionContext);
+        }
+        if(this.optimizationCompiler!=null){
+            QuickFilterResult quickFilterResult= this.optimizationCompiler.execute(message,functionContext);
+            context.setQuickFilterResult(quickFilterResult);
         }
         List<IMessage> result = AbstractContext.executeScript(message, functionContext, this.receivers);
         if (context != null) {

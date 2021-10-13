@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.filter.operator.expression;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,8 +25,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
@@ -43,7 +46,9 @@ public class GroupExpression extends Expression<List<Expression>> {
     protected boolean isOrRelation = true;//是否是or关系
     protected Map<String, Boolean> expressionName2Result = new HashMap<>();//正则类表达式的名字和结果的映射
     protected Set<String> regexExpressionNameSet = new HashSet<>();//正则类表达式的名字
-
+    protected HyperscanRegex hyperscanRegex;
+    protected List<Expression> notRegexExpression=new ArrayList<>();
+    protected AtomicBoolean hasCompile=new AtomicBoolean(false);
     public GroupExpression(Rule rule, String varName, boolean isOrRelation) {
         this.rule = rule;
         this.varName = varName;
@@ -51,6 +56,22 @@ public class GroupExpression extends Expression<List<Expression>> {
         this.setConfigureName(NameCreator.createNewName("expression.group"));
         value = new ArrayList<>();
         this.setNameSpace(rule.getNameSpace());
+    }
+
+    public void compile(){
+        if(!hasCompile.compareAndSet(false,true)){
+            return;
+        }
+        hyperscanRegex=new HyperscanRegex();
+        for (Expression expression : getValue()) {
+            if (SimpleExpression.class.isInstance(expression) &&(RegexFunction.isRegex(expression.getFunctionName()))) {
+                hyperscanRegex.addRegex((String)expression.getValue(), expression.getConfigureName());
+            }else {
+                notRegexExpression.add(expression);
+            }
+        }
+        hyperscanRegex.compile();
+
     }
 
     @Override
@@ -84,14 +105,21 @@ public class GroupExpression extends Expression<List<Expression>> {
     }
 
     private Boolean executeMatch(RuleContext context, Rule rule) {
-        for (Expression expression : getValue()) {
-            Boolean result = expressionName2Result.get(expression.getConfigureName());
-            boolean isMatch = false;
-            if (result != null) {
-                isMatch = result;
-            } else {
-                isMatch = expression.doAction(context, rule);
+        compile();
+        JSONObject msg = context.getMessage().getMessageBody();
+        String varValue=msg.getString(varName);
+        Set<String> expressionNames = hyperscanRegex.matchExpression(varValue);
+        if(isOrRelation){
+            if(expressionNames.size()>0){
+                return true;
             }
+        }else {
+            if(expressionNames.size()<hyperscanRegex.size()){
+                return false;
+            }
+        }
+        for (Expression expression : notRegexExpression) {
+            boolean  isMatch = expression.doAction(context, rule);;
             if (isOrRelation) {
                 if (isMatch) {
                     return true;

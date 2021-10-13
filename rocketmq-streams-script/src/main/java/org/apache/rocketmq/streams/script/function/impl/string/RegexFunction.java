@@ -61,10 +61,6 @@ public class RegexFunction {
                          @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
                          @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
         pattern = FunctionUtils.getConstant(pattern);
-        Boolean cacheResult=context.matchFromCache(fieldName,pattern);
-        if(cacheResult!=null){
-            return cacheResult;
-        }
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
             return false;

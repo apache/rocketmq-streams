@@ -95,7 +95,7 @@ public class HyperscanRegex<T> {
         if (scanner == null || db == null || hasCompile.get() == false) {
             compile();
         }
-        if(content==null){
+        if(content==null||scanner == null || db == null ){
             return false;
         }
         List<Match> matches = scanner.scan(db, content);
@@ -116,7 +116,7 @@ public class HyperscanRegex<T> {
         if (scanner == null || db == null || hasCompile.get() == false) {
             compile();
         }
-        if(content==null){
+        if(content==null||scanner == null || db == null ){
             return new HashSet<>();
         }
         List<Match> matches = scanner.scan(db, content);
