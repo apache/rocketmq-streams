@@ -18,9 +18,11 @@ package org.apache.rocketmq.streams.window.builder;
 
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.OverWindow;
+import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
 import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
 
@@ -31,11 +33,14 @@ public class WindowBuilder {
     public static final int DEFAULT_WINDOW_INTERVAL_SIZE_MINUTE = 5;
     private static boolean TEST_MODE = false;
 
-    public static WindowOperator createWindow() {
-        if (!TEST_MODE) {
-            return new WindowOperator();
-        } else {
-            return new WindowOperator();
+    public static WindowOperator createWindow(String type) {
+        switch (type){
+            case IWindow.TUMBLE_WINDOW:
+            case IWindow.HOP_WINDOW:
+            default:
+                return new WindowOperator();
+            case IWindow.SESSION_WINDOW:
+                return new SessionOperator();
         }
     }
 

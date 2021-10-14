@@ -39,6 +39,7 @@ import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAft
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
+import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
@@ -47,7 +48,7 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.offset.IWindowMaxValueManager;
 import org.apache.rocketmq.streams.window.offset.WindowMaxValueManager;
-import org.apache.rocketmq.streams.window.source.WindowRireSource;
+import org.apache.rocketmq.streams.window.source.WindowFireSource;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -119,7 +120,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      */
     protected int slideInterval;
     /**
-     * 主要是做兼容，以前设计的窗口时间是分钟为单位，如果有秒作为窗口时间的，通过设置timeUntiAdjust=1来实现。 后续需要调整成直接秒级窗口
+     * 主要是做兼容，以前设计的窗口时间是分钟为单位，如果有秒作为窗口时间的，通过设置timeUnitAdjust=1来实现。 后续需要调整成直接秒级窗口
      */
     protected int timeUnitAdjust = 60;
     /**
@@ -166,7 +167,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected transient Map<String, String> columnProjectMap = new HashMap<>();
 
     /**
-     * 当前计算节点的PipeLine里的Window实例对象，方便基于时间快速定位 key：namespace;configName(这里理解成windowName);startTime;endTime value：WindowInstance
+     * 当前计算节点的PipeLine里的Window实例对象
      */
     protected transient ConcurrentHashMap<String, WindowInstance> windowInstanceMap = new ConcurrentHashMap<>();
 
@@ -189,7 +190,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
 
     protected volatile transient WindowCache windowCache;
     protected transient WindowStorage storage;
-    protected transient WindowRireSource windowFireSource;
+    protected transient WindowFireSource windowFireSource;
     protected transient SQLCache sqlCache;
     protected transient EventTimeManager eventTimeManager;
 
@@ -269,9 +270,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         msg.put(AbstractWindow.class.getSimpleName(), this);
         eventTimeManager.setSource(message.getHeader().getSource());
         windowCache.batchAdd(message);
-        //主要为了在单元测试中，写入和触发一体化使用，无实际意义，不要在业务场景使用这个字段
-
-        // TraceUtil.debug(message.getHeader().getTraceId(), "origin message in", message.getMessageBody().toJSONString());
+        TraceUtil.debug(message.getHeader().getTraceId(), "origin message in");
         return context;
 
     }
@@ -466,6 +465,38 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             queueId);
     }
 
+    public WindowInstance registerWindowInstance(WindowInstance windowInstance) {
+        return registerWindowInstance(windowInstance.createWindowInstanceTriggerId(), windowInstance);
+    }
+
+    /**
+     * register window instance with indexId key
+     * @param indexId
+     * @param windowInstance
+     */
+    protected WindowInstance registerWindowInstance(String indexId, WindowInstance windowInstance) {
+        return windowInstanceMap.putIfAbsent(indexId, windowInstance);
+    }
+
+    /**
+     * search window instance by using index id, return null if not exist
+     *
+     * @param indexId
+     * @return
+     */
+    public WindowInstance searchWindowInstance(String indexId) {
+        return windowInstanceMap.getOrDefault(indexId, null);
+    }
+
+    /**
+     * logout window instance by using index id
+     *
+     * @param indexId
+     */
+    public void logoutWindowInstance(String indexId) {
+        windowInstanceMap.remove(indexId);
+    }
+
     /**
      * 获取window处理的消息中最大的时间
      *
@@ -607,11 +638,11 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         this.sizeInterval = sizeInterval;
     }
 
-    public ConcurrentHashMap<String, WindowInstance> getWindowInstanceMap() {
+    private ConcurrentHashMap<String, WindowInstance> getWindowInstanceMap() {
         return windowInstanceMap;
     }
 
-    public void setWindowInstanceMap(
+    private void setWindowInstanceMap(
         ConcurrentHashMap<String, WindowInstance> windowInstanceMap) {
         this.windowInstanceMap = windowInstanceMap;
     }
@@ -730,7 +761,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return storage;
     }
 
-    public WindowRireSource getWindowFireSource() {
+    public WindowFireSource getWindowFireSource() {
         return windowFireSource;
     }
 

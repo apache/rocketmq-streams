@@ -60,6 +60,53 @@ public class WindowStream {
     }
 
     /**
+     * distinct算子
+     *
+     * @param fieldName
+     * @param asName
+     * @return
+     */
+    public WindowStream distinct(String fieldName, String asName) {
+        window.getSelectMap().put(asName, asName + "=distinct(" + fieldName + ")");
+        return this;
+    }
+
+    /**
+     * count_distinct算子
+     *
+     * @param fieldName
+     * @param asName
+     * @return
+     */
+    public WindowStream count_distinct(String fieldName, String asName) {
+        String distinctName = "__" + fieldName + "_distinct_" + asName + "__";
+        String prefix = distinctName + "=distinct(" + fieldName + ")";
+        String suffix = asName + "=count(" + distinctName + ")";
+        window.getSelectMap().put(asName, prefix + ";" + suffix);
+        return this;
+    }
+
+    public WindowStream count_distinct_2(String fieldName, String asName) {
+        String distinctName = "__" + fieldName + "_distinct_" + asName + "__";
+        String prefix = distinctName + "=distinct2(" + fieldName + ",HIT_WINDOW_INSTANCE_ID,SHUFFLE_KEY)";
+        String suffix = asName + "=count(" + distinctName + ")";
+        window.getSelectMap().put(asName, prefix + ";" + suffix);
+        return this;
+    }
+
+    /**
+     * count_distinct算子（数据量大，容忍较少错误率）
+     *
+     * @param fieldName
+     * @param asName
+     * @return
+     */
+    public WindowStream count_distinct_large(String fieldName, String asName) {
+        window.getSelectMap().put(asName, asName + "=count_distinct(" + fieldName + ")");
+        return this;
+    }
+
+    /**
      * 做min算子
      *
      * @param fieldName 算子需要操作的字段名

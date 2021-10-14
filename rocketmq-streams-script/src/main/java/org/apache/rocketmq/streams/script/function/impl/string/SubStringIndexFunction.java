@@ -79,6 +79,7 @@ public class SubStringIndexFunction {
         return result;
     }
 
+
     @FunctionMethod(value = "substr", alias = "substring", comment = "截取从指定的索引startIndex开始扩展到索引endIndex处的字符")
     public String substringindex(IMessage message, FunctionContext context,
                                  @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
@@ -94,12 +95,12 @@ public class SubStringIndexFunction {
         return oriMsg.substring(startIndex, endIndex);
     }
 
-    @FunctionMethod(value = "substr", alias = "substring", comment = "截取从指定的索引startIndex处开始扩展到此字符串的结尾")
+    @FunctionMethod(value = "substr", alias = "blink_substring", comment = "截取从指定的索引startIndex处开始扩展到此字符串的结尾")
     public String substringindex(IMessage message, FunctionContext context,
                                  @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
                                  @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer startIndex) {
         oriMsg = FunctionUtils.getValueString(message, context, oriMsg);
-        return oriMsg.substring(startIndex);
+        return oriMsg == null ? null : startIndex >= oriMsg.length() ? "" : oriMsg.substring(startIndex);
     }
 
     @FunctionMethod(value = "blink_substr", alias = "blink_substring", comment = "截取从指定的索引startIndex开始,长度为len的字符，index从1开始，需要做下处理")
