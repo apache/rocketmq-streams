@@ -31,7 +31,9 @@ import org.apache.rocketmq.streams.script.function.aggregation.AverageAccumulato
 import org.apache.rocketmq.streams.script.function.aggregation.ConcatAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.ConcatDistinctAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.CountAccumulator;
+import org.apache.rocketmq.streams.script.function.aggregation.CountDistinctAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.DistinctAccumulator;
+import org.apache.rocketmq.streams.script.function.aggregation.DistinctAccumulator2;
 import org.apache.rocketmq.streams.script.function.aggregation.MaxAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.MinAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.SumAccumulator;
@@ -49,10 +51,12 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
         put("min", MinAccumulator.class);
         put("count", CountAccumulator.class);
         put("distinct", DistinctAccumulator.class);
+        put("distinct2", DistinctAccumulator2.class);
         put("sum", SumAccumulator.class);
         put("avg", AverageAccumulator.class);
         put("concat_distinct", ConcatDistinctAccumulator.class);
         put("concat_agg", ConcatAccumulator.class);
+        put("count_distinct", CountDistinctAccumulator.class);
     }};
 
     private String columnName;

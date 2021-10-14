@@ -277,7 +277,7 @@ public class WindowInstance extends Entity implements Serializable {
                 if(window.getFireMode()==2&&fire.getTime()==end.getTime()&&waterMarkMinute>0){
                     Date clearWindowInstanceFireTime=DateUtil.addDate(TimeUnit.SECONDS,end, waterMarkMinute * timeUnitAdjust);
                     WindowInstance lastWindowInstance=window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end),DateUtil.format(clearWindowInstanceFireTime) , queueId);
-                    window.getWindowInstanceMap().putIfAbsent(lastWindowInstance.createWindowInstanceTriggerId(),lastWindowInstance);
+                    window.registerWindowInstance(lastWindowInstance);
                     window.getSqlCache().addCache(new SQLElement(queueId,lastWindowInstance.createWindowInstanceId(),ORMUtil.createBatchReplacetSQL(lastWindowInstance)));
                     window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance,window);
                 }
@@ -294,7 +294,7 @@ public class WindowInstance extends Entity implements Serializable {
             String endTime = DateUtil.format(end);
             String fireTime = DateUtil.format(fire);
             String windowInstanceTriggerId = window.createWindowInstance(startTime, endTime, fireTime, queueId).createWindowInstanceTriggerId();
-            WindowInstance windowInstance = window.getWindowInstanceMap().get(windowInstanceTriggerId);
+            WindowInstance windowInstance = window.searchWindowInstance(windowInstanceTriggerId);
             if (windowInstance == null) {
                 lostWindowTimeList.add(Pair.of(startTime, endTime));
                 lostFireList.add(fireTime);
@@ -308,40 +308,11 @@ public class WindowInstance extends Entity implements Serializable {
 
         instanceList.addAll(lostInstanceList);
         for (WindowInstance windowInstance : instanceList) {
-            window.getWindowInstanceMap().putIfAbsent(windowInstance.createWindowInstanceTriggerId(), windowInstance);
+            window.registerWindowInstance(windowInstance);
         }
 
         return instanceList;
     }
-
-    //public WindowInstance copy() {
-    //    WindowInstance windowInstance=new WindowInstance();
-    //    windowInstance.setNewWindowInstance(this.getNewWindowInstance());
-    //    windowInstance.setVersion(this.version);
-    //    windowInstance.setStartTime(this.startTime);
-    //    windowInstance.setEndTime(this.endTime);
-    //    windowInstance.setStatus(this.status);
-    //    windowInstance.setWindowNameSpace(this.windowNameSpace);
-    //    windowInstance.setWindowName(this.windowName);
-    //    windowInstance.setFireTime(this.fireTime);
-    //    windowInstance.setWindowInstanceKey(this.windowInstanceKey);
-    //    windowInstance.setGmtCreate(this.gmtCreate);
-    //    windowInstance.setGmtModified(this.gmtModified);
-    //    return windowInstance;
-    //}
-
-    //public WindowInstance toMd5Instance() {
-    //    WindowInstance instance = copy();
-    //    instance.setWindowInstanceKey(StringUtil.createMD5Str(instance.getWindowInstanceKey()));
-    //    return instance;
-    //}
-
-    //public WindowInstance toOriginInstance(boolean supportOutDate) {
-    //    WindowInstance instance = copy();
-    //    instance.setWindowInstanceKey(null);
-    //    instance.createWindowInstanceId(supportOutDate);
-    //    return instance;
-    //}
 
     public String getStartTime() {
         return startTime;
