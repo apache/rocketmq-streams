@@ -346,8 +346,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         }
 
         if(canClear){
-            this.windowInstanceMap.remove(windowInstance.createWindowInstanceTriggerId());
-
+            logoutWindowInstance(windowInstance.createWindowInstanceTriggerId());
             windowMaxValueManager.deleteSplitNum(windowInstance,windowInstance.getSplitId());
             ShufflePartitionManager.getInstance().clearWindowInstance(windowInstance.createWindowInstanceId());
             storage.delete(windowInstance.createWindowInstanceId(),windowInstance.getSplitId(),getWindowBaseValueClass(),sqlCache);
