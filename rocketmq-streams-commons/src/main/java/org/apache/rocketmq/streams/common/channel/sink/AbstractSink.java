@@ -161,6 +161,10 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
             String queueId = message.getHeader().getQueueId();
             MessageOffset messageOffset = message.getHeader().getMessageOffset();
             ISource source = message.getHeader().getSource();
+            //TODO why null?
+            if (source == null) {
+                continue;
+            }
             String pipelineName = message.getHeader().getPiplineName();
             String sourceName = CheckPointManager.createSourceName(source, pipelineName);
             SourceState sourceState = this.sourceName2State.get(sourceName);

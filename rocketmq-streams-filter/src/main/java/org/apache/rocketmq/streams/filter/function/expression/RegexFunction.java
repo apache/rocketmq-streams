@@ -73,8 +73,8 @@ public class RegexFunction extends AbstractExpressionFunction {
 
         String varString = "";
         String regex = "";
-        varString = String.valueOf(varObject).trim();
-        regex = String.valueOf(valueObject).trim();
+        varString = String.valueOf(varObject);
+        regex = String.valueOf(valueObject);
 
 
         boolean value = false;

@@ -66,7 +66,6 @@ public abstract class UDAFScript<T, ACC> extends UDFScript implements IAccumulat
         }
     }
 
-
     @Override
     protected boolean initBeanClass(IFunctionService iFunctionService) {
         super.initBeanClass(iFunctionService);
