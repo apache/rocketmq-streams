@@ -70,7 +70,7 @@ public class ProducerFromFile {
 
     }
 
-    private static List<String> read(String path) {
+    public static List<String> read(String path) {
         File file = getFile(path);
         List<String> result = new ArrayList<>();
         BufferedReader reader = null;
