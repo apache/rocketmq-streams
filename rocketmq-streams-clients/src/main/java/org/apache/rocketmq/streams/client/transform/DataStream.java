@@ -153,7 +153,6 @@ public class DataStream implements Serializable {
                         splitMessages.add(subMessage);
                     }
                     context.openSplitModel();
-                    ;
                     context.setSplitMessages(splitMessages);
                     return null;
                 } catch (Exception e) {
@@ -177,7 +176,7 @@ public class DataStream implements Serializable {
                 try {
                     boolean isMatch = filterFunction.filter((O) message.getMessageValue());
                     if (!isMatch) {
-                        context.put("_logfinger",true);
+                        context.put("NEED_USE_FINGER_PRINT",true);
                         context.breakExecute();
                     }
                 } catch (Exception e) {
@@ -479,7 +478,8 @@ public class DataStream implements Serializable {
         return toRocketmq(topic, tags, groupName, -1, nameServerAddress, clusterName, order);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String nameServerAddress,
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize,
+        String nameServerAddress,
         String clusterName, boolean order) {
         RocketMQSink rocketMQSink = new RocketMQSink();
         if (StringUtils.isNotBlank(topic)) {

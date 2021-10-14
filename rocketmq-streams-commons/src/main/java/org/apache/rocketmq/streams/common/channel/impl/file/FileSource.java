@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -55,13 +56,30 @@ public class FileSource extends AbstractBatchSource {
     @Override
     protected boolean initConfigurable() {
         super.initConfigurable();
-        File file = new File(filePath);
+        File file = getFile(filePath);
         if (file.exists() && file.isDirectory()) {
             executorService = new ThreadPoolExecutor(maxThread, maxThread,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(1000));
         }
         return true;
+    }
+
+    private File getFile(String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            ClassLoader loader = getClass().getClassLoader();
+            URL url = loader.getResource(filePath);
+
+            if (url != null) {
+                String path = url.getFile();
+                file = new File(path);
+                this.filePath = path;
+            }
+        }
+        return file;
+
+
     }
 
     @Override
@@ -97,7 +115,7 @@ public class FileSource extends AbstractBatchSource {
      */
     protected LinkedBlockingQueue<FileIterator> createIteratorList() {
         LinkedBlockingQueue<FileIterator> iterators = new LinkedBlockingQueue<>(1000);
-        File file = new File(filePath);
+        File file = getFile(filePath);
         if (file.exists() == false) {
             return null;
         }
