@@ -49,7 +49,6 @@ import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
-import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
@@ -262,10 +261,6 @@ public class WindowValue extends WindowBaseValue implements Serializable {
             }
             calFunctionColumn(window, message);
             calProjectColumn(window, message);
-            String traceId = message.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_TRACE_ID);
-            if (!StringUtil.isEmpty(traceId)) {
-                TraceUtil.debug(traceId, "window value result", decodeSQLContent(getComputedColumnResult()));
-            }
         } catch (Exception e) {
             LOG.error("failed in calculating the message", e);
         }
@@ -380,10 +375,9 @@ public class WindowValue extends WindowBaseValue implements Serializable {
     /**
      * merge the group which has the same group by value and different split id
      */
-    private static WindowValue mergeWindowValue(AbstractWindow window, List<WindowValue> valueList) {
+    public static WindowValue mergeWindowValue(AbstractWindow window, List<WindowValue> valueList) {
         WindowValue lastWindowValue = new WindowValue(valueList.get(0));
-        lastWindowValue.computedColumnResult = (Map<String, Object>)JSON.parse(
-            valueList.get(0).getComputedColumnResult());
+        lastWindowValue.setComputedColumnResult(valueList.get(0).getComputedColumnResult());
         //
         for (Entry<String, List<FunctionExecutor>> entry : window.getColumnExecuteMap().entrySet()) {
             String computedColumn = entry.getKey();
@@ -496,17 +490,6 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         clonedValue.setUpdateFlag(getUpdateFlag());
         return clonedValue;
     }
-
-    public WindowValue toMd5Value() {
-        WindowValue clonedValue = clone();
-        String md5MsgKey = StringUtil.createMD5Str(getMsgKey());
-        clonedValue.setMsgKey(md5MsgKey);
-        clonedValue.setWindowInstanceId(StringUtil.createMD5Str(clonedValue.getWindowInstanceId()));
-        clonedValue.setWindowInstancePartitionId(
-            StringUtil.createMD5Str(clonedValue.getWindowInstancePartitionId()));
-        return clonedValue;
-    }
-
 
     public Long getLastUpdateTime() {
         return lastUpdateTime;

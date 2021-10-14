@@ -20,13 +20,22 @@ package org.apache.rocketmq.streams.client.transform.window;
 public class SessionWindow {
     /**
      * 滑动窗口信息
+     *
      * @param time
      * @return
      */
-    public static WindowInfo of(Time time){
-        WindowInfo windowInfo=new WindowInfo();
+    public static WindowInfo of(Time time) {
+        WindowInfo windowInfo = new WindowInfo();
         windowInfo.setType(WindowInfo.SESSION_WINDOW);
-        windowInfo.setWindowSize(time);
+        windowInfo.setSessionTimeout(time);
+        return windowInfo;
+    }
+
+    public static WindowInfo of(Time time, String timeField) {
+        WindowInfo windowInfo = new WindowInfo();
+        windowInfo.setType(WindowInfo.SESSION_WINDOW);
+        windowInfo.setSessionTimeout(time);
+        windowInfo.setTimeField(timeField);
         return windowInfo;
     }
 }

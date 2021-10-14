@@ -36,8 +36,24 @@ public interface ICommonStorage<T> {
     //多组key value批量存储
     void multiPut(Map<String, T> map);
 
+    /**
+     * put <key,list> into the storage
+     *
+     * @param elements
+     */
+    void multiPutList(Map<String, List<T>> elements);
+
     //获取多个key的值
     Map<String, T> multiGet(Class<T> clazz, List<String> keys);
+
+    /**
+     * get list from storage according by key
+     *
+     * @param clazz
+     * @param keys
+     * @return
+     */
+    Map<String, List<T>> multiGetList(Class<T> clazz, List<String> keys);
 
     //获取单个key的值
     T get(Class<T> clazz, String key);

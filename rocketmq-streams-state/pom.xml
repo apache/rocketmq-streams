@@ -33,5 +33,11 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-serviceloader</artifactId>
         </dependency>
+        <!--rocksdb-->
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+        </dependency>
+
     </dependencies>
 </project>
