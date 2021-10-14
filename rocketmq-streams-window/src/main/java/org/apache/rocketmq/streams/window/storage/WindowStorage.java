@@ -135,6 +135,7 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
             result.putAll(localStorage.multiGet(clazz, keys));
             return result;
         }
+
         List<String> notLocalKeys = new ArrayList<>();
         List<String> localKeys = new ArrayList<>();
         for (String key : keys) {
@@ -147,6 +148,7 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
                 notLocalKeys.add(key);
             }
         }
+
         result.putAll(localStorage.multiGet(clazz, localKeys));
         result.putAll(remoteStorage.multiGet(clazz, notLocalKeys));
         return result;
@@ -179,7 +181,6 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
             }else {
                 remoteStorage.delete(windowInstanceId, queueId, clazz);
             }
-
         }
     }
 
