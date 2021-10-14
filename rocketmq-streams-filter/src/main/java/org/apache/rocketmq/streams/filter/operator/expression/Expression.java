@@ -42,6 +42,7 @@ import org.apache.rocketmq.streams.filter.function.expression.IsNotNull;
 import org.apache.rocketmq.streams.filter.function.expression.IsNull;
 import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
+import org.apache.rocketmq.streams.filter.monitor.Monitor;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
@@ -182,11 +183,19 @@ public class Expression<T> extends BasedConfigurable
 //            return result;
 //        }
         try {
+
+            long start=System.currentTimeMillis();
             Boolean isMatch=context.matchFromCache(context.getMessage(),this);
             if(isMatch!=null){
                 return isMatch;
             }
-            return doAction(context, rule);
+            boolean result= doAction(context, rule);
+            if(!RelationExpression.class.isInstance(this)){
+                if((System.currentTimeMillis()-start)>10){
+                    System.out.println("==============="+toJson());
+                }
+            }
+            return result;
 //            if (result != null) {
 //                context.putExpressionValue(getNameSpace(), getConfigureName(), result);
 //            }
