@@ -23,7 +23,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
@@ -117,7 +119,8 @@ public class WindowMaxValueProcessor{
         this.windowOffsetMap.remove(key);
         List<String> dels=new ArrayList<>();
         dels.add(windowMaxValue.getMsgKey());
-        String sql="delete from "+ORMUtil.getTableName(WindowMaxValue.class)+" where msg_key in("+SQLUtil.createInSql(dels)+")";
+        List<Pair<String, String>> likePairList = dels.stream().map(value -> Pair.of("msg_key", value + "%")).collect(Collectors.toList());
+        String sql = "delete from " + ORMUtil.getTableName(WindowMaxValue.class) + " where " + SQLUtil.createLikeSql(likePairList);
 
         if(sqlCache!=null){
             sqlCache.addCache(new SQLElement(this.splitId,instance.createWindowInstanceId(),sql));
@@ -168,7 +171,7 @@ public class WindowMaxValueProcessor{
         }
 
         String keyPrefix=MapKeyUtil.createKey(name,splitId);
-        String sql="select * from "+ ORMUtil.getTableName(WindowMaxValue.class)+ " where msg_key like '"+keyPrefix+"%'";
+        String sql = "select * from " + ORMUtil.getTableName(WindowMaxValue.class) + " where configure_name like '%" + name + "%' and partition like '%" + splitId + "%'";
         List<WindowMaxValue> windowMaxValues = ORMUtil.queryForList(sql, null, WindowMaxValue.class);
         if(windowMaxValues==null||windowMaxValues.size()==0){
             return result;

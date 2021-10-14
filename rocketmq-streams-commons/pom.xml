@@ -37,6 +37,13 @@
             <version>3.11</version>
         </dependency>
 
+        <!--hyperLogLog used in dv computation-->
+        <dependency>
+            <groupId>net.agkn</groupId>
+            <artifactId>hll</artifactId>
+            <version>1.6.0</version>
+        </dependency>
+
         <!-- 测试依赖 -->
         <dependency>
             <groupId>junit</groupId>
