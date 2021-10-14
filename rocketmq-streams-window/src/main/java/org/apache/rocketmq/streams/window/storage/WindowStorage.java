@@ -23,17 +23,25 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.SQLUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.db.DBStorage;
 import org.apache.rocketmq.streams.window.storage.rocksdb.RocksdbStorage;
 
@@ -84,6 +92,8 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
         multiPut(values,windowInstanceId,queueId,null);
     }
 
+
+
     public void multiPut(Map<String, T> values, String windowInstanceId, String queueId, SQLCache sqlCache) {
         localStorage.multiPut(values);
         if (isLocalStorageOnly) {
@@ -103,6 +113,40 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
         remoteStorage.multiPut(values);
     }
 
+    /**
+     * used in session window only
+     *
+     * @param values
+     * @param windowInstanceId
+     * @param queueId
+     * @param sqlCache
+     */
+    public void multiPutList(Map<String, List<T>> values, String windowInstanceId, String queueId, SQLCache sqlCache) {
+        localStorage.multiPutList(values);
+        if (!isLocalStorageOnly) {
+            //delete all values first
+            deleteRemoteValue(values.keySet());
+            //
+            if (shufflePartitionManager.isWindowInstanceFinishInit(queueId, windowInstanceId)) {
+                if (sqlCache != null) {
+                    sqlCache.addCache(new SQLElement(queueId, windowInstanceId, ((IRemoteStorage) this.remoteStorage).multiPutListSQL(values)));
+                } else {
+                    remoteStorage.multiPutList(values);
+                }
+                return;
+            }
+            remoteStorage.multiPutList(values);
+        }
+    }
+
+    private void deleteRemoteValue(Set<String> storeKeyList) {
+        if (CollectionUtil.isEmpty(storeKeyList)) {
+            return;
+        }
+        String sql = "delete from " + ORMUtil.getTableName(WindowValue.class) + " where " + SQLUtil.createLikeSql(storeKeyList.stream().map(key -> Pair.of("msg_key", StringUtil.createMD5Str(key))).collect(Collectors.toList()));
+        ORMUtil.executeSQL(sql, new HashMap<>(4));
+    }
+
     @Override public Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz) {
         if(isLocalStorageOnly){
             return null;
@@ -116,6 +160,40 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
             return localStorage.multiGet(clazz, keys);
         }
         return remoteStorage.multiGet(clazz, keys);
+    }
+
+    @Override public void multiPutList(Map<String, List<T>> elements) {
+        if (!isLocalStorageOnly) {
+            remoteStorage.multiPutList(elements);
+        }
+        localStorage.multiPutList(elements);
+    }
+
+    @Override public Map<String, List<T>> multiGetList(Class<T> clazz, List<String> keys) {
+        if (isLocalStorageOnly) {
+            return localStorage.multiGetList(clazz, keys);
+        }
+        Map<String, List<T>> resultMap = new HashMap<>(keys.size());
+        Pair<List<String>, List<String>> pair = getStorageKeys(keys);
+        resultMap.putAll(localStorage.multiGetList(clazz, pair.getLeft()));
+        resultMap.putAll(remoteStorage.multiGetList(clazz, pair.getRight()));
+        return resultMap;
+    }
+
+    private Pair<List<String>, List<String>> getStorageKeys(List<String> allKeys) {
+        List<String> remoteKeys = new ArrayList<>();
+        List<String> localKeys = new ArrayList<>();
+        for (String key : allKeys) {
+            String[] values = MapKeyUtil.spliteKey(key);
+            String shuffleId = values[0];
+            boolean isLocal = shufflePartitionManager.isWindowInstanceFinishInit(shuffleId, createWindowInstanceId(key));
+            if (isLocal) {
+                localKeys.add(key);
+            } else {
+                remoteKeys.add(key);
+            }
+        }
+        return Pair.of(localKeys, remoteKeys);
     }
 
     @Override
@@ -135,22 +213,9 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
             result.putAll(localStorage.multiGet(clazz, keys));
             return result;
         }
-
-        List<String> notLocalKeys = new ArrayList<>();
-        List<String> localKeys = new ArrayList<>();
-        for (String key : keys) {
-            String[] values = MapKeyUtil.splitKey(key);
-            String shuffleId = values[0];
-            boolean isLocal = shufflePartitionManager.isWindowInstanceFinishInit(shuffleId, createWindowInstanceId(key));
-            if (isLocal) {
-                localKeys.add(key);
-            } else {
-                notLocalKeys.add(key);
-            }
-        }
-
-        result.putAll(localStorage.multiGet(clazz, localKeys));
-        result.putAll(remoteStorage.multiGet(clazz, notLocalKeys));
+        Pair<List<String>, List<String>> pair = getStorageKeys(keys);
+        result.putAll(localStorage.multiGet(clazz, pair.getLeft()));
+        result.putAll(remoteStorage.multiGet(clazz, pair.getRight()));
         return result;
     }
 
