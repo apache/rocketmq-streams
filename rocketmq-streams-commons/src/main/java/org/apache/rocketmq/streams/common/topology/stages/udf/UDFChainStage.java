@@ -16,22 +16,15 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 /**
  * 所有给用户自定义代码的通用类，会转化成这个stage
@@ -69,8 +62,8 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
         if(!context.isContinue()&&this.filterFieldNames!=null&&context.get("_logfinger")!=null){
             addLogFingerprintToSource(message);
         }
-        if(context.get("_logfinger")!=null){
-            context.remove("_logfinger");
+        if(context.get("NEED_USE_FINGER_PRINT")!=null){
+            context.remove("NEED_USE_FINGER_PRINT");
         }
         return message;
     }

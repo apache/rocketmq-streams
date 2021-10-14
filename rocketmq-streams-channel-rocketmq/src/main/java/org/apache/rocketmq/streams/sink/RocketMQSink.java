@@ -40,6 +40,7 @@ import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
+
 public class RocketMQSink extends AbstractSupportShuffleSink {
 
     private static final Log LOG = LogFactory.getLog(RocketMQSink.class);

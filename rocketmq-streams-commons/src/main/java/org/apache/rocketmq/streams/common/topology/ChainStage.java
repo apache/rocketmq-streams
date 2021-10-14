@@ -66,7 +66,7 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
      * @return
      */
     public PiplineRecieverAfterCurrentNode getReceiverAfterCurrentNode() {
-        ChainPipeline pipeline = (ChainPipeline)getPipeline();
+        ChainPipeline pipeline = (ChainPipeline) getPipeline();
 
         return new PiplineRecieverAfterCurrentNode(pipeline);
     }
@@ -153,7 +153,7 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
         Set<ChainPipeline> set = new HashSet<>();
         for (Pipeline pipeline : pipelines) {
             if (pipeline != null) {
-                set.add((ChainPipeline)pipeline);
+                set.add((ChainPipeline) pipeline);
             }
         }
         sendSystem(message, context, set);

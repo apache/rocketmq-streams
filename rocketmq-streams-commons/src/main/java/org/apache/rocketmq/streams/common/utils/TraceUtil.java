@@ -51,31 +51,31 @@ public class TraceUtil {
 
     public static void debug(String traceId, String... messages) {
         if (hit(traceId) && LOG.isDebugEnabled()) {
-            LOG.debug(envelope(traceId, messages));
+//            LOG.debug(envelope(traceId, messages));
         }
     }
 
     public static void info(String traceId, String... messages) {
         if (!skip(traceId) && LOG.isInfoEnabled()) {
-            LOG.info(envelope(traceId, messages));
+//            LOG.info(envelope(traceId, messages));
         }
     }
 
     public static void warn(String traceId, String... messages) {
         if (LOG.isWarnEnabled()) {
-            LOG.warn(envelope(traceId, messages));
+//            LOG.warn(envelope(traceId, messages));
         }
     }
 
     public static void error(String traceId, String... messages) {
         if (LOG.isErrorEnabled()) {
-            LOG.error(envelope(traceId, messages));
+//            LOG.error(envelope(traceId, messages));
         }
     }
 
     public static void error(String traceId, Throwable throwable, String... messages) {
         if (LOG.isErrorEnabled()) {
-            LOG.error(envelope(traceId, messages), throwable);
+//            LOG.error(envelope(traceId, messages), throwable);
         }
     }
 
