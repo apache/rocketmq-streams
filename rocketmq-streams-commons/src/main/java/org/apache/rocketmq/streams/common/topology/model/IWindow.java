@@ -50,6 +50,9 @@ public interface IWindow
      */
     Integer DEFAULT_WINDOW_SLIDE = 1;
 
+
+    Integer DEFAULT_WINDOW_SESSION_TIMEOUT = 10;
+
     // protected transient ExecutorService deleteService = Executors.newSingleThreadExecutor();
 
     /**
@@ -72,6 +75,8 @@ public interface IWindow
      */
     String HOP_WINDOW = "hop";
 
+    String SESSION_WINDOW = "session";
+
     /**
      * hop window type
      */
@@ -79,6 +84,11 @@ public interface IWindow
     String TYPE = "window";
 
     int FIRE_DELAY_SECOND = 1;//触发延迟
+
+    /**
+     * the delay time of system (ms)
+     */
+    Integer SYS_DELAY_TIME = 3000;
 
     /**
      * 窗口触发后，需要执行的逻辑

@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -561,6 +562,27 @@ public class SQLUtil {
             i++;
         }
         return createInSql(values);
+    }
+
+    /**
+     * create multi like sentences
+     * @param keywordList
+     * @return
+     */
+    public static String createLikeSql(List<Pair<String, String>> keywordList) {
+        if (CollectionUtil.isEmpty(keywordList)) {
+            return "";
+        }
+        StringBuffer buffer = new StringBuffer();
+        buffer.append(" ");
+        for (int index = 0; index < keywordList.size(); index++) {
+            Pair<String, String> pair = keywordList.get(index);
+            buffer.append(pair.getKey() + " like '" + pair.getValue() + "'");
+            if (index != (keywordList.size() - 1)) {
+                buffer.append(" or ");
+            }
+        }
+        return buffer.toString();
     }
 
     public static String createInSql(String... values) {

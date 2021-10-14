@@ -28,7 +28,15 @@
     <packaging>jar</packaging>
     <name>ROCKETMQ STREAMS :: state</name>
     <dependencies>
-
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-commons</artifactId>
+        </dependency>
+        <!--rocksdb-->
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+        </dependency>
 
     </dependencies>
 </project>
