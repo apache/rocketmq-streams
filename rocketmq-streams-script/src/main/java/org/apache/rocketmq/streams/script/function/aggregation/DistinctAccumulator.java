@@ -25,6 +25,11 @@ import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
 
+/**
+ * distinct operator based memory
+ *
+ * @author arthur.liang
+ */
 @Function
 @UDAFFunction("distinct")
 public class DistinctAccumulator implements IAccumulator<Set, DistinctAccumulator.DistinctAccum> {

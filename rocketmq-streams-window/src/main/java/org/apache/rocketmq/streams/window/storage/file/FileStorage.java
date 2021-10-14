@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.storage.file;
 
+import com.alibaba.fastjson.JSONArray;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -104,6 +105,19 @@ public class FileStorage<T extends WindowBaseValue> extends AbstractWindowStorag
         this.flush();
     }
 
+    @Override public synchronized void multiPutList(Map<String, List<T>> elements) {
+        for (Entry<String, List<T>> entry : elements.entrySet()) {
+            String key = entry.getKey();
+            List<T> valueList = entry.getValue();
+            JSONArray array = new JSONArray();
+            for (T value : valueList) {
+                array.add(value.toJsonObject());
+            }
+            this.cache.put(key, array.toJSONString());
+        }
+        this.flush();
+    }
+
     @Override
     public synchronized Map<String, T> multiGet(Class<T> clazz, List<String> keys) {
         Map<String, T> result = new HashMap<>();
@@ -113,6 +127,25 @@ public class FileStorage<T extends WindowBaseValue> extends AbstractWindowStorag
                 T jsonable = ReflectUtil.forInstance(clazz);
                 jsonable.toObject(value);
                 result.put(key, jsonable);
+            }
+        }
+        return result;
+    }
+
+    @Override public synchronized Map<String, List<T>> multiGetList(Class<T> clazz, List<String> keys) {
+        Map<String, List<T>> result = new HashMap<>();
+        for (String key : keys) {
+            String value = this.cache.get(key);
+            if (StringUtil.isNotEmpty(value)) {
+                JSONArray jsonArray = JSONArray.parseArray(value);
+                List<T> valueList = new ArrayList<>();
+                for (int index = 0; index < jsonArray.size(); index++) {
+                    String objectString = jsonArray.getString(index);
+                    T valueObject = ReflectUtil.forInstance(clazz);
+                    valueObject.toObject(objectString);
+                    valueList.add(valueObject);
+                }
+                result.put(key, valueList);
             }
         }
         return result;
