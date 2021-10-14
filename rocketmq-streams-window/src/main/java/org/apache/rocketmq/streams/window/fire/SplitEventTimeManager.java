@@ -47,6 +47,8 @@ public class SplitEventTimeManager {
     protected volatile boolean isAllSplitReceived=false;
     protected transient String queueId;
 
+    private static Long splitReadyTime;
+
     public SplitEventTimeManager(ISource source,String queueId){
         this.source=source;
         this.queueId=queueId;
@@ -149,9 +151,22 @@ public class SplitEventTimeManager {
         if(this.splitsGroupByInstance==null){
             return false;
         }
-        if(workingSplitSize==messageSplitId2MaxTime.size()){
-            this.isAllSplitReceived=true;
+        //add time out policy: no necessary waiting for other split
+        if (splitReadyTime == null) {
+            synchronized (this) {
+                if (splitReadyTime == null) {
+                    splitReadyTime = System.currentTimeMillis();
+                }
+            }
+        }
+        if (workingSplitSize == messageSplitId2MaxTime.size()) {
+            this.isAllSplitReceived = true;
             return true;
+        } else {
+            if (System.currentTimeMillis() - splitReadyTime >= 1000 * 60) {
+                this.isAllSplitReceived = true;
+                return true;
+            }
         }
         return false;
     }

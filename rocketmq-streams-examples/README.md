@@ -1,5 +1,6 @@
 ## rocketmq-streams-examples
 
+
 ### 1、File source example
 逐行读取文件数据，并打印出来。
 ```java
@@ -17,6 +18,7 @@ public class FileSourceExample {
 
 
 ### 2、分时间段，统计分组中某字段的和
+
 
 #### 2.1 安装 Apache RocketMQ
 可以参考[Apache RocketMQ 搭建文档](https://rocketmq.apache.org/docs/quick-start/)
@@ -157,3 +159,26 @@ data.text数据运行的结果部分如下：
 ```
 
 可以得到三个窗口中网页点击次数最多分别是2次，1次，3次。
+
+### 4、Rocketmq-streams 多客户端消费
+#### 4.1、数据说明
+源数据由[data.txt](./../rocketmq-streams-examples/src/main/resources/data.txt)组成，反复发送100遍，总共生产1000条数据。
+#### 4.2、代码实例
+[代码示例](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/mutilconsumer/MutilStreamsClientTest.java)
+
+代码中读取data.txt文件反复发送100遍，发送1000条数据。同时，开启两个消费者，每个消费者独立消费数据，然后做window聚合。
+代码目的：
+    通过两个独立消费者，组成消费者组，同时消费相同topic数据，达到当1个消费者消费不过来时横向扩容的效果，通过打印出来"total"字段值的和判断两个消费者是否总共消费了1000条数据。
+
+#### 4.3、结果说明
+结果数据下所示，可计算各行total对应值之和为1000，表明的却两个消费者达到了并发消费的效果，计算无误，达到了扩容目的。
+```xml
+
+{"start_time":"2021-09-27 14:10:10","InFlow":1144,"total":208,"windowInstanceId":"gYZ3tv/5ohgHrwF6tIFgoQ==","offset":54915025100000001,"ProjectName":"ProjectName-0","LogStore":"LogStore-0","end_time":"2021-09-27 14:10:20","OutFlow":936}
+{"start_time":"2021-09-27 14:10:10","InFlow":936,"total":156,"windowInstanceId":"gYZ3tv/5ohgHrwF6tIFgoQ==","offset":54915025100000002,"ProjectName":"ProjectName-2","LogStore":"LogStore-2","end_time":"2021-09-27 14:10:20","OutFlow":780}
+{"start_time":"2021-09-27 14:10:10","InFlow":780,"total":156,"windowInstanceId":"gYZ3tv/5ohgHrwF6tIFgoQ==","offset":54915025100000003,"ProjectName":"ProjectName-1","LogStore":"LogStore-1","end_time":"2021-09-27 14:10:20","OutFlow":624}
+{"start_time":"2021-09-27 14:10:20","InFlow":1056,"total":192,"windowInstanceId":"4YnbFAgSzeDt5qpo+Is/5w==","offset":54915035100000001,"ProjectName":"ProjectName-0","LogStore":"LogStore-0","end_time":"2021-09-27 14:10:30","OutFlow":864}
+{"start_time":"2021-09-27 14:10:20","InFlow":720,"total":144,"windowInstanceId":"4YnbFAgSzeDt5qpo+Is/5w==","offset":54915035100000002,"ProjectName":"ProjectName-1","LogStore":"LogStore-1","end_time":"2021-09-27 14:10:30","OutFlow":576}
+{"start_time":"2021-09-27 14:10:20","InFlow":864,"total":144,"windowInstanceId":"4YnbFAgSzeDt5qpo+Is/5w==","offset":54915035100000003,"ProjectName":"ProjectName-2","LogStore":"LogStore-2","end_time":"2021-09-27 14:10:30","OutFlow":720}
+
+```
