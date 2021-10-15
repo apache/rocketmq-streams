@@ -20,7 +20,7 @@ import java.util.List;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
+import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptParameter;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
@@ -46,7 +46,7 @@ public interface IScriptOptimization {
      * the executor can execute expression and return result
      */
     interface IOptimizationExecutor {
-        QuickFilterResult execute(IMessage message, AbstractContext context);
+        FilterResultCache execute(IMessage message, AbstractContext context);
     }
 
 

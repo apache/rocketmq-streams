@@ -27,7 +27,7 @@ import org.apache.rocketmq.streams.common.interfaces.IBaseStreamOperator;
 import org.apache.rocketmq.streams.common.model.ThreadContext;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
-import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
+import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public abstract class AbstractContext<T extends IMessage> extends HashMap {
@@ -63,7 +63,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     protected volatile IMonitor monitor = null;
 
 
-    protected QuickFilterResult quickFilterResult;
+    protected FilterResultCache quickFilterResult;
 
     public AbstractContext(T message) {
         this.message = message;
@@ -391,7 +391,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         isBreak = aBreak;
     }
 
-    public void setQuickFilterResult(QuickFilterResult quickFilterResult) {
+    public void setQuickFilterResult(FilterResultCache quickFilterResult) {
         this.quickFilterResult = quickFilterResult;
     }
 }

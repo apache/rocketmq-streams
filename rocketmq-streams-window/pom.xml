@@ -46,8 +46,6 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-dim</artifactId>
         </dependency>
-
-
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>

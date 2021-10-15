@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.filter.function.expression;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.optimization.CalculationResultCache;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.Rule;

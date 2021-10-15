@@ -37,9 +37,8 @@ public class SQLLogFingerprintFilter extends LogFingerprintFilter {
      * 增加缓存，对于某个规则未触发的日志进行缓存，可以快速过滤掉这个日志对这个规则的判读
      *
      * @param msgKey     资产指纹
-     * @param filterName piplinenamespace.piplinename.filterlableorindex
      */
-    public void addNoFireMessage(String msgKey, String filterName) {
+    public void addNoFireMessage(String msgKey) {
         if (getRowCount() > MAX_COUNT) {
             synchronized (this) {
                 if (getRowCount() > MAX_COUNT) {

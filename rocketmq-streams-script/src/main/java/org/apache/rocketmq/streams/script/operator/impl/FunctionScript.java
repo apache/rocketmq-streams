@@ -29,7 +29,7 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IBaseStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
+import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
@@ -117,7 +117,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
             context.syncSubContext(functionContext);
         }
         if(this.optimizationCompiler!=null){
-            QuickFilterResult quickFilterResult= this.optimizationCompiler.execute(message,functionContext);
+            FilterResultCache quickFilterResult= this.optimizationCompiler.execute(message,functionContext);
             context.setQuickFilterResult(quickFilterResult);
         }
         List<IMessage> result = AbstractContext.executeScript(message, functionContext, this.receivers);

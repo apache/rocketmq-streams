@@ -190,11 +190,11 @@ public class Expression<T> extends BasedConfigurable
                 return isMatch;
             }
             boolean result= doAction(context, rule);
-            if(!RelationExpression.class.isInstance(this)){
-                if((System.currentTimeMillis()-start)>10){
-                    System.out.println("==============="+toJson());
-                }
-            }
+//            if(!RelationExpression.class.isInstance(this)){
+//                if((System.currentTimeMillis()-start)>10){
+//                    System.out.println("==============="+toJson());
+//                }
+//            }
             return result;
 //            if (result != null) {
 //                context.putExpressionValue(getNameSpace(), getConfigureName(), result);

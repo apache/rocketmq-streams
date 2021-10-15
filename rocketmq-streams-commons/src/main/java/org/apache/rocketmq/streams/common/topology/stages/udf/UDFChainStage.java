@@ -21,6 +21,7 @@ import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefresh
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
@@ -32,7 +33,7 @@ import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 public class UDFChainStage extends AbstractStatelessChainStage implements IAfterConfigurableRefreshListener {
     protected String udfOperatorClassSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient StageBuilder selfChainStage;
-
+    protected transient PreFingerprint preFingerprint=null;
 
     public UDFChainStage() {}
 
@@ -60,7 +61,7 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
     @Override public IMessage doMessage(IMessage message, AbstractContext context) {
         super.doMessage(message, context);
         if(!context.isContinue()&&this.filterFieldNames!=null&&context.get("_logfinger")!=null){
-            addLogFingerprintToSource(message);
+            preFingerprint.addLogFingerprintToSource(message);
         }
         if(context.get("NEED_USE_FINGER_PRINT")!=null){
             context.remove("NEED_USE_FINGER_PRINT");
@@ -80,7 +81,7 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         byte[] bytes = Base64Utils.decode(udfOperatorClassSerializeValue);
         selfChainStage = InstantiationUtil.deserializeObject(bytes);
-        loadLogFinger();
+        preFingerprint=loadLogFinger();
     }
 
 

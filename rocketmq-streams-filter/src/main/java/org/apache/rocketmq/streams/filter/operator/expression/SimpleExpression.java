@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.filter.operator.expression;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.common.datatype.DataType;
-import org.apache.rocketmq.streams.common.optimization.CalculationResultCache;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.contants.RuleElementType;
@@ -27,7 +26,6 @@ import org.apache.rocketmq.streams.filter.contants.RuleElementType;
  * 变量名就是字段名，不需要声明meta
  */
 public class SimpleExpression extends Expression {
-    protected static CalculationResultCache calculationResultCache = CalculationResultCache.getInstance();
 
     public SimpleExpression() {
     }

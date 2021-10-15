@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
+import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
@@ -30,10 +30,10 @@ import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimi
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
-public class GroupQuickFilterResult  extends QuickFilterResult {
+public class GroupQuickFilterResult  extends FilterResultCache {
     Map<String,Integer> expression2QuickFilterResultIndexMap=new HashMap<>();
-    List<QuickFilterResult> results=new ArrayList<>();
-    public GroupQuickFilterResult(Map<String,Integer> expression2QuickFilterResultIndexMap, List<QuickFilterResult> results){
+    List<FilterResultCache> results=new ArrayList<>();
+    public GroupQuickFilterResult(Map<String,Integer> expression2QuickFilterResultIndexMap, List<FilterResultCache> results){
         super(null,null);
         this.expression2QuickFilterResultIndexMap=expression2QuickFilterResultIndexMap;
         this.results=results;
@@ -60,7 +60,7 @@ public class GroupQuickFilterResult  extends QuickFilterResult {
             if(index==null){
                 return null;
             }
-            QuickFilterResult quickFilterResult=results.get(index);
+            FilterResultCache quickFilterResult=results.get(index);
             return quickFilterResult.isMatch(msg,expression);
         }
         return null;

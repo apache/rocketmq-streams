@@ -27,10 +27,9 @@ import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
-import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -39,7 +38,6 @@ import org.apache.rocketmq.streams.common.utils.TraceUtil;
 public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable
     implements IStreamOperator<T, T>, ISystemMessageProcessor {
     protected String filterFieldNames;
-    protected transient AbstractStage sourceStage;
 
     private static final Log LOG = LogFactory.getLog(AbstractStage.class);
 
@@ -87,22 +85,6 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
     protected transient Long lastUpdateTime=null;
     @Override
     public T doMessage(T t, AbstractContext context) {
-//        if(this.logFingerFieldNames!=null){
-//            TOTAL.incrementAndGet();
-//            if(lastUpdateTime==null){
-//                lastUpdateTime=System.currentTimeMillis();
-//            }
-//            if(TOTAL.get() %1000==0){
-//                long qps=TOTAL.get()*1000/(System.currentTimeMillis()-lastUpdateTime);
-//                System.out.println("logfinger filter qps is "+qps+"  the filte rate is "+(double)FILTER.get()*100/(double)TOTAL.get()+"%");
-//            }
-//        }
-        if (filterByLogFingerprint(t)) {
-            FILTER.incrementAndGet();
-
-            context.breakExecute();
-            return null;
-        }
         try {
 
             TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
@@ -201,36 +183,10 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         return lables;
     }
 
-    protected transient String logFingerFieldNames;//如果有日志指纹，这里存储日志指纹的字段，启动时，通过属性文件加载
-    protected transient String logFingerFilterStageName;//唯一标识一个filter
-
-    protected transient SQLLogFingerprintFilter logFingerprintFilter;//日志指纹的数据存储
-
-    /**
-     * 通过日志指纹过滤，如果有过滤日志指纹字段，做过滤判断
-     *
-     * @param message
-     * @return
-     */
-    protected boolean filterByLogFingerprint(T message) {
-        if (logFingerFieldNames != null) {
-            String logFingerValue = createLogFingerValue(message);
-            if (logFingerprintFilter != null && logFingerValue != null) {
-                Integer value = logFingerprintFilter.getFilterValue(logFingerValue);
-                if (value != null && value > 0) {
-                    return true;
-                } else {
-                    message.getHeader().setLogFingerprintValue(logFingerValue);
-                }
-            }
-        }
-        return false;
-    }
-
     /**
      * 从配置文件加载日志指纹信息，如果存在做指纹优化
      */
-    protected void loadLogFinger() {
+    protected PreFingerprint loadLogFinger() {
         ChainPipeline pipline = (ChainPipeline)getPipeline();
         String filterName = getLabel();
         if (pipline.isTopology() == false) {
@@ -244,19 +200,19 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
             filterName = i + "";
         }
-        String key= MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName);
+        String stageIdentification= MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName);
         if(this.filterFieldNames==null){
-            this.filterFieldNames = ComponentCreator.getProperties().getProperty(key);
+            this.filterFieldNames = ComponentCreator.getProperties().getProperty(stageIdentification);
 
         }
         if (this.filterFieldNames == null) {
-            return;
+            return null;
         }
-        sourceStage = getSourceStage();
-
-        sourceStage.setLogFingerFieldNames(filterFieldNames);
-        sourceStage.setLogFingerFilterStageName(key);
-        sourceStage.setLogFingerprintFilter(SQLLogFingerprintFilter.getInstance());
+        PreFingerprint preFingerprint=createPreFinerprint(stageIdentification);
+        if(preFingerprint!=null){
+            pipline.registPreFingerprint(preFingerprint);
+        }
+        return preFingerprint;
     }
 
     /**
@@ -265,71 +221,49 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      * @return
      */
 
-    protected AbstractStage getSourceStage() {
+    protected PreFingerprint createPreFinerprint(String stageIdentification) {
         ChainPipeline pipline = (ChainPipeline)getPipeline();
+        String sourceLable=null;
+        String nextLable=null;
         if (pipline.isTopology()) {
             Map<String, AbstractStage> stageMap = pipline.createStageMap();
             AbstractStage currentStage = this;
             List<String> prewLables = currentStage.getPrevStageLabels();
+            if(prewLables==null||prewLables.size()==0){
+                sourceLable=pipline.getChannelName();
+            }
+
             while (prewLables != null && prewLables.size() > 0) {
-                if (prewLables.size() > 1) {
-                    return null;
+                if(prewLables.size()>1){
+                    break;
                 }
                 String lable = prewLables.get(0);
                 AbstractStage stage = (AbstractStage)stageMap.get(lable);
                 if (stage != null) {
                     currentStage = stage;
+                    sourceLable=currentStage.getLabel();
+                    nextLable=currentStage.getLabel();
                 } else {
-                    return currentStage;
+                    sourceLable=pipline.getChannelName();
+                    nextLable=currentStage.getLabel();
+                    break;
                 }
                 prewLables = currentStage.getPrevStageLabels();
             }
-            return currentStage;
+            if(sourceLable==null||nextLable==null){
+                return null;
+            }
+            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,sourceLable,nextLable);
+            return preFingerprint;
         } else {
-            return (AbstractStage)pipline.getStages().get(0);
-        }
-    }
-    /**
-     * 创建过滤指纹值
-     *
-     * @return
-     */
-    protected String createLogFingerValue(T message) {
-        if (logFingerprintFilter != null) {
-            return logFingerprintFilter.createMessageKey(message, logFingerFieldNames, logFingerFilterStageName);
-        }
-        return null;
-    }
-    /**
-     * 设置过滤指纹
-     *
-     * @param message
-     */
-    public void addLogFingerprintToSource(IMessage message) {
-        if(sourceStage!=null){
-            sourceStage.addLogFingerprint(message);
-        }
-    }
-    /**
-     * 设置过滤指纹
-     *
-     * @param message
-     */
-    private void addLogFingerprint(IMessage message) {
-
-        String logFingerValue = message.getHeader().getLogFingerprintValue();
-        if (logFingerprintFilter != null && logFingerValue != null) {
-            logFingerprintFilter.addNoFireMessage(logFingerValue, logFingerFilterStageName);
+            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,"0","0");
+            return preFingerprint;
         }
     }
 
     public List<String> getNextStageLabels() {
         return nextStageLabels;
     }
-
-    //    public List<String> getNextStageLables() {
-    //        return nextStageLables;
-    //    }
 
     public List<String> getPrevStageLabels() {
         return prevStageLabels;
@@ -367,29 +301,6 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         this.nextStageLabels = nextStageLabels;
     }
 
-    public String getLogFingerFieldNames() {
-        return logFingerFieldNames;
-    }
-
-    public void setLogFingerFieldNames(String logFingerFieldNames) {
-        this.logFingerFieldNames = logFingerFieldNames;
-    }
-
-    public SQLLogFingerprintFilter getLogFingerprintFilter() {
-        return logFingerprintFilter;
-    }
-
-    public void setLogFingerprintFilter(SQLLogFingerprintFilter logFingerprintFilter) {
-        this.logFingerprintFilter = logFingerprintFilter;
-    }
-
-    public String getLogFingerFilterStageName() {
-        return logFingerFilterStageName;
-    }
-
-    public void setLogFingerFilterStageName(String logFingerFilterStageName) {
-        this.logFingerFilterStageName = logFingerFilterStageName;
-    }
     public String getFilterFieldNames() {
         return filterFieldNames;
     }
