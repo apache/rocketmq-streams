@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.optimization.fingerprint;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,8 @@ public class FingerprintCache {
 
     protected BitSetCache bitSetCache;
     protected int cacheSize;
+    protected int reHashCount=0;
+
     private FingerprintCache(int cacheSize){
         this.cacheSize=cacheSize;
         this.bitSetCache=new BitSetCache(this.cacheSize);
@@ -48,9 +51,29 @@ public class FingerprintCache {
         if(msgKey==null){
             return;
         }
+
         if(bitSetCache!=null){
             FingerprintMetric fingerprintMetric=getOrCreateMetric(namespace);
             fingerprintMetric.addCaceSize();
+            if(reHashCount>0){
+                if(fingerprintMetric.getHitCacheRate()<0.4){
+                    fingerprintMetric.setCloseFingerprint(true);
+                }
+            }
+            if(fingerprintMetric.isCloseFingerprint()){
+                return;
+            }
+            if (this.bitSetCache.size() > CACHE_SIZE) {
+                synchronized (this) {
+                    if (this.bitSetCache.size() > CACHE_SIZE) {
+                        this.bitSetCache=new BitSetCache(this.cacheSize);
+                        reHashCount++;
+                        for(FingerprintMetric metric:this.metricMap.values()){
+                            metric.clear();
+                        }
+                    }
+                }
+            }
             this.bitSetCache.put(namespace+"->"+msgKey,bitSet);
         }
     }
@@ -61,19 +84,23 @@ public class FingerprintCache {
         if(msgKey==null){
             return null;
         }
-        BitSetCache.BitSet bitSet= this.bitSetCache.get(namespace+"->"+msgKey);
         FingerprintMetric fingerprintMetric=getOrCreateMetric(namespace);
+        if(fingerprintMetric.isCloseFingerprint()){
+            return null;
+        }
+        BitSetCache.BitSet bitSet= this.bitSetCache.get(namespace+"->"+msgKey);
+
         fingerprintMetric.addMetric(bitSet!=null);
         return bitSet;
     }
 
 
-    public void addLogFingerprint(String namespace,IMessage message, BitSetCache.BitSet bitSet, List<String> logFingerprintFieldNames){
-        String msgKey=creatFingerpringKey(message,logFingerprintFieldNames);
+    public void addLogFingerprint(String namespace,IMessage message, BitSetCache.BitSet bitSet, String logFingerprintFieldNames){
+        String msgKey=creatFingerpringKey(message,namespace,logFingerprintFieldNames);
         addLogFingerprint(namespace,msgKey,bitSet);
     }
-    public BitSetCache.BitSet getLogFingerprint(String namespace,IMessage message, List<String>  logFingerprintFieldNames){
-        String msgKey=creatFingerpringKey(message,logFingerprintFieldNames);
+    public BitSetCache.BitSet getLogFingerprint(String namespace,IMessage message, String logFingerprintFieldNames){
+        String msgKey=creatFingerpringKey(message,namespace,logFingerprintFieldNames);
         return getLogFingerprint(namespace,msgKey);
     }
 
@@ -113,16 +140,34 @@ public class FingerprintCache {
     }
 
 
+    protected static Map<String,List<String>> logFingerprintFieldNameListMap=new HashMap<>();
     /**
      * 创建代表日志指纹的字符串
      *
      * @param message
      * @return
      */
-    public static String creatFingerpringKey(IMessage message, List<String> logFingerprintFieldNames) {
+    public static String creatFingerpringKey(IMessage message,String namespace, String logFingerprintFieldNames) {
+        String key= MapKeyUtil.createKey(namespace,logFingerprintFieldNames);
+        List<String>logFingerprintFieldNameList =logFingerprintFieldNameListMap.get(key);
+        if(logFingerprintFieldNameList==null){
+            synchronized (FingerprintCache.class){
+                logFingerprintFieldNameList =logFingerprintFieldNameListMap.get(key);
+                if(logFingerprintFieldNameList==null){
+
+                    if(logFingerprintFieldNames!=null){
+                        List<String> list=new ArrayList<>();
+                        for(String name:logFingerprintFieldNames.split(",")){
+                            list.add(name);
+                        }
+                        logFingerprintFieldNameList=list;
+                    }
+                }
+            }
+        }
         StringBuilder sb = new StringBuilder();
         boolean isFirst = true;
-        for (String value : logFingerprintFieldNames) {
+        for (String value : logFingerprintFieldNameList) {
             String msgValue = message.getMessageBody().getString(value);
             if (StringUtil.isEmpty(msgValue)) {
                 msgValue = "<NULL>";

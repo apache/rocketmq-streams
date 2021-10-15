@@ -23,6 +23,7 @@ public class FingerprintMetric {
     protected AtomicLong visitCount=new AtomicLong(0);
     protected AtomicLong hitCacheCount=new AtomicLong(0);
     protected AtomicLong cacheSize=new AtomicLong(0);
+    protected boolean isCloseFingerprint=false;
 
     public FingerprintMetric(String namespace){
         this.namespace=namespace;
@@ -34,6 +35,7 @@ public class FingerprintMetric {
             hitCacheCount.incrementAndGet();
         }
     }
+
 
     public void addCaceSize(){
         cacheSize.incrementAndGet();
@@ -47,6 +49,8 @@ public class FingerprintMetric {
         return this.hitCacheCount.get();
     }
 
+
+
     public Long getCacheSize(){
         return this.cacheSize.get();
     }
@@ -58,5 +62,19 @@ public class FingerprintMetric {
         }
         double hitCacheCount=getHitCacheCount();
         return hitCacheCount/visitCount;
+    }
+
+    public boolean isCloseFingerprint() {
+        return isCloseFingerprint;
+    }
+
+    public void setCloseFingerprint(boolean closeFingerprint) {
+        isCloseFingerprint = closeFingerprint;
+    }
+
+    public void clear() {
+        visitCount.set(0);
+        hitCacheCount.set(0);
+        cacheSize.set(0);
     }
 }

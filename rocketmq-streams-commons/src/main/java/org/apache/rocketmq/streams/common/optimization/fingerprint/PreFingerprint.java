@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.optimization.fingerprint;
 
+import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -28,18 +29,17 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 public class PreFingerprint {
     protected transient String logFingerFieldNames;//如果有日志指纹，这里存储日志指纹的字段，启动时，通过属性文件加载
     protected transient String filterStageIdentification;//唯一标识一个filter
-    protected transient SQLLogFingerprintFilter logFingerprintFilter;//日志指纹的数据存储
+
     protected transient String sourceStageLable;//execute logfinger filter's stage, may be owner mutil branch stage or pipeline source
     protected transient String nextStageLable;//the source stage's next stage lable
-
+    protected transient FingerprintCache fingerprintCache;
     public PreFingerprint(String logFingerFieldNames,String filterStageIdentification,String sourceStageLable,String nextStageLable){
         this.logFingerFieldNames=logFingerFieldNames;
         this.filterStageIdentification=filterStageIdentification;
         this.sourceStageLable=sourceStageLable;
         this.nextStageLable=nextStageLable;
-        if(StringUtil.isNotEmpty(logFingerFieldNames)){
-            logFingerprintFilter=createLogFingerprintFilter();
-        }
+        this.fingerprintCache= FingerprintCache.getInstance();
+
     }
 
 
@@ -51,13 +51,13 @@ public class PreFingerprint {
      */
     public boolean filterByLogFingerprint(IMessage message) {
         if (logFingerFieldNames != null) {
-            String logFingerValue = createLogFingerValue(message);
-            if (logFingerprintFilter != null && logFingerValue != null) {
-                Integer value = logFingerprintFilter.getFilterValue(logFingerValue);
-                if (value != null && value > 0) {
+            String msgKey = FingerprintCache.creatFingerpringKey(message,filterStageIdentification,logFingerFieldNames);
+            if (msgKey != null) {
+                BitSetCache.BitSet bitSet = fingerprintCache.getLogFingerprint(filterStageIdentification,msgKey);
+                if (bitSet != null && bitSet.get(0)) {
                     return true;
                 } else {
-                    message.getHeader().setLogFingerprintValue(logFingerValue);
+                    message.getHeader().setLogFingerprintValue(msgKey);
                 }
             }
         }
@@ -72,23 +72,20 @@ public class PreFingerprint {
      */
     public void addLogFingerprintToSource(IMessage message) {
 
-        String logFingerValue = message.getHeader().getLogFingerprintValue();
-        if (logFingerprintFilter != null && logFingerValue != null) {
-            logFingerprintFilter.addNoFireMessage(logFingerValue);
+        String msgKey = message.getHeader().getLogFingerprintValue();
+        if(msgKey!=null){
+            BitSetCache.BitSet bitSet =new BitSetCache.BitSet(1);
+            bitSet.set(0);
+            fingerprintCache.addLogFingerprint(filterStageIdentification,msgKey,bitSet);
         }
     }
 
-    /**
-     * 创建过滤指纹值
-     *
-     * @return
-     */
-    protected String createLogFingerValue(IMessage message) {
-        if (logFingerprintFilter != null) {
-            return logFingerprintFilter.createMessageKey(message, logFingerFieldNames, filterStageIdentification);
-        }
-        return null;
+    public static void main(String[] args) {
+        BitSetCache.BitSet bitSet =new BitSetCache.BitSet(1);
+        bitSet.set(0);
+        System.out.println(bitSet.get(0));
     }
+
 
     protected SQLLogFingerprintFilter createLogFingerprintFilter() {
         return SQLLogFingerprintFilter.getInstance();

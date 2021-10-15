@@ -102,15 +102,7 @@ public class BitSetCache {
     }
 
     public void put(String key, BitSet bitSet) {
-        if (cache.size > cache.capacity) {
-            synchronized (this) {
-                if (cache.size > cache.capacity) {
-                    cache = new ByteArrayValueKV(capacity, byteSetSize);
-                }
-            }
-        }
         cache.put(key, bitSet.getBytes());
-
     }
 
     public static void main(String[] args) {
