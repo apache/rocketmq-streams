@@ -48,8 +48,8 @@ public class DataStreamSource implements Serializable {
     }
 
     public static DataStreamSource create(String namespace, String pipelineName, String[] duplicateKeys,
-        Long expirationTime) {
-        return new DataStreamSource(namespace, pipelineName, duplicateKeys, expirationTime);
+        Long windowSize) {
+        return new DataStreamSource(namespace, pipelineName, duplicateKeys, windowSize);
     }
 
     public DataStream fromFile(String filePath) {

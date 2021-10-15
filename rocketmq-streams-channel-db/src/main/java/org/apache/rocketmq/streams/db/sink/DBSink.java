@@ -97,15 +97,21 @@ public class DBSink extends AbstractSink {
     }
 
     public DBSink(String url, String userName, String password, String tableName, String sqlMode) {
-        this(url, userName, password, tableName, sqlMode, null);
+        this(url, userName, password, tableName, sqlMode, false);
     }
 
-    public DBSink(String url, String userName, String password, String tableName, String sqlMode, MetaData metaData) {
+    public DBSink(String url, String userName, String password, String tableName, String sqlMode, Boolean sqlCache) {
+        this(url, userName, password, tableName, sqlMode, sqlCache, null);
+    }
+
+    public DBSink(String url, String userName, String password, String tableName, String sqlMode, Boolean sqlCache,
+        MetaData metaData) {
         setType(IChannel.TYPE);
         this.url = url;
         this.userName = userName;
         this.password = password;
         this.tableName = tableName;
+        this.openSqlCache = sqlCache;
         this.sqlMode = sqlMode;
         this.metaData = metaData;
     }

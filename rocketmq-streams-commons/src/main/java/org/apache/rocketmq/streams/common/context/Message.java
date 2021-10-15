@@ -47,6 +47,9 @@ public class Message implements IMessage {
         }
     }
 
+    public Message(String test, String a, byte[] bytes) {
+    }
+
     @Override
     public MessageHeader getHeader() {
         return this.header;

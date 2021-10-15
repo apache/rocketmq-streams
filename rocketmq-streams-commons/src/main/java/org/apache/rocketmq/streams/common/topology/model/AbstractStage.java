@@ -16,17 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.topology.model;
 
-import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import com.alibaba.fastjson.JSONObject;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
 import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
@@ -103,9 +104,9 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         Object result = handle.doMessage(t, context);
         //
         if (!context.isContinue() || result == null) {
-            return (T) context.breakExecute();
+            return (T)context.breakExecute();
         }
-        return (T) result;
+        return (T)result;
     }
 
     /**
@@ -190,7 +191,6 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
 
     protected transient String logFingerFieldNames;//如果有日志指纹，这里存储日志指纹的字段，启动时，通过属性文件加载
     protected transient String logFingerFilterStageName;//唯一标识一个filter
-
     protected transient SQLLogFingerprintFilter logFingerprintFilter;//日志指纹的数据存储
 
     /**
@@ -242,7 +242,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      * 为最源头的stage加载指纹信息
      */
     protected void loadLogFinger() {
-        ChainPipeline<?> pipeline = (ChainPipeline<?>) getPipeline();
+        ChainPipeline<?> pipeline = (ChainPipeline<?>)getPipeline();
         String filterName = getLabel();
         if (!pipeline.isTopology()) {
             List<?> stages = pipeline.getStages();
@@ -255,15 +255,14 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
             filterName = i + "";
         }
+        sourceStage = getSourceStage();
         String key = MapKeyUtil.createKeyBySign(".", pipeline.getNameSpace(), pipeline.getConfigureName(), filterName);
         String logFingerFieldNames = ComponentCreator.getProperties().getProperty(key);
-        if (logFingerFieldNames == null) {
-            return;
+        if (logFingerFieldNames != null) {
+            sourceStage.setLogFingerFieldNames(logFingerFieldNames);
+            sourceStage.setLogFingerFilterStageName(key);
+            sourceStage.setLogFingerprintFilter(SQLLogFingerprintFilter.getInstance());
         }
-        sourceStage = getSourceStage();
-        sourceStage.setLogFingerFieldNames(logFingerFieldNames);
-        sourceStage.setLogFingerFilterStageName(key);
-        sourceStage.setLogFingerprintFilter(SQLLogFingerprintFilter.getInstance());
     }
 
     /**
@@ -272,7 +271,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      * @return
      */
     protected AbstractStage getSourceStage() {
-        ChainPipeline pipline = (ChainPipeline) getPipeline();
+        ChainPipeline pipline = (ChainPipeline)getPipeline();
         if (pipline.isTopology()) {
             Map<String, AbstractStage> stageMap = pipline.createStageMap();
             AbstractStage currentStage = this;
@@ -282,7 +281,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
                     return null;
                 }
                 String lable = prewLables.get(0);
-                AbstractStage stage = (AbstractStage) stageMap.get(lable);
+                AbstractStage stage = (AbstractStage)stageMap.get(lable);
                 if (stage != null) {
                     currentStage = stage;
                 } else {
@@ -292,7 +291,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
             return currentStage;
         } else {
-            return (AbstractStage) pipline.getStages().get(0);
+            return (AbstractStage)pipline.getStages().get(0);
         }
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.builder;
 
+import com.google.common.collect.Lists;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
@@ -272,9 +273,7 @@ public class PipelineBuilder implements Serializable {
         if (isBreak) {
             return;
         }
-        List<ChainStage> stages = new ArrayList<>();
-        stages.add(nextStage);
-        setTopologyStages(currentChainStage, stages);
+        setTopologyStages(currentChainStage, Lists.newArrayList(nextStage));
     }
 
     public String getPipelineNameSpace() {

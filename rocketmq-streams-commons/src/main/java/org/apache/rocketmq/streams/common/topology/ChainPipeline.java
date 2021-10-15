@@ -118,7 +118,6 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             try {
                 source.start((IStreamOperator<T, T>) (message, context) -> {
                     //每条消息一个，监控整个链路
-
                     IMonitor pipelineMonitorForStage = context.startMonitor(monitorName);
                     pipelineMonitorForStage.setType(IMonitor.TYPE_DATAPROCESS);
                     message.getHeader().setPiplineName(this.getConfigureName());
