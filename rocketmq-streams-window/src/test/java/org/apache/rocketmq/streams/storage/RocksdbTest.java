@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.streams.storage;
 
 import java.util.ArrayList;
@@ -6,6 +22,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
@@ -66,9 +83,10 @@ public class RocksdbTest {
         Map<String, List<WindowBaseValue>> theMap = new HashMap<>();
         theMap.put(key, valueList);
         storage.multiPutList(theMap);
-        Map<String, List<WindowBaseValue>> resultMap = storage.multiGetList(WindowBaseValue.class, new ArrayList<String>() {{
-            add(key);
-        }});
+        Map<String, List<WindowBaseValue>> resultMap = storage.multiGetList(WindowBaseValue.class,
+            new ArrayList<String>() {{
+                add(key);
+            }});
         Assert.assertEquals(1, resultMap.size());
         Assert.assertEquals(2, resultMap.get(key).size());
         Assert.assertEquals("2021-09-07 11:00:00", resultMap.get(key).get(0).getStartTime());
@@ -105,9 +123,10 @@ public class RocksdbTest {
         valueList.add(value1);
         theMap.put(key, valueList);
         storage.multiPutList(theMap);
-        Map<String, List<WindowBaseValue>> resultMap = storage.multiGetList(WindowBaseValue.class, new ArrayList<String>() {{
-            add(key);
-        }});
+        Map<String, List<WindowBaseValue>> resultMap = storage.multiGetList(WindowBaseValue.class,
+            new ArrayList<String>() {{
+                add(key);
+            }});
         Assert.assertEquals(1, resultMap.size());
         Assert.assertEquals("2021-09-11 11:00:00", resultMap.get(key).get(0).getStartTime());
         //
@@ -143,15 +162,19 @@ public class RocksdbTest {
         String queueId = "001";
         String groupByValue = "default";
         String localPrefix = prefix + queueId;
-        String sortKey1 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(), value1.getFireTime(), String.valueOf(value1.getPartitionNum()), groupByValue);
-        String sortKey2 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(), value2.getFireTime(), String.valueOf(value2.getPartitionNum()), groupByValue);
-        String sortKey3 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(), value3.getFireTime(), String.valueOf(value3.getPartitionNum()), groupByValue);
+        String sortKey1 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(),
+            value1.getFireTime(), String.valueOf(value1.getPartitionNum()), groupByValue);
+        String sortKey2 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(),
+            value2.getFireTime(), String.valueOf(value2.getPartitionNum()), groupByValue);
+        String sortKey3 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(),
+            value3.getFireTime(), String.valueOf(value3.getPartitionNum()), groupByValue);
         valueMap.put(sortKey1, value1);
         valueMap.put(sortKey2, value2);
         valueMap.put(sortKey3, value3);
         storage.multiPut(valueMap);
         //
-        WindowStorage.WindowBaseValueIterator<WindowValue> iterator = storage.loadWindowInstanceSplitData(prefix, queueId, windowInstance.createWindowInstanceId(), null, WindowValue.class);
+        WindowStorage.WindowBaseValueIterator<WindowValue> iterator = storage.loadWindowInstanceSplitData(prefix,
+            queueId, windowInstance.createWindowInstanceId(), null, WindowValue.class);
         List<WindowValue> valueList = new ArrayList<>();
         while (iterator.hasNext()) {
             WindowValue value = iterator.next();
@@ -171,17 +194,20 @@ public class RocksdbTest {
         value4.setEndTime("2021-09-07 11:21:00");
         value4.setFireTime("2021-09-07 11:25:00");
         value4.setPartitionNum(100003);
-        String sortKey4 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(), value4.getFireTime(), String.valueOf(value4.getPartitionNum()), groupByValue);
+        String sortKey4 = MapKeyUtil.createKey(localPrefix, windowInstance.createWindowInstanceId(),
+            value4.getFireTime(), String.valueOf(value4.getPartitionNum()), groupByValue);
         valueMap.put(sortKey4, value4);
         storage.multiPut(valueMap);
-        iterator = storage.loadWindowInstanceSplitData(prefix, queueId, windowInstance.createWindowInstanceId(), null, WindowValue.class);
+        iterator = storage.loadWindowInstanceSplitData(prefix, queueId, windowInstance.createWindowInstanceId(), null,
+            WindowValue.class);
         valueList = new ArrayList<>();
         while (iterator.hasNext()) {
             WindowValue value = iterator.next();
             valueList.add(value);
         }
         for (WindowValue value : valueList) {
-            System.out.println(value.getStartTime() + " " + value.getEndTime() + " " + value.getFireTime() + " " + value.getPartitionNum());
+            System.out.println(value.getStartTime() + " " + value.getEndTime() + " " + value.getFireTime() + " "
+                + value.getPartitionNum());
         }
         //
         storage.removeKeys(valueMap.keySet());
