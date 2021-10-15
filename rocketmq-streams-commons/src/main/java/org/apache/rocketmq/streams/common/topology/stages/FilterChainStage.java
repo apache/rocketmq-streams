@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.avalon.framework.component.Component;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.IComponent;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
@@ -35,7 +32,6 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IFilterService;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
-import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;

@@ -34,18 +34,15 @@ import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.LogFingerprintFilter;
 import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintMetric;
-import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.topology.model.PipelineSourceJoiner;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class
@@ -68,17 +65,10 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
     private transient AtomicLong FIRE_RULE_COUNT = new AtomicLong(0);//触发规则的个数
     protected transient Long firstReceiveTime = null;//最早的处理时间
 
-    /**
-     * 过滤器会通过反射创建，需要无参，创建后对象是AbstractMessageRepeateFileter
-     */
-    protected String filterClassName;
-    //protected volatile transient LogFingerprintFilter messageRepeateFileter = null;//对pipline做去重
     @ENVDependence
     protected String filterMsgFieldNames;//需要去重的字段列表，用逗号分割
     @ENVDependence
     protected String filterMsgSwitch;//开启过滤的开关
-    protected transient List<String> filterMsgFieldNameList;
-
 
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
@@ -396,11 +386,4 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
         this.filterMsgSwitch = filterMsgSwitch;
     }
 
-    public String getFilterClassName() {
-        return filterClassName;
-    }
-
-    public void setFilterClassName(String filterClassName) {
-        this.filterClassName = filterClassName;
-    }
 }

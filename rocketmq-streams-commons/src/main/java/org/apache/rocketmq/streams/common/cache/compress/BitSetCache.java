@@ -41,8 +41,13 @@ public class BitSetCache {
             this.byteSetSize=bytes.length;
             this.bitSetSize=this.byteSetSize*8;
         }
-
         public void set(int index) {
+            set(index,true);
+        }
+        public void setFalse(int index) {
+            set(index,false);
+        }
+        protected void set(int index,boolean isTrueValue) {
             if (index > bitSetSize) {
                 throw new RuntimeException("the index exceed max index, max index is " + byteSetSize + ", real is " + index);
             }
@@ -62,6 +67,9 @@ public class BitSetCache {
             }
 
         }
+
+
+
 
         public boolean get(int index) {
             if (index > bitSetSize) {

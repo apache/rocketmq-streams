@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.common.optimization.fingerprint;
 
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * filter message by log fingerprint
@@ -87,9 +85,7 @@ public class PreFingerprint {
     }
 
 
-    protected SQLLogFingerprintFilter createLogFingerprintFilter() {
-        return SQLLogFingerprintFilter.getInstance();
-    }
+
 
     public String getSourceStageLable() {
         return sourceStageLable;

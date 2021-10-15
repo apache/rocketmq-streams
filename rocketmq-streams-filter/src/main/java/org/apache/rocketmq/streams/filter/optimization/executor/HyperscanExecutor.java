@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
 import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
@@ -44,7 +45,7 @@ public class HyperscanExecutor extends AbstractExecutor {
 
     //every script can not put same key, so need add namespace and name on key profix
     //every var can put different size value, but same key must keep same value size
-    protected static BitSetCache cache ;//all script share the cache to can limit cache
+    //all script share the cache to can limit cache
 
     protected HyperscanRegex hyperscanRegex=new HyperscanRegex();
     protected Map<String, ScriptOptimization.IExpressionExecutor> allExpressions=new HashMap<>();//all expression contains like ,regex ,regex
@@ -59,14 +60,6 @@ public class HyperscanExecutor extends AbstractExecutor {
     }
 
     public void compile(){
-        if(cache==null){
-            synchronized (HyperscanExecutor.class){
-                if(cache==null){
-                    cache=new BitSetCache(1000000);
-                }
-            }
-        }
-
         hyperscanRegex.compile();
     }
 
@@ -112,7 +105,7 @@ public class HyperscanExecutor extends AbstractExecutor {
             return null;
         }
         String varValue = context.getMessage().getMessageBody().getString(varName);
-        BitSetCache.BitSet value = cache.get(MapKeyUtil.createKey(namespace,name,varValue));
+        BitSetCache.BitSet value = FingerprintCache.getInstance().getLogFingerprint(MapKeyUtil.createKey(namespace,name),varValue);
         if (value == null) {
             value=new BitSetCache.BitSet(indexCreator.get()+1);
             Set<Integer> matchIndexs=this.hyperscanRegex.matchExpression(varValue);
@@ -121,7 +114,7 @@ public class HyperscanExecutor extends AbstractExecutor {
                     value.set(index);
                 }
             }
-            cache.put(MapKeyUtil.createKey(namespace,name,varValue),value);
+            FingerprintCache.getInstance().addLogFingerprint(MapKeyUtil.createKey(namespace,name),varValue,value);
         }
         return new FilterResultCache(value,expressionIndex){
 

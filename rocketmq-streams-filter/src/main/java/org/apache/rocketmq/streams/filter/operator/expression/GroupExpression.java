@@ -26,9 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
@@ -42,7 +44,7 @@ import org.apache.rocketmq.streams.filter.operator.Rule;
 public class GroupExpression extends Expression<List<Expression>> {
     protected Rule rule;
     protected String varName;
-    protected static IntValueKV cache = new IntValueKV(3000000);
+    protected FingerprintCache fingerprintCache;
     protected boolean isOrRelation = true;//是否是or关系
     protected Map<String, Boolean> expressionName2Result = new HashMap<>();//正则类表达式的名字和结果的映射
     protected Set<String> regexExpressionNameSet = new HashSet<>();//正则类表达式的名字
@@ -56,6 +58,7 @@ public class GroupExpression extends Expression<List<Expression>> {
         this.setConfigureName(NameCreator.createNewName("expression.group"));
         value = new ArrayList<>();
         this.setNameSpace(rule.getNameSpace());
+        fingerprintCache=FingerprintCache.getInstance();
     }
 
     public void compile(){
@@ -77,19 +80,19 @@ public class GroupExpression extends Expression<List<Expression>> {
     @Override
     public Boolean doAction(RuleContext context, Rule rule) {
         String varValue = context.getMessage().getMessageBody().getString(varName);
-        String key = MapKeyUtil.createKey(getNameSpace(), rule.getConfigureName(), getConfigureName(), varValue);
-        Integer value = cache.get(key);
-        if (value == null) {
+        BitSetCache.BitSet bitset = fingerprintCache.getLogFingerprint(getFingerprintNamespace(), varValue);
+        if (bitset == null) {
+            bitset=new BitSetCache.BitSet(1);
             Boolean isMatch = executeMatch(context, rule);
             if (isMatch) {
-                value = 1;
-            } else {
-                value = 0;
+                bitset.set(0);
             }
-            cache.put(key, value);
+            fingerprintCache.addLogFingerprint(getFingerprintNamespace(),varValue, bitset);
         }
-        return value > 0;
+        return bitset.get(0);
     }
+
+
 
     @Override
     public String toString() {
@@ -102,6 +105,13 @@ public class GroupExpression extends Expression<List<Expression>> {
         set.add(varName);
 
         return set;
+    }
+    protected transient String fingerpringtNamespace;
+    protected String getFingerprintNamespace(){
+        if(fingerpringtNamespace==null){
+            return MapKeyUtil.createKey(getNameSpace(),rule.getConfigureName(),getConfigureName());
+        }
+        return fingerpringtNamespace;
     }
 
     private Boolean executeMatch(RuleContext context, Rule rule) {
@@ -173,8 +183,13 @@ public class GroupExpression extends Expression<List<Expression>> {
     }
 
     public static void main(String[] args) {
-        String content = "abdfdfd";
-        String regex = "ab.*fd";
-        System.out.println(StringUtil.matchRegex(content, regex));
+//        String content = "abdfdfd";
+//        String regex = "ab.*fd";
+//        System.out.println(StringUtil.matchRegex(content, regex));
+
+
+        BitSetCache.BitSet bitset=new BitSetCache.BitSet(1);
+//        bitset.set(0);
+        System.out.println(bitset.getBytes().length);
     }
 }

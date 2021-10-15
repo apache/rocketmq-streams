@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.optimization.fingerprint;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 
 public class FingerprintMetric {
     protected String namespace;
@@ -76,5 +78,20 @@ public class FingerprintMetric {
         visitCount.set(0);
         hitCacheCount.set(0);
         cacheSize.set(0);
+    }
+
+    public void print() {
+        JSONObject msg=new JSONObject();
+        msg.put("visitCount",visitCount.get());
+        msg.put("hitCacheCount",hitCacheCount.get());
+        msg.put("cacheSize",cacheSize.get());
+        msg.put("hitCacheRate",getHitCacheRate());
+        msg.put("namespace",namespace);
+        msg.put("isClosed",isCloseFingerprint);
+        System.out.println(JsonableUtil.formatJson(msg));
+    }
+
+    public String getNamespace() {
+        return namespace;
     }
 }

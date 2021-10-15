@@ -84,7 +84,7 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                         throw new RuntimeException("can not create shuffle channel, not find channel builder " + piplineSource.toJson());
                     }
                     if (!(builder instanceof IShuffleChannelBuilder)) {
-                        throw new RuntimeException("can not create shuffle channel, builder not imp IShuffleChannelBuilder " + piplineSource.toJson());
+                        throw new RuntimeException("can not create shuffle channel, builder not impl IShuffleChannelBuilder " + piplineSource.toJson());
                     }
                     IShuffleChannelBuilder shuffleChannelBuilder = (IShuffleChannelBuilder)builder;
                     ISink sink = shuffleChannelBuilder.createBySource(piplineSource);

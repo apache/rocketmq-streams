@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
@@ -34,7 +35,6 @@ import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 public abstract class AbstractWhenExpression implements IScriptExpression {
-    protected static BitSetCache cache=new BitSetCache(1000000);
     protected String namespace;
     protected String name;
     //group by varname, if has mutil varname, join by ;
@@ -143,13 +143,13 @@ public abstract class AbstractWhenExpression implements IScriptExpression {
     protected List<CaseWhenElement> executeGroupByVarCaseWhen(String key,GroupByVarCaseWhen groupByVarCaseWhen, IMessage message, FunctionContext context) {
         List<String> varList=varNames.get(key);
         String varValue=createVarValue(varList,message);
-        String cacheKey=MapKeyUtil.createKey(namespace,name,groupByVarCaseWhen.index+"",varValue);
-        BitSetCache.BitSet bitSet = cache.get(key);
+        String cacheKey=MapKeyUtil.createKey(namespace,name,groupByVarCaseWhen.index+"");
+        BitSetCache.BitSet bitSet = FingerprintCache.getInstance().getLogFingerprint(cacheKey,varValue);
         List<CaseWhenElement> matchCaseWhenElements=new ArrayList<>();
         if(bitSet==null){
             List<Integer> matchIndexs=groupByVarCaseWhen.executeCase(message,context,executeThenDirectly(),matchCaseWhenElements);
             bitSet=new BitSetCache.BitSet(createBytes(matchIndexs));
-            cache.put(cacheKey,bitSet);
+            FingerprintCache.getInstance().addLogFingerprint(cacheKey,varValue,bitSet);
             return matchCaseWhenElements;
         }else {
             byte[] bytes=bitSet.getBytes();
