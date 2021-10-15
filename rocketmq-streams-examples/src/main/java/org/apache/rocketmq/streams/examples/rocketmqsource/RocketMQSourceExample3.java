@@ -32,7 +32,7 @@ import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_T
 
 public class RocketMQSourceExample3 {
     /**
-     * 1、before run this case, make sure some data has already been rocketmq.
+     * 1、make sure your rocketmq server has been started.
      */
     public static void main(String[] args) {
         ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
@@ -56,7 +56,7 @@ public class RocketMQSourceExample3 {
                 .map(message -> message)
                 .filter((value) -> {
                     String messageValue = (String) value;
-                    return !messageValue.contains("InFlow");
+                    return messageValue.contains("InFlow");
                 })
                 .flatMap((message) -> {
                     JSONObject jsonObject = JSONObject.parseObject((String) message);
