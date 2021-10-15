@@ -36,6 +36,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IFilterService;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.optimization.SQLLogFingerprintFilter;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
@@ -56,6 +57,8 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
     public static transient Class componentClass = ReflectUtil.forClass("org.apache.rocketmq.streams.filter.FilterComponent");
     protected boolean openHyperscan=false;
     protected static transient IComponent<IFilterService> component;
+
+    protected transient PreFingerprint preFingerprint=null;
     public FilterChainStage() {
         setEntityName("filter");
     }
@@ -81,7 +84,9 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
             //not match rules
             if (fireRules == null || fireRules.size() == 0) {
                 context.breakExecute();
-                addLogFingerprintToSource(message);
+                if(preFingerprint!=null){
+                    preFingerprint.addLogFingerprintToSource(message);
+                }
                 if(isTrace){
                     traceFailExpression(message);
                 }
@@ -280,7 +285,7 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
             }
         }
 
-        loadLogFinger();
+        this.preFingerprint=loadLogFinger();
 
     }
 

@@ -39,6 +39,7 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.group.MonitorCommander;
 import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.utils.DipperThreadLocalUtil;
@@ -185,7 +186,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             return super.doMessageInner(t, context, replaceStage);
         }
         context.setMessage(t);
-        doNextStages(context, getMsgSourceName(), this.channelNextStageLabel, null, replaceStage);
+        doNextStages(context, getMsgSourceName(),channelName, this.channelNextStageLabel,null);
         return t;
     }
 
@@ -200,8 +201,8 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         return isTopology(this.channelNextStageLabel);
     }
 
-    public void doNextStages(AbstractContext context, String msgPrewSourceName, List<String> nextStageLabel,
-        String prewSQLNodeName, AbstractStage... replaceStage) {
+    public void doNextStages(AbstractContext context, String msgPrewSourceName,String currentLable, List<String> nextStageLabel,
+        String prewSQLNodeName) {
 
         if (!isTopology(nextStageLabel)) {
             return;
@@ -232,7 +233,17 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                     continue;
                 }
             }
-            AbstractStage stage = chooseReplaceStage(oriStage, replaceStage);
+            AbstractStage stage = oriStage;
+            PreFingerprint preFingerprint=getPreFingerprint(currentLable,stage.getLabel());
+            if(preFingerprint!=null){
+                boolean isFilter=preFingerprint.filterByLogFingerprint(msg);
+                if(isFilter){
+                    copyContext.breakExecute();
+                    continue;
+                }
+            }
+
+
             //boolean needFlush = needFlush(msg);
             if (StringUtil.isNotEmpty(oriMsgPrewSourceName)) {
                 msg.getHeader().setMsgRouteFromLable(oriMsgPrewSourceName);
@@ -275,7 +286,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                     }
                     continue;
                 }
-                doNextStages(copyContext, msgPrewSourceName, labels, stage.getOwnerSqlNodeTableName(), replaceStage);
+                doNextStages(copyContext, msgPrewSourceName,stage.getLabel(), labels, stage.getOwnerSqlNodeTableName());
             }
         }
     }

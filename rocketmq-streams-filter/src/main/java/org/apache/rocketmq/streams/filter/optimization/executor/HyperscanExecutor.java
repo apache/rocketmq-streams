@@ -24,7 +24,7 @@ import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
-import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
+import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
@@ -107,7 +107,7 @@ public class HyperscanExecutor extends AbstractExecutor {
         }
     }
 
-    @Override public QuickFilterResult execute(IMessage message, AbstractContext context) {
+    @Override public FilterResultCache execute(IMessage message, AbstractContext context) {
         if(indexCreator.get()==0){
             return null;
         }
@@ -123,7 +123,7 @@ public class HyperscanExecutor extends AbstractExecutor {
             }
             cache.put(MapKeyUtil.createKey(namespace,name,varValue),value);
         }
-        return new QuickFilterResult(value,expressionIndex){
+        return new FilterResultCache(value,expressionIndex){
 
             @Override public Boolean isMatch(IMessage msg, Object expression) {
                 if(expression instanceof IScriptExpression){

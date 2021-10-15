@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.common.optimization.quicker;
+package org.apache.rocketmq.streams.common.optimization;
 
 import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
@@ -23,11 +23,11 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 /**
  * cache the expressions' result
  */
-public abstract class QuickFilterResult {
+public abstract class FilterResultCache {
     protected BitSetCache.BitSet bitSet;
     protected Map<String,Integer> expression2IndexMap;
 
-    public QuickFilterResult(BitSetCache.BitSet bitSet, Map<String,Integer> expression2IndexMap){
+    public FilterResultCache(BitSetCache.BitSet bitSet, Map<String,Integer> expression2IndexMap){
         this.bitSet=bitSet;
         this.expression2IndexMap=expression2IndexMap;
     }

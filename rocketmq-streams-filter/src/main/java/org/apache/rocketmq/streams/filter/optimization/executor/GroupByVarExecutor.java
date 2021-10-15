@@ -22,10 +22,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.quicker.QuickFilterResult;
+import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.script.CaseFunction;
@@ -35,7 +34,6 @@ import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.impl.string.RegexFunction;
 import org.apache.rocketmq.streams.script.function.impl.string.ToLowerFunction;
 import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
-import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
@@ -56,17 +54,17 @@ public class GroupByVarExecutor extends AbstractExecutor implements IScriptOptim
         this.scriptExpressions=expressions;
     }
     protected Map<String,HyperscanExecutor> varName2HyperscanExecutors=new HashMap<>();
-    @Override public QuickFilterResult execute(IMessage message, AbstractContext context) {
+    @Override public FilterResultCache execute(IMessage message, AbstractContext context) {
         if(CollectionUtil.isNotEmpty(beforeScriptExpressions)){
             for(IScriptExpression scriptExpression:this.beforeScriptExpressions){
                 scriptExpression.executeExpression(message,(FunctionContext) context);
             }
         }
         Map<String,Integer> expression2QuickFilterResultIndexMap=new HashMap<>();
-        List<QuickFilterResult> results=new ArrayList<>();
+        List<FilterResultCache> results=new ArrayList<>();
         int index=0;
         for(HyperscanExecutor executor:varName2HyperscanExecutors.values()){
-            QuickFilterResult result=  executor.execute(message,context);
+            FilterResultCache result=  executor.execute(message,context);
             if(result==null){
                 continue;
             }
