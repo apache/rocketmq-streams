@@ -73,27 +73,27 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
         loadLogFinger();
     }
 
-    @Override public IMessage doMessage(IMessage t, AbstractContext context) {
-        if (filterByLogFingerprint(t)) {
-            context.breakExecute();
-            return null;
-        }
-        IStageHandle handle = selectHandle(t, context);
-        if (handle == null) {
-            return t;
-        }
-        IMessage result = handle.doMessage(t, context);
-        if (!context.isContinue() || result == null) {
-            if (context.get("NEED_USE_FINGER_PRINT") != null && Boolean.parseBoolean(context.get("NEED_USE_FINGER_PRINT").toString())) {
-                sourceStage.addLogFingerprint(t);
-                context.remove("NEED_USE_FINGER_PRINT");
-            }
-            return context.breakExecute();
-        }
-        if (context.get("NEED_USE_FINGER_PRINT") != null) {
-            context.remove("NEED_USE_FINGER_PRINT");
-        }
-        return result;
-    }
+//    @Override public IMessage doMessage(IMessage t, AbstractContext context) {
+//        if (filterByLogFingerprint(t)) {
+//            context.breakExecute();
+//            return null;
+//        }
+//        IStageHandle handle = selectHandle(t, context);
+//        if (handle == null) {
+//            return t;
+//        }
+//        IMessage result = handle.doMessage(t, context);
+//        if (!context.isContinue() || result == null) {
+//            if (context.get("NEED_USE_FINGER_PRINT") != null && Boolean.parseBoolean(context.get("NEED_USE_FINGER_PRINT").toString())) {
+//                sourceStage.addLogFingerprint(t);
+//                context.remove("NEED_USE_FINGER_PRINT");
+//            }
+//            return context.breakExecute();
+//        }
+//        if (context.get("NEED_USE_FINGER_PRINT") != null) {
+//            context.remove("NEED_USE_FINGER_PRINT");
+//        }
+//        return result;
+//    }
 
 }

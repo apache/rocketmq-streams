@@ -32,6 +32,7 @@ import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
@@ -398,7 +399,11 @@ public class ShuffleChannel extends AbstractSystemChannel {
             for (int i = 0; i < messages.size(); i++) {
                 JSONObject object = messages.getJSONObject(i);
                 groupByList.add(object.getString("SHUFFLE_KEY"));
-                traceList.add(object.getJSONObject("MessageHeader").getString("traceId"));
+
+                MessageHeader messageHeader = object.getObject("MessageHeader", MessageHeader.class);
+                if (messageHeader != null) {
+                    traceList.add(messageHeader.getTraceId());
+                }
             }
             String traceInfo = StringUtils.join(traceList);
             String groupInfo = StringUtils.join(groupByList);
