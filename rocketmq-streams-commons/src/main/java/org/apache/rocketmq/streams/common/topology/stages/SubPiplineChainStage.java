@@ -136,7 +136,7 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
                         needPrint = false;
                         System.out.println(
                             "qps is " + qps + ",the count is " + COUNT.get() + " the cache hit  rate " + rate
-                                + " the filter store is " + fingerprintMetric.getCacheSize() + "，"
+                                + " the cache size is " + fingerprintMetric.getCacheSize() + "，"
                                 + "the fire rule rate is " + fireRate);
                     }
                     continue;
@@ -207,21 +207,8 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
         if(this.filterMsgFieldNames==null){
             return null;
         }
-        if(filterMsgFieldNameList==null){
-            synchronized (this){
-                if(filterMsgFieldNameList==null){
 
-                    if(this.filterMsgFieldNames!=null){
-                        List<String> list=new ArrayList<>();
-                        for(String name:filterMsgFieldNames.split(",")){
-                            list.add(name);
-                        }
-                        this.filterMsgFieldNameList=list;
-                    }
-                }
-            }
-        }
-        return FingerprintCache.creatFingerpringKey(message, filterMsgFieldNameList);
+        return FingerprintCache.creatFingerpringKey(message,getOrCreateFingerNameSpace(), filterMsgFieldNames);
     }
 
     /**
