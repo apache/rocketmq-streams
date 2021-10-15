@@ -56,7 +56,7 @@ public class RocketMQSourceExample3 {
                 .map(message -> message)
                 .filter((value) -> {
                     String messageValue = (String) value;
-                    return !messageValue.contains("InFlow");
+                    return messageValue.contains("InFlow");
                 })
                 .flatMap((message) -> {
                     JSONObject jsonObject = JSONObject.parseObject((String) message);

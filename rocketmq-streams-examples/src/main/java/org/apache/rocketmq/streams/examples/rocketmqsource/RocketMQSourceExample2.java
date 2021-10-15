@@ -54,7 +54,7 @@ public class RocketMQSourceExample2 {
                 .filter((value) -> {
                     System.out.println("filter: ===========");
                     String messageValue = (String)value;
-                    return !messageValue.contains("InFlow");
+                    return messageValue.contains("InFlow");
                 })
                 .flatMap((message)->{
                     String value = (String) message;

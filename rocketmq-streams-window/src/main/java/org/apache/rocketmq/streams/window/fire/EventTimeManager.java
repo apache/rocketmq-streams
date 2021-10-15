@@ -16,15 +16,15 @@
  */
 package org.apache.rocketmq.streams.window.fire;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class EventTimeManager {
     private Map<String,SplitEventTimeManager> eventTimeManagerMap=new HashMap<>();
@@ -52,6 +52,10 @@ public class EventTimeManager {
         SplitEventTimeManager splitEventTimeManager = eventTimeManagerMap.get(queueId);
         if (splitEventTimeManager != null) {
             Long currentMaxEventTime = splitEventTimeManager.getMaxEventTime();
+            if (currentMaxEventTime == null) {
+                return null;
+            }
+
             if (eventTimeIncreasementMap.containsKey(queueId)) {
                 Long lastMaxEventTime = eventTimeIncreasementMap.get(queueId).getKey();
                 if (lastMaxEventTime.equals(currentMaxEventTime)) {
