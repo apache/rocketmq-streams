@@ -31,7 +31,7 @@ import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_T
 public class RocketmqWindowTest {
 
     /**
-     * 1、before run this case, make sure some data has already been rocketmq.
+     * 1、make sure your rocketmq server has been started.
      * 2、rocketmq allow create topic automatically.
      */
     public static void main(String[] args) {

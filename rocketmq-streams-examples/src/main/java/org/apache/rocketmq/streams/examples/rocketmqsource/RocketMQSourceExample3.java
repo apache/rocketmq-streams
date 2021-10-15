@@ -32,7 +32,7 @@ import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_T
 
 public class RocketMQSourceExample3 {
     /**
-     * 1、before run this case, make sure some data has already been rocketmq.
+     * 1、make sure your rocketmq server has been started.
      */
     public static void main(String[] args) {
         ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
