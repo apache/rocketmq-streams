@@ -152,9 +152,6 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         return MapKeyUtil.createKeyBySign(".", getType(), getNameSpace(), getConfigureName());
     }
 
-    private static AtomicInteger total = new AtomicInteger(0);
-    private static AtomicInteger hitCache = new AtomicInteger(0);
-
     /**
      * 可以替换某个阶段的阶段，而不用配置的阶段
      *
@@ -166,12 +163,10 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     @Override
     protected T doMessageInner(T t, AbstractContext context, AbstractStage... replaceStage) {
         if (this.duplicateCache != null && this.duplicateFields != null && !this.duplicateFields.isEmpty() && !t.getHeader().isSystemMessage()) {
-            total.incrementAndGet();
             String duplicateKey = createDuplicateKey(t);
             Long cacheTime = this.duplicateCache.get(duplicateKey);
             Long currentTime = System.currentTimeMillis();
             if (cacheTime != null && currentTime - cacheTime < this.duplicateCacheExpirationTime) {
-                hitCache.incrementAndGet();
                 context.breakExecute();
                 return t;
             } else {
@@ -179,9 +174,6 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 if (this.duplicateCache.getSize() > duplicateCacheSize) {
                     this.duplicateCache = new LongValueKV(this.duplicateCacheSize);
                 }
-            }
-            if (total.get() % 5000 == 0) {
-                System.out.printf("total: %s, hit: %s%n", total.get(), hitCache.get());
             }
         }
 
@@ -450,9 +442,9 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     public String toString() {
         String LINE = PrintUtil.LINE;
         StringBuilder sb = new StringBuilder();
-        sb.append("###namespace=" + getNameSpace() + "###" + LINE);
+        sb.append("###namespace=").append(getNameSpace()).append("###").append(LINE);
         if (source != null) {
-            sb.append(source.toString() + LINE);
+            sb.append(source.toString()).append(LINE);
         }
         if (stages != null) {
             for (AbstractStage stage : stages) {

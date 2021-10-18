@@ -30,10 +30,12 @@ import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
  * 所有给用户自定义代码的通用类，会转化成这个stage
  */
 public class UDFChainStage extends AbstractStatelessChainStage implements IAfterConfigurableRefreshListener {
+
     protected String udfOperatorClassSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient StageBuilder selfChainStage;
 
-    public UDFChainStage() {}
+    public UDFChainStage() {
+    }
 
     public UDFChainStage(StageBuilder selfOperator) {
         this.selfChainStage = selfOperator;
@@ -68,6 +70,30 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         byte[] bytes = Base64Utils.decode(udfOperatorClassSerializeValue);
         selfChainStage = InstantiationUtil.deserializeObject(bytes);
+        loadLogFinger();
     }
+
+//    @Override public IMessage doMessage(IMessage t, AbstractContext context) {
+//        if (filterByLogFingerprint(t)) {
+//            context.breakExecute();
+//            return null;
+//        }
+//        IStageHandle handle = selectHandle(t, context);
+//        if (handle == null) {
+//            return t;
+//        }
+//        IMessage result = handle.doMessage(t, context);
+//        if (!context.isContinue() || result == null) {
+//            if (context.get("NEED_USE_FINGER_PRINT") != null && Boolean.parseBoolean(context.get("NEED_USE_FINGER_PRINT").toString())) {
+//                sourceStage.addLogFingerprint(t);
+//                context.remove("NEED_USE_FINGER_PRINT");
+//            }
+//            return context.breakExecute();
+//        }
+//        if (context.get("NEED_USE_FINGER_PRINT") != null) {
+//            context.remove("NEED_USE_FINGER_PRINT");
+//        }
+//        return result;
+//    }
 
 }

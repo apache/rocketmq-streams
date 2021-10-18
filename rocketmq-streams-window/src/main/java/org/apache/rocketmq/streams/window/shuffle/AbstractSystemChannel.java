@@ -319,8 +319,4 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         producer.flush();
     }
 
-    //public void flush() {
-    //    producer.flush();
-    //}
-
 }
