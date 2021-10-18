@@ -43,6 +43,7 @@ import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+
 import org.apache.rocketmq.streams.connectors.source.CycleDynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.DynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
