@@ -118,6 +118,9 @@ public class CheckPointManager extends BasedConfigurable{
         if(StringUtil.isNotEmpty(pipelineName)){
             return MapKeyUtil.createKey(source.createCheckPointName(), pipelineName);
         }
+        if(source==null){
+            return null;
+        }
         return source.createCheckPointName();
     }
 

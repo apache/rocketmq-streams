@@ -57,9 +57,6 @@ public class LikeFunction extends AbstractExpressionFunction {
     @FunctionMethod("like")
     @FunctionMethodAilas("包含")
     public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
-        if (!expression.volidate()) {
-            return false;
-        }
         Var var = context.getVar(rule.getConfigureName(), expression.getVarName());
         if (var == null) {
             return false;
@@ -81,11 +78,6 @@ public class LikeFunction extends AbstractExpressionFunction {
             return false;
         }
         valueString = FunctionUtils.getConstant(valueString);
-
-        Boolean cacheResult=context.getFilterCache(valueString,varString);
-        if(cacheResult!=null){
-            return cacheResult;
-        }
 
         LikeRegex likeRegex = likeCache.get(valueString);
         if (likeRegex == null) {

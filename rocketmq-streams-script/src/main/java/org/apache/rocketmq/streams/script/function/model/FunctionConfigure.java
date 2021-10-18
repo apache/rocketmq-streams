@@ -198,6 +198,7 @@ public class FunctionConfigure {
             if (!needDirectReflect) {
                 parameters = getRealParameters(jsonConfigure, dataParameters);
             }
+            method.setAccessible(true);
             Object result = method.invoke(bean, parameters);
             return result;
         } catch (Exception e) {

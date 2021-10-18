@@ -27,6 +27,16 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class ToLowerFunction {
 
+    public static boolean isLowFunction(String functionName){
+        if(functionName==null){
+            return false;
+        }
+        if("tolower".equals(functionName.toLowerCase())||"lower".equals(functionName.toLowerCase())){
+            return true;
+        }
+        return false;
+    }
+
     /**
      * 转化为小写
      *

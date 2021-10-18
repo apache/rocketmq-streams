@@ -19,9 +19,11 @@ package org.apache.rocketmq.streams.client.transform;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
-
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.client.DataStreamAction;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
@@ -34,29 +36,32 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
-import org.apache.rocketmq.streams.common.functions.*;
+import org.apache.rocketmq.streams.common.functions.FilterFunction;
+import org.apache.rocketmq.streams.common.functions.FlatMapFunction;
+import org.apache.rocketmq.streams.common.functions.ForEachFunction;
+import org.apache.rocketmq.streams.common.functions.ForEachMessageFunction;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
+import org.apache.rocketmq.streams.common.functions.SplitFunction;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.Union;
+import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.StageBuilder;
+import org.apache.rocketmq.streams.common.topology.stages.udf.UDFChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.UDFUnionChainStage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.db.sink.DBSink;
-import org.apache.rocketmq.streams.db.sink.DynamicMultipleDBSink;
-import org.apache.rocketmq.streams.db.sink.EnhanceDBSink;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.apache.rocketmq.streams.filter.operator.FilterOperator;
+import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.script.operator.impl.ScriptOperator;
 import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.window.builder.WindowBuilder;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
-
-import java.io.Serializable;
-import java.util.Set;
 
 public class DataStream implements Serializable {
 
@@ -87,9 +92,16 @@ public class DataStream implements Serializable {
 
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
-
-    public DataStream filter(String expressions) {
-        ChainStage<?> stage = this.mainPipelineBuilder.createStage(new FilterOperator(expressions));
+    public DataStream filterByExpression(String expression,  String... logFingerFieldNames){
+        return filterByExpression(expression,false,logFingerFieldNames);
+    }
+    public DataStream filterByExpression(String expression,boolean openHyperscan, String... logFingerFieldNames) {
+        Rule rule=new FilterOperator(expression);
+        FilterChainStage stage = (FilterChainStage)this.mainPipelineBuilder.createStage(rule);
+        if(logFingerFieldNames!=null&&logFingerFieldNames.length>0){
+            stage.setFilterFieldNames(MapKeyUtil.createKeyBySign(",",logFingerFieldNames));
+        }
+        stage.setOpenHyperscan(openHyperscan);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
@@ -141,7 +153,6 @@ public class DataStream implements Serializable {
                         splitMessages.add(subMessage);
                     }
                     context.openSplitModel();
-                    ;
                     context.setSplitMessages(splitMessages);
                     return null;
                 } catch (Exception e) {
@@ -154,15 +165,18 @@ public class DataStream implements Serializable {
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
-
     public <O> DataStream filter(final FilterFunction<O> filterFunction) {
+        return filter(filterFunction,null);
+    }
+    public <O> DataStream filter(final FilterFunction<O> filterFunction,  String... logFingerFieldNames) {
         StageBuilder mapUDFOperator = new StageBuilder() {
 
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 try {
-                    boolean isFilter = filterFunction.filter((O) message.getMessageValue());
-                    if (isFilter) {
+                    boolean isMatch = filterFunction.filter((O) message.getMessageValue());
+                    if (!isMatch) {
+                        context.put("NEED_USE_FINGER_PRINT",true);
                         context.breakExecute();
                     }
                 } catch (Exception e) {
@@ -171,7 +185,10 @@ public class DataStream implements Serializable {
                 return null;
             }
         };
-        ChainStage stage = this.mainPipelineBuilder.createStage(mapUDFOperator);
+        UDFChainStage stage =(UDFChainStage) this.mainPipelineBuilder.createStage(mapUDFOperator);
+        if(logFingerFieldNames!=null&&logFingerFieldNames.length>0){
+            stage.setFilterFieldNames(MapKeyUtil.createKeyBySign(",",logFingerFieldNames));
+        }
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
@@ -451,49 +468,42 @@ public class DataStream implements Serializable {
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-    public DataStreamAction toRocketmq(String topic) {
-        return toRocketmq(topic, "*", null, -1, null);
+    public DataStreamAction toRocketmq(String topic, String groupName, String nameServerAddress) {
+        return toRocketmq(topic, "*", groupName, -1, nameServerAddress, null, false);
     }
 
-    public DataStreamAction toRocketmq(String topic, String namesrvAddr) {
-        return toRocketmq(topic, "*", null, -1, namesrvAddr);
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, String nameServerAddress,
+        String clusterName,
+        boolean order) {
+        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, clusterName, order);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags,
-        String namesrvAddr) {
-        return toRocketmq(topic, tags, null, -1, namesrvAddr);
-    }
-
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String namesrvAddr) {
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize,
+        String nameServerAddress,
+        String clusterName, boolean order) {
         RocketMQSink rocketMQSink = new RocketMQSink();
-        rocketMQSink.setTopic(topic);
-        rocketMQSink.setTags(tags);
-        rocketMQSink.setGroupName(groupName);
-        rocketMQSink.setNamesrvAddr(namesrvAddr);
+        if (StringUtils.isNotBlank(topic)) {
+            rocketMQSink.setTopic(topic);
+        }
+        if (StringUtils.isNotBlank(tags)) {
+            rocketMQSink.setTags(tags);
+        }
+        if (StringUtils.isNotBlank(groupName)) {
+            rocketMQSink.setGroupName(groupName);
+        }
+        if (StringUtils.isNotBlank(nameServerAddress)) {
+            rocketMQSink.setNamesrvAddr(nameServerAddress);
+        }
+        if (StringUtils.isNotBlank(clusterName)) {
+            rocketMQSink.setClusterName(clusterName);
+        }
         if (batchSize > 0) {
             rocketMQSink.setBatchSize(batchSize);
         }
+        rocketMQSink.setOrder(order);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(rocketMQSink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
-    }
-
-    public DataStreamAction toEnhanceDBSink(String url, String userName, String password, String tableName){
-
-        EnhanceDBSink sink = new EnhanceDBSink(url, userName, password, tableName);
-        ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
-        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
-        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
-
-    }
-
-    public DataStreamAction toMultiDB(String url, String userName, String password, String logicTableName, String fieldName){
-
-        DynamicMultipleDBSink sink = new DynamicMultipleDBSink(url, userName, password, logicTableName, fieldName);
-        ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
-        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
-        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
-
     }
 
     public DataStreamAction to(ISink<?> sink) {

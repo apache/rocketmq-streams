@@ -25,8 +25,9 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 
 public abstract class AbstractMapState extends AbstractState {
     protected WindowInstance windowInstance;
-    public AbstractMapState(WindowInstance windowInstance){
-        this.windowInstance=windowInstance;
+
+    public AbstractMapState(String namespace, String backendName) {
+        super(namespace, backendName);
     }
 
     public static void main(String[] args) {

@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
@@ -50,8 +51,12 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
             this.shuffleChannel = new ShuffleChannel(this);
             windowCache.setBatchSize(5000);
             windowCache.setShuffleChannel(shuffleChannel);
-            shuffleChannel.startChannel();
         }
+    }
+
+    @Override public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
+        shuffleChannel.startChannel();
+        return super.doMessage(message, context);
     }
 
     @Override

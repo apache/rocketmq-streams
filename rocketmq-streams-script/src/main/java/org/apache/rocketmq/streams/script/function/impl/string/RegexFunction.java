@@ -60,19 +60,14 @@ public class RegexFunction {
     public boolean match(IMessage message, FunctionContext context,
                          @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
                          @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
+        pattern = FunctionUtils.getConstant(pattern);
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
             return false;
         }
-        if (FunctionUtils.isConstant(pattern)) {
-            pattern = FunctionUtils.getConstant(pattern);
-        }
-        Boolean cacheResult=context.getFilterCache(pattern,ori);
-        if(cacheResult!=null){
-            return cacheResult;
-        }
 
-        return StringUtil.matchRegex(ori, pattern);
+        boolean isMatch=StringUtil.matchRegex(ori, pattern);
+        return isMatch;
     }
 
     @FunctionMethod(value = "regex", comment = "通过正则表达式匹配字符串")

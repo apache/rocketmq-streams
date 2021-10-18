@@ -105,4 +105,7 @@ public class FunctionConfigureMap {
         return false;
     }
 
+    public List<FunctionConfigure> getFunctionConfigureList() {
+        return functionConfigureList;
+    }
 }

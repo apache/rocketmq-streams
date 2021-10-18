@@ -34,7 +34,7 @@ public class ListValueKV<T> extends CacheKV<List<T>> {
 
     public ListValueKV(int capacity, Class elementClass) {
         super(0);
-        stringValueKV = new StringValueKV(capacity, false);
+        stringValueKV = new StringValueKV(capacity);
         datatype = DataTypeUtil.getDataTypeFromClass(elementClass);
         listDataType = new ListDataType(datatype);
         this.elementClass = elementClass;
