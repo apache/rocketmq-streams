@@ -201,7 +201,7 @@ public class SessionOperator extends WindowOperator {
      * @return
      */
     private WindowValue queryOrCreateWindowValue(WindowInstance windowInstance, String queueId, String groupByValue,
-                                                 IMessage message, List<WindowValue> valueList, String storeKey) {
+        IMessage message, List<WindowValue> valueList, String storeKey) {
         //
         if (CollectionUtil.isEmpty(valueList)) {
             return createWindowValue(queueId, groupByValue, windowInstance, message, storeKey);
@@ -239,7 +239,7 @@ public class SessionOperator extends WindowOperator {
     }
 
     private List<WindowValue> mergeWindowValue(List<WindowValue> allValueList, WindowInstance windowInstance,
-                                               String queueId) {
+        String queueId) {
         if (allValueList.size() <= 1) {
             return allValueList;
         }
@@ -307,7 +307,7 @@ public class SessionOperator extends WindowOperator {
     }
 
     protected void store(Map<String, List<WindowValue>> key2ValueMap, WindowInstance windowInstance,
-                         String queueId) {
+        String queueId) {
         //
         if (CollectionUtil.isEmpty(key2ValueMap)) {
             return;
@@ -337,7 +337,7 @@ public class SessionOperator extends WindowOperator {
      * @return
      */
     protected WindowValue createWindowValue(String queueId, String groupBy, WindowInstance instance, IMessage message,
-                                            String storeKey) {
+        String storeKey) {
         WindowValue value = new WindowValue();
         value.setNameSpace(getNameSpace());
         value.setConfigureName(getConfigureName());
@@ -425,7 +425,7 @@ public class SessionOperator extends WindowOperator {
     }
 
     private void doFire(String queueId, WindowInstance instance, List<WindowValue> valueList, Long currentFireTime,
-                        Long nextFireTime) {
+        Long nextFireTime) {
         if (CollectionUtil.isEmpty(valueList)) {
             return;
         }

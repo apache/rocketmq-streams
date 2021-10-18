@@ -17,12 +17,18 @@
 package org.apache.rocketmq.streams.script.function.aggregation;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.apache.rocketmq.streams.state.kv.rocksdb.RocksdbState;
 
+/**
+ * @author arthur.liang
+ */
 @Function
 @UDAFFunction("count")
 public class CountAccumulator implements IAccumulator<Integer, CountAccumulator.CountAccum> {
@@ -48,10 +54,22 @@ public class CountAccumulator implements IAccumulator<Integer, CountAccumulator.
         if (CollectionUtil.isEmpty(parameters) || parameters[0] == null) {
             return;
         }
-        if (parameters[0] instanceof Set) {
-            //count(distinct(xx))
-            //FIXME a trick! use CountDistinctAccumulator instead of the following code
-            accumulator.count = ((Set)parameters[0]).size();
+        if (parameters[0] instanceof DistinctAccumulator2.DistinctAccum2) {
+            DistinctAccumulator2.DistinctAccum2 distinctAccum2 = (DistinctAccumulator2.DistinctAccum2) parameters[0];
+            String prefix = MapKeyUtil.createKey(DistinctAccumulator2.DISTINCT_STATE_PREFIX, distinctAccum2.windowInstanceId, distinctAccum2.groupByMd5);
+            RocksdbState state = new RocksdbState();
+            Iterator<Map.Entry<String, String>> iterator = state.entryIterator(prefix);
+            int sum = 0;
+            while (iterator.hasNext()) {
+                Map.Entry<String, String> entry = iterator.next();
+                if (entry == null) {
+                    break;
+                }
+                sum += 1;
+            }
+            accumulator.count = sum;
+        } else if (parameters[0] instanceof Set) {
+            accumulator.count = ((Set) parameters[0]).size();
         } else {
             accumulator.count += 1;
         }

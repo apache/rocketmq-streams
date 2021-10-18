@@ -16,13 +16,16 @@
  */
 package org.apache.rocketmq.streams.state.kv.rocksdb;
 
+import java.io.File;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.rocksdb.*;
-
-import java.io.File;
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.rocksdb.Options;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.TtlDB;
+import org.rocksdb.WriteOptions;
 
 public class RocksDBOperator {
 

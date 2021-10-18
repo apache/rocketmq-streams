@@ -28,7 +28,37 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
+import org.apache.rocketmq.streams.common.datatype.BaseDataType;
+import org.apache.rocketmq.streams.common.datatype.BooleanDataType;
+import org.apache.rocketmq.streams.common.datatype.ByteDataType;
+import org.apache.rocketmq.streams.common.datatype.ConfigurableDataType;
+import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.DateDataType;
+import org.apache.rocketmq.streams.common.datatype.DoubleDataType;
+import org.apache.rocketmq.streams.common.datatype.FloatDataType;
+import org.apache.rocketmq.streams.common.datatype.GenericParameterDataType;
+import org.apache.rocketmq.streams.common.datatype.HllDataType;
+import org.apache.rocketmq.streams.common.datatype.IJsonable;
+import org.apache.rocketmq.streams.common.datatype.IntDataType;
+import org.apache.rocketmq.streams.common.datatype.JavaBeanDataType;
+import org.apache.rocketmq.streams.common.datatype.JsonableDataType;
+import org.apache.rocketmq.streams.common.datatype.ListDataType;
+import org.apache.rocketmq.streams.common.datatype.LongDataType;
+import org.apache.rocketmq.streams.common.datatype.MapDataType;
+import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
+import org.apache.rocketmq.streams.common.datatype.NumberDataType;
+import org.apache.rocketmq.streams.common.datatype.SetDataType;
+import org.apache.rocketmq.streams.common.datatype.ShortDataType;
+import org.apache.rocketmq.streams.common.datatype.StringDataType;
 
 @SuppressWarnings("rawtypes")
 public class DataTypeUtil {
@@ -45,6 +75,7 @@ public class DataTypeUtil {
     private static final Map<Integer, DataType> typeCode2DataType = new HashMap<>();
 
     static {
+        register(new HllDataType());
         register(new NumberDataType());
         register(new StringDataType());
         register(new IntDataType());
