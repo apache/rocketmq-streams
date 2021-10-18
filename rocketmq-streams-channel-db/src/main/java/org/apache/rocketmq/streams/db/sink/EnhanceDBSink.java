@@ -56,7 +56,6 @@ public class EnhanceDBSink extends AbstractSink {
     protected boolean isContainsId = false;
     protected boolean openSqlCache = true;
 
-
     /**
      * for atomic sink. default is null
      */
