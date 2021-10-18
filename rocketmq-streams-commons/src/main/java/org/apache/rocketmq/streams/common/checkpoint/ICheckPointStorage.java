@@ -38,4 +38,6 @@ public interface ICheckPointStorage {
 
     void addCheckPointMessage(CheckPointMessage message);
 
+    void finish();
+
 }

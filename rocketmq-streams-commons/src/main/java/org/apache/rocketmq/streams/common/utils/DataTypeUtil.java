@@ -18,6 +18,11 @@ package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.datatype.*;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -28,9 +33,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
 import org.apache.rocketmq.streams.common.datatype.BaseDataType;
 import org.apache.rocketmq.streams.common.datatype.BooleanDataType;
@@ -71,13 +73,11 @@ public class DataTypeUtil {
 
     static {
         register(new HllDataType());
-
         register(new NumberDataType());
         register(new StringDataType());
         register(new IntDataType());
         register(new LongDataType());
         register(new BooleanDataType());
-
         register(new DateDataType());
         register(new DoubleDataType());
         register(new FloatDataType());
@@ -91,6 +91,7 @@ public class DataTypeUtil {
         register(new JsonableDataType());
         register(new JavaBeanDataType());
         register(new NotSupportDataType());
+        register(new DateTimeDataType());
     }
 
     public static void register(DataType dataType) {
@@ -120,37 +121,51 @@ public class DataTypeUtil {
             case "string": {
                 dbType2DataTypeMap.put("VARCHAR", dataType);
                 typeCode2DataType.put(Types.VARCHAR, dataType);
+                break;
             }
             case "int": {
                 dbType2DataTypeMap.put("INTEGER", dataType);
                 typeCode2DataType.put(Types.INTEGER, dataType);
+                break;
             }
             case "long": {
                 dbType2DataTypeMap.put("BIGINT", dataType);
+                dbType2DataTypeMap.put("BIGINT UNSIGNED", dataType);
                 typeCode2DataType.put(Types.BIGINT, dataType);
+                break;
             }
             case "boolean": {
                 dbType2DataTypeMap.put("BOOLEAN", dataType);
                 typeCode2DataType.put(Types.BOOLEAN, dataType);
+                break;
             }
             case "Date": {
                 dbType2DataTypeMap.put("DATE", dataType);
                 typeCode2DataType.put(Types.DATE, dataType);
+                break;
             }
             case "double": {
                 dbType2DataTypeMap.put("DOUBLE", dataType);
                 typeCode2DataType.put(Types.DOUBLE, dataType);
+                break;
             }
             case "float": {
                 dbType2DataTypeMap.put("FLOAT", dataType);
                 typeCode2DataType.put(Types.FLOAT, dataType);
+                break;
             }
             case "short": {
                 dbType2DataTypeMap.put("SMALLINT", dataType);
                 typeCode2DataType.put(Types.SMALLINT, dataType);
+                break;
             }
             case "array": {
                 dbType2DataTypeMap.put("ARRAY", dataType);
+                break;
+            }
+            case "datetime" : {
+                dbType2DataTypeMap.put("DATETIME", dataType);
+                break;
             }
 
         }

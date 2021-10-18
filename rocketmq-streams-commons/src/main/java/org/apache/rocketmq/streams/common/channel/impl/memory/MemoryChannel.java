@@ -24,6 +24,7 @@ import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 
 /**
  * 消息产生的source数据，就是通过sink写入的消息
@@ -79,4 +80,5 @@ public class MemoryChannel extends AbstractChannel {
     public String createCheckPointName() {
         return "memory-source";
     }
+
 }

@@ -16,16 +16,12 @@
  */
 package org.apache.rocketmq.streams.common.channel.source;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
@@ -40,6 +36,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
+import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -48,7 +45,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 /**
  * channel的抽象，实现了消息的封装，发送等核心逻辑
  */
-public abstract class AbstractSource extends BasedConfigurable implements ISource<AbstractSource> {
+public abstract class AbstractSource extends BasedConfigurable implements ISource<AbstractSource>, ILifeCycle {
 
     public static String CHARSET = "UTF-8";
 
@@ -57,10 +54,8 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     @ENVDependence
     protected String groupName;//group name
     protected int maxThread = Runtime.getRuntime().availableProcessors();
-
     @ENVDependence
     protected String topic = "";
-
     /**
      * 多长时间做一次checkpoint
      */
@@ -73,7 +68,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * 每次拉取的最大条数，多用于消息队列
      */
     protected int maxFetchLogGroupSize = 100;
-
     protected List<String> logFingerprintFields;//log fingerprint to filter msg quickly
 
 
@@ -107,7 +101,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         if (hasStart.compareAndSet(false, true)) {
             isStartSucess = startSource();
         }
-
         return isStartSucess;
     }
 
@@ -310,19 +303,23 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
                         }
                     }
                 } else {
-
                     this.checkPointManager.updateLastUpdate(queueId);
-
                 }
             }
         }
+        if (!supportNewSplitFind()) {
+            addNewSplit(newQueueIds);
+        }
 
-        addNewSplit(newQueueIds);
     }
 
     protected abstract boolean isNotDataSplit(String queueId);
 
-
+    /**
+     * 当分片被移走前需要做的回调
+     *
+     * @param splitIds 要移走的分片
+     */
     public void removeSplit(Set<String> splitIds) {
         if (splitIds == null || splitIds.size() == 0) {
             return;
@@ -348,6 +345,9 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         return null;
     }
 
+    /**
+     * 当新增分片时，需要做的回调
+     */
     public void addNewSplit(Set<String> splitIds) {
         if (splitIds == null || splitIds.size() == 0) {
             return;
@@ -436,7 +436,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     /**
      * 每批次通过加小序号来区分offset的大小
-     *
      * @param offset
      * @param i
      * @return
@@ -574,5 +573,14 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     }
 
+    @Override
+    public boolean isFinished(){
+        return false;
+    }
+
+    @Override
+    public void finish(){
+        checkPointManager.finish();
+    }
 
 }

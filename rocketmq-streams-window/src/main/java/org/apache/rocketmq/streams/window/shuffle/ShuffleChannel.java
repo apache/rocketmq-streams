@@ -337,7 +337,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     @Override
     protected String createShuffleTopic(String topic, ChainPipeline pipeline) {
         return "shuffle_" + topic + "_" + pipeline.getSource().getNameSpace().replaceAll("\\.", "_") + "_" + pipeline
-                .getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
+            .getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
     }
 
     /**

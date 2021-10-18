@@ -17,11 +17,8 @@
 package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSONObject;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 public class MapKeyUtil {
 
@@ -89,8 +86,25 @@ public class MapKeyUtil {
         return sb.toString();
     }
 
-    public static String[] spliteKey(String key) {
+    public static String[] splitKey(String key) {
         return key.split(SIGN);
+    }
+
+    public static String getFirst(String key){
+        String[] keys = splitKey(key);
+        return keys[0];
+    }
+
+    public static String getLast(String key){
+        String[] keys = splitKey(key);
+        assert keys.length >= 1 : "keys length must less than 1";
+        return keys[keys.length - 1];
+    }
+
+    public static String getByIndex(String key, int index){
+        String[] keys = splitKey(key);
+        assert keys.length >= index : "index must less than length";
+        return keys[index];
     }
 
     public static void main(String args[]) {

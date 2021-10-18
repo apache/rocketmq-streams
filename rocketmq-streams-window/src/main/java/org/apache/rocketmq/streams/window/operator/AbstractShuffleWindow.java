@@ -71,7 +71,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
      */
     public abstract void  shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
 
-     /**
+    /**
      * 触发window
      *
      * @param instance

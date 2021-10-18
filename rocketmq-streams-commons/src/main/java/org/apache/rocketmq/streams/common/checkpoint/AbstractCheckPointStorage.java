@@ -25,10 +25,13 @@ import org.apache.rocketmq.streams.common.context.MessageOffset;
 
 import java.util.*;
 
+
+/**
+ * @description
+ */
 public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
 
     static final Log logger = LogFactory.getLog(AbstractCheckPointStorage.class);
-
     protected transient IMessageCache<CheckPointMessage> messageCache;
 
     public AbstractCheckPointStorage(){
@@ -46,8 +49,8 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
                 return true;
             }
         });
-        ((MessageCache)messageCache).setAutoFlushSize(10);
-        ((MessageCache)messageCache).setAutoFlushTimeGap(500);
+        ((MessageCache)messageCache).setAutoFlushSize(50);
+        ((MessageCache)messageCache).setAutoFlushTimeGap(10 * 1000);
         messageCache.openAutoFlush();
     }
 
@@ -179,6 +182,11 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
             logger.debug(String.format("addCheckPointMessage states %s", state.getQueueIdAndOffset().toString()));
         }
         messageCache.addCache(message);
+    }
+
+    @Override
+    public void finish(){
+        this.messageCache.closeAutoFlush();
     }
 
 }

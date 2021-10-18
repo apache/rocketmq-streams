@@ -148,7 +148,7 @@ public class WindowInstance extends Entity implements Serializable {
      * @return
      */
     public static List<WindowInstance>  queryAllWindowInstance(String lastTime, AbstractWindow window,
-                                                              Collection<String> splitIds) {
+                                                               Collection<String> splitIds) {
         if (window.isLocalStorageOnly() || splitIds == null) {
             return null;
         }
