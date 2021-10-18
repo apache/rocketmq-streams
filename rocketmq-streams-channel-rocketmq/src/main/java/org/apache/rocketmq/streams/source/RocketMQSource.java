@@ -41,12 +41,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.apache.rocketmq.streams.debug.DebugWriter;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -60,7 +55,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RocketMQSource extends AbstractSupportOffsetResetSource {
@@ -134,6 +128,8 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                     for (MessageExt msg : msgs) {
                         String data = new String(msg.getBody(), CHARSET);
                         JSONObject jsonObject = create(data);
+
+
                         String queueId = RocketMQMessageQueue.getQueueId(context.getMessageQueue());
                         String offset = msg.getQueueOffset() + "";
                         org.apache.rocketmq.streams.common.context.Message message = createMessage(jsonObject, queueId, offset, false);
