@@ -26,7 +26,7 @@ import java.util.Set;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
-//group by dependent varName list
+//group by dependency varName list
 public class GroupByVarCaseWhen {
    private List<CaseWhenElement> allCaseWhenElements=new ArrayList<>();
    protected int index;
