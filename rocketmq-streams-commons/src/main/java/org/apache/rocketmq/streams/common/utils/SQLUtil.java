@@ -29,11 +29,182 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.metadata.MetaDataUtils;
 
 public class SQLUtil {
+
     private static final String INSERT = "INSERT INTO";
     private static final String INSERT_IGNORE = "INSERT IGNORE INTO";
     private static final String REPLACE = "REPLACE INTO";
+    private static final String DUPLICATE_KEY = "on duplicate key update";
+
+    /**
+     * 创建 insert into duplicate 格式的语句
+     * @param metaData
+     * @param rows
+     * @return
+     *     eg :
+     *     insert into table_20210710000000(ds, `value`, data_time) values('1', '2', '2021-09-05 00:00:01') on duplicate key update
+     *          ds = values(ds), `value` = values(`value`), data_time = values(data_time);
+     *
+     */
+    public static String createInsertWithDuplicateKeyUpdateSql(MetaData metaData, List<? extends Map<String, Object>> rows){
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(createInsertSegment(metaData, false));
+        sb.append(" ");
+        sb.append(createValuesSegment(metaData, rows, false));
+        sb.append(" ");
+        sb.append(createDuplicateKeyUpdateSegment(metaData, false));
+        return sb.toString();
+
+    }
+
+    /**
+     * 根据metadata创建field片段, 目前用在创建 insert 语句中 table(field1, field2, field3),
+     * 或者 duplicate key中的 `field1` = values(`field1`), `field2` = values(`field2`), `field3` = values(`field3`)。
+     *
+     * @param metaData
+     * @param isDuplicateKey
+     * @return
+     *          eg: `field1`, `field2`, `field3`
+     *               or
+     *               `field1` = values(`field1`), `field2` = values(`field2`), `field3` = values(`field3`)
+     */
+    private static String createMetaDataFieldSegment(MetaData metaData, boolean containsIdField, boolean isDuplicateKey){
+
+        List<MetaDataField> fields = metaData.getMetaDataFields();
+        StringBuilder sb = new StringBuilder();
+        boolean isFirst = true;
+        String idName = metaData.getIdFieldName();
+        for(MetaDataField field : fields){
+            if(!containsIdField && field.getFieldName().equals(idName)){
+                continue;
+            }
+            if(isFirst){
+                isFirst = false;
+            }else{
+                sb.append(",");
+            }
+            sb.append("`");
+            sb.append(field.getFieldName());
+            sb.append("`");
+            if(isDuplicateKey){
+                sb.append("=");
+                sb.append("values");
+                sb.append("(");
+                sb.append("`");
+                sb.append(field.getFieldName());
+                sb.append("`");
+                sb.append(")");
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 创建 " insert into table() " 片段, 不包括后面的values;
+     * @param metaData
+     * @param isContainsId 是否包含id字段
+     * @return
+     *   insert into table_20210710000000(ds, `value`, data_time)
+     */
+    public static String createInsertSegment(MetaData metaData, boolean isContainsId){
+        return createPrefixSegment(INSERT, metaData, isContainsId);
+    }
+
+    /**
+     * 创建 " insert into table() " 片段, 不包括后面的values;
+     * @param metaData
+     * @param isContainsId 是否包含id字段
+     * @return
+     *   insert into table_20210710000000(ds, `value`, data_time)
+     */
+    public static String createInsertIgnoreSegment(MetaData metaData, boolean isContainsId){
+        return createPrefixSegment(INSERT_IGNORE, metaData, isContainsId);
+    }
+
+
+    private static String createPrefixSegment(String prefix, MetaData metaData, boolean isContainsId){
+        StringBuilder sb = new StringBuilder();
+        sb.append(prefix);
+        sb.append(" ");
+        sb.append(metaData.getTableName());
+        sb.append("(");
+        sb.append(createMetaDataFieldSegment(metaData, isContainsId, false));
+        sb.append(")");
+        return sb.toString();
+    }
+
+    /**
+     * 返回values('a', b, c)
+     * @param metaData
+     * @param rows
+     * @param containsIdField 是否包含id字段
+     * @return
+     */
+    public static String createValuesSegment(MetaData metaData, List<? extends Map<String, Object>> rows, boolean containsIdField){
+
+        if(rows == null || rows.size() == 0){
+            return null;
+        }
+        MetaData tmpMetaData = metaData;
+        //如果不包含主键id, 则过滤id字段
+        if(!containsIdField){
+            tmpMetaData = MetaDataUtils.getMetaDataWithOutId(metaData);
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("values");
+        boolean isFirstValue = true;
+        for (Map<String, Object> row : rows) {
+            if(isFirstValue){
+                isFirstValue = false;
+            }else{
+                sb.append(",");
+            }
+            String value = createValuesSegment(tmpMetaData, row);
+            sb.append(value);
+        }
+        return sb.toString();
+    }
+
+    private static String createValuesSegment(MetaData metaData, Map<String, Object> fieldName2Value){
+        StringBuilder valueSql = new StringBuilder();
+        boolean isFirst = true;
+        valueSql.append("(");
+        Iterator<MetaDataField> it = metaData.getMetaDataFields().iterator();
+        while (it.hasNext()) {
+            MetaDataField field = it.next();
+            String fieldName = field.getFieldName();
+            Object value = fieldName2Value.get(fieldName);
+            if (value != null) {
+                if (isFirst) {
+                    isFirst = false;
+                } else {
+                    valueSql.append(",");
+                }
+                valueSql.append(getFieldSqlValue(metaData, fieldName, value));
+            }
+        }
+        valueSql.append(")");
+        return valueSql.toString();
+    }
+
+    /**
+     *
+     * @param metaData
+     * @param containsIdField
+     * @return
+     * eg :
+     *      on duplicate key update ds = values(ds), `value` = values(`value`), data_time = values(data_time)
+     */
+    public static String createDuplicateKeyUpdateSegment(MetaData metaData, boolean containsIdField){
+        StringBuilder sb = new StringBuilder();
+        sb.append(DUPLICATE_KEY);
+        sb.append(" ");
+        sb.append(createMetaDataFieldSegment(metaData, containsIdField, true));
+        return sb.toString();
+    }
 
     public static String createReplacesInsertSql(MetaData metaData, Map<String, Object> fieldName2Value,
         Boolean containsIdField) {

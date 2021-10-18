@@ -33,7 +33,6 @@ import java.util.List;
 public class DBCheckPointStorage extends AbstractCheckPointStorage {
 
     static final Log logger = LogFactory.getLog(DBCheckPointStorage.class);
-
     static final String STORAGE_NAME = "DB";
 
     public DBCheckPointStorage(){
@@ -49,6 +48,11 @@ public class DBCheckPointStorage extends AbstractCheckPointStorage {
     public <T> void save(List<T> checkPointState) {
         logger.info(String.format("save checkpoint size %d", checkPointState.size()));
         ORMUtil.batchReplaceInto(checkPointState);
+    }
+
+    @Override
+    public void finish() {
+
     }
 
     @Override

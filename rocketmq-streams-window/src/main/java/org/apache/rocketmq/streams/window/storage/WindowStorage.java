@@ -184,7 +184,7 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
         List<String> remoteKeys = new ArrayList<>();
         List<String> localKeys = new ArrayList<>();
         for (String key : allKeys) {
-            String[] values = MapKeyUtil.spliteKey(key);
+            String[] values = MapKeyUtil.splitKey(key);
             String shuffleId = values[0];
             boolean isLocal = shufflePartitionManager.isWindowInstanceFinishInit(shuffleId, createWindowInstanceId(key));
             if (isLocal) {
@@ -228,7 +228,7 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
      * refer to: WindowMessageProcessor.createStoreKey
      */
     public static String createWindowInstanceId(String msgKey) {
-        String[] values = MapKeyUtil.spliteKey(msgKey);
+        String[] values = MapKeyUtil.splitKey(msgKey);
         String[] lastValues = Arrays.copyOfRange(values, 1, values.length - 2);
         //values[4]: endTime or fireTime
         return MapKeyUtil.createKey(lastValues);
