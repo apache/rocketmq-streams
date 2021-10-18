@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.filter.operator.expression;
 
 import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,12 +37,15 @@ import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
+import org.apache.rocketmq.streams.filter.function.expression.InFunction;
+import org.apache.rocketmq.streams.filter.function.expression.IsNotNull;
+import org.apache.rocketmq.streams.filter.function.expression.IsNull;
 import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
+import org.apache.rocketmq.streams.filter.monitor.Monitor;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
-import org.apache.rocketmq.streams.script.optimization.performance.ScriptExpressionGroupsProxy;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public class Expression<T> extends BasedConfigurable
@@ -89,14 +93,29 @@ public class Expression<T> extends BasedConfigurable
     private boolean fieldFlag = false;
     private volatile boolean initFlag = false;
 
+
+
+
     public Expression() {
         setType(TYPE);
     }
 
+    protected static RegexFunction regexFunction=new RegexFunction();
+    protected static LikeFunction likeFunction=new LikeFunction();
+    protected static InFunction inFunction=new InFunction();
+    protected static IsNotNull isNotNull=new IsNotNull();
+    protected static IsNull isNull=new IsNull();
+    protected static transient Map<String,ExpressionFunction> cache=new HashMap<>();
     @SuppressWarnings("unchecked")
     @Override
     public Boolean doAction(RuleContext context, Rule rule) {
-        ExpressionFunction function = context.getExpressionFunction(functionName, this, context, rule);
+
+        ExpressionFunction function = cache.get(functionName);
+        if(function==null){
+            function=context.getExpressionFunction(functionName, this, context, rule);
+            cache.put(functionName,function);
+        }
+
         if (function == null) {
             return false;
         }
@@ -126,6 +145,21 @@ public class Expression<T> extends BasedConfigurable
         }
         boolean result = false;
         try {
+            if(RegexFunction.isRegex(functionName)){
+                return regexFunction.doExpressionFunction(this,context,rule);
+            }
+            if(LikeFunction.isLikeFunciton(functionName)){
+                return likeFunction.doExpressionFunction(this,context,rule);
+            }
+            if(InFunction.matchFunction(functionName)){
+                return inFunction.doExpressionFunction(this,context,rule);
+            }
+            if(IsNull.matchFunction(functionName)){
+                return isNull.doExpressionFunction(this,context,rule);
+            }
+            if(IsNotNull.matchFunction(functionName)){
+                return isNotNull.doExpressionFunction(this,context,rule);
+            }
             result = function.doFunction(this, context, rule);
         } catch (Exception e) {
             LOG.error(
@@ -137,22 +171,34 @@ public class Expression<T> extends BasedConfigurable
 
     public Boolean getExpressionValue(RuleContext context, Rule rule) {
 
-        if(RegexFunction.isRegex(functionName)|| LikeFunction.isLikeFunciton(functionName)){
-            Boolean value=ScriptExpressionGroupsProxy.inFilterCache(getVarName(),getValue().toString(),context.getMessage(),context);
-            if(value!=null){
-                return value;
-            }
-        }
+//        if(RegexFunction.isRegex(functionName)|| LikeFunction.isLikeFunciton(functionName)){
+//            Boolean value=ScriptExpressionGroupsProxy.inFilterCache(getVarName(),getValue().toString(),context.getMessage(),context);
+//            if(value!=null){
+//                return value;
+//            }
+//        }
 
-        Boolean result = context.getExpressionValue(getConfigureName());
-        if (result != null) {
-            return result;
-        }
+//        Boolean result = context.getExpressionValue(getConfigureName());
+//        if (result != null) {
+//            return result;
+//        }
         try {
-            result = doAction(context, rule);
-            if (result != null) {
-                context.putExpressionValue(getNameSpace(), getConfigureName(), result);
+
+            long start=System.currentTimeMillis();
+            Boolean isMatch=context.matchFromCache(context.getMessage(),this);
+            if(isMatch!=null){
+                return isMatch;
             }
+            boolean result= doAction(context, rule);
+//            if(!RelationExpression.class.isInstance(this)){
+//                if((System.currentTimeMillis()-start)>10){
+//                    System.out.println("==============="+toJson());
+//                }
+//            }
+            return result;
+//            if (result != null) {
+//                context.putExpressionValue(getNameSpace(), getConfigureName(), result);
+//            }
         } catch (Exception e) {
             LOG.error("Expression getExpressionValue error,rule is:" + rule.getConfigureName() + " ,express is: "
                 + getConfigureName(), e);
@@ -161,7 +207,6 @@ public class Expression<T> extends BasedConfigurable
         //if(result==false){
         //    context.setNotFireExpression(this.toString());
         //}
-        return result;
     }
 
     @SuppressWarnings("unchecked")

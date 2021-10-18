@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
@@ -121,19 +122,23 @@ public class RelationExpression extends Expression<List<String>> {
         if (StringUtil.isEmpty(relation)) {
             return false;
         }
+        Message message = context.getMessage();
+        boolean isTrace=TraceUtil.hit(message.getHeader().getTraceId());
         if ("and".equals(this.relation)) {
             while (it.hasNext()) {
                 if (flag) {
                     String expressionName = it.next();
                     Expression exp = context.getExpression(expressionName);
                     if (exp == null) {
-                        Message message = context.getMessage();
                         Boolean result = message.getMessageBody().getBoolean(expressionName);
                         if (result != null) {
                             if (result == false) {
-                                TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
-                                piplineExecutorMonitor.addNotFireExpression(expressionName, expressionName);
-                                context.setExpressionMonitor(piplineExecutorMonitor);
+                                if(isTrace){
+                                    TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
+                                    piplineExecutorMonitor.addNotFireExpression(expressionName, expressionName);
+                                    context.setExpressionMonitor(piplineExecutorMonitor);
+                                }
+
                                 return optimizate(expressionName, false);
                             } else {
                                 continue;
@@ -160,9 +165,12 @@ public class RelationExpression extends Expression<List<String>> {
                             return false;
                         }
                         if (!flag) {
-                            TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
-                            piplineExecutorMonitor.addNotFireExpression(exp.toString(), exp.getDependentFields(rule.getExpressionMap()));
-                            context.setExpressionMonitor(piplineExecutorMonitor);
+                            if(isTrace){
+                                TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
+                                piplineExecutorMonitor.addNotFireExpression(exp.toString(), exp.getDependentFields(rule.getExpressionMap()));
+                                context.setExpressionMonitor(piplineExecutorMonitor);
+                            }
+
                             return optimizate(expressionName, false);
                         }
                     }
@@ -171,12 +179,15 @@ public class RelationExpression extends Expression<List<String>> {
             return true;
         } else {// or
             flag = false;
-            TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
+            TopologyFilterMonitor piplineExecutorMonitor =null;
+            if(isTrace){
+                piplineExecutorMonitor= new TopologyFilterMonitor();
+            }
+
             while (it.hasNext()) {
                 String expressionName = it.next();
                 Expression exp = context.getExpression(expressionName);
                 if (exp == null) {
-                    Message message = context.getMessage();
                     Boolean result = message.getMessageBody().getBoolean(expressionName);
                     if (result != null) {
                         if (result == true) {
@@ -195,9 +206,13 @@ public class RelationExpression extends Expression<List<String>> {
                         return optimizate(expressionName, true);
                     } else {
                         //如果关系表达式未触发，则检测context中，有没有因为and失败的条件
-                        if (context.getExpressionMonitor() != null && context.getExpressionMonitor().getNotFireExpression2DependentFields().size() > 0) {
-                            piplineExecutorMonitor.addNotFireExpression(context.getExpressionMonitor().getNotFireExpression2DependentFields());
+
+                        if(isTrace){
+                            if (context.getExpressionMonitor() != null && context.getExpressionMonitor().getNotFireExpression2DependentFields().size() > 0) {
+                                piplineExecutorMonitor.addNotFireExpression(context.getExpressionMonitor().getNotFireExpression2DependentFields());
+                            }
                         }
+
                     }
                 } else {
 
@@ -214,22 +229,26 @@ public class RelationExpression extends Expression<List<String>> {
                 }
 
             }
-            context.setExpressionMonitor(piplineExecutorMonitor);
+            if(isTrace){
+                context.setExpressionMonitor(piplineExecutorMonitor);
+            }
+
             return false;
         }
 
     }
 
     public Boolean optimizate(String exprssionName, Boolean value) {
-        if (expressionPerformance == null) {
-            synchronized (this) {
-                if (expressionPerformance == null) {
-                    expressionPerformance = new ExpressionPerformance(getValue());
-                }
-            }
-
-        }
-        return expressionPerformance.optimizate(exprssionName, value);
+//        if (expressionPerformance == null) {
+//            synchronized (this) {
+//                if (expressionPerformance == null) {
+//                    expressionPerformance = new ExpressionPerformance(getValue());
+//                }
+//            }
+//
+//        }
+//        return expressionPerformance.optimizate(exprssionName, value);
+        return value;
     }
 
     public String getRelation() {

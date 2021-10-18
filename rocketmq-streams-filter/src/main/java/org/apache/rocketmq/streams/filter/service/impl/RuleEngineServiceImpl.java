@@ -23,7 +23,9 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.filter.builder.RuleBuilder;
 import org.apache.rocketmq.streams.filter.context.ContextConfigure;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
@@ -52,22 +54,12 @@ public class RuleEngineServiceImpl implements IRuleEngineService, Serializable {
 
     @Override
     public List<Rule> excuteRule(JSONObject message, Rule... rules) {
-        return this.excuteRule(new RuleMessage(message), rules);
+        Message msg=new Message(message);
+        return this.executeRule(msg,new Context(msg), rules);
     }
 
     @Override
     public List<Rule> executeRule(IMessage message, AbstractContext context, Rule... rules) {
-        RuleMessage ruleMessage = new RuleMessage(message.getMessageBody());
-        ruleMessage.setHeader(message.getHeader());
-        return excuteRule(context, ruleMessage, rules);
-    }
-
-    @Override
-    public List<Rule> excuteRule(RuleMessage message, Rule... rules) {
-        return excuteRule(null, message, rules);
-    }
-
-    protected List<Rule> excuteRule(AbstractContext context, RuleMessage message, Rule... rules) {
         if (rules == null || rules.length == 0) {
             return null;
         }
@@ -85,10 +77,15 @@ public class RuleEngineServiceImpl implements IRuleEngineService, Serializable {
         }
     }
 
+
     @Override
     public List<Rule> excuteRule(JSONObject message, List<Rule> rules) {
-        List<Rule> fireRules = ruleEngine.executeRule(new RuleMessage(message), rules);
+        List<Rule> fireRules = ruleEngine.executeRule(new Message(message), rules);
         return fireRules;
+    }
+
+    @Override public List<Rule> executeRule(IMessage message, AbstractContext context, List<Rule> rules) {
+        return this.ruleEngine.executeRule(context,message,rules);
     }
 
     @Override

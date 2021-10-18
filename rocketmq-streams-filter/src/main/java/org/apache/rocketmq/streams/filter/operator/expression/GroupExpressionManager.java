@@ -47,22 +47,23 @@ public class GroupExpressionManager {
 
     public void compile() {
         for (Expression expression : rule.getExpressionMap().values()) {
-            if (SimpleExpression.class.isInstance(expression) &&(RegexFunction.isRegex(expression.getFunctionName())|| LikeFunction.isLikeFunciton(expression.getFunctionName()))) {
+            if (SimpleExpression.class.isInstance(expression) &&(RegexFunction.isRegex(expression.getFunctionName()))) {
                 String varName = expression.getVarName();
                 HyperscanRegex hyperscanRegex = hyperscanRegexMap.get(varName);
                 if (hyperscanRegex == null) {
                     hyperscanRegex = new HyperscanRegex();
                     hyperscanRegexMap.put(varName, hyperscanRegex);
                 }
-                if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
-                    String like=(String)expression.getValue();
-                    LikeRegex likeRegex=new LikeRegex(like);
-                    hyperscanRegex.addRegex(likeRegex.createRegex(),expression.getConfigureName());
-                }else if(RegexFunction.isRegex(expression.getFunctionName())){
-                    hyperscanRegex.addRegex((String)expression.getValue(), expression.getConfigureName());
-                }else {
-                    throw new RuntimeException("can not support other function name "+ expression.getFunctionName());
-                }
+                hyperscanRegex.addRegex((String)expression.getValue(), expression.getConfigureName());
+//                if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
+//                    String like=(String)expression.getValue();
+//                    LikeRegex likeRegex=new LikeRegex(like);
+//                    hyperscanRegex.addRegex(likeRegex.createRegex(),expression.getConfigureName());
+//                }else if(RegexFunction.isRegex(expression.getFunctionName())){
+//
+//                }else {
+//                    throw new RuntimeException("can not support other function name "+ expression.getFunctionName());
+//                }
 
             }
         }
@@ -71,7 +72,7 @@ public class GroupExpressionManager {
         }
     }
 
-    public void matchAndSetResult(RuleContext context, Rule rule) {
+    public void matchAndSetResult(RuleContext context) {
         Set<String> allRegexResult = new HashSet<>();
         JSONObject msg = context.getMessage().getMessageBody();
         Iterator<Entry<String, HyperscanRegex>> it = hyperscanRegexMap.entrySet().iterator();

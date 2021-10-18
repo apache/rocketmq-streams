@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.filter.service;
 import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import org.apache.rocketmq.streams.common.interfaces.IFilterService;
-import org.apache.rocketmq.streams.filter.context.RuleMessage;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 
 /**
@@ -27,14 +26,6 @@ import org.apache.rocketmq.streams.filter.operator.Rule;
  */
 public interface IRuleEngineService extends IFilterService<Rule> {
 
-    /**
-     * 执行规则，返回触发的规则
-     *
-     * @param message
-     * @param rules
-     * @return
-     */
-    List<Rule> excuteRule(RuleMessage message, Rule... rules);
 
     /**
      * 执行规则，返回触发的规则
