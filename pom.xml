@@ -89,6 +89,8 @@
         <scala-library.version>2.12.4</scala-library.version>
         <logback-core.version>1.2.3</logback-core.version>
         <minio.version>3.0.10</minio.version>
+        <rocksdbjni.version>6.6.4</rocksdbjni.version>
+
     </properties>
 
 
