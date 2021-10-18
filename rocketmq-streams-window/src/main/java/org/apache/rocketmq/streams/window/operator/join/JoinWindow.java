@@ -461,7 +461,7 @@ public class JoinWindow extends AbstractShuffleWindow {
      * @param windowInstance
      */
     @Override
-    public void clearFireWindowInstance(WindowInstance windowInstance) {
+    public synchronized void clearFireWindowInstance(WindowInstance windowInstance) {
 //        String partitionNum=(getOrderBypPrefix()+ windowInstance.getSplitId());
 
         List<WindowInstance> removeInstances = new ArrayList<>();
