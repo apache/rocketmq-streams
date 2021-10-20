@@ -16,12 +16,15 @@
  */
 package org.apache.rocketmq.streams.script.utils;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.IgnoreMessage;
+import org.apache.rocketmq.streams.common.datatype.DateDataType;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class FunctionUtils {
@@ -158,7 +161,7 @@ public class FunctionUtils {
         Object value = message.getMessageBody().get(fieldName);
         return value;
     }
-
+    private static DateDataType dateDataType=new DateDataType();
     public static String getValueString(IMessage message, AbstractContext context, String fieldName) {
         Object value = getValue(message, context, fieldName);
         if (value == null) {
@@ -166,6 +169,9 @@ public class FunctionUtils {
         }
         if (String.class.isInstance(value)) {
             return (String)value;
+        }
+        if(dateDataType.matchClass(value.getClass())){
+            return dateDataType.toDataJson(dateDataType.convert(value));
         }
         return value.toString();
     }

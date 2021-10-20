@@ -26,6 +26,7 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.script.CaseFunction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
@@ -99,6 +100,9 @@ public class GroupByVarExecutor extends AbstractExecutor implements IScriptOptim
             for(IScriptExpression scriptExpression:caseExpressions){
                 if(CaseFunction.isCaseFunction(scriptExpression.getFunctionName())){
                     String expressionStr=IScriptOptimization.getParameterValue((IScriptParamter) scriptExpression.getScriptParamters().get(0));
+                    if(StringUtil.isEmpty(expressionStr)){
+                       continue;
+                    }
                     List<Expression> expressions=new ArrayList<>();
                     ExpressionBuilder.createExpression("tmp","tmp",expressionStr,expressions,new ArrayList<>());
                     if(expressions.size()>0){

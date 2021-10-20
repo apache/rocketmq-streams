@@ -190,6 +190,10 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
         return piplineName2MsgSourceName;
     }
 
+    public ChainPipeline getPipeline(String pipelineName){
+        return this.piplines.get(pipelineName);
+    }
+
     public void setPiplineName2MsgSourceName(Map<String, String> piplineName2MsgSourceName) {
         this.piplineName2MsgSourceName = piplineName2MsgSourceName;
     }

@@ -229,26 +229,37 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             Map<String, AbstractStage> stageMap = pipline.createStageMap();
             AbstractStage currentStage = this;
             List<String> prewLables = currentStage.getPrevStageLabels();
-            if(prewLables==null||prewLables.size()==0){
-                sourceLable=pipline.getChannelName();
-            }
-
             while (prewLables != null && prewLables.size() > 0) {
-                if(prewLables.size()>1){
+                if(prewLables.size()>1){//union
+                    sourceLable=null;
+                    nextLable=null;
                     break;
                 }
                 String lable = prewLables.get(0);
                 AbstractStage stage = (AbstractStage)stageMap.get(lable);
+
                 if (stage != null) {
+                    if(stage.isAsyncNode()){//window (join,Statistics)
+                        sourceLable=null;
+                        nextLable=null;
+                        break;
+                    }
+                    nextLable=currentStage.getLabel();
                     currentStage = stage;
                     sourceLable=currentStage.getLabel();
-                    nextLable=currentStage.getLabel();
+                    if(stage.getNextStageLabels()!=null&&stage.getNextStageLabels().size()>1){
+                        break;
+                    }
                 } else {
                     sourceLable=pipline.getChannelName();
                     nextLable=currentStage.getLabel();
                     break;
                 }
                 prewLables = currentStage.getPrevStageLabels();
+            }
+            if(prewLables==null||prewLables.size()==0){
+                sourceLable=pipline.getChannelName();
+                nextLable=currentStage.getLabel();
             }
             if(sourceLable==null||nextLable==null){
                 return null;
