@@ -40,6 +40,7 @@ public class ShuffleOverWindow extends WindowOperator {
          boolean success= super.initConfigurable();
          this.setFireMode(2);
          this.setSizeInterval(60);
+         this.setSlideInterval(60);
          this.setTimeUnitAdjust(1);
          this.setWaterMarkMinute(3600);
          return success;

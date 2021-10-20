@@ -38,6 +38,7 @@ public class OverWindow extends AbstractWindow {
      * 需要把生成的序列号返回设置到message，这个是序列号对应的名字
      */
     protected String rowNumerName;
+    protected boolean isReservedOne=false;
 
     /**
      * 针对这个窗口实例完成计算，实际上是写入了缓存，在flush时完成真正的计算。写入缓存时把上下文（header，windowinstance，window）保存在消息中
@@ -60,7 +61,16 @@ public class OverWindow extends AbstractWindow {
             }
 
         }
-        message.getMessageBody().put(rowNumerName, value);
+        if(isReservedOne){
+            if(value>1){
+                context.breakExecute();
+                return context;
+            }
+        }
+        if(rowNumerName!=null){
+            message.getMessageBody().put(rowNumerName, value);
+        }
+
         /**
          * 如果超过最大值，直接归0
          */
@@ -144,6 +154,14 @@ public class OverWindow extends AbstractWindow {
     @Override
     public void clearFireWindowInstance(WindowInstance windowInstance) {
 
+    }
+
+    public boolean isReservedOne() {
+        return isReservedOne;
+    }
+
+    public void setReservedOne(boolean reservedOne) {
+        isReservedOne = reservedOne;
     }
 
     public String getRowNumerName() {

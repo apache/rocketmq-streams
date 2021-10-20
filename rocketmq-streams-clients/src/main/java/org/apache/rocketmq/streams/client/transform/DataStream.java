@@ -61,6 +61,8 @@ import org.apache.rocketmq.streams.script.operator.impl.ScriptOperator;
 import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.window.builder.WindowBuilder;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.window.operator.impl.OverWindow;
+import org.apache.rocketmq.streams.window.operator.impl.ShuffleOverWindow;
 import org.apache.rocketmq.streams.window.operator.join.JoinWindow;
 
 public class DataStream implements Serializable {
@@ -205,6 +207,48 @@ public class DataStream implements Serializable {
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new WindowStream(window, this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
+    public DataStream distinct(String... groupByFieldNames) {
+        return distinct(-1,groupByFieldNames);
+    }
+    /**
+     * windows streams
+     *
+     * @param windowSizeSecond 通过不同窗口类型动of方法创建，SessionWindow.of(Time.seconds(10))
+     * @return WindowStream
+     */
+    public DataStream distinct(int windowSizeSecond,String... groupByFieldNames) {
+        OverWindow window=new OverWindow();
+        window.setReservedOne(true);
+        if(windowSizeSecond==-1){
+            windowSizeSecond=3600;
+        }
+        window.setSizeInterval(windowSizeSecond);
+        window.setSlideInterval(windowSizeSecond);
+        window.setTimeUnitAdjust(1);
+        window.setGroupByFieldName(MapKeyUtil.createKeyBySign(";", groupByFieldNames));
+        for (String fieldName : groupByFieldNames) {
+            window.getSelectMap().put(fieldName, fieldName);
+        }
+        ChainStage<?> stage = this.mainPipelineBuilder.createStage(window);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
+    }
+    /**
+     * windows streams
+     *
+     * @param topN 通过不同窗口类型动of方法创建，SessionWindow.of(Time.seconds(10))
+     * @return WindowStream
+     */
+    public OverWindowStream topN(String asRowNumFieldName, int topN,String... groupByFieldNames) {
+        ShuffleOverWindow window=new ShuffleOverWindow();
+        window.setTopN(topN);
+        window.setRowNumerName(asRowNumFieldName);
+        ChainStage<?> stage = this.mainPipelineBuilder.createStage(window);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+        OverWindowStream overWindowStream= new OverWindowStream(window, this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
+        overWindowStream.groupBy(groupByFieldNames);
+        return overWindowStream;
+    }
 
     /**
      * 通用增加stage的方法，低级接口，适合用户自定义stage的场景
@@ -317,6 +361,7 @@ public class DataStream implements Serializable {
         this.mainPipelineBuilder.addConfigurables(dbDim);
         return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage);
     }
+
 
     /**
      * 遍历所有数据
