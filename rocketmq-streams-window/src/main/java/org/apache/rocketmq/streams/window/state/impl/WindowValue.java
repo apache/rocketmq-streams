@@ -184,6 +184,10 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         this.computedColumnResult = Message.parseObject(computedColumnResult);
     }
 
+    public void putComputedColumnResult(Map<String,Object> msg) {
+        this.computedColumnResult.putAll(msg);
+    }
+
     public String getComputedColumnResult() {
         JSONObject object = null;
         if (JSONObject.class.isInstance(computedColumnResult)) {
@@ -217,6 +221,9 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         return computedColumnResult.get(fieldName);
     }
 
+    public void putComputedColumnResultByKey(String fieldName,Object value) {
+        computedColumnResult.put(fieldName,value);
+    }
     public Map<String, Object> getcomputedResult() {
         return this.computedColumnResult;
     }

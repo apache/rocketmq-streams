@@ -131,4 +131,21 @@ public class DateUtileFunction {
         date = DateUtil.addHour(date, hourValue.intValue());
         return DateUtil.format(date, format);
     }
+
+    @FunctionMethod(value="to_date")
+    public Date create(IMessage message, FunctionContext context,
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
+        @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
+        datetime = FunctionUtils.getValueString(message, context, datetime);
+        if(format==null){
+            return DateUtil.parse(datetime);
+        }
+        format = FunctionUtils.getValueString(message, context, format);
+        return DateUtil.parse(datetime,format);
+    }
+    @FunctionMethod(value="to_date")
+    public Date create(IMessage message, FunctionContext context,
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime){
+        return create(message,context,datetime,null);
+    }
 }

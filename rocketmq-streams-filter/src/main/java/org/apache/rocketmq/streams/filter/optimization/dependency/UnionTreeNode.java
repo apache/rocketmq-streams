@@ -32,12 +32,40 @@ import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class UnionTreeNode extends TreeNode<UnionChainStage> {
 
+    protected  Map<String,List<SimplePipelineTree>> msgSourceName2PipelineList=new HashMap<>();
     public UnionTreeNode(ChainPipeline pipeline, UnionChainStage stage,
         TreeNode parent) {
         super(pipeline, stage, parent);
+        initUnion();
     }
 
+
+
     @Override public Set<String> traceaField(String varName) {
-        return null;
+       Set<String> varNames=new HashSet<>();
+       for(List<SimplePipelineTree> trees:msgSourceName2PipelineList.values()){
+           for(SimplePipelineTree simplePipelineTree:trees){
+               Set<String> set= simplePipelineTree.traceaField(varName);
+               if(set!=null){
+                   varNames.addAll(set);
+               }
+           }
+       }
+        return varNames;
+    }
+
+
+    protected void initUnion() {
+        Map<String, String> piplineName2MsgSourceName= stage.getPiplineName2MsgSourceName();
+        for(String pipelineName:piplineName2MsgSourceName.keySet()){
+            ChainPipeline pipeline=stage.getPipeline(pipelineName);
+            String msgSourceName=piplineName2MsgSourceName.get(pipelineName);
+            List<SimplePipelineTree> pipelines=msgSourceName2PipelineList.get(msgSourceName);
+            if(pipelines==null){
+                pipelines=new ArrayList<>();
+                msgSourceName2PipelineList.put(msgSourceName,pipelines);
+            }
+            pipelines.add(new SimplePipelineTree(pipeline));
+        }
     }
 }

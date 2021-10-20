@@ -138,7 +138,7 @@ public class SplitArrayFunction {
                 continue;
             }
             IMessage newMessage = channelMessage.deepCopy();
-            newMessage.getMessageBody().put(FunctionType.UDTF.name() + "." + 0, value);
+            newMessage.getMessageBody().put(FunctionType.UDTF.getName() + "." + 0, value);
             newMessage.getHeader().setTraceId(channelMessage.getHeader().getTraceId() + "_" + i);
             if (i < values.length - 1) {
                 newMessage.getHeader().setNeedFlush(false);

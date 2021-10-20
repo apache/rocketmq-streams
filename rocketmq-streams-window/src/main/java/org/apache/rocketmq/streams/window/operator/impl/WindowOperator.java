@@ -103,7 +103,7 @@ public class WindowOperator extends AbstractShuffleWindow {
 
             Integer currentValue = getValue(windowValue, "total");
 
-              fireCountAccumulator.addAndGet(currentValue);
+            fireCountAccumulator.addAndGet(currentValue);
             windowValues.add((WindowValue)windowBaseValue);
             if(windowValues.size()>=windowCache.getBatchSize()){
                 long sendFireCost=System.currentTimeMillis();
@@ -159,7 +159,8 @@ public class WindowOperator extends AbstractShuffleWindow {
 
             if(msgs!=null){
                 for(IMessage message:msgs){
-                    windowValue.calculate(this,message);
+                   calculateWindowValue(windowValue,message);
+
                 }
             }
 
@@ -262,7 +263,10 @@ public class WindowOperator extends AbstractShuffleWindow {
     @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
         return storage.getMaxSplitNum(instance,getWindowBaseValueClass());
     }
+    protected void calculateWindowValue(WindowValue windowValue, IMessage msg) {
+        windowValue.calculate(this,msg);
 
+    }
     /**
      * 创建新的window value对象
      *

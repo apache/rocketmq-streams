@@ -14,43 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.script.function.model;
+package org.apache.rocketmq.streams.window.operator.impl;
 
-public enum FunctionType {
+import org.apache.rocketmq.streams.common.datatype.DataType;
 
+public class OrderBy {
+    protected String fieldName;
+    protected boolean isAsc=true;
+    protected DataType dataType;
 
-    /**
-     * 1:1
-     */
-    UDF("udf"),
-
-    /**
-     * 1:n
-     */
-    UDTF("f"),
-
-    /**
-     * n:1
-     */
-    UDAF("udaf"),
-
-    /**
-     * built in function
-     */
-    BUILTIN("builtin"),
-
-    /**
-     * mostly illegal function
-     */
-    UNKNOWN("unknow");
-    private String name;
-    private FunctionType(String name){
-        this.name=name;
+    public OrderBy(String fieldName,boolean isAsc){
+        this.fieldName=fieldName;
+        this.isAsc=isAsc;
     }
 
+    public DataType getDataType() {
+        return dataType;
+    }
 
+    public void setDataType(DataType dataType) {
+        this.dataType = dataType;
+    }
 
-    public String getName(){
-        return name;
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
+    }
+
+    public boolean isAsc() {
+        return isAsc;
+    }
+
+    public void setAsc(boolean asc) {
+        isAsc = asc;
     }
 }

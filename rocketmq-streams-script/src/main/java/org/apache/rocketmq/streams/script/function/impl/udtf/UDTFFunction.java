@@ -45,7 +45,7 @@ public class UDTFFunction {
         while (it.hasNext()) {
             String fieldName = it.next();
             Object value = temp.get(fieldName);
-            if (fieldName.startsWith(FunctionType.UDTF.name())) {
+            if (fieldName.startsWith(FunctionType.UDTF.getName())) {
                 String[] values = fieldName.split("\\.");
                 String indexStr = values[1];
                 Integer index = Integer.valueOf(indexStr);
