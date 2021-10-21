@@ -220,9 +220,16 @@ public class WindowValue extends WindowBaseValue implements Serializable {
     public Object getComputedColumnResultByKey(String fieldName) {
         return computedColumnResult.get(fieldName);
     }
+    public Object getAggColumnResultByKey(String fieldName) {
+        return aggColumnResult.get(fieldName);
+    }
 
-    public void putComputedColumnResultByKey(String fieldName,Object value) {
-        computedColumnResult.put(fieldName,value);
+    public void putAggColumnResult(String functionName,Object value) {
+        aggColumnResult.put(functionName,value);
+    }
+
+    public void removeAggColumnResult(String functionName) {
+        aggColumnResult.remove(functionName);
     }
     public Map<String, Object> getcomputedResult() {
         return this.computedColumnResult;

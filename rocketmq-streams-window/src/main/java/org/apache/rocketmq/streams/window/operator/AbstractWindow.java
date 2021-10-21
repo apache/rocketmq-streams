@@ -311,7 +311,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @return
      */
     public String createWindowInstanceName(String startTime, String endTime, String fireTime){
-        return fireMode==0?getConfigureName():fireTime;
+        return (fireMode==0||fireMode==2)?getConfigureName():fireTime;
     }
 
     /**

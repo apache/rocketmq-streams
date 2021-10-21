@@ -16,21 +16,24 @@
  */
 package org.apache.rocketmq.streams.window.operator.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
-
 import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 public class ShuffleOverWindow extends WindowOperator {
-    protected static String TOPN_KEY="__TopN_";
+    protected static String TOPN_KEY="___TopN_";
     protected transient List<OrderBy> orderList;
     protected List<String> orderFieldNames;//name contains 2 part:name;true/false
     protected int topN=100;
+    protected transient Long firstUpdateTime;
     /**
      * 需要把生成的序列号返回设置到message，这个是序列号对应的名字
      */
@@ -39,39 +42,38 @@ public class ShuffleOverWindow extends WindowOperator {
     @Override protected boolean initConfigurable() {
          boolean success= super.initConfigurable();
          this.setFireMode(2);
-         this.setSizeInterval(60);
-         this.setSlideInterval(60);
+         this.setSizeInterval(5);
+         this.setSlideInterval(5);
          this.setTimeUnitAdjust(1);
          this.setWaterMarkMinute(3600);
          return success;
     }
 
-    public static void main(String[] args) {
-        ShuffleOverWindow shuffleOverWindow=new ShuffleOverWindow();
-        shuffleOverWindow.init();
-        WindowInstance windowInstance=  WindowInstance.getOrCreateWindowInstance(shuffleOverWindow,System.currentTimeMillis(),shuffleOverWindow.timeUnitAdjust,"1").get(0);
-        System.out.println(windowInstance);
-    }
 
     @Override protected void calculateWindowValue(WindowValue windowValue, IMessage msg) {
         super.calculateWindowValue(windowValue, msg);
-        TopNState topNState=(TopNState)windowValue.getComputedColumnResultByKey(TOPN_KEY);
+        TopNState topNState=(TopNState)windowValue.getAggColumnResultByKey(TOPN_KEY);
         if(topNState==null){
             topNState=new TopNState(topN);
-            windowValue.putComputedColumnResultByKey(TOPN_KEY,topNState);
+
         }
         topNState.addAndSortMsg(msg.getMessageBody(),orderList);
+        windowValue.putAggColumnResult(TOPN_KEY,topNState);
     }
 
     @Override public void sendFireMessage(List<WindowValue> windowValueList, String queueId) {
         List<WindowValue> windowValues=new ArrayList<>();
         for(WindowValue windowValue:windowValueList){
-            WindowValue copy=windowValue.clone();
-            copy.setPartitionNum(copy.getPartitionNum()*topN);
-            TopNState topNState=(TopNState)windowValue.getComputedColumnResultByKey(TOPN_KEY);
+
+            TopNState topNState=(TopNState)windowValue.getAggColumnResultByKey(TOPN_KEY);
+
+
             if(topNState.isChanged()){
                 int i=0;
-                for(Map<String,Object> msg:topNState.getOrderMsgs(this.rowNumerName)){
+                for(Map<String,Object> msg:topNState.getOrderMsgs(this.rowNumerName,this.getSelectMap().keySet())){
+                    WindowValue copy=windowValue.clone();
+                    copy.setAggColumnMap(new HashMap<>());
+                    copy.setPartitionNum(copy.getPartitionNum()*topN);
                     copy.setPartitionNum(copy.getPartitionNum()+i);
                     copy.putComputedColumnResult(msg);
                     windowValues.add(copy);
@@ -82,6 +84,32 @@ public class ShuffleOverWindow extends WindowOperator {
 
         }
         super.sendFireMessage(windowValues, queueId);
+    }
+
+
+
+    /**
+     * 根据消息获取对应的window instance 列表
+     *
+     * @param message
+     * @return
+     */
+    @Override
+    public List<WindowInstance> queryOrCreateWindowInstance(IMessage message,String queueId) {
+        return  WindowInstance.getOrCreateWindowInstance(this, getOccurTime(this, message), timeUnitAdjust,
+            queueId);
+    }
+
+    @Override
+    public void logoutWindowInstance(String indexId) {
+        super.logoutWindowInstance(indexId);
+        this.firstUpdateTime=null;
+    }
+    public  Long getOccurTime(AbstractWindow window, IMessage message) {
+        if(this.firstUpdateTime==null){
+            this.firstUpdateTime=System.currentTimeMillis();
+        }
+        return this.firstUpdateTime;
     }
 
     @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
