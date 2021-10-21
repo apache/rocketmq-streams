@@ -54,6 +54,8 @@ import org.apache.rocketmq.streams.common.topology.stages.udf.UDFUnionChainStage
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.db.sink.DBSink;
+import org.apache.rocketmq.streams.db.sink.DynamicMultipleDBSink;
+import org.apache.rocketmq.streams.db.sink.EnhanceDBSink;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.apache.rocketmq.streams.filter.operator.FilterOperator;
 import org.apache.rocketmq.streams.filter.operator.Rule;
@@ -362,7 +364,6 @@ public class DataStream implements Serializable {
         return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage);
     }
 
-
     /**
      * 遍历所有数据
      *
@@ -513,42 +514,49 @@ public class DataStream implements Serializable {
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-    public DataStreamAction toRocketmq(String topic, String groupName, String nameServerAddress) {
-        return toRocketmq(topic, "*", groupName, -1, nameServerAddress, null, false);
+    public DataStreamAction toRocketmq(String topic) {
+        return toRocketmq(topic, "*", null, -1, null);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, String nameServerAddress,
-        String clusterName,
-        boolean order) {
-        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, clusterName, order);
+    public DataStreamAction toRocketmq(String topic, String namesrvAddr) {
+        return toRocketmq(topic, "*", null, -1, namesrvAddr);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize,
-        String nameServerAddress,
-        String clusterName, boolean order) {
+    public DataStreamAction toRocketmq(String topic, String tags,
+        String namesrvAddr) {
+        return toRocketmq(topic, tags, null, -1, namesrvAddr);
+    }
+
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String namesrvAddr) {
         RocketMQSink rocketMQSink = new RocketMQSink();
-        if (StringUtils.isNotBlank(topic)) {
             rocketMQSink.setTopic(topic);
-        }
-        if (StringUtils.isNotBlank(tags)) {
             rocketMQSink.setTags(tags);
-        }
-        if (StringUtils.isNotBlank(groupName)) {
             rocketMQSink.setGroupName(groupName);
-        }
-        if (StringUtils.isNotBlank(nameServerAddress)) {
-            rocketMQSink.setNamesrvAddr(nameServerAddress);
-        }
-        if (StringUtils.isNotBlank(clusterName)) {
-            rocketMQSink.setClusterName(clusterName);
-        }
+        rocketMQSink.setNamesrvAddr(namesrvAddr);
         if (batchSize > 0) {
             rocketMQSink.setBatchSize(batchSize);
         }
-        rocketMQSink.setOrder(order);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(rocketMQSink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+    }
+
+    public DataStreamAction toEnhanceDBSink(String url, String userName, String password, String tableName){
+
+        EnhanceDBSink sink = new EnhanceDBSink(url, userName, password, tableName);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+
+    }
+
+    public DataStreamAction toMultiDB(String url, String userName, String password, String logicTableName, String fieldName){
+
+        DynamicMultipleDBSink sink = new DynamicMultipleDBSink(url, userName, password, logicTableName, fieldName);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+
     }
 
     public DataStreamAction to(ISink<?> sink) {

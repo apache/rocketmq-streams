@@ -76,4 +76,10 @@ public class OverWindowStream {
 
         return this;
     }
+
+    public DataStream toDataSteam() {
+        return new DataStream(pipelineBuilder, otherPipelineBuilders, currentChainStage);
+    }
+
+
 }

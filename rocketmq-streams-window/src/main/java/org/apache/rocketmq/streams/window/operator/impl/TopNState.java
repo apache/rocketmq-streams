@@ -23,33 +23,63 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.context.IMessage;
+import java.util.Set;
+import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.IJsonable;
 import org.apache.rocketmq.streams.common.datatype.IntDataType;
+import org.apache.rocketmq.streams.common.datatype.ListDataType;
+import org.apache.rocketmq.streams.common.datatype.MapDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 
-public class TopNState extends BasedConfigurable {
+public class TopNState implements IJsonable {
     private static final String SIGN ="#@#%@" ;
     private static final String NULL ="<NULL>" ;
     protected List<String> sortValues=new ArrayList<>();
     protected Map<String,String> orderByValue2Msgs=new HashMap<>();
     protected int topN=100;
     protected boolean isChanged=false;
+    protected transient ListDataType listDataType;
+    protected transient MapDataType mapDataType;
     public TopNState(int topN){
+        this();
         this.topN=topN;
     }
     public TopNState(){
+        listDataType=new ListDataType();
+        listDataType.setParadigmType(new StringDataType());
+        mapDataType=new MapDataType();
+        mapDataType.setKeyParadigmType(new StringDataType());
+        mapDataType.setValueParadigmType(new StringDataType());
     }
     /**
      *
      * @return msg order by orderbyFields
      */
-    public List<JSONObject> getOrderMsgs(String rowNumerName){
+    public List<JSONObject> getOrderMsgs(String rowNumerName, Set<String> fieldNames){
         List<JSONObject> msgs=new ArrayList<>();
         for(int i=0;i<sortValues.size();i++){
-            JSONObject msg=JSONObject.parseObject(orderByValue2Msgs.get(sortValues.get(i)));
+            JSONObject jsonObject=JSONObject.parseObject(orderByValue2Msgs.get(sortValues.get(i)));
+            JSONObject msg=new JSONObject(jsonObject);
+            msg.remove(WindowCache.ORIGIN_QUEUE_ID);
+            msg.remove(WindowCache.SHUFFLE_KEY);
+            msg.remove(WindowCache.ORIGIN_OFFSET);
+            msg.remove(WindowCache.ORIGIN_QUEUE_IS_LONG);
+            msg.remove(WindowCache.ORIGIN_MESSAGE_HEADER);
+            msg.remove(WindowCache.ORIGIN_MESSAGE_TRACE_ID);
+            msg.remove(WindowCache.ORIGIN_SOURCE_NAME);
+            msg.remove(WindowInstance.class.getSimpleName());
+            msg.remove(AbstractWindow.class.getSimpleName());
+            msg.remove(MessageHeader.class.getSimpleName());
+            msg.remove("HIT_WINDOW_INSTANCE_ID");
+            msg.remove(ShuffleChannel.SHUFFLE_OFFSET);
+            msg.remove(AbstractWindow.WINDOW_START);
+            msg.remove(AbstractWindow.WINDOW_END);
             msg.put(rowNumerName,i+1);
             msgs.add(msg);
         }
@@ -211,5 +241,22 @@ public class TopNState extends BasedConfigurable {
 
     public void setChanged(boolean changed) {
         isChanged = changed;
+    }
+
+    @Override public String toJson() {
+        JSONObject jsonObject=new JSONObject();
+        jsonObject.put("sortValues",listDataType.toDataJson(this.sortValues));
+        jsonObject.put("topN",this.topN);
+        jsonObject.put("changed",this.isChanged?1:0);
+        jsonObject.put("orderByValue2Msgs",mapDataType.toDataJson(this.orderByValue2Msgs));
+        return jsonObject.toJSONString();
+    }
+
+    @Override public void toObject(String jsonString) {
+        JSONObject jsonObject=JSONObject.parseObject(jsonString);
+        this.topN=jsonObject.getInteger("topN");
+        this.isChanged=jsonObject.getInteger("changed")==1?true:false;
+        this.sortValues=listDataType.getData(jsonObject.getString("sortValues"));
+        this.orderByValue2Msgs=mapDataType.getData(jsonObject.getString("orderByValue2Msgs"));
     }
 }
