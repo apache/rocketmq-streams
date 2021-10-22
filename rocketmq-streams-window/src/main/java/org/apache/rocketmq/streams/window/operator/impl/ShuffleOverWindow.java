@@ -33,7 +33,6 @@ public class ShuffleOverWindow extends WindowOperator {
     protected transient List<OrderBy> orderList;
     protected List<String> orderFieldNames;//name contains 2 part:name;true/false
     protected int topN=100;
-    protected transient Long firstUpdateTime;
     /**
      * 需要把生成的序列号返回设置到message，这个是序列号对应的名字
      */
@@ -41,11 +40,10 @@ public class ShuffleOverWindow extends WindowOperator {
 
     @Override protected boolean initConfigurable() {
          boolean success= super.initConfigurable();
-         this.setFireMode(2);
-         this.setSizeInterval(5);
-         this.setSlideInterval(5);
+         this.setSizeInterval(3600);
+         this.setSlideInterval(3600);
          this.setTimeUnitAdjust(1);
-         this.setWaterMarkMinute(3600);
+         this.setEmitBeforeValue(5L);
          return success;
     }
 
@@ -73,8 +71,7 @@ public class ShuffleOverWindow extends WindowOperator {
                 for(Map<String,Object> msg:topNState.getOrderMsgs(this.rowNumerName,this.getSelectMap().keySet())){
                     WindowValue copy=windowValue.clone();
                     copy.setAggColumnMap(new HashMap<>());
-                    copy.setPartitionNum(copy.getPartitionNum()*topN);
-                    copy.setPartitionNum(copy.getPartitionNum()+i);
+                    copy.setPartitionNum(copy.getPartitionNum()*topN+i);
                     copy.putComputedColumnResult(msg);
                     windowValues.add(copy);
                     i++;
@@ -88,29 +85,7 @@ public class ShuffleOverWindow extends WindowOperator {
 
 
 
-    /**
-     * 根据消息获取对应的window instance 列表
-     *
-     * @param message
-     * @return
-     */
-    @Override
-    public List<WindowInstance> queryOrCreateWindowInstance(IMessage message,String queueId) {
-        return  WindowInstance.getOrCreateWindowInstance(this, getOccurTime(this, message), timeUnitAdjust,
-            queueId);
-    }
 
-    @Override
-    public void logoutWindowInstance(String indexId) {
-        super.logoutWindowInstance(indexId);
-        this.firstUpdateTime=null;
-    }
-    public  Long getOccurTime(AbstractWindow window, IMessage message) {
-        if(this.firstUpdateTime==null){
-            this.firstUpdateTime=System.currentTimeMillis();
-        }
-        return this.firstUpdateTime;
-    }
 
     @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         super.doProcessAfterRefreshConfigurable(configurableService);

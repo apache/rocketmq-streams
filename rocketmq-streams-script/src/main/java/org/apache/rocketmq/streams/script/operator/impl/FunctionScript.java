@@ -94,8 +94,10 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
             LOG.debug("empty function");
         } else {
             List<IScriptExpression> expressions=this.scriptExpressions;
-            this.optimizationCompiler=scriptOptimization.compile(this.scriptExpressions,this);
-            expressions =this.optimizationCompiler.getOptimizationExpressionList();
+            if(scriptOptimization!=null){
+                this.optimizationCompiler=scriptOptimization.compile(this.scriptExpressions,this);
+                expressions =this.optimizationCompiler.getOptimizationExpressionList();
+            }
 
             //转化成istreamoperator 接口
             for (IScriptExpression scriptExpression : expressions) {

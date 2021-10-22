@@ -79,10 +79,16 @@ public class CheckPointManager extends BasedConfigurable{
     }
 
     public void addCheckPointMessage(CheckPointMessage message){
-        this.iCheckPointStorage.addCheckPointMessage(message);
+        if(this.iCheckPointStorage!=null){
+            this.iCheckPointStorage.addCheckPointMessage(message);
+        }
+
     }
 
     public CheckPoint recover(ISource iSource, ISplit iSplit){
+        if(this.iCheckPointStorage==null){
+            return null;
+        }
         String isRecover =  ComponentCreator.getProperties().getProperty(ConfigureFileKey.IS_RECOVER_MODE);
         if(isRecover != null && Boolean.valueOf(isRecover)){
             String queueId = iSplit.getQueueId();
@@ -97,15 +103,22 @@ public class CheckPointManager extends BasedConfigurable{
     }
 
     public Set<String> getCurrentSplits() {
+
         return this.currentSplitAndLastUpdateTime.keySet();
     }
 
     public void flush(){
-        iCheckPointStorage.flush();
+        if(iCheckPointStorage!=null){
+            iCheckPointStorage.flush();
+        }
+
     }
 
     public void finish(){
-        iCheckPointStorage.finish();
+        if(iCheckPointStorage!=null){
+            iCheckPointStorage.finish();
+        }
+
     }
 
     /**

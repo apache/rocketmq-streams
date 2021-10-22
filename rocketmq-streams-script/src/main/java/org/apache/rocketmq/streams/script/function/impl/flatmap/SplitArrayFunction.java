@@ -132,13 +132,18 @@ public class SplitArrayFunction {
         }
         boolean needFlush = channelMessage.getHeader().isNeedFlush();
         context.openSplitModel();
+        int index=0;
         for (int i = 0; i < values.length; i++) {
             String value = values[i];
             if ("null".equalsIgnoreCase(value)) {
                 continue;
             }
+            if(StringUtil.isEmpty(value)){
+                continue;
+            }
             IMessage newMessage = channelMessage.deepCopy();
-            newMessage.getMessageBody().put(FunctionType.UDTF.getName() + "." + 0, value);
+            newMessage.getMessageBody().put(FunctionType.UDTF.getName()  + index, value);
+            index++;
             newMessage.getHeader().setTraceId(channelMessage.getHeader().getTraceId() + "_" + i);
             if (i < values.length - 1) {
                 newMessage.getHeader().setNeedFlush(false);
