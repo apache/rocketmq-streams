@@ -375,7 +375,7 @@ public class DataStream implements Serializable {
         StageBuilder selfChainStage = new StageBuilder() {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
-                forEachFunction.foreach((O) message.getMessageValue());
+                forEachFunction.foreach((O)message.getMessageValue());
                 return null;
             }
         };
@@ -514,28 +514,39 @@ public class DataStream implements Serializable {
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-    public DataStreamAction toRocketmq(String topic) {
-        return toRocketmq(topic, "*", null, -1, null);
+    public DataStreamAction toRocketmq(String topic, String groupName, String nameServerAddress) {
+        return toRocketmq(topic, "*", groupName, -1, nameServerAddress, null, false);
     }
 
-    public DataStreamAction toRocketmq(String topic, String namesrvAddr) {
-        return toRocketmq(topic, "*", null, -1, namesrvAddr);
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, String nameServerAddress,
+        String clusterName,
+        boolean order) {
+        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, clusterName, order);
     }
 
-    public DataStreamAction toRocketmq(String topic, String tags,
-        String namesrvAddr) {
-        return toRocketmq(topic, tags, null, -1, namesrvAddr);
-    }
-
-    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize, String namesrvAddr) {
+    public DataStreamAction toRocketmq(String topic, String tags, String groupName, int batchSize,
+        String nameServerAddress,
+        String clusterName, boolean order) {
         RocketMQSink rocketMQSink = new RocketMQSink();
+        if (StringUtils.isNotBlank(topic)) {
             rocketMQSink.setTopic(topic);
+        }
+        if (StringUtils.isNotBlank(tags)) {
             rocketMQSink.setTags(tags);
+        }
+        if (StringUtils.isNotBlank(groupName)) {
             rocketMQSink.setGroupName(groupName);
-        rocketMQSink.setNamesrvAddr(namesrvAddr);
+        }
+        if (StringUtils.isNotBlank(nameServerAddress)) {
+            rocketMQSink.setNamesrvAddr(nameServerAddress);
+        }
+        if (StringUtils.isNotBlank(clusterName)) {
+            rocketMQSink.setClusterName(clusterName);
+        }
         if (batchSize > 0) {
             rocketMQSink.setBatchSize(batchSize);
         }
+        rocketMQSink.setOrder(order);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(rocketMQSink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
