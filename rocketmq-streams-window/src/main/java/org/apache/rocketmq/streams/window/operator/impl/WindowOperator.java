@@ -336,18 +336,11 @@ public class WindowOperator extends AbstractShuffleWindow {
     public void clearFireWindowInstance(WindowInstance windowInstance) {
         String partitionNum=(getOrderBypPrefix()+ windowInstance.getSplitId());
 
-        boolean canClear=false;
+        boolean canClear=windowInstance.isCanClearResource();
         if(fireMode!=2){
             canClear=true;
         }
-        if(fireMode==2){
-            Date endTime=DateUtil.parse(windowInstance.getEndTime());
-            Date lastDate = DateUtil.addSecond(endTime, waterMarkMinute * timeUnitAdjust);
 
-            if((windowInstance.getLastMaxUpdateTime()>lastDate.getTime())){
-                canClear=true;
-            }
-        }
 
         if(canClear){
             logoutWindowInstance(windowInstance.createWindowInstanceTriggerId());

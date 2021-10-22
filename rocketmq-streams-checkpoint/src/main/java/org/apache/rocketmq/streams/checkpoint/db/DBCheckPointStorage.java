@@ -16,12 +16,14 @@
  */
 package org.apache.rocketmq.streams.checkpoint.db;
 
+import com.google.auto.service.AutoService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.checkpoint.AbstractCheckPointStorage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPoint;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
+import org.apache.rocketmq.streams.common.checkpoint.ICheckPointStorage;
 import org.apache.rocketmq.streams.common.checkpoint.SourceSnapShot;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 

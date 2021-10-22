@@ -52,15 +52,19 @@ public class EventTimeManager {
         SplitEventTimeManager splitEventTimeManager = eventTimeManagerMap.get(queueId);
         if (splitEventTimeManager != null) {
             Long currentMaxEventTime = splitEventTimeManager.getMaxEventTime();
+            if(currentMaxEventTime==null){
+                return null;
+            }
             if (eventTimeIncreasementMap.containsKey(queueId)) {
                 Long lastMaxEventTime = eventTimeIncreasementMap.get(queueId).getKey();
-                if (lastMaxEventTime.equals(currentMaxEventTime)) {
+                if (lastMaxEventTime!=null&&lastMaxEventTime.equals(currentMaxEventTime)) {
                     //increase event time as time flies to solve batch data processing issue
                     if (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight() > IWindow.SYS_DELAY_TIME) {
                         Long newEventTime = lastMaxEventTime + (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight());
                         return newEventTime;
                     }
                 } else {
+
                     eventTimeIncreasementMap.put(queueId, Pair.of(currentMaxEventTime, System.currentTimeMillis()));
                 }
             } else {

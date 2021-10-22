@@ -83,9 +83,9 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
                 if(preFingerprint!=null){
                     preFingerprint.addLogFingerprintToSource(message);
                 }
-                if(isTrace){
+               // if(isTrace){
                     traceFailExpression(message);
-                }
+                //}
             }
             return message;
         }

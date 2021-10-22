@@ -36,7 +36,7 @@ public class ShuffleOverWindowTest {
     public void testShuffleWindow(){
         StreamBuilder.dataStream("namespace", "name1")
             .fromFile(filePath,true)
-            .topN("rowNum",10,"city")
+            .topN("rowNum",10000,"city")
             .addOrderByFieldName("name",true)
             .addOrderByFieldName("age",false)
             .toDataSteam()
