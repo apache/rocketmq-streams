@@ -27,6 +27,17 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class RemoveFieldFunction {
 
+    public static boolean isFunction(String functionName) {
+        if(functionName==null){
+            return false;
+        }
+        functionName=functionName.toLowerCase();
+        if("rm".equals(functionName)||"removeField".equals(functionName)||"delete".equals(functionName)||"del".equals(functionName)){
+            return true;
+        }
+        return false;
+    }
+
     @FunctionMethod(value = "rm", alias = "removeField", comment = "删除某个字段")
     public <T> T remove(IMessage message, FunctionContext context,
                         @FunctionParamter(value = "string", comment = "字段名称，不需要引号") String fieldName) {

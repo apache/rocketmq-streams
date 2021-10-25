@@ -45,7 +45,10 @@ public class PiplineLogFingerprintAnalysis {
     public PiplineLogFingerprintAnalysis(ChainPipeline pipline) {
         this.pipline = pipline;
     }
-
+    public PiplineLogFingerprintAnalysis(ChainPipeline pipline,int filterIndex) {
+        this.pipline = pipline;
+        this.filterIndex=filterIndex;
+    }
     /**
      * 通过分析pipline找到可以过滤的日志指纹，插入到合适的stage中。如最顶部的stage中
      *
@@ -164,7 +167,7 @@ public class PiplineLogFingerprintAnalysis {
      */
     private Set<String> fetchLogFingerprint(FilterChainStage filterChainStage) {
         ChainPipeline pipline = (ChainPipeline)filterChainStage.getPipeline();
-        AbstractRule[] rules = filterChainStage.getRules();
+        List<AbstractRule> rules=filterChainStage.getRules();
         if (rules == null) {
             return null;
         }

@@ -184,6 +184,33 @@ public class ORMUtil {
     }
 
     /**
+     * 执行sql，sql中可以有mybatis的参数#{name}
+     * @param sql   insert语句
+     * @param paras 可以是map，json或对象，只要key名或字段名和sql的参数名相同即可
+     * @return
+     */
+    public static boolean executeSQL(String url, String userName, String password, String sql, Object paras) {
+        if (paras != null) {
+            sql = SQLUtil.parseIbatisSQL(paras, sql);
+        }
+        JDBCDriver dataSource = null;
+        try {
+            dataSource = DriverBuilder.createDriver(null, url, userName, password);
+            dataSource.execute(sql);
+            return true;
+        } catch (Exception e) {
+            String errorMsg = ("execute sql  error ,the sql is " + sql + ". the error msg is " + e.getMessage());
+            LOG.error(errorMsg);
+            e.printStackTrace();
+            throw new RuntimeException(errorMsg, e);
+        } finally {
+            if (dataSource != null) {
+                dataSource.destroy();
+            }
+        }
+    }
+
+    /**
      * 把一个对象的字段拼接成where条件，如果字段值为null，不拼接
      *
      * @param object     带拼接的对象

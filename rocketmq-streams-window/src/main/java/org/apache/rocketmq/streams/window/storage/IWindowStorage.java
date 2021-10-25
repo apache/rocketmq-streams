@@ -48,8 +48,8 @@ public interface IWindowStorage<T extends WindowBaseValue> extends ICommonStorag
      * 加载一个窗口实例的数据到本地存储
      */
     WindowBaseValueIterator<T> loadWindowInstanceSplitData(String localStorePrefix, String queueId,
-        String windowInstanceId, String keyPrefix,
-        Class<T> clazz);
+                                                           String windowInstanceId, String keyPrefix,
+                                                           Class<T> clazz);
 
     /**
      * 这个窗口实例，最大的分片序列号，主要是通过db获取

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
@@ -33,14 +34,15 @@ import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.LogFingerprintFilter;
 import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintMetric;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.topology.model.PipelineSourceJoiner;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class
@@ -63,24 +65,10 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
     private transient AtomicLong FIRE_RULE_COUNT = new AtomicLong(0);//触发规则的个数
     protected transient Long firstReceiveTime = null;//最早的处理时间
 
-    /**
-     * 过滤器会通过反射创建，需要无参，创建后对象是AbstractMessageRepeateFileter
-     */
-    protected String filterClassName;
-    protected volatile transient LogFingerprintFilter messageRepeateFileter = null;//对pipline做去重
     @ENVDependence
     protected String filterMsgFieldNames;//需要去重的字段列表，用逗号分割
     @ENVDependence
     protected String filterMsgSwitch;//开启过滤的开关
-
-    /**
-     * pipline是否可以过滤，通过过滤表达式用到的字段是否全部包含在过滤字段来做判读
-     */
-    //protected transient Map<String,Boolean> piplineCanFilter=new HashMap<>();
-
-    //protected transient Map<String, ChannelCache> piplineName2Cache=new HashMap<>();
-
-    //protected transient Map<String,Integer> piplineName2SyncCount=new HashMap<>();
 
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
@@ -120,24 +108,26 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
             int index = 0;
             //可以启动重复过滤，把日志中的必须字段抽取出来，做去重，如果某个日志，在某个pipline执行不成功，下次类似日志过来，直接过滤掉
             String msgKey = getFilterKey(message);
-            int repeateValue = getFilterValue(msgKey);
+            BitSetCache.BitSet bitSet = getFilterValue(msgKey);
+            if(bitSet==null&&"true".equals(filterMsgSwitch)){
+                bitSet=new BitSetCache.BitSet(piplines.size());
+            }
             boolean needPrint = true;
             for (ChainPipeline pipline : piplines) {
 
                 //Boolean canFilter=piplineCanFilter.get(pipline.getConfigureName());
-                if (canFilter(repeateValue, index)) {
+                if (bitSet!=null&&bitSet.get(index)) {
                     index++;
-                    long filterCount = FILTER_COUNT.incrementAndGet();
-                    double rate = (double)messageRepeateFileter.getRowCount() / (double)COUNT.get();
-                    rate = 1 - rate;
+                    FingerprintMetric fingerprintMetric=FingerprintCache.getInstance().getOrCreateMetric(getOrCreateFingerNameSpace());
+
+                    double rate = fingerprintMetric.getHitCacheRate();
                     double fireRate = (double)FIRE_RULE_COUNT.get() / (double)COUNT.get();
                     if (COUNT.get() % 1000 == 0 && needPrint) {
                         needPrint = false;
                         System.out.println(
-                            "qps is " + qps + ",the count is " + COUNT.get() + " the filter count is " + filterCount
-                                + " the filter store is " + messageRepeateFileter.getRowCount() + "，the revers rate is "
-                                + rate + " 。 the memory is " + messageRepeateFileter.getByteSize()
-                                + "M, the fire rule rate is " + fireRate);
+                            "qps is " + qps + ",the count is " + COUNT.get() + " the cache hit  rate " + rate
+                                + " the cache size is " + fingerprintMetric.getCacheSize() + "，"
+                                + "the fire rule rate is " + fireRate);
                     }
                     continue;
                 }
@@ -151,7 +141,10 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
 
                     pipline.doMessage(copyMessage, newContext);
                     if (!MessageGloableTrace.existFinshBranch(copyMessage)) {
-                        addNoFireMessage(msgKey, index);
+                        if(bitSet!=null){
+                            bitSet.set(index);
+                            addNoFireMessage(msgKey,bitSet);
+                        }
                     }
                     if (MessageGloableTrace.existFinshBranch(copyMessage)) {
                         FIRE_RULE_COUNT.incrementAndGet();
@@ -181,40 +174,31 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
         return false;
     }
 
-    protected boolean canFilter(int repeateValue, int index) {
-        if (this.messageRepeateFileter == null) {
-            return false;
-        }
-        if (!"true".equals(this.filterMsgSwitch)) {
-            return false;
-        }
-        return messageRepeateFileter.canFilter(repeateValue, index);
-    }
 
     /**
      * 如果确定这个message，在某个pipline不触发，则记录下来，下次直接跳过，不执行
      *
      * @param msgKey
-     * @param index
+     * @param bitSet
      */
-    protected void addNoFireMessage(String msgKey, int index) {
-        if (this.messageRepeateFileter == null) {
-            return;
-        }
+    protected void addNoFireMessage(String msgKey, BitSetCache.BitSet bitSet) {
+
         if (!"true".equals(this.filterMsgSwitch)) {
             return;
         }
-        messageRepeateFileter.addNoFireMessage(msgKey, index);
+        FingerprintCache.getInstance().addLogFingerprint(getOrCreateFingerNameSpace(),msgKey,bitSet);
     }
 
     protected String getFilterKey(IMessage message) {
-        if (this.messageRepeateFileter == null) {
-            return null;
-        }
+
         if (!"true".equals(this.filterMsgSwitch)) {
             return null;
         }
-        return messageRepeateFileter.createMessageKey(message, filterMsgFieldNames);
+        if(this.filterMsgFieldNames==null){
+            return null;
+        }
+
+        return FingerprintCache.creatFingerpringKey(message,getOrCreateFingerNameSpace(), filterMsgFieldNames);
     }
 
     /**
@@ -223,14 +207,20 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
      * @param msgKey
      * @return
      */
-    protected int getFilterValue(String msgKey) {
-        if (this.messageRepeateFileter == null) {
-            return 0;
+    protected transient String fingerNameSpace;
+
+    protected String getOrCreateFingerNameSpace(){
+        if(fingerNameSpace==null){
+            fingerNameSpace= MapKeyUtil.createKey(this.getNameSpace(),this.getPipeline().getName(),getClass().getName());
         }
+        return this.fingerNameSpace;
+    }
+    protected BitSetCache.BitSet getFilterValue(String msgKey) {
         if (!"true".equals(this.filterMsgSwitch)) {
-            return 0;
+            return null;
         }
-        return messageRepeateFileter.getFilterValue(msgKey);
+
+        return FingerprintCache.getInstance().getLogFingerprint(getOrCreateFingerNameSpace(),msgKey);
     }
 
     @Override
@@ -288,9 +278,6 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
         });
         if (!equalsPiplines(this.piplines, piplines)) {
             this.piplines = piplines;
-            if (filterMsgFieldNames != null && "true".equals(this.filterMsgSwitch)) {
-                this.messageRepeateFileter = ReflectUtil.forInstance(filterClassName);
-            }
 
         }
 
@@ -399,11 +386,4 @@ SubPiplineChainStage<T extends IMessage> extends ChainStage<T> implements IAfter
         this.filterMsgSwitch = filterMsgSwitch;
     }
 
-    public String getFilterClassName() {
-        return filterClassName;
-    }
-
-    public void setFilterClassName(String filterClassName) {
-        this.filterClassName = filterClassName;
-    }
 }

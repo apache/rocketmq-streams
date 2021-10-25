@@ -34,6 +34,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configure.StreamsConfigure;
+import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAfterCurrentNode;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
@@ -41,6 +43,8 @@ import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
+import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
@@ -71,6 +75,7 @@ import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
+import org.python.antlr.ast.Str;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
@@ -89,7 +94,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     /**
      * 用消息中的哪个字段做时间字段
      */
-    protected String timeFieldName;
+    protected String timeFieldName ;
 
     /**
      * having column in having clause eg: key:'having_sum_0001' value:'having_sum_0001=SUM(OrderPrice)<2000' note: here ignore the logical relation value may be multi expression which split by ${SCRIPT_SPLIT_CHAR} update: change sql(move the function into select clause) to escape function in having clause
@@ -104,7 +109,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     /**
      * SQL中group by的字段，使用;拼接，如"name;age"
      */
-    protected String groupByFieldName;
+    protected String groupByFieldName ;
 
     /**
      * 意义同blink中，允许最晚的消息到达时间，单位是分钟
@@ -122,7 +127,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     /**
      * 主要是做兼容，以前设计的窗口时间是分钟为单位，如果有秒作为窗口时间的，通过设置timeUnitAdjust=1来实现。 后续需要调整成直接秒级窗口
      */
-    protected int timeUnitAdjust = 60;
+    protected  int timeUnitAdjust=60;
     /**
      * the variable name of window size which can be got from message
      */
@@ -146,14 +151,19 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     /**
      * 默认为空，窗口的触发类似flink，在测试模式下，因为消息有界，期望当消息发送完成后能触发，可以设置两条消息的最大间隔，超过这个间隔，将直接触发消息
      */
-    protected Long msgMaxGapSecond = 10L;
+    protected Long msgMaxGapSecond=10L;
 
+    protected String havingExpression;
+
+    protected Long emitBeforeValue;//output frequency before window fire
+    protected Long emitAfterValue;// output frequency after window fire
+    protected Long maxDelay=60*60L;//when emitAfterValue>0, window last delay time after window fired
     /**
      * 是否支持过期数据的计算 过期：当前时间大于数据所在窗口的触发时间
      */
-    protected int fireMode = 0;//0:普通触发,firetime后收到数据丢弃；1:多实例多次独立触发，在watermark时间内，同starttime，endtime创建多个实例，多次触发；2.单实例，多次独立触发，每次触发是最新值
+    protected int fireMode=0;//0:普通触发,firetime后收到数据丢弃；1:多实例多次独立触发，在watermark时间内，同starttime，endtime创建多个实例，多次触发；2.单实例，多次独立触发，每次触发是最新值
 
-    protected boolean isLocalStorageOnly = true;//是否只用本地存储，可以提高性能，但不保证可靠性
+    protected boolean isLocalStorageOnly=true;//是否只用本地存储，可以提高性能，但不保证可靠性
     protected String reduceSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient IReducer reducer;
     /**
@@ -207,12 +217,12 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         /**
          * 如果没有db配置，不开启远程存储服务
          */
-        if (!ORMUtil.hasConfigueDB()) {
-            isLocalStorageOnly = true;
+        if(!ORMUtil.hasConfigueDB()){
+            isLocalStorageOnly=true;
         }
-        sqlCache = new SQLCache(isLocalStorageOnly);
-        AbstractWindow window = this;
-        windowCache = new WindowCache() {
+        sqlCache=new SQLCache(isLocalStorageOnly);
+        AbstractWindow window=this;
+        windowCache=new WindowCache(){
 
             @Override
             protected String generateShuffleKey(IMessage message) {
@@ -228,12 +238,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         initFunctionExecutor();
         //启动shuffle channel 实现消息shuffle以及接收shuffle消息并处理
         // FireManager.getInstance().startFireCheck();
-        if (StringUtil.isNotEmpty(this.reduceSerializeValue)) {
-            byte[] bytes = Base64Utils.decode(this.reduceSerializeValue);
+        if(StringUtil.isNotEmpty(this.reduceSerializeValue)){
+            byte[] bytes= Base64Utils.decode(  this.reduceSerializeValue);
             reducer = InstantiationUtil.deserializeObject(bytes);
         }
-        eventTimeManager = new EventTimeManager();
-        windowMaxValueManager = new WindowMaxValueManager(this, sqlCache);
+        eventTimeManager=new EventTimeManager();
+        windowMaxValueManager = new WindowMaxValueManager(this,sqlCache);
+
+
         return success;
     }
 
@@ -282,22 +294,26 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     }
     */
 
-    public WindowInstance createWindowInstance(String startTime, String endTime, String fireTime, String splitId) {
-        WindowInstance windowInstance = new WindowInstance();
+    public  WindowInstance createWindowInstance(String startTime, String endTime, String fireTime,String splitId) {
+        WindowInstance windowInstance =new WindowInstance();
         windowInstance.setFireTime(fireTime);
         windowInstance.setStartTime(startTime);
         windowInstance.setEndTime(endTime);
         windowInstance.setSplitId(splitId);
         windowInstance.setGmtCreate(new Date());
         windowInstance.setGmtModified(new Date());
-        windowInstance.setWindowInstanceName(createWindowInstanceName(startTime, endTime, fireTime));
+        windowInstance.setWindowInstanceName(createWindowInstanceName(startTime,endTime,fireTime));
         windowInstance.setWindowName(getConfigureName());
         windowInstance.setWindowNameSpace(getNameSpace());
-        String windowInstanceId = windowInstance.createWindowInstanceId();
+        String windowInstanceId =windowInstance.createWindowInstanceId();
         String dbWindowInstanceId = StringUtil.createMD5Str(windowInstanceId);
         windowInstance.setWindowInstanceKey(dbWindowInstanceId);
-
-        windowInstance.setWindowInstanceSplitName(StringUtil.createMD5Str(MapKeyUtil.createKey(getNameSpace(), getConfigureName(), splitId)));
+        if(fireMode==2){
+            windowInstance.setCanClearResource(false);
+        }else {
+            windowInstance.setCanClearResource(true);
+        }
+        windowInstance.setWindowInstanceSplitName(StringUtil.createMD5Str(MapKeyUtil.createKey(getNameSpace(), getConfigureName(),splitId)));
         windowInstance.setNewWindowInstance(true);
         return windowInstance;
     }
@@ -310,8 +326,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @param fireTime
      * @return
      */
-    public String createWindowInstanceName(String startTime, String endTime, String fireTime) {
-        return fireMode == 0 ? getConfigureName() : fireTime;
+    public String createWindowInstanceName(String startTime, String endTime, String fireTime){
+        return (fireMode==0||fireMode==2)?getConfigureName():fireTime;
     }
 
     /**
@@ -322,14 +338,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @return
      */
 
-    public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
-        long maxValue = windowMaxValueManager.incrementAndGetSplitNumber(instance, shuffleId);
+    public long incrementAndGetSplitNumber(WindowInstance instance,String shuffleId){
+        long maxValue= windowMaxValueManager.incrementAndGetSplitNumber(instance,shuffleId);
         return maxValue;
     }
 
     public abstract Class getWindowBaseValueClass();
 
-    public abstract int fireWindowInstance(WindowInstance windowInstance, Map<String, String> queueId2Offset);
+    public abstract int fireWindowInstance(WindowInstance windowInstance,Map<String,String>queueId2Offset) ;
 
     /**
      * 计算每条记录的group by值，对于groupby分组，里面任何字段不能为null值，如果为null值，这条记录会被忽略
@@ -337,21 +353,21 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @param message
      * @return
      */
-    protected String generateShuffleKey(IMessage message) {
+    protected String generateShuffleKey(IMessage message){
         if (StringUtil.isEmpty(groupByFieldName)) {
             return null;
         }
-        JSONObject msg = message.getMessageBody();
+        JSONObject msg=message.getMessageBody();
         String[] fieldNames = groupByFieldName.split(";");
-        String[] values = new String[fieldNames.length];
+        String[] values=new String[fieldNames.length];
         boolean isFirst = true;
-        int i = 0;
+        int i=0;
         for (String filedName : fieldNames) {
             if (isFirst) {
                 isFirst = false;
             }
             String value = msg.getString(filedName);
-            values[i] = value;
+            values[i]=value;
             i++;
         }
         return MapKeyUtil.createKey(values);
@@ -359,8 +375,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
 
     public abstract void clearFireWindowInstance(WindowInstance windowInstance);
 
-    public void clearFire(WindowInstance windowInstance) {
-        if (windowInstance == null) {
+    public void clearFire(WindowInstance windowInstance){
+        if(windowInstance==null){
             return;
         }
         clearFireWindowInstance(windowInstance);
@@ -412,7 +428,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
                             scriptBuilder = new StringBuilder();
                         }
                         String[] functionParameterNames = scriptParameterList.stream().map(
-                                scriptParameter -> scriptParameter.getScriptParameterStr()).collect(Collectors.toList())
+                            scriptParameter -> scriptParameter.getScriptParameterStr()).collect(Collectors.toList())
                             .toArray(new String[0]);
                         AggregationScript accEngine = new AggregationScript(
                             ((ScriptExpression)expression).getNewFieldName(), functionName,
@@ -460,8 +476,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @param message
      * @return
      */
-    public List<WindowInstance> queryOrCreateWindowInstance(IMessage message, String queueId) {
-        return WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
+    public List<WindowInstance> queryOrCreateWindowInstance(IMessage message,String queueId) {
+        return  WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust,
             queueId);
     }
 
@@ -503,8 +519,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @param msg
      * @return
      */
-    public void updateMaxEventTime(IMessage msg) {
-        eventTimeManager.updateEventTime(msg, this);
+    public void updateMaxEventTime(IMessage msg){
+        eventTimeManager.updateEventTime(msg,this);
     }
 
     public Long getMaxEventTime(String queueId) {
@@ -516,15 +532,15 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      *
      * @param windowValueList
      */
-    public void sendFireMessage(List<WindowValue> windowValueList, String queueId) {
+    public void sendFireMessage(List<WindowValue> windowValueList,String queueId) {
         int count = 0;
-        List<IMessage> msgs = new ArrayList<>();
+        List<IMessage> msgs=new ArrayList<>();
         for (WindowValue windowValue : windowValueList) {
             JSONObject message = new JSONObject();
 
-            if (JSONObject.class.isInstance(windowValue.getcomputedResult())) {
-                message = (JSONObject)windowValue.getcomputedResult();
-            } else {
+            if(JSONObject.class.isInstance(windowValue.getcomputedResult())){
+                message=(JSONObject)windowValue.getcomputedResult();
+            }else {
                 Iterator<Entry<String, Object>> it = windowValue.iteratorComputedColumnResult();
                 while (it.hasNext()) {
                     Entry<String, Object> entry = it.next();
@@ -532,35 +548,42 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
                 }
             }
 
-            Long fireTime = DateUtil.parseTime(windowValue.getFireTime()).getTime();
-            long baseTime = 1577808000000L;//set base time from 2021-01-01 00:00:00
-            int sameFireCount = 0;
-            if (fireMode != 0) {
-                Long endTime = DateUtil.parseTime(windowValue.getEndTime()).getTime();
-                sameFireCount = (int)((fireTime - endTime) / 1000) / sizeInterval * timeUnitAdjust;
-                if (sameFireCount >= 1) {
-                    sameFireCount = 1;
+            if(StringUtil.isNotEmpty(havingExpression)){
+                boolean isMatch= ExpressionBuilder.executeExecute("tmp",havingExpression,message);
+                if(!isMatch){
+                   continue;
+                }
+            }
+            Long fireTime=DateUtil.parseTime(windowValue.getFireTime()).getTime();
+            long baseTime= 1577808000000L  ;//set base time from 2021-01-01 00:00:00
+            int sameFireCount=0;
+            if(fireMode!=0){
+                Long endTime=DateUtil.parseTime(windowValue.getEndTime()).getTime();
+                sameFireCount=(int)((fireTime-endTime)/1000)/sizeInterval*timeUnitAdjust;
+                if(sameFireCount>=1){
+                    sameFireCount=1;
                 }
             }
             //can keep offset in order
-            Long offset = ((fireTime - baseTime) / 1000 * 10 + sameFireCount) * 100000000 + windowValue.getPartitionNum();
-            message.put("windowInstanceId", windowValue.getWindowInstancePartitionId());
-            message.put("start_time", windowValue.getStartTime());
-            message.put("end_time", windowValue.getEndTime());
-            message.put("offset", offset);
-            Message newMessage = windowFireSource.createMessage(message, queueId, offset + "", false);
+            Long offset=((fireTime-baseTime)/1000*10+sameFireCount)*100000000+windowValue.getPartitionNum();
+            message.put("windowInstanceId",windowValue.getWindowInstancePartitionId());
+            message.put("start_time",windowValue.getStartTime());
+            message.put("end_time",windowValue.getEndTime());
+            message.put("offset",offset);
+            Message newMessage=windowFireSource.createMessage(message,queueId,offset+"",false);
             newMessage.getHeader().setOffsetIsLong(true);
             if (count == windowValueList.size() - 1) {
                 newMessage.getHeader().setNeedFlush(true);
             }
+
             msgs.add(newMessage);
             windowFireSource.executeMessage(newMessage);
 
             count++;
         }
 
-        if (DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()) {
-            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowFire(this, msgs, queueId);
+        if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
+            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowFire(this,msgs,queueId);
         }
     }
 
@@ -720,7 +743,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     public void setReducer(IReducer reducer) {
         this.reducer = reducer;
         byte[] bytes = InstantiationUtil.serializeObject(reducer);
-        this.reduceSerializeValue = Base64Utils.encode(bytes);
+        this.reduceSerializeValue=Base64Utils.encode(bytes);
     }
 
     public int getTimeUnitAdjust() {
@@ -785,9 +808,41 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return sqlCache;
     }
 
-    public void initWindowInstanceMaxSplitNum(WindowInstance instance) {
-        getWindowMaxValueManager().initMaxSplitNum(instance, queryWindowInstanceMaxSplitNum(instance));
+    public void initWindowInstanceMaxSplitNum(WindowInstance instance){
+        getWindowMaxValueManager().initMaxSplitNum(instance,queryWindowInstanceMaxSplitNum(instance));
     }
 
     protected abstract Long queryWindowInstanceMaxSplitNum(WindowInstance instance);
+
+    public String getHavingExpression() {
+        return havingExpression;
+    }
+
+    public void setHavingExpression(String havingExpression) {
+        this.havingExpression = havingExpression;
+    }
+
+    public Long getEmitBeforeValue() {
+        return emitBeforeValue;
+    }
+
+    public void setEmitBeforeValue(Long emitBeforeValue) {
+        this.emitBeforeValue = emitBeforeValue;
+    }
+
+    public Long getEmitAfterValue() {
+        return emitAfterValue;
+    }
+
+    public void setEmitAfterValue(Long emitAfterValue) {
+        this.emitAfterValue = emitAfterValue;
+    }
+
+    public Long getMaxDelay() {
+        return maxDelay;
+    }
+
+    public void setMaxDelay(Long maxDelay) {
+        this.maxDelay = maxDelay;
+    }
 }

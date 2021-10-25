@@ -27,6 +27,8 @@ public class CheckPointMessage implements ISystemMessage {
     protected IStreamOperator streamOperator;//当前的pipline
     protected List<CheckPointState> checkPointStates = new ArrayList<>();
     protected boolean isValidate = true;
+    protected String pipelineName;
+
 
     public ISource getSource() {
         return source;
@@ -67,5 +69,13 @@ public class CheckPointMessage implements ISystemMessage {
 
     public boolean isValidate() {
         return isValidate;
+    }
+
+    public String getPipelineName() {
+        return pipelineName;
+    }
+
+    public void setPipelineName(String pipelineName) {
+        this.pipelineName = pipelineName;
     }
 }

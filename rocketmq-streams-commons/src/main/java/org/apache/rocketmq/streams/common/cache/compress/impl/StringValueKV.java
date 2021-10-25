@@ -31,8 +31,8 @@ public class StringValueKV implements ICacheKV<String> {
     protected final static String CODE = "UTF-8";
     protected ByteArrayValueKV values;
 
-    public StringValueKV(int capacity, boolean isFixedLength) {
-        values = new ByteArrayValueKV(capacity, isFixedLength);
+    public StringValueKV(int capacity) {
+        values = new ByteArrayValueKV(capacity);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class StringValueKV implements ICacheKV<String> {
     public static void main(String[] args) throws InterruptedException {
         int count = 10000000;
 
-        StringValueKV map = new StringValueKV(count, false);
+        StringValueKV map = new StringValueKV(count);
         long start = System.currentTimeMillis();
         for (int i = 0; i < count; i++) {
             map.put("sdfsdfdds" + i, i + "");

@@ -19,8 +19,13 @@ package org.apache.rocketmq.streams.window.shuffle;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -29,37 +34,32 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
-import org.apache.rocketmq.streams.window.model.WindowCache;
-import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator.WindowRowOperator;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 负责处理分片
@@ -69,7 +69,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     protected static final Log LOG = LogFactory.getLog(ShuffleChannel.class);
 
     protected static final String SHUFFLE_QUEUE_ID = "SHUFFLE_QUEUE_ID";
-    protected static final String SHUFFLE_OFFSET = "SHUFFLE_OFFSET";
+    public static final String SHUFFLE_OFFSET = "SHUFFLE_OFFSET";
     protected static final String SHUFFLE_MESSAGES = "SHUFFLE_MESSAGES";
     protected String MSG_OWNER = "MSG_OWNER";//消息所属的window
 
@@ -96,6 +96,28 @@ public class ShuffleChannel extends AbstractSystemChannel {
         channelConfig = new HashMap<>();
         channelConfig.put(CHANNEL_PROPERTY_KEY_PREFIX, ConfigureFileKey.WINDOW_SHUFFLE_CHANNEL_PROPERTY_PREFIX);
         channelConfig.put(CHANNEL_TYPE, ConfigureFileKey.WINDOW_SHUFFLE_CHANNEL_TYPE);
+
+
+        this.shuffleCache = new ShuffleCache(window);
+        this.shuffleCache.init();
+        this.shuffleCache.openAutoFlush();
+
+
+    }
+
+    protected transient AtomicBoolean hasStart=new AtomicBoolean(false);
+    @Override public void startChannel() {
+        if(hasStart.compareAndSet(false,true)){
+            init();
+            super.startChannel();
+        }
+
+    }
+
+    /**
+     * init shuffle channel
+     */
+    public void init(){
         this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
 
         this.producer = createSink(window.getNameSpace(), window.getConfigureName());
@@ -105,11 +127,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         if (this.consumer instanceof AbstractSource) {
             ((AbstractSource) this.consumer).setJsonData(true);
         }
-
-        this.shuffleCache = new ShuffleCache(window);
-        this.shuffleCache.init();
-        this.shuffleCache.openAutoFlush();
-
         if (producer != null && (queueList == null || queueList.size() == 0)) {
             queueList = producer.getSplitList();
             Map<String, ISplit> tmp = new ConcurrentHashMap<>();
@@ -120,7 +137,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
             this.queueMap = tmp;
         }
     }
-
 
     /**
      * 接收到分片信息，如果是系统消息，做缓存刷新，否则把消息放入缓存，同时计算存储的有效性
@@ -338,7 +354,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     @Override
     protected String createShuffleTopic(String topic, ChainPipeline pipeline) {
         return "shuffle_" + topic + "_" + pipeline.getSource().getNameSpace().replaceAll("\\.", "_") + "_" + pipeline
-                .getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
+            .getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
     }
 
     /**
@@ -399,11 +415,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             for (int i = 0; i < messages.size(); i++) {
                 JSONObject object = messages.getJSONObject(i);
                 groupByList.add(object.getString("SHUFFLE_KEY"));
-
-                MessageHeader messageHeader = object.getObject("MessageHeader", MessageHeader.class);
-                if (messageHeader != null) {
-                    traceList.add(messageHeader.getTraceId());
-                }
+                traceList.add(object.getJSONObject("MessageHeader").getString("traceId"));
             }
             String traceInfo = StringUtils.join(traceList);
             String groupInfo = StringUtils.join(groupByList);

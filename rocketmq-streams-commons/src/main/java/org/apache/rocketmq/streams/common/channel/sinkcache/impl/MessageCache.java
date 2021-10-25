@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sinkcache.DataSourceAutoFlushTask;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
+import org.apache.rocketmq.streams.common.utils.ThreadUtil;
 
 /**
  * 消息缓存的实现，通过消息队列做本地缓存。目前多是用了这个实现
@@ -32,15 +33,13 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 public class MessageCache<R> implements IMessageCache<R> {
 
     protected IMessageFlushCallBack<R> flushCallBack;
-
     protected volatile AtomicInteger messageCount = new AtomicInteger(0);//缓存中的数据条数
     protected int batchSize = 1000;//最大缓存条数，超过后需要，刷新出去，做内存保护
     protected transient DataSourceAutoFlushTask autoFlushTask;//自动任务刷新，可以均衡实时性和吞吐率
     protected volatile transient ConcurrentLinkedQueue<R> dataQueue = new ConcurrentLinkedQueue<>();//缓存数据的消息队列
-
     protected AtomicBoolean openAutoFlushLock = new AtomicBoolean(false);
-    protected volatile int autoFlushSize=300;
-    protected volatile int autoFlushTimeGap=1000;
+    protected volatile int autoFlushSize = 300;
+    protected volatile int autoFlushTimeGap = 1000;
 
 
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
@@ -70,6 +69,7 @@ public class MessageCache<R> implements IMessageCache<R> {
             autoFlushTask.setAutoFlushSize(this.autoFlushSize);
             autoFlushTask.setAutoFlushTimeGap(this.autoFlushTimeGap);
             Thread thread = new Thread(autoFlushTask);
+            thread.setName("memory-cache-auto-flush-task-" + flushCallBack.getClass().getSimpleName());
             thread.start();
         }
     }

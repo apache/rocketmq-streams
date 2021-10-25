@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IExpressionResultCache;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
@@ -32,6 +33,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
+import org.apache.rocketmq.streams.script.optimization.compile.CompileParameter;
 import org.apache.rocketmq.streams.script.optimization.compile.CompileScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
@@ -47,6 +49,11 @@ public class ScriptExpression implements IScriptExpression {
 
     private String newFieldName;
 
+    protected transient Boolean ismutilField;//mutil fields eg :a.b.c
+
+
+
+
     private String expressionStr;
 
     private String functionName;
@@ -56,18 +63,32 @@ public class ScriptExpression implements IScriptExpression {
     private Long groupId;
 
     protected transient volatile CompileScriptExpression compileScriptExpression;
+
+    protected transient volatile CompileParameter compileParameter;
     private transient static ICache<String, Boolean> cache = new SoftReferenceCache<>();
 
     @Override
     public Object executeExpression(IMessage message, FunctionContext context) {
 
         try {
+            if(ismutilField==null&&newFieldName!=null){
+                ismutilField=newFieldName.indexOf(".")!=-1;
+            }
+            Boolean isMatch=context.matchFromCache(message,this);
+            if(isMatch!=null){
+                setValue2Var(message, context, newFieldName, isMatch);
+                return isMatch;
+            }
+
             if (StringUtil.isEmpty(functionName)) {
-                Object value = parameters.get(0).getScriptParamter(message, context);
-                setValue2Var(message, context, newFieldName,
-                    FunctionUtils.getValue(message, context, value.toString()));
+                if(compileParameter==null){
+                    compileParameter=new CompileParameter(parameters.get(0),false);
+                }
+                Object value = compileParameter.getValue(message, context);
+                setValue2Var(message, context, newFieldName, value);
                 return value;
             }
+
             Object value = null;
             if (compileScriptExpression != null) {
                 value = compileScriptExpression.execute(message, context);
@@ -137,7 +158,7 @@ public class ScriptExpression implements IScriptExpression {
         if (newFieldName == null || value == null) {
             return;
         }
-        if (newFieldName.indexOf(".") == -1) {
+        if ( !ismutilField) {
             message.getMessageBody().put(newFieldName, value);
             return;
         }

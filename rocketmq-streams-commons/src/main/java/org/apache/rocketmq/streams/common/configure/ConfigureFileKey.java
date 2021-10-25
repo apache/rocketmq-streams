@@ -107,6 +107,8 @@ public interface ConfigureFileKey {
     String DIPPER_WINDOW_DEFAULT_FIRE_DELAY_SECOND = "dipper.window.default.fire.delay.second";
     //统计默认的窗口大小，单位是分钟。默认是滚动窗口，大小是1个小时
     String DIPPER_WINDOW_DEFAULT_INERVAL_SIZE = "dipper.window.default.iterval.size.time";
+    //统计默认的窗口大小，单位是分钟。默认是滚动窗口，大小是1个小时
+    String DIPPER_WINDOW_DEFAULT_TIME_UNIT_ADJUST = "dipper.window.default.time.unit.adjust";
     //over partition窗口的默认时间
     String DIPPER_WINDOW_OVER_DEFAULT_ITERVA_SIZE = "dipper.window.over.default.iterval.size.time";
 
@@ -139,5 +141,11 @@ public interface ConfigureFileKey {
     String WINDOW_SYSTEM_MESSAGE_CHENNEL_PROPERTY_PREFIX = "window.system.message.channel.";
 
     String LEASE_STORAGE_NAME = "DB";//通过这个配置，可以修改lease 的底层存储
+
+    String CHECKPOINT_STORAGE_NAME = "checkPointStorageName";
+
+    String IS_RECOVER_MODE = "isRecover";
+
+    String IS_ATOMIC_DB_SINK = "isAtomicDbSink";
 
 }

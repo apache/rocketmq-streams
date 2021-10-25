@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.channel.source;
 
-import java.util.Set;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
@@ -73,5 +72,23 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
      * @return checkpoint时间
      */
     long getCheckpointTime();
+
+    /**
+     *
+     * @param topic
+     */
+    void setTopic(String topic);
+
+    /**
+     *
+     * @return
+     */
+    String getTopic();
+
+    /**
+     * 创建checkpoint名字
+     * @return checkpoint key name
+     */
+    String createCheckPointName();
 
 }

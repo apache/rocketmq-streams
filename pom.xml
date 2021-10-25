@@ -52,7 +52,8 @@
         <module>rocketmq-streams-channel-http</module>
         <module>rocketmq-streams-state</module>
         <module>rocketmq-streams-examples</module>
-
+        <module>rocketmq-streams-checkpoint</module>
+        <module>rocketmq-streams-connectors</module>
     </modules>
 
     <properties>
@@ -69,7 +70,7 @@
         <commons-logging.version>1.1</commons-logging.version>
         <spring.version>3.2.13.RELEASE</spring.version>
         <auto-service.version>1.0-rc5</auto-service.version>
-        <mysql-connector.version>8.0.26</mysql-connector.version>
+        <mysql-connector.version>5.1.40</mysql-connector.version>
         <fastjson.version>1.2.78</fastjson.version>
         <quartz.version>2.2.1</quartz.version>
         <httpclient.version>4.5.2</httpclient.version>
@@ -88,6 +89,8 @@
         <scala-library.version>2.12.4</scala-library.version>
         <logback-core.version>1.2.3</logback-core.version>
         <minio.version>3.0.10</minio.version>
+        <rocksdbjni.version>6.6.4</rocksdbjni.version>
+
     </properties>
 
 
@@ -112,13 +115,12 @@
                         <exclude>.asf.yaml</exclude>
                         <exclude>README.md</exclude>
                         <exclude>README-Chinese.md</exclude>
-                        <exclude>quick_start.md</exclude>
+                        <exclude>QUICKSTART.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
                         <exclude>**/*.txt</exclude>
                         <exclude>**/*.cs</exclude>
-                        <exclude>**/*.sql</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -178,9 +180,15 @@
             <!-- ================================================= -->
             <!-- rocketmq streams library -->
             <!-- ================================================= -->
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-commons</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-dbinit</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -285,10 +293,9 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-dbinit</artifactId>
+                <artifactId>rocketmq-streams-connectors</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
 
             <!-- ================================================= -->
             <!-- rocketmq library -->
