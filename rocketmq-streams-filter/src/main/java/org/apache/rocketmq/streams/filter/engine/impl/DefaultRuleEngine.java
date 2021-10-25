@@ -18,12 +18,15 @@ package org.apache.rocketmq.streams.filter.engine.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.plaf.basic.BasicOptionPaneUI;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.monitor.group.MonitorCommander;
+import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.filter.contants.RuleStatus;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.context.RuleMessage;
@@ -42,16 +45,16 @@ public class DefaultRuleEngine implements IRuleEngine {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public List<Rule> executeRule(RuleMessage message, List<Rule> rules) {
+    public List<Rule> executeRule(IMessage message, List<Rule> rules) {
         return executeRule(null, message, rules, true);
     }
 
     @Override
-    public List<Rule> executeRule(AbstractContext context, RuleMessage message, List<Rule> rules) {
+    public List<Rule> executeRule(AbstractContext context, IMessage message, List<Rule> rules) {
         return executeRule(context, message, rules, true);
     }
 
-    protected List<Rule> executeRule(AbstractContext context, RuleMessage message, List<Rule> rules, boolean isAction) {
+    protected List<Rule> executeRule(AbstractContext context, IMessage message, List<Rule> rules, boolean isAction) {
         IMonitor rulesMonitor = null;
         IMonitor monitor = null;
         if (context != null) {
@@ -66,7 +69,7 @@ public class DefaultRuleEngine implements IRuleEngine {
                 return fireRules;
             }
             try {
-
+                boolean isTrace= TraceUtil.hit(message.getHeader().getTraceId());
                 for (Rule rule : excuteRules) {
                     RuleContext ruleContext = new RuleContext(message.getMessageBody(), rule);
                     if (context != null) {
@@ -80,8 +83,8 @@ public class DefaultRuleEngine implements IRuleEngine {
 
                     try {
 
-                        boolean isFireRule = executeRule(ruleContext, rule);
-                        if (isFireRule == false) {
+                        boolean isFireRule = processExpress( rule,ruleContext,isTrace);
+                        if (isFireRule == false&&isTrace) {
                             TopologyFilterMonitor piplineExecutorMonitor = message.getHeader().getPiplineExecutorMonitor();
                             if (piplineExecutorMonitor != null) {
                                 piplineExecutorMonitor.setNotFireRule(rule.getConfigureName());
@@ -141,7 +144,7 @@ public class DefaultRuleEngine implements IRuleEngine {
     }
 
     @Override
-    public List<Rule> executeRuleWithoutAction(RuleMessage message, List<Rule> rules) {
+    public List<Rule> executeRuleWithoutAction(IMessage message, List<Rule> rules) {
         return executeRule(null, message, rules, false);
     }
 
@@ -235,10 +238,6 @@ public class DefaultRuleEngine implements IRuleEngine {
         });
     }
 
-    protected boolean executeRule(RuleContext context, Rule rule) {
-        boolean match = processExpress(rule, context);
-        return match;
-    }
 
     /**
      * 处理Express
@@ -248,19 +247,19 @@ public class DefaultRuleEngine implements IRuleEngine {
      * @return
      */
     @SuppressWarnings("rawtypes")
-    private boolean processExpress(Rule rule, RuleContext context) {
+    private boolean processExpress(Rule rule, RuleContext context, boolean isTrace) {
         try {
             if (rule.getExpressionName() == null) {
                 return false;
             }
-            // rule.getGroupExpressionManager().matchAndSetResult(context,rule);
+            
             Expression expression = context.getExpression(rule.getExpressionName());
             if (expression == null) {
                 return false;
             }
 
             boolean match = expression.getExpressionValue(context, rule);
-            if (!RelationExpression.class.isInstance(expression)) {
+            if (isTrace&&!RelationExpression.class.isInstance(expression)) {
                 TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
                 piplineExecutorMonitor.addNotFireExpression(expression.toString(), expression.getDependentFields(rule.getExpressionMap()));
                 context.setExpressionMonitor(piplineExecutorMonitor);

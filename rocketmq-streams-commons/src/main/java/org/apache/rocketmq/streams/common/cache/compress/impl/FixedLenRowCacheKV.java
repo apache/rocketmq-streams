@@ -74,7 +74,7 @@ public class FixedLenRowCacheKV {
         cache = new MultiValueKV<byte[]>(MAX_ELIMENT) {
             @Override
             protected ICacheKV<byte[]> create() {
-                return new ByteArrayValueKV(this.capacity, true);
+                return new ByteArrayValueKV(this.capacity, byteLength);
             }
         };
     }

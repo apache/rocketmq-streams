@@ -24,12 +24,14 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MultiSplitMessa
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
-import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager.SourceState;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
+import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
+import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
@@ -43,14 +45,12 @@ import java.util.Set;
 /**
  * 输出的接口抽象，针对json消息的场景
  */
-public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink> {
-    private static final Log LOG = LogFactory.getLog(AbstractSink.class);
+public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink>, ILifeCycle {
+
+    private static final Log logger = LogFactory.getLog(AbstractSink.class);
     public static String TARGET_QUEUE = "target_queue";//指定发送queue
-
     public static final int DEFAULT_BATCH_SIZE = 3000;
-
     protected transient IMessageCache<IMessage> messageCache;
-
     protected volatile int batchSize = DEFAULT_BATCH_SIZE;
     protected transient volatile Map<String, SourceState> sourceName2State = new HashMap<>();//保存完成刷新的queueid和offset
 
@@ -126,10 +126,6 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     @Override
     public boolean flush(Set<String> splitIds) {
         int size = messageCache.flush(splitIds);
-        if (size > 0) {
-            System.out.println(this.getClass().getSimpleName() + " finish flush data " + size);
-        }
-
         return size > 0;
     }
 
@@ -190,7 +186,6 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         for (String splitId : splitIds) {
             splitSet.add(splitId);
         }
-
         return checkpoint(splitSet);
     }
 
@@ -202,9 +197,8 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         }
         int size = messageCache.flush();
         if (size > 0) {
-            System.out.println(name + " finish flush data " + size);
+            logger.debug(String.format("%s finished flush data %d", name, size));
         }
-
         return true;
     }
 
@@ -264,5 +258,20 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     public void setMessageCache(
         IMessageCache<IMessage> messageCache) {
         this.messageCache = messageCache;
+    }
+
+    @Override
+    public void atomicSink(ISystemMessage message){
+
+    }
+
+    @Override
+    public void finish() throws Exception {
+        this.closeAutoFlush();
+    }
+
+    @Override
+    public boolean isFinished() throws Exception {
+        return false;
     }
 }

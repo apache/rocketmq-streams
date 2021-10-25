@@ -31,15 +31,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class HyperscanRegex<T> {
-    protected List<Expression> allRegexes = new ArrayList<>();//all registe regex
+    protected List<Expression> allRegexs = new ArrayList<>();//all registe regex
 
     protected Database db;
     protected Scanner scanner;
     protected AtomicBoolean hasCompile = new AtomicBoolean(false);
     protected List<T> expressionContextList = new ArrayList<>();
 
-    protected List<Expression> notSupportCompileExpression = new ArrayList<>();//can not comile expressions
+    protected List<Expression> notSupportCompileExpression=new ArrayList<>();//can not comile expressions
     protected List<Expression> supportCompileExpression = new ArrayList<>();//all regex exclude not support compile
+
 
     /**
      * 把多个表达式放到库里
@@ -49,7 +50,7 @@ public class HyperscanRegex<T> {
     public void addRegex(String regex, T context) {
         expressionContextList.add(context);
         Expression expression = new Expression(regex, EnumSet.of(ExpressionFlag.UTF8, ExpressionFlag.CASELESS, ExpressionFlag.SINGLEMATCH), expressionContextList.size() - 1);
-        allRegexes.add(expression);
+        allRegexs.add(expression);
         supportCompileExpression.add(expression);
         db = null;
         scanner = null;
@@ -61,11 +62,11 @@ public class HyperscanRegex<T> {
      */
     public void compile() {
         if (!hasCompile.compareAndSet(false, true) || supportCompileExpression.size() == 0) {
-            return;
+            return ;
         }
-        while (true) {
+        while (true){
             try {
-                if (supportCompileExpression.size() == 0) {
+                if(supportCompileExpression.size()==0){
                     break;
                 }
                 Database db = Database.compile(supportCompileExpression);
@@ -75,11 +76,12 @@ public class HyperscanRegex<T> {
                 this.scanner = scanner;
                 break;
             } catch (CompileErrorException e) {
-                Expression expression = e.getFailedExpression();
-                this.supportCompileExpression.remove(expression);
-                this.notSupportCompileExpression.add(expression);
+               Expression expression=e.getFailedExpression();
+               this.supportCompileExpression.remove(expression);
+               this.notSupportCompileExpression.add(expression);
             }
         }
+
 
     }
 
@@ -90,14 +92,18 @@ public class HyperscanRegex<T> {
      * @return
      */
     public boolean match(String content) {
-        if (scanner == null || db == null || !hasCompile.get()) {
+        if (scanner == null || db == null || hasCompile.get() == false) {
             compile();
         }
-        if (content == null) {
+        if(content==null||scanner == null || db == null ){
             return false;
         }
         List<Match> matches = scanner.scan(db, content);
-        return matches.size() > 0;
+        if (matches.size() > 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -107,25 +113,25 @@ public class HyperscanRegex<T> {
      * @return
      */
     public Set<T> matchExpression(String content) {
-        if (scanner == null || db == null || !hasCompile.get()) {
+        if (scanner == null || db == null || hasCompile.get() == false) {
             compile();
         }
-        if (content == null) {
+        if(content==null||scanner == null || db == null ){
             return new HashSet<>();
         }
         List<Match> matches = scanner.scan(db, content);
         Set<T> fireExpressions = new HashSet<>();
-        if (this.notSupportCompileExpression.size() > 0) {
-            for (Expression expression : this.notSupportCompileExpression) {
-                String regex = expression.getExpression();
-                boolean isMatch = StringUtil.matchRegexCaseInsensitive(content, regex);
-                if (isMatch) {
-                    int index = expression.getId();
+        if(this.notSupportCompileExpression.size()>0){
+            for(Expression expression:this.notSupportCompileExpression){
+                String regex=expression.getExpression();
+                boolean isMatch=StringUtil.matchRegexCaseInsensitive(content,regex);
+                if(isMatch){
+                    int index=expression.getId();
                     fireExpressions.add(expressionContextList.get(index));
                 }
             }
         }
-        if (matches.size() > 0) {
+        if(matches.size()>0){
             for (Match match : matches) {
                 Integer index = match.getMatchedExpression().getId();
                 fireExpressions.add(expressionContextList.get(index));
@@ -134,7 +140,7 @@ public class HyperscanRegex<T> {
         return fireExpressions;
     }
 
-    public int size() {
-        return allRegexes.size();
+    public int size(){
+        return allRegexs.size();
     }
 }

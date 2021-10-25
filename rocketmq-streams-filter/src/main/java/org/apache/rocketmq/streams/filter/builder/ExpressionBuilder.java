@@ -24,6 +24,8 @@ import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.utils.ContantsUtil;
@@ -69,7 +71,17 @@ public class ExpressionBuilder {
         cache.put(key, rule);
         return rule;
     }
+    public static boolean executeExecute(String namespace, String expressionStr, IMessage message, AbstractContext context) {
+        Rule rule = null;
+        String key = expressionStr;
+        rule = cache.get(key);
+        if (rule == null) {
+            rule = createRule(namespace, Rule.class.getSimpleName(), expressionStr);
+            cache.put(key, rule);
+        }
+       return rule.doMessage(message,context);
 
+    }
     /**
      * 可以简化表达式格式（varName,function,value)&((varName,function,datatype,value)|(varName,function,datatype,value))
      *
@@ -88,7 +100,19 @@ public class ExpressionBuilder {
         return rule.execute(msg);
 
     }
-
+    public static boolean executeExecute(Expression expression, IMessage message,AbstractContext context) {
+        Rule rule = null;
+        if (expression.getConfigureName() == null) {
+            expression.setConfigureName(expression.getVarName());
+        }
+        String key = MapKeyUtil.createKey(expression.getNameSpace(), expression.toString());
+        rule = cache.get(key);
+        if (rule == null) {
+            rule = createRule(expression.getNameSpace(), Rule.class.getSimpleName(), expression);
+            cache.put(key, rule);
+        }
+        return rule.doMessage(message,context);
+    }
     public static boolean executeExecute(Expression expression, JSONObject msg) {
         Rule rule = null;
         if (expression.getConfigureName() == null) {

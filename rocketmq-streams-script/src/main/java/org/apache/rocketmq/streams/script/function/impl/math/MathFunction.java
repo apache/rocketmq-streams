@@ -129,4 +129,25 @@ public class MathFunction {
         }
     }
 
+
+    /**
+     * 将输入值number截取到指定小数点位置
+     *
+     * @param message
+     * @param context
+     * @return
+     */
+    @FunctionMethod(value = "mod", comment = "求余数")
+    public long mathOperator(IMessage message, FunctionContext context,
+        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
+        @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") String mod) {
+        operator = FunctionUtils.getValueString(message, context, operator);
+        mod = FunctionUtils.getValueString(message, context, mod);
+        if(operator==null||mod==null){
+            return -1;
+        }
+        Long operatorLong=Long.valueOf(operator);
+        Long modLong=Long.valueOf(mod);
+        return operatorLong%modLong;
+    }
 }

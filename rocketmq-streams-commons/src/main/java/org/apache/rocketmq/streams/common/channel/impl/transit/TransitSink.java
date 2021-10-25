@@ -24,34 +24,37 @@ import java.util.List;
 import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.LogFingerprintFilter;
 import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.topology.model.PipelineSourceJoiner;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public class TransitSink extends AbstractSink  implements IAfterConfigurableRefreshListener {
     private static final Log LOG = LogFactory.getLog(TransitSink.class);
     protected transient List<ChainPipeline> piplines = new ArrayList<>();
-    protected volatile transient LogFingerprintFilter logFingerprintFilter = null;//对pipline做去重
     protected String tableName;
     @ENVDependence
     protected String logFingerprintFieldNames;//config log finger
+
     @Override public boolean batchAdd(IMessage message) {
         boolean onlyOne = piplines.size() == 1;
         int index = 0;
         //可以启动重复过滤，把日志中的必须字段抽取出来，做去重，如果某个日志，在某个pipline执行不成功，下次类似日志过来，直接过滤掉
-        String msgKey = getFilterKey(message);
-        int repeateValue = getFilterValue(msgKey);
+        BitSetCache.BitSet bitSet = getFilterValue(message);
+        if(bitSet==null&&logFingerprintFieldNames!=null){
+            bitSet=new BitSetCache.BitSet(piplines.size());
+        }
         for (ChainPipeline pipline : piplines) {
-            if (canFilter(repeateValue, index)) {
+            if (bitSet!=null&&bitSet.get(index)) {
                 continue;
             }
 
@@ -64,7 +67,11 @@ public class TransitSink extends AbstractSink  implements IAfterConfigurableRefr
 
                 pipline.doMessage(copyMessage, newContext);
                 if (!MessageGloableTrace.existFinshBranch(copyMessage)) {
-                    addNoFireMessage(msgKey, index);
+                    if(bitSet!=null){
+                        bitSet.set(index);
+                        addNoFireMessage(message, bitSet);
+                    }
+
                 }
 
             } catch (Exception e) {
@@ -131,39 +138,37 @@ public class TransitSink extends AbstractSink  implements IAfterConfigurableRefr
         });
         if (!equalsPiplines(this.piplines, piplines)) {
             this.piplines = piplines;
-            if (logFingerprintFieldNames != null) {
-                this.logFingerprintFilter=new LogFingerprintFilter();
-            }
 
         }
-    }
-    protected boolean canFilter(int repeateValue, int index) {
-        if (this.logFingerprintFilter == null) {
-            return false;
-        }
-        return logFingerprintFilter.canFilter(repeateValue, index);
     }
 
     /**
      * 如果确定这个message，在某个pipline不触发，则记录下来，下次直接跳过，不执行
      *
-     * @param msgKey
-     * @param index
+     * @param message
+     * @param message
      */
-    protected void addNoFireMessage(String msgKey, int index) {
-        if (this.logFingerprintFilter == null) {
+    protected void addNoFireMessage(IMessage message, BitSetCache.BitSet bitSet) {
+        if (this.logFingerprintFieldNames == null) {
             return;
         }
 
-        logFingerprintFilter.addNoFireMessage(msgKey, index);
+        FingerprintCache.getInstance().addLogFingerprint(getOrCreateFingerNameSpace(),message,bitSet,this.logFingerprintFieldNames);
     }
 
-    protected String getFilterKey(IMessage message) {
-        if (this.logFingerprintFilter == null) {
+
+    /**
+     * 判读是否可以针对这条数据，过滤掉这个pipline
+     *
+     * @param message
+     * @return
+     */
+    protected BitSetCache.BitSet getFilterValue(IMessage message) {
+        if (this.logFingerprintFieldNames == null) {
             return null;
         }
 
-        return logFingerprintFilter.createMessageKey(message, logFingerprintFieldNames);
+        return FingerprintCache.getInstance().getLogFingerprint(getOrCreateFingerNameSpace(),message,this.logFingerprintFieldNames);
     }
 
     /**
@@ -172,11 +177,13 @@ public class TransitSink extends AbstractSink  implements IAfterConfigurableRefr
      * @param msgKey
      * @return
      */
-    protected int getFilterValue(String msgKey) {
-        if (this.logFingerprintFilter == null) {
-            return 0;
+    protected transient String fingerNameSpace;
+
+    protected String getOrCreateFingerNameSpace(){
+        if(fingerNameSpace==null){
+            fingerNameSpace= MapKeyUtil.createKey(this.getNameSpace(),this.getConfigureName());
         }
-        return logFingerprintFilter.getFilterValue(msgKey);
+        return this.fingerNameSpace;
     }
 
     /**

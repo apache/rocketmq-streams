@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.streams.state.kv;
-
-import org.apache.rocketmq.streams.state.LruState;
-import org.junit.Assert;
-import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.rocketmq.streams.state.LruState;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestLruState {
 

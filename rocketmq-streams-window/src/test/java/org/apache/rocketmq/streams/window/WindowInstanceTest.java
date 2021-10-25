@@ -53,11 +53,14 @@ public class WindowInstanceTest {
     @Test
     public void testWindowInstanceNormalMode() {
         WindowOperator window = new WindowOperator();
+        window.init();
+        window.doProcessAfterRefreshConfigurable(null);
         window.setFireMode(0);
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(0);
+        window.setWaterMarkMinute(5);
+        window.setEmitAfterValue(60L);
         window.setNameSpace("namespace_chris");
         window.setConfigureName("name");
         JSONObject msg = new JSONObject();

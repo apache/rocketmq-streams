@@ -42,6 +42,16 @@ public interface IFilterService<T extends AbstractRule> {
      */
     List<T> executeRule(IMessage message, AbstractContext context, T... rules);
 
+
+
+    /**
+     * 执行规则，返回触发的规则
+     *
+     * @param message 消息
+     * @param rules   规则
+     * @return 触发的规则
+     */
+    List<T> executeRule(IMessage message, AbstractContext context, List<T> rules);
     /**
      * create rule 根据表达式，创建一个规则
      *

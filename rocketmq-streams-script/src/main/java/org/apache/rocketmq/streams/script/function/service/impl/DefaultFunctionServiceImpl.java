@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
@@ -299,6 +300,28 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
         return engine;
     }
 
+    @Override public DataType getReturnDataType(String functionName) {
+        FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
+        if (functionConfigureMap == null) {
+            LOG.warn("get function may be not registe engine for " + functionName);
+            return null;
+        }
+        List<FunctionConfigure> functionConfigureList = functionConfigureMap.getFunctionConfigureList();
+        if(functionConfigureList==null||functionConfigureList.size()==0){
+            return null;
+        }
+        DataType returnDataType=null;
+        for(FunctionConfigure functionConfigure:functionConfigureList){
+            if(returnDataType==null){
+                returnDataType=  functionConfigure.getReturnDataType();
+                continue;
+            }
+            if(!returnDataType.getDataTypeName().equals(functionConfigure.getReturnDataType().getDataTypeName())){
+                throw new RuntimeException("can not return returnDataType , the FunctionConfigureMap has different returnDataType, the funtcion is "+functionName);
+            }
+        }
+        return null;
+    }
     @Override
     public <T> T directExecuteFunction(String functionName, Object... allParameters) {
         FunctionConfigure engine = getFunctionConfigure(functionName, allParameters);

@@ -30,6 +30,7 @@ import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
@@ -227,4 +228,20 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
         create();
         ((AbstractSource)source).setJsonData(isJsonData);
     }
+
+    @Override
+    public String getTopic(){
+        return source.getTopic();
+    }
+
+    @Override
+    public void setTopic(String topic){
+        source.setTopic(topic);
+    }
+
+    @Override
+    public void atomicSink(ISystemMessage message){
+
+    }
+
 }
