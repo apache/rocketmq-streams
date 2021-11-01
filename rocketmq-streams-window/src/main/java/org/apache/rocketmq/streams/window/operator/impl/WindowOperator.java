@@ -16,18 +16,6 @@
  */
 package org.apache.rocketmq.streams.window.operator.impl;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
@@ -47,6 +35,18 @@ import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.IWindowStorage;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowOperator extends AbstractShuffleWindow {
 
@@ -80,7 +80,7 @@ public class WindowOperator extends AbstractShuffleWindow {
     protected transient AtomicInteger shuffleCount=new AtomicInteger(0);
     protected transient AtomicInteger fireCountAccumulator=new AtomicInteger(0);
     @Override
-    public int fireWindowInstance(WindowInstance instance, String queueId,Map<String,String> queueId2Offset) {
+    public int fireWindowInstance(WindowInstance instance, String queueId, Map<String,String> queueId2Offset) {
         List<WindowValue> windowValues=new ArrayList<>();
         int fireCount=0;
         long startTime=System.currentTimeMillis();
@@ -100,11 +100,10 @@ public class WindowOperator extends AbstractShuffleWindow {
                 continue;
             }
             WindowValue windowValue=(WindowValue)windowBaseValue;
-            Integer currentValue=(Integer)windowValue.getComputedColumnResultByKey("total");
-            if(currentValue==null){
-                currentValue=0;
-            }
-              fireCountAccumulator.addAndGet(currentValue);
+
+            Integer currentValue = getValue(windowValue, "total");
+
+            fireCountAccumulator.addAndGet(currentValue);
             windowValues.add((WindowValue)windowBaseValue);
             if(windowValues.size()>=windowCache.getBatchSize()){
                 long sendFireCost=System.currentTimeMillis();
@@ -121,14 +120,8 @@ public class WindowOperator extends AbstractShuffleWindow {
             sendCost+=(System.currentTimeMillis()-sendFireCost);
             fireCount+=windowValues.size();
         }
-//        if(fireCountAccumulator.get()>25000){
-//            System.out.println("fire count is "+fireCountAccumulator.get());
-//        }
-
-        //long clearStart=System.currentTimeMillis();
         clearFire(instance);
         this.sqlCache.addCache(new FiredNotifySQLElement(queueId,instance.createWindowInstanceId()));
-        // System.out.println("=============== fire cost is "+(System.currentTimeMillis()-startTime)+"send cost is "+sendCost+" clear cost is "+(System.currentTimeMillis()-clearStart));
         return fireCount;
     }
 
@@ -136,7 +129,7 @@ public class WindowOperator extends AbstractShuffleWindow {
     protected transient int windowvaluecount=0;
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
-         DebugWriter.getDebugWriter(getConfigureName()).writeShuffleCalcultateReceveMessage(instance,messages,queueId);
+        DebugWriter.getDebugWriter(getConfigureName()).writeShuffleCalcultateReceveMessage(instance,messages,queueId);
         List<String> sortKeys=new ArrayList<>();
         Map<String,List<IMessage>> groupBy=groupByGroupName(messages,sortKeys);
         Set<String> groupByKeys=groupBy.keySet();
@@ -148,7 +141,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         Map<String, WindowBaseValue> allWindowValues=new HashMap<>();
         //从存储中，查找window value对象，value是对象的json格式
         Map<String, WindowBaseValue>  existWindowValues=storage.multiGet(getWindowBaseValueClass(),storeKeys,instance.createWindowInstanceId(),queueId);
-      //  Iterator<Entry<String, List<IMessage>>> it = groupBy.entrySet().iterator();
+        //  Iterator<Entry<String, List<IMessage>>> it = groupBy.entrySet().iterator();
         for(String groupByKey:sortKeys){
 
             List<IMessage> msgs=groupBy.get(groupByKey);
@@ -157,43 +150,44 @@ public class WindowOperator extends AbstractShuffleWindow {
             if(windowValue==null){
                 windowvaluecount++;
                 windowValue=createWindowValue(queueId,groupByKey,instance);
-               // windowValue.setOrigOffset(msgs.get(0).getHeader().getOffset());
+                // windowValue.setOrigOffset(msgs.get(0).getHeader().getOffset());
             }
             allWindowValues.put(storeKey,windowValue);
             windowValue.incrementUpdateVersion();
-            Integer origValue=(Integer)windowValue.getComputedColumnResultByKey("total");
-            if(origValue==null){
-                origValue=0;
-            }
+
+            Integer origValue = getValue(windowValue, "total");
+
             if(msgs!=null){
                 for(IMessage message:msgs){
-                    windowValue.calculate(this,message);
+                    calculateWindowValue(windowValue,message);
+
                 }
             }
 
-            Integer currentValue=(Integer)windowValue.getComputedColumnResultByKey("total");
-            if(currentValue==null){
-                currentValue=0;
-            }
+            Integer currentValue = getValue(windowValue, "total");
+
             shuffleCount.addAndGet(-origValue);
             shuffleCount.addAndGet(currentValue);
-           // if(shuffleCount.get()>25000){
-            //    System.out.println("==========shuffle count is "+shuffleCount.get());
-            //}
-
-
         }
         if(DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()){
             DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowCalculate(this,new ArrayList(allWindowValues.values()),queueId);
         }
 
         saveStorage(allWindowValues,instance,queueId);
-        //Integer count=shuffleWindowInstanceId2MsgCount.get(instance.createWindowInstanceId());
-        //if(count==null){
-        //    count=0;
-        //}
-        //count+=messages.size();
-        //shuffleWindowInstanceId2MsgCount.put(instance.createWindowInstanceId(),count);
+    }
+
+    private Integer getValue(WindowValue windowValue, String fieldName) {
+        Object value = windowValue.getComputedColumnResultByKey(fieldName);
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof String) {
+            String strValue = (String) value;
+            return Integer.valueOf(strValue);
+        }
+        throw new ClassCastException("value:["+value+"] of fieldName:["+fieldName+"] can not change to number.");
     }
 
 
@@ -269,7 +263,10 @@ public class WindowOperator extends AbstractShuffleWindow {
     @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
         return storage.getMaxSplitNum(instance,getWindowBaseValueClass());
     }
+    protected void calculateWindowValue(WindowValue windowValue, IMessage msg) {
+        windowValue.calculate(this,msg);
 
+    }
     /**
      * 创建新的window value对象
      *
@@ -339,18 +336,11 @@ public class WindowOperator extends AbstractShuffleWindow {
     public void clearFireWindowInstance(WindowInstance windowInstance) {
         String partitionNum=(getOrderBypPrefix()+ windowInstance.getSplitId());
 
-        boolean canClear=false;
+        boolean canClear=windowInstance.isCanClearResource();
         if(fireMode!=2){
             canClear=true;
         }
-        if(fireMode==2){
-            Date endTime=DateUtil.parse(windowInstance.getEndTime());
-            Date lastDate = DateUtil.addSecond(endTime, waterMarkMinute * timeUnitAdjust);
 
-            if((windowInstance.getLastMaxUpdateTime()>lastDate.getTime())){
-                canClear=true;
-            }
-        }
 
         if(canClear){
             logoutWindowInstance(windowInstance.createWindowInstanceTriggerId());
