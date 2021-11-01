@@ -21,25 +21,34 @@ public enum FunctionType {
     /**
      * 1:1
      */
-    UDF,
+    UDF("udf"),
 
     /**
      * 1:n
      */
-    UDTF,
+    UDTF("udtf"),
 
     /**
      * n:1
      */
-    UDAF,
+    UDAF("udaf"),
 
     /**
      * built in function
      */
-    BUILTIN,
+    BUILTIN("builtin"),
 
     /**
      * mostly illegal function
      */
-    UNKNOWN
+    UNKNOWN("unknown");
+
+    private String name;
+    private FunctionType(String name){
+        this.name=name;
+    }
+
+    public String getName(){
+        return name;
+    }
 }
