@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.filter.engine;
 
 import java.util.List;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.filter.context.RuleMessage;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 
 public interface IRuleEngine {
@@ -29,7 +29,7 @@ public interface IRuleEngine {
      * @param message 包含变量相关信息和原始的message信息
      * @return 触发的规则
      */
-    List<Rule> executeRule(RuleMessage message, List<Rule> rules);
+    List<Rule> executeRule(IMessage message, List<Rule> rules);
 
     /**
      * 把消息相关的上下文传递给规则引擎，规则引擎进行变量封装，资源检查，规则执行等操作
@@ -37,7 +37,7 @@ public interface IRuleEngine {
      * @param message 包含变量相关信息和原始的message信息
      * @return 触发的规则
      */
-    List<Rule> executeRule(AbstractContext context, RuleMessage message, List<Rule> rules);
+    List<Rule> executeRule(AbstractContext context, IMessage message, List<Rule> rules);
 
     /**
      * 把消息相关的上下文传递给规则引擎，规则引擎进行变量封装，资源检查，规则执行等操作
@@ -45,6 +45,6 @@ public interface IRuleEngine {
      * @param message 包含变量相关信息和原始的message信息
      * @return 触发的规则
      */
-    List<Rule> executeRuleWithoutAction(RuleMessage message, List<Rule> rules);
+    List<Rule> executeRuleWithoutAction(IMessage message, List<Rule> rules);
 
 }

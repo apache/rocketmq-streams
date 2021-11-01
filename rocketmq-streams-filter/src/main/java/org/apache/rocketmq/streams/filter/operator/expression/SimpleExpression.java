@@ -17,26 +17,15 @@
 package org.apache.rocketmq.streams.filter.operator.expression;
 
 import com.alibaba.fastjson.JSONObject;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.streams.common.datatype.DataType;
-import org.apache.rocketmq.streams.common.optimization.CalculationResultCache;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.contants.RuleElementType;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.filter.optimization.EqualsExpressionOptimization;
-import org.apache.rocketmq.streams.filter.optimization.IExpressionOptimization;
-import org.apache.rocketmq.streams.filter.optimization.LikeExpressionOptimization;
-import org.apache.rocketmq.streams.filter.optimization.OptimizationExpression;
-import org.apache.rocketmq.streams.filter.optimization.RegexExpressionOptimization;
 
 /**
  * 变量名就是字段名，不需要声明meta
  */
 public class SimpleExpression extends Expression {
-    protected static CalculationResultCache calculationResultCache = CalculationResultCache.getInstance();
 
     public SimpleExpression() {
     }
@@ -55,52 +44,6 @@ public class SimpleExpression extends Expression {
         setValue(dataType.getData(value));
         setDataType(dataType);
     }
-
-    @Override
-    public Boolean getExpressionValue(RuleContext context, Rule rule) {
-        IExpressionOptimization expressionOptimization = getOptimize();
-        Boolean isHitCache = null;
-        String regex = null;
-        String value = null;
-        if (expressionOptimization != null) {
-            OptimizationExpression expression = expressionOptimization.optimize(this);
-            regex = expression.getRegex();
-            String varName = expression.getVarName();
-            value = context.getMessage().getMessageBody().getString(varName);
-            isHitCache = calculationResultCache.match(regex, value);
-            if (isHitCache != null) {
-                return isHitCache;
-            }
-        }
-        boolean isMatch = super.getExpressionValue(context, rule);
-        if (isHitCache == null && expressionOptimization != null) {
-            calculationResultCache.registeRegex(regex, value, isMatch);
-        }
-        return isMatch;
-    }
-
-    /**
-     * 找到函数对应的优化
-     *
-     * @return
-     */
-    private IExpressionOptimization getOptimize() {
-        for (IExpressionOptimization expressionOptimization : expressionOptimizations) {
-            if (expressionOptimization.support(this)) {
-                return expressionOptimization;
-            }
-        }
-        return null;
-    }
-
-    private static List<IExpressionOptimization> expressionOptimizations = new ArrayList<>();
-
-    static {
-        expressionOptimizations.add(new EqualsExpressionOptimization());
-        expressionOptimizations.add(new RegexExpressionOptimization());
-        expressionOptimizations.add(new LikeExpressionOptimization());
-    }
-
     public boolean doExecute(JSONObject msg) {
         return ExpressionBuilder.executeExecute(this, msg);
     }

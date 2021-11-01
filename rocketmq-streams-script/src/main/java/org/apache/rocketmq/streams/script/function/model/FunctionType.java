@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.script.function.model;
 
 public enum FunctionType {
 
+
     /**
      * 1:1
      */
@@ -26,7 +27,7 @@ public enum FunctionType {
     /**
      * 1:n
      */
-    UDTF("udtf"),
+    UDTF("f"),
 
     /**
      * n:1
@@ -41,12 +42,13 @@ public enum FunctionType {
     /**
      * mostly illegal function
      */
-    UNKNOWN("unknown");
-
+    UNKNOWN("unknow");
     private String name;
     private FunctionType(String name){
         this.name=name;
     }
+
+
 
     public String getName(){
         return name;

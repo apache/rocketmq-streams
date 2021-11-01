@@ -38,7 +38,22 @@ public class DateFormatFunction {
     public String format(IMessage message, FunctionContext context,
                          @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String dateFieldName,
                          @FunctionParamter(value = "string", comment = "代表转换时间格式的字段名或常量") String destformat) {
-        return format(message, context, dateFieldName, "yyyy-MM-dd HH:mm:ss", destformat);
+        String value = FunctionUtils.getValueString(message, context, dateFieldName);
+        destformat = FunctionUtils.getValueString(message, context, destformat);
+        if(FunctionUtils.isLong(value)){
+            try {
+                SimpleDateFormat destDateFormat = new SimpleDateFormat(destformat);
+                Date date=new Date(Long.valueOf(value));
+                String dateStr = destDateFormat.format(date);
+                return dateStr;
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("format函数执行错误", e);
+            }
+
+        }else {
+            return format(message,context,dateFieldName,"'yyyy-MM-dd HH:mm:ss'",destformat);
+        }
     }
 
     /**

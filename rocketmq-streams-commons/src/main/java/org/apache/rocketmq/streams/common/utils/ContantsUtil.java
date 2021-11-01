@@ -28,19 +28,22 @@ public class ContantsUtil {
     private static final Map<String, String> CONSTANTS_REPLACE_SIGNS = new HashMap<>();//替换字符和特殊字符的映射
 
     static {
-
+        CONSTANTS_SIGNS.add("\\\\");
         CONSTANTS_SIGNS.add("\\\"");
         CONSTANTS_SIGNS.add("\"");
         CONSTANTS_SIGNS.add("\\'");
         CONSTANTS_SIGNS.add("''");
         CONSTANTS_SIGNS.add("#######");
 
+        CONSTANTS_SIGNS_REPLACE.put("\\\\", "%%%%%");
         CONSTANTS_SIGNS_REPLACE.put("\\'", "^^^^");
         CONSTANTS_SIGNS_REPLACE.put("\\\"", "~~~~~");
         CONSTANTS_SIGNS_REPLACE.put("''", "*****");
         CONSTANTS_SIGNS_REPLACE.put("\"", "------");
         CONSTANTS_SIGNS_REPLACE.put("#######", "#######");
 
+
+        CONSTANTS_REPLACE_SIGNS.put("%%%%%", "\\\\");
         CONSTANTS_REPLACE_SIGNS.put("------", "\"");
         CONSTANTS_REPLACE_SIGNS.put("^^^^", "'");
         CONSTANTS_REPLACE_SIGNS.put("~~~~~", "\\\"");

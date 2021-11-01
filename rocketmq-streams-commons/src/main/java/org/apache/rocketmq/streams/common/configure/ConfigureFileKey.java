@@ -107,6 +107,8 @@ public interface ConfigureFileKey {
     String DIPPER_WINDOW_DEFAULT_FIRE_DELAY_SECOND = "dipper.window.default.fire.delay.second";
     //统计默认的窗口大小，单位是分钟。默认是滚动窗口，大小是1个小时
     String DIPPER_WINDOW_DEFAULT_INERVAL_SIZE = "dipper.window.default.iterval.size.time";
+    //统计默认的窗口大小，单位是分钟。默认是滚动窗口，大小是1个小时
+    String DIPPER_WINDOW_DEFAULT_TIME_UNIT_ADJUST = "dipper.window.default.time.unit.adjust";
     //over partition窗口的默认时间
     String DIPPER_WINDOW_OVER_DEFAULT_ITERVA_SIZE = "dipper.window.over.default.iterval.size.time";
 

@@ -39,6 +39,7 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.group.MonitorCommander;
 import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.utils.DipperThreadLocalUtil;
@@ -152,9 +153,6 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         return MapKeyUtil.createKeyBySign(".", getType(), getNameSpace(), getConfigureName());
     }
 
-    private static AtomicInteger total = new AtomicInteger(0);
-    private static AtomicInteger hitCache = new AtomicInteger(0);
-
     /**
      * 可以替换某个阶段的阶段，而不用配置的阶段
      *
@@ -166,12 +164,10 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     @Override
     protected T doMessageInner(T t, AbstractContext context, AbstractStage... replaceStage) {
         if (this.duplicateCache != null && this.duplicateFields != null && !this.duplicateFields.isEmpty() && !t.getHeader().isSystemMessage()) {
-            total.incrementAndGet();
             String duplicateKey = createDuplicateKey(t);
             Long cacheTime = this.duplicateCache.get(duplicateKey);
             Long currentTime = System.currentTimeMillis();
             if (cacheTime != null && currentTime - cacheTime < this.duplicateCacheExpirationTime) {
-                hitCache.incrementAndGet();
                 context.breakExecute();
                 return t;
             } else {
@@ -179,9 +175,6 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 if (this.duplicateCache.getSize() > duplicateCacheSize) {
                     this.duplicateCache = new LongValueKV(this.duplicateCacheSize);
                 }
-            }
-            if (total.get() % 5000 == 0) {
-                System.out.printf("total: %s, hit: %s%n", total.get(), hitCache.get());
             }
         }
 
@@ -193,7 +186,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             return super.doMessageInner(t, context, replaceStage);
         }
         context.setMessage(t);
-        doNextStages(context, getMsgSourceName(), this.channelNextStageLabel, null, replaceStage);
+        doNextStages(context, getMsgSourceName(),channelName, this.channelNextStageLabel,null);
         return t;
     }
 
@@ -208,8 +201,8 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         return isTopology(this.channelNextStageLabel);
     }
 
-    public void doNextStages(AbstractContext context, String msgPrewSourceName, List<String> nextStageLabel,
-        String prewSQLNodeName, AbstractStage... replaceStage) {
+    public void doNextStages(AbstractContext context, String msgPrewSourceName,String currentLable, List<String> nextStageLabel,
+        String prewSQLNodeName) {
 
         if (!isTopology(nextStageLabel)) {
             return;
@@ -240,7 +233,17 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                     continue;
                 }
             }
-            AbstractStage stage = chooseReplaceStage(oriStage, replaceStage);
+            AbstractStage stage = oriStage;
+            PreFingerprint preFingerprint=getPreFingerprint(currentLable,stage.getLabel());
+            if(preFingerprint!=null){
+                boolean isFilter=preFingerprint.filterByLogFingerprint(msg);
+                if(isFilter){
+                    copyContext.breakExecute();
+                    continue;
+                }
+            }
+
+
             //boolean needFlush = needFlush(msg);
             if (StringUtil.isNotEmpty(oriMsgPrewSourceName)) {
                 msg.getHeader().setMsgRouteFromLable(oriMsgPrewSourceName);
@@ -283,7 +286,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                     }
                     continue;
                 }
-                doNextStages(copyContext, msgPrewSourceName, labels, stage.getOwnerSqlNodeTableName(), replaceStage);
+                doNextStages(copyContext, msgPrewSourceName,stage.getLabel(), labels, stage.getOwnerSqlNodeTableName());
             }
         }
     }
@@ -450,9 +453,9 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     public String toString() {
         String LINE = PrintUtil.LINE;
         StringBuilder sb = new StringBuilder();
-        sb.append("###namespace=" + getNameSpace() + "###" + LINE);
+        sb.append("###namespace=").append(getNameSpace()).append("###").append(LINE);
         if (source != null) {
-            sb.append(source.toString() + LINE);
+            sb.append(source.toString()).append(LINE);
         }
         if (stages != null) {
             for (AbstractStage stage : stages) {

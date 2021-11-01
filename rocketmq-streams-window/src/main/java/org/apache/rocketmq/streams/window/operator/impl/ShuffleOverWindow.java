@@ -39,12 +39,12 @@ public class ShuffleOverWindow extends WindowOperator {
     protected String rowNumerName;
 
     @Override protected boolean initConfigurable() {
-        boolean success= super.initConfigurable();
-        this.setSizeInterval(3600);
-        this.setSlideInterval(3600);
-        this.setTimeUnitAdjust(1);
-        this.setEmitBeforeValue(5L);
-        return success;
+         boolean success= super.initConfigurable();
+         this.setSizeInterval(3600);
+         this.setSlideInterval(3600);
+         this.setTimeUnitAdjust(1);
+         this.setEmitBeforeValue(5L);
+         return success;
     }
 
 

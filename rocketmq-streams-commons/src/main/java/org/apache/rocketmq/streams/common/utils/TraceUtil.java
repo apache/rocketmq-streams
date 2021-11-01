@@ -29,7 +29,7 @@ public class TraceUtil {
 
     public static final String TRACE_ID_FLAG = "traceId";
 
-    private static final String RUNNING_MODE = "memory";
+    private static final String RUNNING_MODE = "true";
 
     public static final String IGNORE_TRACE_ID = "-1";
 
@@ -51,31 +51,31 @@ public class TraceUtil {
 
     public static void debug(String traceId, String... messages) {
         if (hit(traceId) && LOG.isDebugEnabled()) {
-            LOG.debug(envelope(traceId, messages));
+//            LOG.debug(envelope(traceId, messages));
         }
     }
 
     public static void info(String traceId, String... messages) {
         if (!skip(traceId) && LOG.isInfoEnabled()) {
-            LOG.info(envelope(traceId, messages));
+//            LOG.info(envelope(traceId, messages));
         }
     }
 
     public static void warn(String traceId, String... messages) {
         if (LOG.isWarnEnabled()) {
-            LOG.warn(envelope(traceId, messages));
+//            LOG.warn(envelope(traceId, messages));
         }
     }
 
     public static void error(String traceId, String... messages) {
         if (LOG.isErrorEnabled()) {
-            LOG.error(envelope(traceId, messages));
+//            LOG.error(envelope(traceId, messages));
         }
     }
 
     public static void error(String traceId, Throwable throwable, String... messages) {
         if (LOG.isErrorEnabled()) {
-            LOG.error(envelope(traceId, messages), throwable);
+//            LOG.error(envelope(traceId, messages), throwable);
         }
     }
 
@@ -93,15 +93,16 @@ public class TraceUtil {
      * @return
      */
     public static boolean hit(String traceId) {
+        String type = ComponentCreator.getProperties().getProperty("dipper.trace.service.switch");
+        if (!RUNNING_MODE.equals(type)) {
+            return false;
+        }
         for (String white : whiteSet) {
             if (traceId.startsWith(white)) {
                 return true;
             }
         }
-        String type = ComponentCreator.getProperties().getProperty("dipper.configurable.service.type");
-        if (RUNNING_MODE.equals(type)) {
-            return true;
-        }
+
         return false;
     }
 

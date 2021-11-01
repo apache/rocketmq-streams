@@ -37,7 +37,7 @@ public class ScriptDependent {
 
     }
     public ScriptDependent(FunctionScript functionScript) {
-        init(functionScript);
+       init(functionScript);
     }
 
     private void init(FunctionScript functionScript){

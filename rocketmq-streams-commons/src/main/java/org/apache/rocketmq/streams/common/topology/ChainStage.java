@@ -66,9 +66,9 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
      * @return
      */
     public PiplineRecieverAfterCurrentNode getReceiverAfterCurrentNode() {
-        ChainPipeline pipeline = (ChainPipeline)getPipeline();
+        ChainPipeline pipeline = (ChainPipeline) getPipeline();
 
-        return new PiplineRecieverAfterCurrentNode(pipeline);
+        return new PiplineRecieverAfterCurrentNode(pipeline,this.getLabel());
     }
 
     /**
@@ -77,8 +77,10 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
     public class PiplineRecieverAfterCurrentNode implements IStreamOperator<IMessage, AbstractContext<IMessage>>,
         IConfigurableIdentification {
         protected ChainPipeline pipeline;
+        protected String currentLable;
 
-        public PiplineRecieverAfterCurrentNode(ChainPipeline pipeline) {
+        public PiplineRecieverAfterCurrentNode(ChainPipeline pipeline,String currentLable) {
+            this.currentLable=currentLable;
             this.pipeline = pipeline;
         }
 
@@ -90,7 +92,7 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
         public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
             //设置window触发后需要执行的逻辑
             if (pipeline.isTopology()) {
-                pipeline.doNextStages(context, getMsgSourceName(), getNextStageLabels(), getOwnerSqlNodeTableName());
+                pipeline.doNextStages(context, getMsgSourceName(),currentLable, getNextStageLabels(), getOwnerSqlNodeTableName());
                 return context;
 
             } else {
@@ -153,7 +155,7 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
         Set<ChainPipeline> set = new HashSet<>();
         for (Pipeline pipeline : pipelines) {
             if (pipeline != null) {
-                set.add((ChainPipeline)pipeline);
+                set.add((ChainPipeline) pipeline);
             }
         }
         sendSystem(message, context, set);

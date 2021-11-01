@@ -18,7 +18,9 @@ package org.apache.rocketmq.streams.common.topology.model;
 
 import com.alibaba.fastjson.JSONArray;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -30,6 +32,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
@@ -57,6 +60,12 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
     private String sourceIdentification;//数据源名称，如果pipline是数据源pipline需要设置
     protected String msgSourceName;//主要用于在join，union场景，标记上游节点用
 
+    /**
+     * KEY: source stage lable
+     * value: key:next stage lable: value :PreFingerprint
+     */
+    protected transient Map<String, Map<String, PreFingerprint>> preFingerprintExecutor=new HashMap<>();
+
     public Pipeline() {
         setType(TYPE);
     }
@@ -82,6 +91,14 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
      * @return
      */
     protected T doMessageInner(T t, AbstractContext context, AbstractStage... replaceStage) {
+        PreFingerprint preFingerprint=getPreFingerprint("0","0");
+        if(preFingerprint!=null){
+            boolean isFilter=preFingerprint.filterByLogFingerprint(t);
+            if(isFilter){
+                context.breakExecute();
+                return t;
+            }
+        }
         return doMessageFromIndex(t, context, 0, replaceStage);
     }
 
@@ -102,6 +119,31 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
         }
         MessageGloableTrace.finishPipline(t);
         return t;
+    }
+
+    /**
+     * regist pre filter Fingerprint
+     * @param preFingerprint
+     */
+    protected void registPreFingerprint(PreFingerprint preFingerprint){
+        if(preFingerprint==null){
+            return;
+        }
+        Map<String,PreFingerprint> preFingerprintMap=this.preFingerprintExecutor.get(preFingerprint.getSourceStageLable());
+        if(preFingerprintMap==null){
+            preFingerprintMap=new HashMap<>();
+            this.preFingerprintExecutor.put(preFingerprint.getSourceStageLable(),preFingerprintMap);
+        }
+        preFingerprintMap.put(preFingerprint.getNextStageLable(),preFingerprint);
+    }
+
+
+    protected PreFingerprint getPreFingerprint(String currentLable,String nextLable){
+        Map<String,PreFingerprint> preFingerprintMap=this.preFingerprintExecutor.get(currentLable);
+        if(preFingerprintMap==null){
+            return null;
+        }
+        return preFingerprintMap.get(nextLable);
     }
 
     /**

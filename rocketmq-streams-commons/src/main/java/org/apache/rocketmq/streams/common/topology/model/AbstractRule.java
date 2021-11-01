@@ -70,6 +70,9 @@ public abstract class AbstractRule extends BasedConfigurable implements IStreamO
      */
     private String ruleLevel;
 
+
+    protected boolean supportHyperscan=false;// support hyperscan optimization, if the rule has many regex, suggest open
+
     public abstract Set<String> getDependentFields();
 
     //
@@ -168,6 +171,14 @@ public abstract class AbstractRule extends BasedConfigurable implements IStreamO
             jsonObject.put("ruleLevel", ruleLevel);
         }
         return jsonObject;
+    }
+
+    public boolean isSupportHyperscan() {
+        return supportHyperscan;
+    }
+
+    public void setSupportHyperscan(boolean supportHyperscan) {
+        this.supportHyperscan = supportHyperscan;
     }
 
     public String getRuleLevel() {

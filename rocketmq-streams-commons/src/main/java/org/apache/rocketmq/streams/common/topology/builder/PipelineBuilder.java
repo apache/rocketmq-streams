@@ -101,13 +101,14 @@ public class PipelineBuilder implements Serializable {
             chainStage.setLabel(createConfigurableName(chainStage.getType()));
         }
         this.pipeline.addChainStage(chainStage);
+
         return chainStage;
     }
 
     public List<String> createSQL() {
         List<String> sqls = new ArrayList<>();
         for (IConfigurable configurable : configurables) {
-            AbstractConfigurable abstractConfigurable = (AbstractConfigurable)configurable;
+            AbstractConfigurable abstractConfigurable = (AbstractConfigurable) configurable;
             sqls.add(AbstractConfigurable.createSQL(configurable));
         }
         return sqls;
@@ -259,6 +260,9 @@ public class PipelineBuilder implements Serializable {
             this.pipeline.setChannelNextStageLabel(lableNames);
         } else {
             currentChainStage.setNextStageLabels(lableNames);
+            for(ChainStage stage:nextStages){
+                stage.getPrevStageLabels().add(currentChainStage.getLabel());
+            }
         }
     }
 

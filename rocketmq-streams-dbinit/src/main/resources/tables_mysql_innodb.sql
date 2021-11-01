@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 CREATE TABLE IF NOT EXISTS  `window_max_value` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `gmt_create` datetime NOT NULL,
   `gmt_modified` datetime NOT NULL,
+  `max_offset` varchar(20) NOT NULL,
+  `is_max_offset_long` int(11) DEFAULT NULL,
   `max_value` bigint(20) unsigned NOT NULL,
   `max_event_time` bigint(20) unsigned NOT NULL,
   `msg_key` varchar(256) NOT NULL,

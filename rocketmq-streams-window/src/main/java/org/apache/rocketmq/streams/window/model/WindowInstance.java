@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.model;
 
+import java.awt.Window;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -69,6 +70,7 @@ public class WindowInstance extends Entity implements Serializable {
     protected String windowName;
 
     protected String splitId;
+    protected boolean canClearResource=true;
     /**
      * namespace
      */
@@ -100,6 +102,27 @@ public class WindowInstance extends Entity implements Serializable {
 
     protected transient Long lastMaxUpdateTime;//last max update time for session window
 
+
+    public WindowInstance copy(){
+        WindowInstance windowInstance=new WindowInstance();
+        windowInstance.setCanClearResource(this.canClearResource);
+        windowInstance.setFireTime(this.fireTime);
+        windowInstance.setNewWindowInstance(isNewWindowInstance);
+        windowInstance.setLastMaxUpdateTime(this.lastMaxUpdateTime);
+        windowInstance.setEndTime(this.endTime);
+        windowInstance.setStartTime(this.startTime);
+        windowInstance.setSplitId(this.splitId);
+        windowInstance.setWindowInstanceSplitName(this.windowInstanceSplitName);
+        windowInstance.setGmtModified(new Date());
+        windowInstance.setGmtCreate(new Date());
+        windowInstance.setWindowInstanceName(this.windowInstanceName);
+        windowInstance.setWindowInstanceKey(this.windowInstanceKey);
+        windowInstance.setWindowName(this.windowName);
+        windowInstance.setWindowNameSpace(this.windowNameSpace);
+        windowInstance.setStatus(this.status);
+        windowInstance.setVersion(this.version);
+        return windowInstance;
+    }
     /**
      * 创建window instance的唯一ID
      *
@@ -131,7 +154,6 @@ public class WindowInstance extends Entity implements Serializable {
         for (int index = 0; index < startAndEndTimeList.size(); index++) {
             Pair<String, String> pair = startAndEndTimeList.get(index);
             WindowInstance windowInstance = window.createWindowInstance(pair.getLeft(), pair.getRight(), fireTimeList.get(index), queueId);
-
             lostInstanceList.add(windowInstance);
         }
         return lostInstanceList;
@@ -265,6 +287,7 @@ public class WindowInstance extends Entity implements Serializable {
                         Date soonFire = soonEnd;
                         fire = soonFire;
                     }
+
                     // System.out.println(DateUtil.format(fire));
                     if (fire.getTime() - end.getTime() - waterMarkMinute * timeUnitAdjust * 1000 > 0) {
                         //超过最大watermark，消息需要丢弃
@@ -277,6 +300,7 @@ public class WindowInstance extends Entity implements Serializable {
                 if(window.getFireMode()==2&&fire.getTime()==end.getTime()&&waterMarkMinute>0){
                     Date clearWindowInstanceFireTime=DateUtil.addDate(TimeUnit.SECONDS,end, waterMarkMinute * timeUnitAdjust);
                     WindowInstance lastWindowInstance=window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end),DateUtil.format(clearWindowInstanceFireTime) , queueId);
+                    lastWindowInstance.setCanClearResource(true);
                     window.registerWindowInstance(lastWindowInstance);
                     window.getSqlCache().addCache(new SQLElement(queueId,lastWindowInstance.createWindowInstanceId(),ORMUtil.createBatchReplacetSQL(lastWindowInstance)));
                     window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance,window);
@@ -284,6 +308,9 @@ public class WindowInstance extends Entity implements Serializable {
 
             } else {
                 fire = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
+                if(window.getEmitAfterValue()!=null&&window.getEmitAfterValue()>0&&window.getMaxDelay()!=null&&window.getMaxDelay()>0){
+                    fire=DateUtil.addDate(TimeUnit.SECONDS,fire,window.getMaxDelay().intValue());
+                }
                 if (maxEventTime!=null&&maxEventTime - fire.getTime() > 0) {
                     LOG.warn("*********************the message is discard, because the fire time is exceed****************** "+DateUtil.format(begin)+"-"+DateUtil.format(end)+"---"+DateUtil.format(fire));
                     break;
@@ -305,14 +332,80 @@ public class WindowInstance extends Entity implements Serializable {
         }
         List<WindowInstance> lostInstanceList = null;
         lostInstanceList = WindowInstance.createWindowInstances(window, lostWindowTimeList, lostFireList, queueId);
-
         instanceList.addAll(lostInstanceList);
         for (WindowInstance windowInstance : instanceList) {
+            List<WindowInstance> emitInstances=createEmitWindowInstance(window,windowInstance);
+            if(emitInstances!=null&&emitInstances.size()>0){
+                for(WindowInstance emitBeforeInstance:emitInstances){
+                    window.registerWindowInstance(emitBeforeInstance);
+                    window.getSqlCache().addCache(new SQLElement(queueId,emitBeforeInstance.createWindowInstanceId(),ORMUtil.createBatchReplacetSQL(emitBeforeInstance)));
+                    window.getWindowFireSource().registFireWindowInstanceIfNotExist(emitBeforeInstance,window);
+                }
+            }
             window.registerWindowInstance(windowInstance);
         }
 
+
+
         return instanceList;
     }
+
+    protected static List<WindowInstance> createEmitWindowInstance(AbstractWindow window, WindowInstance instance) {
+        List<WindowInstance> windowInstances=new ArrayList<>();
+        List<WindowInstance> emitBeforeInstances=createEmitBeforeWindowInstance(window,instance);
+        if(emitBeforeInstances!=null){
+            windowInstances.addAll(emitBeforeInstances);
+        }
+        List<WindowInstance> emitAfterInstances=createEmitAfterWindowInstance(window,instance);
+        if(emitAfterInstances!=null){
+            windowInstances.addAll(emitAfterInstances);
+        }
+        return windowInstances;
+    }
+
+
+    protected static List<WindowInstance> createEmitBeforeWindowInstance(AbstractWindow window,WindowInstance windowInstance) {
+        if(window.getEmitBeforeValue()==null||window.getEmitBeforeValue()==0){
+            return null;
+        }
+        if(window.getFireMode()!=0){
+            return null;
+        }
+        List<WindowInstance> windowInstances=new ArrayList<>();
+        Date startDate=DateUtil.parse(windowInstance.getStartTime());
+        Date fireTime=DateUtil.parse(windowInstance.getFireTime());
+        Date emitFireTime=DateUtil.addDate(TimeUnit.SECONDS,startDate,window.getEmitBeforeValue().intValue());
+        while (emitFireTime.getTime()<fireTime.getTime()){
+            WindowInstance emitWindowInstance=windowInstance.copy();
+            emitWindowInstance.setFireTime(DateUtil.format(emitFireTime));
+            emitWindowInstance.setCanClearResource(false);
+            windowInstances.add(emitWindowInstance);
+            emitFireTime=DateUtil.addDate(TimeUnit.SECONDS,emitFireTime,window.getEmitBeforeValue().intValue());
+        }
+        return windowInstances;
+    }
+
+    private static List<WindowInstance> createEmitAfterWindowInstance(AbstractWindow window, WindowInstance windowInstance) {
+        if(window.getEmitAfterValue()==null||window.getEmitAfterValue()==0){
+            return null;
+        }
+        if(window.getFireMode()!=0){
+            return null;
+        }
+        List<WindowInstance> windowInstances=new ArrayList<>();
+        Date endDate=DateUtil.parse(windowInstance.getEndTime());
+        Date fireTime=DateUtil.parse(windowInstance.getFireTime());
+        Date emitFireTime= DateUtil.addDate(TimeUnit.SECONDS, endDate, window.getWaterMarkMinute() * window.getTimeUnitAdjust());
+        while (emitFireTime.getTime()<fireTime.getTime()){
+            WindowInstance firstWindowInstance=windowInstance.copy();
+            firstWindowInstance.setFireTime(DateUtil.format(emitFireTime));
+            firstWindowInstance.setCanClearResource(false);
+            windowInstances.add(firstWindowInstance);
+            emitFireTime=DateUtil.addDate(TimeUnit.SECONDS,emitFireTime,window.getEmitAfterValue().intValue());
+        }
+        return windowInstances;
+    }
+
 
     public String getStartTime() {
         return startTime;
@@ -425,5 +518,13 @@ public class WindowInstance extends Entity implements Serializable {
 
     @Override public String toString() {
         return createWindowInstanceId().toString();
+    }
+
+    public boolean isCanClearResource() {
+        return canClearResource;
+    }
+
+    public void setCanClearResource(boolean canClearResource) {
+        this.canClearResource = canClearResource;
     }
 }

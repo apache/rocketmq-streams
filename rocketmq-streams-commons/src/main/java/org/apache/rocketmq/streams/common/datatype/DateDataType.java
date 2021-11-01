@@ -17,13 +17,16 @@
 package org.apache.rocketmq.streams.common.datatype;
 
 import com.alibaba.fastjson.JSONObject;
-import java.sql.Timestamp;
-import java.text.ParsePosition;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+
+import java.sql.Timestamp;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 public class DateDataType extends BaseDataType<Date> {
 
@@ -84,6 +87,10 @@ public class DateDataType extends BaseDataType<Date> {
         }
         if (Timestamp.class.isInstance(object)) {
             return new Date(((Timestamp)object).getTime());
+        }
+        if (object instanceof LocalDateTime) {
+            LocalDateTime tempTime = (LocalDateTime) object;
+            return Date.from(tempTime.atZone(ZoneId.systemDefault()).toInstant());
         }
         return super.convert(object);
     }

@@ -23,11 +23,11 @@ public class StreamsConfigure {
     protected static String EMIT_AFTER_VALUE_KEY="emit.after.value";
     protected static String EMIT_MAX_DELAY_VALUE_KEY="emit.max.value";
     public static Long getEmitBeforeValue(){
-        String value= ComponentCreator.getProperties().getProperty(EMIT_BEFORE_VALUE_KEY);
-        if(value==null){
-            return null;
-        }
-        return Long.valueOf(value);
+       String value= ComponentCreator.getProperties().getProperty(EMIT_BEFORE_VALUE_KEY);
+       if(value==null){
+           return null;
+       }
+       return Long.valueOf(value);
     }
     public static void setEmitBeforeValue(long value){
         ComponentCreator.getProperties().put(EMIT_BEFORE_VALUE_KEY,value+"");

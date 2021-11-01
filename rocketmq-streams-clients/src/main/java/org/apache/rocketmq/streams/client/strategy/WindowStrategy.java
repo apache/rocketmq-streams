@@ -53,8 +53,8 @@ public class WindowStrategy implements Strategy {
         return new WindowStrategy();
     }
 
-    public static Strategy windowDefaultSiZe(int defualtSize){
-        ComponentCreator.getProperties().put(ConfigureFileKey.DIPPER_WINDOW_DEFAULT_INERVAL_SIZE,defualtSize);
+    public static Strategy windowDefaultSiZe(int defualtSize) {
+        ComponentCreator.getProperties().put(ConfigureFileKey.DIPPER_WINDOW_DEFAULT_INERVAL_SIZE, defualtSize);
         return null;
     }
 

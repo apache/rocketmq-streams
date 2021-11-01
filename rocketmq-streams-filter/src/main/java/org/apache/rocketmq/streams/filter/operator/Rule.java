@@ -63,13 +63,15 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     private transient volatile Map<String, JDBCDriver> dataSourceMap = new HashMap<>();
     private String expressionStr;//表达式
 
-    protected transient GroupExpressionManager groupExpressionManager;
+//    protected transient GroupExpressionManager groupExpressionManager;
     /**
      * 如果已经完成varmap和expressionmap的初始化,主要是用于兼容老版本规则数据，新规则可以忽略这个字段，值设置为true
      */
     private transient boolean isFinishVarAndExpression = false;
 
-    public Rule() {groupExpressionManager = new GroupExpressionManager(this);}
+    public Rule() {
+//        groupExpressionManager = new GroupExpressionManager(this);
+    }
 
     public Rule(String namespace, String name, String expression) {
         this();
@@ -125,8 +127,10 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         initVar(configurableService);
         initAction(configurableService);
         initMetaData(configurableService);
-        this.optimize();
-        groupExpressionManager.compile();
+        if(supportHyperscan){
+            this.optimize();
+//            groupExpressionManager.compile();
+        }
     }
 
     public void addAction(ChannelAction action) {
@@ -330,15 +334,16 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     @Override
     public Boolean doMessage(IMessage message, AbstractContext context) {
-        return execute(message.getMessageBody());
+
+        List<Rule> fireRules= filterComponent.executeRule(message,context,this);
+        return fireRules!=null&&fireRules.size()>0;
     }
 
     public static final String FIRE_RULES = "fireRules";
 
     public boolean execute(JSONObject msg) {
-        RuleMessage ruleMessage = new RuleMessage(msg);
-        List<Rule> fireRules = filterComponent.excuteRule(ruleMessage, this);
-        msg.put(FIRE_RULES, createJsonArray(fireRules));
+        List<Rule> fireRules = filterComponent.excuteRule(msg, this);
+       // msg.put(FIRE_RULES, createJsonArray(fireRules));
         if (fireRules == null || fireRules.size() == 0) {
             return false;
         }
@@ -482,12 +487,11 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         Iterator<Entry<String, GroupExpression>> it = varName2ExpressionNames.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, GroupExpression> entry = it.next();
-            String varName = entry.getKey();
             GroupExpression groupExpression = entry.getValue();
             if (groupExpression.size() < 2) {
                 newExpressionNames.addAll(groupExpression.getAllExpressionNames());
             } else {
-                groupExpressionManager.addGroupExpression(groupExpression);
+//                groupExpressionManager.addGroupExpression(groupExpression);
                 expressionMap.put(groupExpression.getConfigureName(), groupExpression);
                 newExpressionNames.add(groupExpression.getConfigureName());
             }
@@ -529,8 +533,8 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         }
         return root;
     }
-
-    public GroupExpressionManager getGroupExpressionManager() {
-        return groupExpressionManager;
-    }
+//
+//    public GroupExpressionManager getGroupExpressionManager() {
+//        return groupExpressionManager;
+//    }
 }

@@ -17,10 +17,15 @@
 package org.apache.rocketmq.streams.script.operator.expression;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
@@ -39,10 +44,16 @@ public class GroupScriptExpression implements IScriptExpression {
     private List<IScriptExpression> elseExpressions;
 
     private String scriptParameterStr;
+    protected List<? extends AbstractRule> rules;
 
     protected List<GroupScriptExpression> elseIfExpressions = new ArrayList<>();
 
     private static final String TAB = FunctionParser.TAB;
+
+
+    protected List<IScriptExpression> beforeExpressions;
+    protected List<IScriptExpression> afterExpressions;
+
 
     @Override
     public Object getScriptParamter(IMessage message, FunctionContext context) {
@@ -56,15 +67,22 @@ public class GroupScriptExpression implements IScriptExpression {
 
     @Override
     public Object executeExpression(IMessage channelMessage, FunctionContext context) {
+        if(beforeExpressions!=null){
+            for(IScriptExpression scriptExpression:beforeExpressions){
+                scriptExpression.executeExpression(channelMessage,context);
+            }
+        }
+
+
         Boolean result = (Boolean)ifExpresssion.executeExpression(channelMessage, context);
         Object value = null;
         if (result) {
             if (thenExpresssions != null) {
                 for (IScriptExpression scriptExpression : thenExpresssions) {
-                    value = scriptExpression.executeExpression(channelMessage, context);
+                     scriptExpression.executeExpression(channelMessage, context);
                 }
             }
-            return value;
+           return executeAfterExpression(channelMessage,context);
         }
         if (elseIfExpressions != null && elseIfExpressions.size() > 0) {
             for (int i = elseIfExpressions.size() - 1; i >= 0; i--) {
@@ -76,16 +94,29 @@ public class GroupScriptExpression implements IScriptExpression {
                             value = scriptExpression.executeExpression(channelMessage, context);
                         }
                     }
-                    return value;
+                    return executeAfterExpression(channelMessage,context);
                 }
             }
         }
+
+
         if (elseExpressions != null) {
             for (IScriptExpression scriptExpression : elseExpressions) {
-                value = scriptExpression.executeExpression(channelMessage, context);
+                 scriptExpression.executeExpression(channelMessage, context);
+                 return executeAfterExpression(channelMessage,context);
             }
         }
-        return value;
+        return null;
+    }
+
+    protected Object executeAfterExpression(IMessage channelMessage, FunctionContext context){
+        Object object=null;
+        if(afterExpressions!=null){
+            for(IScriptExpression scriptExpression:afterExpressions){
+              object=  scriptExpression.executeExpression(channelMessage,context);
+            }
+        }
+        return object;
     }
 
     @Override
@@ -235,10 +266,51 @@ public class GroupScriptExpression implements IScriptExpression {
         return ifExpresssion;
     }
 
+    public List<IScriptExpression> getBeforeExpressions() {
+        return beforeExpressions;
+    }
+
+    public void setBeforeExpressions(
+        List<IScriptExpression> beforeExpressions) {
+        this.beforeExpressions = beforeExpressions;
+    }
+
+    public List<IScriptExpression> getAfterExpressions() {
+        return afterExpressions;
+    }
+
+    public void setAfterExpressions(
+        List<IScriptExpression> afterExpressions) {
+        this.afterExpressions = afterExpressions;
+    }
 
     public List<IScriptExpression> getElseExpressions() {
         return elseExpressions;
     }
 
+    public List<? extends AbstractRule> getRules() {
+        return rules;
+    }
 
+    public void setRules(List<? extends AbstractRule> rules) {
+        this.rules = rules;
+    }
+
+    public List<IScriptExpression> getThenExpresssions() {
+        return thenExpresssions;
+    }
+
+    public Map<? extends String,? extends List<String>> getBeforeDependents() {
+        Map<String,List<String>> map=new HashMap<>();
+        if(CollectionUtil.isEmpty(beforeExpressions)){
+            return map;
+        }
+
+        for(IScriptExpression scriptExpression:beforeExpressions){
+            if(CollectionUtil.isNotEmpty(scriptExpression.getNewFieldNames())){
+                map.put(scriptExpression.getNewFieldNames().iterator().next(),scriptExpression.getDependentFields());
+            }
+        }
+        return map;
+    }
 }

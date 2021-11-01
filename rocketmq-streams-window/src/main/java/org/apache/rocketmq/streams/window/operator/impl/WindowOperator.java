@@ -122,14 +122,14 @@ public class WindowOperator extends AbstractShuffleWindow {
         }
         clearFire(instance);
         this.sqlCache.addCache(new FiredNotifySQLElement(queueId,instance.createWindowInstanceId()));
-        return fireCount;
+         return fireCount;
     }
 
     protected transient Map<String,Integer>  shuffleWindowInstanceId2MsgCount=new HashMap<>();
     protected transient int windowvaluecount=0;
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
-        DebugWriter.getDebugWriter(getConfigureName()).writeShuffleCalcultateReceveMessage(instance,messages,queueId);
+         DebugWriter.getDebugWriter(getConfigureName()).writeShuffleCalcultateReceveMessage(instance,messages,queueId);
         List<String> sortKeys=new ArrayList<>();
         Map<String,List<IMessage>> groupBy=groupByGroupName(messages,sortKeys);
         Set<String> groupByKeys=groupBy.keySet();
@@ -141,7 +141,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         Map<String, WindowBaseValue> allWindowValues=new HashMap<>();
         //从存储中，查找window value对象，value是对象的json格式
         Map<String, WindowBaseValue>  existWindowValues=storage.multiGet(getWindowBaseValueClass(),storeKeys,instance.createWindowInstanceId(),queueId);
-        //  Iterator<Entry<String, List<IMessage>>> it = groupBy.entrySet().iterator();
+      //  Iterator<Entry<String, List<IMessage>>> it = groupBy.entrySet().iterator();
         for(String groupByKey:sortKeys){
 
             List<IMessage> msgs=groupBy.get(groupByKey);
@@ -150,7 +150,7 @@ public class WindowOperator extends AbstractShuffleWindow {
             if(windowValue==null){
                 windowvaluecount++;
                 windowValue=createWindowValue(queueId,groupByKey,instance);
-                // windowValue.setOrigOffset(msgs.get(0).getHeader().getOffset());
+               // windowValue.setOrigOffset(msgs.get(0).getHeader().getOffset());
             }
             allWindowValues.put(storeKey,windowValue);
             windowValue.incrementUpdateVersion();
@@ -159,7 +159,7 @@ public class WindowOperator extends AbstractShuffleWindow {
 
             if(msgs!=null){
                 for(IMessage message:msgs){
-                    calculateWindowValue(windowValue,message);
+                   calculateWindowValue(windowValue,message);
 
                 }
             }
