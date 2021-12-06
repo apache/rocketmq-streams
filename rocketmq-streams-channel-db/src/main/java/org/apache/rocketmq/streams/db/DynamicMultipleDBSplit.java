@@ -56,10 +56,6 @@ public class DynamicMultipleDBSplit extends BasedConfigurable implements ISplit<
         return logicTableName + "_" + suffix;
     }
 
-    @Override
-    public String getPlusQueueId() {
-        throw new RuntimeException("unsupported getPlusQueueId!");
-    }
 
     @Override
     public String getQueue() {

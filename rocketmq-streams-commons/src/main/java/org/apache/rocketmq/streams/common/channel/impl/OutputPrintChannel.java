@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
 
 /**

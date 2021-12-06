@@ -30,7 +30,7 @@ import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.rocketmq.streams.window.source.WindowFireSource;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 
-public abstract class AbstractShuffleWindow extends AbstractWindow implements IAfterConfigurableRefreshListener {
+public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
@@ -42,8 +42,8 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
         return super.initConfigurable();
     }
 
-    @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
+
+    @Override public void windowInit() {
         if (hasCreated.compareAndSet(false, true)) {
             this.windowFireSource = new WindowFireSource(this);
             this.windowFireSource.init();
@@ -75,15 +75,14 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
      * @param messages
      * @param instance
      */
-    public abstract void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
+    public abstract void  shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
 
-    /**
+     /**
      * 触发window
      *
      * @param instance
      */
-    protected abstract int fireWindowInstance(WindowInstance instance, String queueId,
-        Map<String, String> queueId2Offset);
+    protected abstract int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset);
 
     public abstract void clearCache(String queueId);
 }

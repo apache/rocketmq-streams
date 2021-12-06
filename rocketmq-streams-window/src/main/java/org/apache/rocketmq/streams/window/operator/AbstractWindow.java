@@ -151,7 +151,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     /**
      * 默认为空，窗口的触发类似flink，在测试模式下，因为消息有界，期望当消息发送完成后能触发，可以设置两条消息的最大间隔，超过这个间隔，将直接触发消息
      */
-    protected Long msgMaxGapSecond=10L;
+    protected Long msgMaxGapSecond=60*3L;
 
     protected String havingExpression;
 
@@ -230,7 +230,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
             }
         };
         windowCache.init();
-        windowCache.openAutoFlush();
 
         WINDOW_NAME = MapKeyUtil.createKey(getNameSpace(), getConfigureName());
         //fireDelaySecond时间检查一次是否有窗口需要触发
@@ -774,6 +773,9 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         this.windowInstanceMap.remove(windowInstance.createWindowInstanceId());
 
     }
+    @Override public void windowInit() {
+
+    }
 
     @Override
     public WindowCache getWindowCache() {
@@ -845,4 +847,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     public void setMaxDelay(Long maxDelay) {
         this.maxDelay = maxDelay;
     }
+
+    public abstract boolean supportBatchMsgFinish();
 }

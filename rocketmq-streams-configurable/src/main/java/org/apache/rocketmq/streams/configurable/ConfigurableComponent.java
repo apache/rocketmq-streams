@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
@@ -90,7 +91,7 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
     }
 
     /**
-     * 关闭测试模式，用配置文件中配置的属性加载configuable数据
+     * 关闭测试模式，用配置文件中配置的属性加载configurable数据
      */
     public static void endTestMode() {
         System.clearProperty(ConfigurableComponent.CONNECT_TYPE);
@@ -160,7 +161,7 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
     @SuppressWarnings("unchecked")
     @Override
     public <T> T queryConfigurable(String configurableType, String name) {
-        return (T) queryConfigurableByIdent(configurableType, name);
+        return (T)queryConfigurableByIdent(configurableType, name);
     }
 
     //protected void insertConfigurable(JSONObject message, IConfigurable configurable) {
@@ -169,8 +170,8 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
 
     @Override
     public String getNamespace() {
-        if (AbstractConfigurableService.class.isInstance(configureService)) {
-            return ((AbstractConfigurableService) configureService).getNamespace();
+        if (configureService instanceof AbstractConfigurableService) {
+            return configureService.getNamespace();
         }
         return namespace;
     }

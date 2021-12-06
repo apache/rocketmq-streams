@@ -135,7 +135,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         if (configures != null && configures.isQuerySuccess() && configures.getConfigurables() != null) {
             // List<Configure> configureList = filterConfigure(configures.getConfigure());
             List<IConfigurable> configurables = configures.getConfigurables();
-            List<IConfigurable> configurableList = checkAndUpdateConfigurables(namespace, configurables, tempType2ConfigurableMap, tempName2ConfigurableMap, configures.getConfigurables());
+            List<IConfigurable> configurableList = checkAndUpdateConfigurables(configurables, tempType2ConfigurableMap, tempName2ConfigurableMap);
             // this.namespace2ConfigurableMap = namespace2ConfigurableMap;
             for (IConfigurable configurable : configurableList) {
                 if (configurable instanceof IAfterConfigurableRefreshListener) {
@@ -152,10 +152,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         return (T)queryConfigurableByIdent(configurableType, name);
     }
 
-    protected List<IConfigurable> checkAndUpdateConfigurables(String namespace, List<IConfigurable> configurables,
-                                                              Map<String, List<IConfigurable>> tempType2ConfigurableMap,
-                                                              Map<String, IConfigurable> tempName2ConfigurableMap,
-                                                              List configures) {
+    protected List<IConfigurable> checkAndUpdateConfigurables(List<IConfigurable> configurables, Map<String, List<IConfigurable>> tempType2ConfigurableMap, Map<String, IConfigurable> tempName2ConfigurableMap) {
         List<IConfigurable> configurableList = new ArrayList<>();
         for (IConfigurable configurable : configurables) {
             try {
@@ -272,7 +269,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
     protected abstract void insertConfigurable(IConfigurable configurable);
 
     protected boolean update(IConfigurable configurable, Map<String, IConfigurable> name2ConfigurableMap,
-                             Map<String, List<IConfigurable>> type2ConfigurableMap) {
+        Map<String, List<IConfigurable>> type2ConfigurableMap) {
         if (configurable == null) {
             return false;
         }

@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
@@ -145,6 +146,11 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
 
     @Override
     public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
+        sendSystem(message, context, piplines.values());
+    }
+
+    @Override
+    public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
         sendSystem(message, context, piplines.values());
     }
 

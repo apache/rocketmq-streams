@@ -33,7 +33,7 @@ import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
 @AutoService(IChannelBuilder.class)
-@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource", name = "metaq")
+@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource")
 public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     public static final String TYPE = "rocketmq";
 
@@ -51,7 +51,7 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
             if ("type".equals(key)) {
                 continue;
             }
-            formatProperties.put(key, properties.getProperty(key));
+            formatProperties.put(key, properties.get(key));
         }
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "topic", "topic");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "tags", "tag");
@@ -59,6 +59,7 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "pullIntervalMs", "pullIntervalMs");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "offsetTime", "offsetTime");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "namesrvAddr", "namesrvAddr");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "producerGroup");
         if (properties.getProperty("group") != null) {
             String group = properties.getProperty("group");
             if (group.startsWith("GID_")) {

@@ -20,11 +20,16 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
+import java.util.UUID;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.model.Entity;
+import org.apache.rocketmq.streams.common.utils.AESUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -37,7 +42,7 @@ public class FileConfigureService extends AbstractConfigurableService {
     public static final String FILE_PATH_NAME = IConfigurableService.FILE_PATH_NAME;
     // 配置文件的路径
     private static final Log LOG = LogFactory.getLog(FileConfigureService.class);
-    private static final String DEFAULT_FILE_NAME = "dipper_configure.cs";                        // 默认文件名
+    private static final String DEFAULT_FILE_NAME = "dipper.cs";                        // 默认文件名
     private static final String SIGN = "&&&&";                                       // 字段分割附号
     public String fileName;
 
@@ -68,7 +73,8 @@ public class FileConfigureService extends AbstractConfigurableService {
             List<IConfigurable> configurables = convert(configures);
             LOG.info("load configure namespace=" + namespace + " count=" + configures.size());
             result.setConfigurables(configurables);
-            result.setQuerySuccess(true);// 该字段标示查询是否成功，若不成功则不会更新配置
+            // 该字段标示查询是否成功，若不成功则不会更新配置
+            result.setQuerySuccess(true);
         } catch (Exception e) {
             result.setQuerySuccess(false);
             e.printStackTrace();
@@ -160,6 +166,12 @@ public class FileConfigureService extends AbstractConfigurableService {
         String type = getColumnValue(values, 1, "type");
         String name = getColumnValue(values, 2, "name");
         String jsonValue = getColumnValue(values, 3, "json_value");
+        try {
+            jsonValue = AESUtil.aesDecrypt(jsonValue, ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
+        } catch (Exception e) {
+            LOG.error("failed in decrypting the value, reason:\t" + e.getCause());
+            throw new RuntimeException(e);
+        }
         String createDate = getColumnValue(values, 4, "gmt_create");
         String modifiedDate = getColumnValue(values, 5, "gmt_modified");
         String id = getColumnValue(values, 6, "id");
@@ -230,8 +242,15 @@ public class FileConfigureService extends AbstractConfigurableService {
         } else {
             entity = new Entity();
         }
+        String theSecretValue = null;
+        try {
+            theSecretValue = AESUtil.aesEncrypt(configure.toJson(), ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
+        } catch (Exception e) {
+            LOG.error("failed in encrypting the value, reason:\t" + e.getCause());
+            throw new RuntimeException(e);
+        }
         String row = MapKeyUtil.createKeyBySign(SIGN, configure.getNameSpace(), configure.getType(),
-            configure.getConfigureName(), configure.toJson(), DateUtil.format(entity.getGmtCreate()),
+            configure.getConfigureName(), theSecretValue, DateUtil.format(entity.getGmtCreate()),
             DateUtil.format(entity.getGmtModified()), entity.getId() + "");
         return row;
     }
@@ -245,4 +264,5 @@ public class FileConfigureService extends AbstractConfigurableService {
         refreshConfigurable(getNamespace());
         return queryConfigurableByType(type);
     }
+
 }

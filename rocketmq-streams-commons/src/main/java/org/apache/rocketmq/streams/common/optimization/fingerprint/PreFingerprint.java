@@ -16,8 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.optimization.fingerprint;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
+import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 /**
  * filter message by log fingerprint
@@ -31,13 +41,26 @@ public class PreFingerprint {
     protected transient String sourceStageLable;//execute logfinger filter's stage, may be owner mutil branch stage or pipeline source
     protected transient String nextStageLable;//the source stage's next stage lable
     protected transient FingerprintCache fingerprintCache;
-    public PreFingerprint(String logFingerFieldNames,String filterStageIdentification,String sourceStageLable,String nextStageLable){
+
+    protected transient int expressionCount=-1;
+    protected transient FilterChainStage filterChainStage;
+    protected transient List<FilterChainStage> allPreviewFilterChainStage=new LinkedList<>();
+
+
+
+    public PreFingerprint(String logFingerFieldNames,String filterStageIdentification,String sourceStageLable,String nextStageLable,int expressionCount,AbstractStage filterChainStage,FingerprintCache fingerprintCache){
         this.logFingerFieldNames=logFingerFieldNames;
         this.filterStageIdentification=filterStageIdentification;
         this.sourceStageLable=sourceStageLable;
         this.nextStageLable=nextStageLable;
-        this.fingerprintCache= FingerprintCache.getInstance();
+        this.expressionCount=expressionCount;
+        this.filterChainStage=(FilterChainStage) filterChainStage;
+        this.fingerprintCache=fingerprintCache;
+    }
 
+
+    public PreFingerprint(String logFingerFieldNames,String filterStageIdentification,String sourceStageLable,String nextStageLable,AbstractStage filterChainStage,FingerprintCache fingerprintCache){
+        this(logFingerFieldNames,filterStageIdentification,sourceStageLable,nextStageLable,-1,filterChainStage,fingerprintCache);
     }
 
 
@@ -78,14 +101,10 @@ public class PreFingerprint {
         }
     }
 
-    public static void main(String[] args) {
-        BitSetCache.BitSet bitSet =new BitSetCache.BitSet(1);
-        bitSet.set(0);
-        System.out.println(bitSet.get(0));
+
+    public String getLogFingerFieldNames() {
+        return logFingerFieldNames;
     }
-
-
-
 
     public String getSourceStageLable() {
         return sourceStageLable;
@@ -94,4 +113,34 @@ public class PreFingerprint {
     public String getNextStageLable() {
         return nextStageLable;
     }
+
+    public int getExpressionCount() {
+        return expressionCount;
+    }
+
+    public void setExpressionCount(int expressionCount) {
+        this.expressionCount = expressionCount;
+    }
+
+    public FilterChainStage getFilterChainStage() {
+        return filterChainStage;
+    }
+
+    public void setLogFingerFieldNames(Set<String> logFingerFieldNames) {
+        List<String> fingers=new ArrayList<>(logFingerFieldNames);
+        Collections.sort(fingers);
+        this.logFingerFieldNames= MapKeyUtil.createKey(",",fingers);
+    }
+
+    public void addPreviwFilterChainStage(List<FilterChainStage> filterChainStages){
+        this.allPreviewFilterChainStage.addAll(filterChainStages);
+    }
+    public void addPreviwFilterChainStage(FilterChainStage filterChainStage){
+        this.allPreviewFilterChainStage.add(filterChainStage);
+    }
+
+    public List<FilterChainStage> getAllPreviewFilterChainStage() {
+        return allPreviewFilterChainStage;
+    }
+
 }

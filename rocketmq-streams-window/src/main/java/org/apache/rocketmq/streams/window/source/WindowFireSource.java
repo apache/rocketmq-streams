@@ -28,10 +28,10 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -42,7 +42,7 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
 
-public class WindowFireSource extends AbstractSupportOffsetResetSource implements IStreamOperator {
+public class WindowFireSource extends AbstractSupportShuffleSource implements IStreamOperator {
     protected static final Log LOG = LogFactory.getLog(WindowFireSource.class);
     private AbstractWindow window;
     //TODO maxEventTime和fireTime都是相对时间，但是这个更新时间是绝对时间，使用起来会很别扭
@@ -50,7 +50,7 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
     protected transient ScheduledExecutorService fireCheckScheduler;//检查是否触发
     protected transient ScheduledExecutorService checkpointScheduler;
     protected transient ConcurrentHashMap<String,WindowInstance> windowInstances=new ConcurrentHashMap();
-    protected transient IMessageCache<WindowInstance> fireInstanceCache=new WindowInstanceCache();
+    protected transient MessageCache<WindowInstance> fireInstanceCache=new WindowInstanceCache();
     //正在触发中的windowintance
     protected transient ConcurrentHashMap<String,WindowInstance> firingWindowInstances=new ConcurrentHashMap<>();
 
@@ -67,6 +67,7 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
         fireCheckScheduler=new ScheduledThreadPoolExecutor(2);
         checkpointScheduler=new ScheduledThreadPoolExecutor(3);
         setReceiver(window.getFireReceiver());
+       // fireInstanceCache.setAutoFlushExecutorService(ThreadPoolFactory.createThreadPool(5));
         fireInstanceCache.openAutoFlush();
         return super.initConfigurable();
     }
@@ -79,20 +80,7 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
             @Override
             public void run() {
                 try {
-                    //System.out.println("fire schdule time is "+(System.currentTimeMillis()-startTime)+" windowinstance count is "+windowInstances.size());
-                    //startTime=System.currentTimeMillis();
                     if(windowInstances.size()==0){
-                        //if(eventTimeLastUpdateTime!=null){
-                        //    int gap=(int)(System.currentTimeMillis()-eventTimeLastUpdateTime);
-                        //    if(window.getMsgMaxGapSecond()!=null&&gap>window.getMsgMaxGapSecond()*1000){
-                        //        for(String key:fireCounts.keySet()){
-                        //            Integer count=fireCounts.get(key);
-                        //            if(count==0){
-                        //                System.out.println("===================== "+key+":"+count);
-                        //            }
-                        //        }
-                        //    }
-                        //}
                         return;
 
                     }
@@ -146,28 +134,6 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
             }
 
         }, 10, 1, TimeUnit.SECONDS);
-
-        //定时发送checkpoint，提交和保存数据。在pull模式会有用
-        //fireCheckScheduler.scheduleWithFixedDelay(new Runnable() {
-        //
-        //    @Override
-        //    public void run() {
-        //       if(checkPointManager.getCurrentSplits()==null||checkPointManager.getCurrentSplits().size()==0){
-        //           return;
-        //       }
-        //       for(WindowInstance windowInstance:firingWindowInstances.values()){
-        //           Set<String> splits=checkPointManager.getCurrentSplits();
-        //           Set<String> windowInstanceSplits=new HashSet<>();
-        //           for(String splitId:splits){
-        //               //String windowInstanceSpiltId=windowInstance.createWindowInstancePartitionId();
-        //               windowInstanceSplits.add(splitId);
-        //           }
-        //           sendCheckpoint(windowInstanceSplits);
-        //       }
-        //
-        //    }
-        //},0,getCheckpointTime(), TimeUnit.MILLISECONDS);
-
         return false;
     }
 
@@ -264,7 +230,7 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
         Boolean isTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
         if(isTest){
             if(System.currentTimeMillis()-fireTime.getTime()>0){
-                System.out.println("window instance is fired");
+                System.out.println(windowInstance.getWindowName()+" is fired by test timeout");
                 return new FireResult(true,3);
             }
         }
@@ -272,29 +238,20 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
          * 未到触发时间
          */
         Long maxEventTime=this.window.getMaxEventTime(windowInstance.getSplitId());
-        if(maxEventTime==null){
-            //TODO
-            maxEventTime = System.currentTimeMillis();
-        }
-        if(maxEventTime-fireTime.getTime()>=3000){
+
+        if(maxEventTime!=null&&maxEventTime-fireTime.getTime()>=3000){
             return new FireResult(true,0);
         }
-        if(maxEventTime-fireTime.getTime()<3000){
-            Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
-            if(eventTimeLastUpdateTime==null){
-                return new FireResult();
-            }
-            if (isTest) {
-                int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
-                if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
-                    LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
-                    return new FireResult(true, 1);
-                }
-            }
+        Long eventTimeLastUpdateTime=this.eventTimeLastUpdateTime;
+        if(eventTimeLastUpdateTime==null){
             return new FireResult();
         }
-
-        return new FireResult(true,0);
+        int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
+        if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
+            LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
+            return new FireResult(true, 1);
+        }
+        return new FireResult();
     }
 
     @Override
@@ -302,6 +259,34 @@ public class WindowFireSource extends AbstractSupportOffsetResetSource implement
         return null;
     }
 
+    public synchronized void fireWindowInstance(String queueId) {
+        List<WindowInstance> windowInstanceList=new ArrayList<>();
+        ConcurrentHashMap<String,WindowInstance> newWindowInstanceMap=new ConcurrentHashMap();
+        for(String key:windowInstances.keySet()){
+            WindowInstance windowInstance=windowInstances.get(key);
+            if(windowInstance.getSplitId().equals(queueId)){
+                windowInstanceList.add(windowInstance);
+            }else {
+                newWindowInstanceMap.put(key,windowInstance);
+            }
+
+        }
+        windowInstances=newWindowInstanceMap;
+        Collections.sort(windowInstanceList, new Comparator<WindowInstance>() {
+            @Override
+            public int compare(WindowInstance o1, WindowInstance o2) {
+                int value= o1.getFireTime().compareTo(o2.getFireTime());
+                if(value!=0){
+                    return value;
+                }
+                return o2.getStartTime().compareTo(o1.getStartTime());
+            }
+        });
+      for(WindowInstance windowInstance:windowInstanceList){
+          System.out.println("fire by finish flag");
+          fireWindowInstance(windowInstance);
+      }
+    }
 
     protected class WindowInstanceCache extends AbstractMultiSplitMessageCache<WindowInstance> {
 

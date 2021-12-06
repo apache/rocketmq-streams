@@ -25,6 +25,7 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
@@ -137,14 +138,7 @@ public class DBConfigureService extends AbstractConfigurableService implements I
         return configurables;
     }
 
-    public static void main(String[] args) {
-        String[] namespaces = new String[] {"rule1", null};
-        String sql = "SELECT * FROM `dipper_configure` WHERE namespace in (" + SQLUtil.createInSql(namespaces) + ") and status =1";
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("namespace", MapKeyUtil.createKeyBySign(",", namespaces));
-        sql = SQLUtil.parseIbatisSQL(jsonObject, sql);
-        System.out.println(sql);
-    }
+
 
     protected void saveOrUpdate(IConfigurable configure) {
         JDBCDriver jdbcDataSource = createResouce();
@@ -182,9 +176,9 @@ public class DBConfigureService extends AbstractConfigurableService implements I
             configure.setName(name);
             String jsonValue = getColumnValue(row, "json_value");
             try {
-                jsonValue = AESUtil.aesDecrypt(jsonValue, ConfigureFileKey.SECRECY);
+                jsonValue = AESUtil.aesDecrypt(jsonValue, ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
             } catch (Exception e) {
-                LOG.error("can't decrypt the value, reason:\t" + e.getCause());
+                LOG.error("failed in decrypting the value, reason:\t" + e.getCause());
                 throw new RuntimeException(e);
             }
             configure.setJsonValue(jsonValue);

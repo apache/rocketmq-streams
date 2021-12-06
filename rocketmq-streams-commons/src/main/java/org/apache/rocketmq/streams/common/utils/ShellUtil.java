@@ -177,12 +177,4 @@ public class ShellUtil {
         return runShell(cmd);
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println(ENVUtile.getENVParameter("http_proxy"));
-        String result = runShell("/bin/sh export https_proxy=http://100.127.2.62:8888;export http_proxy=http://100.127.2.62:8888;export no_proxy='100.0.20.21,*.hljsjt-could.com,127.0.0.1,localhost,kinsmanbase.mysql.minirds.ops"
-            + ".hljsjt-could.com,baxia.mysql.minirds.ops.hljsjt-could.com,secureservice.res.hljsjt-could.com'", true);
-        System.out.println(ENVUtile.getENVParameter("http_proxy"));
-        System.out.println(result);
-
-    }
 }

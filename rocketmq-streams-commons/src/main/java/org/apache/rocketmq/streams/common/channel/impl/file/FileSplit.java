@@ -32,11 +32,6 @@ public class FileSplit extends BasedConfigurable implements ISplit<FileSplit, Fi
     }
 
     @Override
-    public String getPlusQueueId() {
-        return filePath + "_" + (splitId + 1);
-    }
-
-    @Override
     public File getQueue() {
         return file;
     }

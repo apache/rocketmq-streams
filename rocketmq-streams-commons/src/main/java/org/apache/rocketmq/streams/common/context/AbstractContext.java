@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.interfaces.IBaseStreamOperator;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.streams.common.model.ThreadContext;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
 import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
+import org.apache.rocketmq.streams.common.optimization.HomologousVar;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public abstract class AbstractContext<T extends IMessage> extends HashMap {
@@ -65,6 +67,8 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
 
     protected FilterResultCache quickFilterResult;
 
+    protected Map<String, BitSetCache.BitSet> homologousResult;
+
     public AbstractContext(T message) {
         this.message = message;
     }
@@ -92,6 +96,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.monitor = subContext.monitor;
         this.isBreak = subContext.isBreak;
         this.quickFilterResult=subContext.quickFilterResult;
+        this.homologousResult=subContext.homologousResult;
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
@@ -104,7 +109,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.monitor = this.monitor;
         subContext.isBreak = isBreak;
         subContext.quickFilterResult=quickFilterResult;
-
+        subContext.homologousResult=homologousResult;
         return subContext;
     }
 
@@ -118,6 +123,22 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
             return quickFilterResult.isMatch(message,expression);
         }
         return null;
+    }
+
+    public Boolean matchFromHomologousCache(IMessage message,HomologousVar var){
+        if(var==null){
+            return null;
+        }
+        if(this.homologousResult==null){
+            return null;
+        }
+
+        BitSetCache.BitSet bitSet=this.homologousResult.get(var.getHomologousVarKey());
+        if(bitSet==null){
+            return null;
+        }
+        boolean result= bitSet.get(var.getIndex());
+        return result;
     }
 
     public void resetIsContinue() {
@@ -239,7 +260,13 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         context.closeSplitMode(channelMessage);
         int nextIndex = 1;
         //long start=System.currentTimeMillis();
-        executeScript(scriptExpressions.get(0), channelMessage, context, nextIndex, scriptExpressions);
+        try {
+            executeScript(scriptExpressions.get(0), channelMessage, context, nextIndex, scriptExpressions);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
         // System.out.println("================="+(System.currentTimeMillis()-start));
         if (!context.isContinue()) {
             context.setSplitModel(isSplitMode || context.isSplitModel());
@@ -368,6 +395,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         }
         context.setSplitMessages(messages);
         context.monitor = this.monitor;
+        context.homologousResult=homologousResult;
     }
 
     public IMonitor getMonitor() {
@@ -393,5 +421,18 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
 
     public void setQuickFilterResult(FilterResultCache quickFilterResult) {
         this.quickFilterResult = quickFilterResult;
+    }
+
+    public Map<String, BitSetCache.BitSet> getHomologousResult() {
+        return homologousResult;
+    }
+
+    public void setHomologousResult(
+        Map<String, BitSetCache.BitSet> homologousResult) {
+        this.homologousResult = homologousResult;
+    }
+
+    public FilterResultCache getQuickFilterResult() {
+        return quickFilterResult;
     }
 }

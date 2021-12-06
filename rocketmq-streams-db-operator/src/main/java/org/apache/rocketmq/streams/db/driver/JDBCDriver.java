@@ -219,8 +219,7 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
 
         SingleConnectionDataSource dataSource = new SingleConnectionDataSource(url, userName, password, true);
 
-        dataSource.setDriverClassName(jdbcDriver);// add by 林行0221
-        // 专有云落地运维中心联调时发现独立打包时必须加这句话，否则会报找不到驱动。(MYSQL驱动包虽然已经打进去了但还要在这里显示指定)
+        dataSource.setDriverClassName(jdbcDriver);
         dataSource.setSuppressClose(true);
         this.dataSource = dataSource;
         return dataSource;

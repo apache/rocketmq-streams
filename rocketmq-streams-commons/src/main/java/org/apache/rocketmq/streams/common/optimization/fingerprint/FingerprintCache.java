@@ -48,7 +48,7 @@ public class FingerprintCache {
     protected Long firstUpdateTime;
     protected double minHitCacheRate=0.4;
 
-    private FingerprintCache(int cacheSize){
+    public FingerprintCache(int cacheSize){
         this.cacheSize=cacheSize;
         this.bitSetCache=new BitSetCache(this.cacheSize);
     }

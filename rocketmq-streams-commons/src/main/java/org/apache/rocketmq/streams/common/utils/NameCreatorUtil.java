@@ -55,7 +55,6 @@ public class NameCreatorUtil {
     }
 
     protected String createName(String... namePrefix) {
-        String value = MapKeyUtil.createKeyBySign("_", MapKeyUtil.createKeyBySign("_", namePrefix), nameCreator.incrementAndGet() + "");
-        return value;
+        return MapKeyUtil.createKeyBySign("_", MapKeyUtil.createKeyBySign("_", namePrefix), nameCreator.incrementAndGet() + "");
     }
 }

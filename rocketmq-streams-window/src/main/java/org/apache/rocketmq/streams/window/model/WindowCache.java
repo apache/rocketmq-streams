@@ -26,10 +26,13 @@ import java.util.Set;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.model.IWindow;
@@ -51,7 +54,7 @@ public abstract class WindowCache extends
     private static final Log LOG = LogFactory.getLog(WindowCache.class);
 
     public static final String SPLIT_SIGN = "##";
-
+    public static final String MSG_FROM_SOURCE = "msg_from_source";
     public static final String ORIGIN_OFFSET = "origin_offset";
 
     public static final String ORIGIN_QUEUE_ID = "origin_queue_id";
@@ -67,7 +70,8 @@ public abstract class WindowCache extends
     public static final String SHUFFLE_KEY = "SHUFFLE_KEY";
 
     public static final String ORIGIN_MESSAGE_TRACE_ID = "origin_request_id";
-
+    protected transient boolean isWindowTest=false;
+    protected transient AtomicLong COUNT=new AtomicLong(0);
     /**
      * 分片转发channel
      */
@@ -112,6 +116,7 @@ public abstract class WindowCache extends
         shuffleMsgCache.setAutoFlushSize(100);
         shuffleMsgCache.setAutoFlushTimeGap(1000);
         shuffleMsgCache.openAutoFlush();
+        isWindowTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
         return super.initConfigurable();
     }
 
@@ -145,9 +150,28 @@ public abstract class WindowCache extends
           //  shuffleChannel.getProducer().flush(splitIds);
 
         }
+        if(isWindowTest){
+            long count=COUNT.addAndGet(messageList.size());
+            System.out.println(shuffleChannel.getWindow().getConfigureName()+" send shuffle msg count is "+count);
+            shuffleMsgCache.flush();
+        }
         return true;
     }
 
+
+    @Override
+    public void finishBatchMsg(BatchFinishMessage batchFinishMessage){
+        if(shuffleChannel!=null&&shuffleChannel.getProducer()!=null){
+            shuffleChannel.getProducer().flush();
+            for(ISplit split:shuffleChannel.getQueueList()){
+                IMessage message=batchFinishMessage.getMsg().deepCopy();
+                message.getMessageBody().put(ORIGIN_QUEUE_ID,message.getHeader().getQueueId());
+                shuffleChannel.getProducer().batchAdd(message,split);
+            }
+            shuffleChannel.getProducer().flush();
+        }
+
+    }
 
 
     /**
@@ -179,6 +203,7 @@ public abstract class WindowCache extends
             body.put(ORIGIN_MESSAGE_HEADER, JSONObject.toJSONString(msg.getHeader()));
             body.put(ORIGIN_MESSAGE_TRACE_ID, msg.getHeader().getTraceId());
             body.put(SHUFFLE_KEY, shuffleKey);
+//            body.put(MSG_FROM_SOURCE,msg.getOriMsg());
 
             addPropertyToMessage(msg, body);
 

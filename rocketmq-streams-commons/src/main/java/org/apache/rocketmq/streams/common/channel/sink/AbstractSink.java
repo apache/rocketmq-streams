@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
+import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -53,7 +54,8 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     protected transient IMessageCache<IMessage> messageCache;
     protected volatile int batchSize = DEFAULT_BATCH_SIZE;
     protected transient volatile Map<String, SourceState> sourceName2State = new HashMap<>();//保存完成刷新的queueid和offset
-
+    protected volatile int autoFlushSize = 300;
+    protected volatile int autoFlushTimeGap = 1000;
     public AbstractSink() {
         setType(TYPE);
 
@@ -62,6 +64,8 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     @Override
     protected boolean initConfigurable() {
         messageCache = new MultiSplitMessageCache(this);
+        ((MessageCache<IMessage>) messageCache).setAutoFlushTimeGap(autoFlushTimeGap);
+        ((MessageCache<IMessage>) messageCache).setAutoFlushSize(autoFlushSize);
         messageCache.openAutoFlush();
         return super.initConfigurable();
     }
@@ -122,6 +126,9 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         }
         return true;
     }
+
+
+
 
     @Override
     public boolean flush(Set<String> splitIds) {
@@ -273,5 +280,21 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     @Override
     public boolean isFinished() throws Exception {
         return false;
+    }
+
+    public int getAutoFlushSize() {
+        return autoFlushSize;
+    }
+
+    public void setAutoFlushSize(int autoFlushSize) {
+        this.autoFlushSize = autoFlushSize;
+    }
+
+    public int getAutoFlushTimeGap() {
+        return autoFlushTimeGap;
+    }
+
+    public void setAutoFlushTimeGap(int autoFlushTimeGap) {
+        this.autoFlushTimeGap = autoFlushTimeGap;
     }
 }

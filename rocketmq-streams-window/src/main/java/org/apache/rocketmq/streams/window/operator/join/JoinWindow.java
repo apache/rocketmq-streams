@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
@@ -61,13 +63,7 @@ public class JoinWindow extends AbstractShuffleWindow {
     protected String expression;//条件表达式。在存在非等值比较时使用
     protected transient DBOperator joinOperator = new DBOperator();
 
-    @Override
-    protected boolean initConfigurable() {
-        //        return super.initConfigurable();
-        super.initConfigurable();
-        doProcessAfterRefreshConfigurable(null);
-        return true;
-    }
+
 
     //    @Override
     //    protected void addPropertyToMessage(IMessage oriMessage, JSONObject oriJson){
@@ -92,6 +88,11 @@ public class JoinWindow extends AbstractShuffleWindow {
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
         Map<String, WindowBaseValue> joinLeftStates = new HashMap<>();
         Map<String, WindowBaseValue> joinRightStates = new HashMap<>();
+//        for (IMessage msg : messages) {
+//
+//        }
+
+
         for (IMessage msg : messages) {
             MessageHeader header = JSONObject.parseObject(msg.getMessageBody().
                 getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
@@ -104,18 +105,15 @@ public class JoinWindow extends AbstractShuffleWindow {
             } else if ("right".equalsIgnoreCase(routeLabel)) {
                 joinRightStates.put(storeKey, state);
             }
-        }
+            if (joinLeftStates.size() > 0) {
+                storage.multiPut(joinLeftStates);
+            }
+            if (joinRightStates.size() > 0) {
+                storage.multiPut(joinRightStates);
+            }
 
-        if (joinLeftStates.size() > 0) {
-            storage.multiPut(joinLeftStates);
-        }
-        if (joinRightStates.size() > 0) {
-            storage.multiPut(joinRightStates);
-        }
-
-        for (IMessage msg : messages) {
-            MessageHeader header = msg.getHeader();
-            String routeLabel = header.getMsgRouteFromLable();
+            header = msg.getHeader();
+            routeLabel = header.getMsgRouteFromLable();
             //            Map<String,WindowBaseValue> joinMessages = new HashMap<>();
             String storeKeyPrefix = "";
             Iterator<WindowBaseValue> iterator = null;
@@ -505,7 +503,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
         return joinMessages;
     }
-
+    protected transient AtomicInteger count=new AtomicInteger(0);
     /**
      * 把触发的数据，发送到下一个节点
      *
@@ -518,6 +516,10 @@ public class JoinWindow extends AbstractShuffleWindow {
             nextMessage.getHeader().setNeedFlush(true);
         }
         AbstractContext context = new Context(nextMessage);
+        boolean isWindowTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+        if(isWindowTest){
+            System.out.println(getConfigureName()+" result send count is "+count.incrementAndGet());
+        }
         this.getFireReceiver().doMessage(nextMessage, context);
     }
 
@@ -569,6 +571,10 @@ public class JoinWindow extends AbstractShuffleWindow {
             return rigthMaxSplitNum;
         }
         return null;
+    }
+
+    @Override public boolean supportBatchMsgFinish() {
+        return false;
     }
 
     public int getRetainWindowCount() {

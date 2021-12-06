@@ -71,7 +71,7 @@ public class FileChannelBuilder extends AbstractSupportShuffleChannelBuilder {
             if ("type".equals(key)) {
                 continue;
             }
-            formatProperties.put(key, properties.getProperty(key));
+            formatProperties.put(key, properties.get(key));
         }
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "filePath", "filePath");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "filePath", "fileName");
