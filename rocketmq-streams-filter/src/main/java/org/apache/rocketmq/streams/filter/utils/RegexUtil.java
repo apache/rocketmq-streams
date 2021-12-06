@@ -192,19 +192,4 @@ public class RegexUtil {
 
     }
 
-    // private static final String[] regexSign = { "\\d", "\\w", "\\s", "\\", "$", "(", ")", "*", "+", ".", "[", "]",
-    // "?",
-    // "^", "{", "}", "|" };
-
-    public static void main(String args[]) {
-        // String content = "REG ADD \"HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution
-        // Options\\sethc.exe\" /v Debugger /t REG_SZ /d \"C:\\windows\\system32\\cmd.exe\"";
-        String patternStr = "python\\s+-c\\s+('')?import\\s+socket.*socket\\.socket\\(socket\\.af_inet.*\\.connect\\(.*subprocess\\.call";
-
-        String message = "/bin/sh -c /usr/bin/w";
-
-        System.out.println("@@@" + RegexUtil.matchRegex(message, patternStr, true, -1));
-
-    }
-
 }

@@ -16,18 +16,26 @@
  */
 package org.apache.rocketmq.streams.script.operator.expression;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IExpressionResultCache;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
+import org.apache.rocketmq.streams.common.optimization.HomologousVar;
+import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.ScriptComponent;
@@ -35,6 +43,7 @@ import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.optimization.compile.CompileParameter;
 import org.apache.rocketmq.streams.script.optimization.compile.CompileScriptExpression;
+import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
@@ -51,9 +60,6 @@ public class ScriptExpression implements IScriptExpression {
 
     protected transient Boolean ismutilField;//mutil fields eg :a.b.c
 
-
-
-
     private String expressionStr;
 
     private String functionName;
@@ -61,6 +67,7 @@ public class ScriptExpression implements IScriptExpression {
     private List<IScriptParamter> parameters;
 
     private Long groupId;
+    protected transient HomologousVar homologousVar;
 
     protected transient volatile CompileScriptExpression compileScriptExpression;
 
@@ -71,47 +78,60 @@ public class ScriptExpression implements IScriptExpression {
     public Object executeExpression(IMessage message, FunctionContext context) {
 
         try {
-            if(ismutilField==null&&newFieldName!=null){
-                ismutilField=newFieldName.indexOf(".")!=-1;
+            if (ismutilField == null && newFieldName != null) {
+                ismutilField = newFieldName.indexOf(".") != -1;
             }
-            Boolean isMatch=context.matchFromCache(message,this);
-            if(isMatch!=null){
+            Boolean isMatch = null;
+            if (this.homologousVar != null) {
+                isMatch = context.matchFromHomologousCache(message, this.homologousVar);
+            }
+            if (isMatch != null) {
+                setValue2Var(message, context, newFieldName, isMatch);
+                return isMatch;
+            }
+            isMatch = context.matchFromCache(message, this);
+            if (isMatch != null) {
                 setValue2Var(message, context, newFieldName, isMatch);
                 return isMatch;
             }
 
             if (StringUtil.isEmpty(functionName)) {
-                if(compileParameter==null){
-                    compileParameter=new CompileParameter(parameters.get(0),false);
+                if (compileParameter == null) {
+                    compileParameter = new CompileParameter(parameters.get(0), false);
                 }
                 Object value = compileParameter.getValue(message, context);
                 setValue2Var(message, context, newFieldName, value);
                 return value;
             }
-
+            long startTime = System.currentTimeMillis();
             Object value = null;
             if (compileScriptExpression != null) {
                 value = compileScriptExpression.execute(message, context);
             } else {
                 value = execute(message, context);
             }
-
-            //monitor.setResult(value);
-            //monitor.endMonitor();
-            //if (monitor.isSlow()) {
-            //    monitor.setSampleData(context).put("script_info", expressionStr);
-            //}
+            long cost = System.currentTimeMillis() - startTime;
+            long timeout = 10;
+            if (ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT) != null) {
+                timeout = Long.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT));
+            }
+            if (cost > timeout) {
+                String varValue = "";
+                if (this.getScriptParamters() != null && this.getScriptParamters().size() > 0) {
+                    varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
+                    varValue = message.getMessageBody().getString(varValue);
+                }
+                LOG.warn("SLOW-" + cost + "----" + this.toString() + PrintUtil.LINE + "the var value is " + varValue);
+            }
             return value;
         } catch (Exception e) {
             e.printStackTrace();
-            IMonitor monitor = null;
-            if (StringUtil.isEmpty(functionName)) {
-                monitor = context.getCurrentMonitorItem("scripts").createChildren("operator");
-            } else {
-                monitor = context.getCurrentMonitorItem("scripts").createChildren(functionName);
+            String varValue = "";
+            if (this.getScriptParamters() != null && this.getScriptParamters().size() > 0) {
+                varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
+                varValue = message.getMessageBody().getString(varValue);
             }
-            monitor.occureError(e, "operator expression execute error " + expressionStr, e.getMessage());
-            monitor.setSampleData(context).put("script_info", expressionStr);
+            LOG.error("ERROR-" + this.toString() + PrintUtil.LINE + "the var value is " + varValue, e);
             throw new RuntimeException(e);
         }
 
@@ -133,21 +153,51 @@ public class ScriptExpression implements IScriptExpression {
         }
 
         if (functionConfigure == null) {
-            cache.put(functionName, true);
             ps = createParameters(message, context, false, null);
             functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(functionName, ps);
+            if (functionConfigure != null) {
+                cache.put(functionName, true);
+            }
         }
         if (functionConfigure == null) {
-            System.out.println("");
-            Object[] tmp = createParameters(message, context, false, null);
-            functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(functionName, ps);
-            System.out.println("");
+            String varValue = "";
+            if (this.getScriptParamters() != null && this.getScriptParamters().size() > 0) {
+                varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
+                varValue = message.getMessageBody().getString(varValue);
+            }
+            throw new RuntimeException("can not find function " + functionName + "ERROR-" + this.toString() + PrintUtil.LINE + "the var value is " + varValue + PrintUtil.LINE + this.toString() + "the var value is " + varValue);
         }
-        Object value = functionConfigure.execute(ps);
-            compileScriptExpression = new CompileScriptExpression(this, functionConfigure);
+        Object value = executeFunctionConfigue(message, context, functionConfigure, ps);
+        compileScriptExpression = new CompileScriptExpression(this, functionConfigure);
         if (StringUtil.isNotEmpty(newFieldName) && value != null) {
             setValue2Var(message, context, newFieldName, value);
-            //message.getMessageBody().put(newFieldName, value);
+        }
+        return value;
+    }
+
+    public Object executeFunctionConfigue(IMessage message, FunctionContext context, FunctionConfigure configure, Object[] ps) {
+        Object value = configure.execute(ps);
+
+        if (configure.isUserDefinedUDTF()) {
+            List<Map<String, Object>> rows = (List<Map<String, Object>>)value;
+            context.openSplitModel();
+            boolean needFlush = message.getHeader().isNeedFlush();
+            context.openSplitModel();
+            for (int i = 0; i < rows.size(); i++) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.putAll(message.getMessageBody());
+                Map subJsonObject = (Map)rows.get(i);
+                jsonObject.putAll(subJsonObject);
+                IMessage copyMessage = message.deepCopy();
+                copyMessage.setMessageBody(jsonObject);
+                if (i < rows.size() - 1) {
+                    copyMessage.getHeader().setNeedFlush(false);
+                } else {
+                    copyMessage.getHeader().setNeedFlush(needFlush);
+                }
+                context.addSplitMessages(copyMessage);
+            }
+            return null;
         }
         return value;
     }
@@ -158,7 +208,7 @@ public class ScriptExpression implements IScriptExpression {
         if (newFieldName == null || value == null) {
             return;
         }
-        if ( !ismutilField) {
+        if (!ismutilField) {
             message.getMessageBody().put(newFieldName, value);
             return;
         }
@@ -344,4 +394,11 @@ public class ScriptExpression implements IScriptExpression {
         this.newFieldName = newFieldName;
     }
 
+    public HomologousVar getHomologousVar() {
+        return homologousVar;
+    }
+
+    public void setHomologousVar(HomologousVar homologousVar) {
+        this.homologousVar = homologousVar;
+    }
 }

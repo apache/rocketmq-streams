@@ -31,6 +31,7 @@ import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
+import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
 /**
  * 条件函数，支持if elseif else 每一个部分又是用IScriptExpression来表达。 执行流程，如果if成功执行then，循环执行elseif，最后执行else
@@ -54,7 +55,7 @@ public class GroupScriptExpression implements IScriptExpression {
     protected List<IScriptExpression> beforeExpressions;
     protected List<IScriptExpression> afterExpressions;
 
-
+    private transient ICaseDependentParser caseDependentParser;
     @Override
     public Object getScriptParamter(IMessage message, FunctionContext context) {
         return this.executeExpression(message, context);
@@ -207,9 +208,15 @@ public class GroupScriptExpression implements IScriptExpression {
         if (elseIfExpressions != null) {
             parameters.addAll(elseIfExpressions);
         }
+        ICaseDependentParser caseDependentParser=loadCaseDependentParser();
         if (parameters != null && parameters.size() > 0) {
-            for (IScriptParamter scriptParamter : parameters) {
-                List<String> names = scriptParamter.getDependentFields();
+            for (IScriptExpression scriptExpression : parameters) {
+                List<String> names =null;
+                if(caseDependentParser!=null&&caseDependentParser.isCaseFunction(scriptExpression)){
+                    names=new ArrayList<>(caseDependentParser.getDependentFields(scriptExpression));
+                }else {
+                    names = scriptExpression.getDependentFields();
+                }
                 if (names != null) {
                     fieldNames.addAll(names);
                 }
@@ -237,6 +244,27 @@ public class GroupScriptExpression implements IScriptExpression {
         }
         return set;
     }
+
+    protected ICaseDependentParser loadCaseDependentParser(){
+        if(this.caseDependentParser!=null){
+            return this.caseDependentParser;
+        }
+        synchronized (this){
+            if(caseDependentParser!=null){
+                return this.caseDependentParser;
+            }
+            ServiceLoaderComponent caseServiceLoader=ServiceLoaderComponent.getInstance(ICaseDependentParser.class);
+
+            List<ICaseDependentParser> caseDependentParsers=caseServiceLoader.loadService();
+            ICaseDependentParser caseDependentParser=null;
+            if(caseDependentParsers!=null&&caseDependentParsers.size()>0){
+                caseDependentParser=caseDependentParsers.get(0);
+            }
+            return caseDependentParser;
+        }
+
+    }
+
 
     public void setIfExpresssion(IScriptExpression ifExpresssion) {
         this.ifExpresssion = ifExpresssion;

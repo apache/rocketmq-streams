@@ -18,6 +18,11 @@ package org.apache.rocketmq.streams.dim.intelligence;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.aliyuncs.CommonRequest;
+import com.aliyuncs.CommonResponse;
+import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
+import com.aliyuncs.profile.DefaultProfile;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -47,7 +52,7 @@ import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.http.source.util.HttpUtil;
 
 public abstract class AbstractIntelligenceCache extends BasedConfigurable implements
-        IAfterConfigurableRefreshListener {
+    IAfterConfigurableRefreshListener {
 
     private static final Log LOG = LogFactory.getLog(AbstractIntelligenceCache.class);
 
@@ -239,7 +244,7 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
         int totalSize;//一共有多少条数据
 
         public FetchDataTask(String sql, long startIndex, long endIndex, CountDownLatch countDownLatch,
-                             AtomicInteger finishedCount, IDBDriver resource, int i, IntValueKV intValueKV, AbstractIntelligenceCache cache, int totalSize) {
+            AtomicInteger finishedCount, IDBDriver resource, int i, IntValueKV intValueKV, AbstractIntelligenceCache cache, int totalSize) {
             this.startIndex = startIndex;
             this.endIndex = endIndex;
             this.countDownLatch = countDownLatch;
@@ -291,43 +296,50 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
     }
 
     public boolean dbInit() {
-        String uri = "/api/rest/rds/getDataSource";
-        String httpPrefix = "http";
-        String httpProtocol = "http://";
         try {
-            String dbEndpoint = ComponentCreator.getProperties().getProperty(
+            int successCode = 200;
+            String region = ComponentCreator.getProperties().getProperty(ConfigureFileKey.INTELLIGENCE_REGION);
+            String ak = ComponentCreator.getProperties().getProperty(
+                ConfigureFileKey.INTELLIGENCE_AK);
+            String sk = ComponentCreator.getProperties().getProperty(
+                ConfigureFileKey.INTELLIGENCE_SK);
+            String endpoint = ComponentCreator.getProperties().getProperty(
                 ConfigureFileKey.INTELLIGENCE_TIP_DB_ENDPOINT);
-            if (StringUtils.isNotBlank(dbEndpoint)) {
-                if (!dbEndpoint.startsWith(httpPrefix)) {
-                    dbEndpoint = httpProtocol + dbEndpoint;
-                }
-                String content = HttpUtil.getContent(dbEndpoint + uri);
-                if (StringUtils.isNotBlank(content)) {
-                    JSONObject obj = JSON.parseObject(content);
-                    String statusCode = "code";
-                    int successCode = 200;
-                    if (obj.getInteger(statusCode) == successCode) {
-                        JSONObject data = obj.getJSONObject("data");
-                        JSONObject dbInfo = data.getJSONObject("dBInfo");
+            if (StringUtils.isNotBlank(region) && StringUtils.isNotBlank(ak) && StringUtils.isNotBlank(sk) && StringUtils.isNotBlank(endpoint)) {
+                DefaultProfile profile = DefaultProfile.getProfile(region, ak, sk);
+                IAcsClient client = new DefaultAcsClient(profile);
+                CommonRequest request = new CommonRequest();
+                request.setDomain(endpoint);
+                request.setVersion("2016-03-16");
+                request.setAction("DescribeDataSource");
+                CommonResponse response = client.getCommonResponse(request);
+                int code = response.getHttpStatus();
+                if (successCode == code) {
+                    String content = response.getData();
+                    if (StringUtils.isNotBlank(content)) {
+                        JSONObject obj = JSON.parseObject(content);
+                        JSONObject dbInfo = obj.getJSONObject("dBInfo");
                         if (dbInfo != null) {
                             String dbUrl = "jdbc:mysql://" + dbInfo.getString("dbConnection") + ":" + dbInfo.getInteger(
                                 "port") + "/" + dbInfo.getString("dBName");
                             String dbUserName = dbInfo.getString("userName");
                             String dbPassword = dbInfo.getString("passWord");
-                            JDBCDriver dataSource = (JDBCDriver)this.outputDataSource;
+                            JDBCDriver dataSource = (JDBCDriver) this.outputDataSource;
                             dataSource.setUrl(dbUrl);
                             dataSource.setPassword(dbPassword);
                             dataSource.setUserName(dbUserName);
                             dataSource.setHasInit(false);
                             dataSource.init();
+                            LOG.debug("succeed in getting db information from tip service!");
                             return true;
                         }
                     }
                 }
             }
+            LOG.error("failed in getting db information from tip service!");
             return false;
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("failed in getting db information from tip service!", e);
             return false;
         }
     }

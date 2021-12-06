@@ -17,14 +17,18 @@
 package org.apache.rocketmq.streams.script.operator.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IBaseStreamOperator;
@@ -37,6 +41,8 @@ import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
+import org.apache.rocketmq.streams.script.operator.expression.ICaseDependentParser;
 import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
@@ -47,7 +53,7 @@ import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 /**
  * * 对外提供的脚本算子，通过输入脚本，来实现业务逻辑 * 脚本存储的成员变量是value字段
  */
-public class FunctionScript extends AbstractScript<List<IMessage>, FunctionContext> implements IStreamOperator<IMessage, List<IMessage>>, IStageBuilder<ChainStage> {
+public class FunctionScript extends AbstractScript<List<IMessage>, FunctionContext> implements IStreamOperator<IMessage, List<IMessage>>, IStageBuilder<ChainStage>, IAfterConfigurableRefreshListener {
 
     private static final Log LOG = LogFactory.getLog(FunctionScript.class);
 
@@ -63,6 +69,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
 
 
     protected transient IScriptOptimization.IOptimizationCompiler optimizationCompiler;
+
     public FunctionScript() {setType(AbstractScript.TYPE);}
 
     public FunctionScript(String value) {
@@ -83,29 +90,12 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
         value = value.replace("‘", "'");
         value = value.replace("’", "'");
         this.scriptExpressions = FunctionParser.getInstance().parse(value);
-        IScriptOptimization scriptOptimization=null;
-        // optimize case when
-        ServiceLoaderComponent serviceLoaderComponent=ServiceLoaderComponent.getInstance(IScriptOptimization.class);
-        List<IScriptOptimization> scriptOptimizations=serviceLoaderComponent.loadService();
-        if(scriptOptimizations!=null&&scriptOptimizations.size()>0){
-            scriptOptimization=scriptOptimizations.get(0);
-        }
-        if (this.scriptExpressions == null) {
-            LOG.debug("empty function");
-        } else {
-            List<IScriptExpression> expressions=this.scriptExpressions;
-            if(scriptOptimization!=null){
-                this.optimizationCompiler=scriptOptimization.compile(this.scriptExpressions,this);
-                expressions =this.optimizationCompiler.getOptimizationExpressionList();
-            }
-
-            //转化成istreamoperator 接口
-            for (IScriptExpression scriptExpression : expressions) {
-                receivers.add((message, context) -> {
-                    scriptExpression.executeExpression(message, context);
-                    return message;
-                });
-            }
+        //转化成istreamoperator 接口
+        for (IScriptExpression scriptExpression : this.scriptExpressions) {
+            receivers.add((message, context) -> {
+                scriptExpression.executeExpression(message, context);
+                return message;
+            });
         }
         return true;
     }
@@ -118,10 +108,11 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
         if (context != null) {
             context.syncSubContext(functionContext);
         }
-        if(this.optimizationCompiler!=null){
-            FilterResultCache quickFilterResult= this.optimizationCompiler.execute(message,functionContext);
-            context.setQuickFilterResult(quickFilterResult);
-        }
+//        if(this.optimizationCompiler!=null){
+//            FilterResultCache quickFilterResult= this.optimizationCompiler.execute(message,functionContext);
+//            context.setQuickFilterResult(quickFilterResult);
+//        }
+
         List<IMessage> result = AbstractContext.executeScript(message, functionContext, this.receivers);
         if (context != null) {
             context.syncContext(functionContext);
@@ -255,5 +246,40 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
 
     public void setScript(String script) {
         this.value = script;
+    }
+    protected transient AtomicBoolean hasStart=new AtomicBoolean(false);
+    @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
+        if(hasStart.compareAndSet(false,true)){
+
+            IScriptOptimization scriptOptimization=null;
+            // optimize case when
+            ServiceLoaderComponent serviceLoaderComponent=ServiceLoaderComponent.getInstance(IScriptOptimization.class);
+            List<IScriptOptimization> scriptOptimizations=serviceLoaderComponent.loadService();
+            if(scriptOptimizations!=null&&scriptOptimizations.size()>0){
+                scriptOptimization=scriptOptimizations.get(0);
+            }
+
+
+
+            if (this.scriptExpressions == null) {
+                LOG.debug("empty function");
+            } else {
+                List<IScriptExpression> expressions=this.scriptExpressions;
+                if(scriptOptimization!=null){
+                    this.optimizationCompiler=scriptOptimization.compile(this.scriptExpressions,this);
+                    expressions =this.optimizationCompiler.getOptimizationExpressionList();
+                }
+                this.scriptExpressions=expressions;
+                List<IBaseStreamOperator<IMessage, IMessage, FunctionContext>> newReceiver = new ArrayList<>();
+                //转化成istreamoperator 接口
+                for (IScriptExpression scriptExpression : expressions) {
+                    newReceiver.add((message, context) -> {
+                        scriptExpression.executeExpression(message, context);
+                        return message;
+                    });
+                }
+                this.receivers=newReceiver;
+            }
+        }
     }
 }

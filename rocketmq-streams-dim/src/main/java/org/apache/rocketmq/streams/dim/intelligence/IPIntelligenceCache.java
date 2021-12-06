@@ -99,7 +99,7 @@ public class IPIntelligenceCache extends AbstractIntelligenceCache implements IA
 
     public static void main(String[] args) {
         ComponentCreator.setProperties(
-            "/Users/yuanxiaodong/Documents/workdir/档案/阿里安全/专有云/2020/dipper-siem/siem.properties");
+            "siem.properties");
         IPIntelligenceCache ipIntelligenceCache = new IPIntelligenceCache();
         IDBDriver outputDataSource = DriverBuilder.createDriver();
         ipIntelligenceCache.startLoadData(ipIntelligenceCache.getSQL(), outputDataSource);

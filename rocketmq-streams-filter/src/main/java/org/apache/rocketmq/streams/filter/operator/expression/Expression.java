@@ -24,16 +24,24 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
+import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.optimization.HomologousVar;
+import org.apache.rocketmq.streams.common.optimization.LikeRegex;
 import org.apache.rocketmq.streams.common.utils.AESUtil;
 import org.apache.rocketmq.streams.common.utils.ContantsUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
@@ -42,14 +50,17 @@ import org.apache.rocketmq.streams.filter.function.expression.IsNotNull;
 import org.apache.rocketmq.streams.filter.function.expression.IsNull;
 import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
-import org.apache.rocketmq.streams.filter.monitor.Monitor;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
+import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
+import org.apache.rocketmq.streams.script.ScriptComponent;
+import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
+import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public class Expression<T> extends BasedConfigurable
-    implements IConfigurable, IConfigurableAction<Boolean>, Serializable {
+    implements IConfigurable, IConfigurableAction<Boolean>, Serializable , IStreamOperator<IMessage,Boolean> {
     public static final String TYPE = "express";
     private static final long serialVersionUID = 4610495074511059465L;
     private static final Log LOG = LogFactory.getLog(Expression.class);
@@ -57,6 +68,7 @@ public class Expression<T> extends BasedConfigurable
     private static final String AES_KEY = "baicheng.cbc";
     private String varName;
     private String functionName;
+    protected transient HomologousVar homologousVar;
     @SuppressWarnings("rawtypes")
     private DataType dataType = new StringDataType(String.class);
     protected T value;
@@ -93,7 +105,8 @@ public class Expression<T> extends BasedConfigurable
     private boolean fieldFlag = false;
     private volatile boolean initFlag = false;
 
-
+    protected transient ExpressionFunction expressionFunction;
+    protected transient Var var;
 
 
     public Expression() {
@@ -105,19 +118,46 @@ public class Expression<T> extends BasedConfigurable
     protected static InFunction inFunction=new InFunction();
     protected static IsNotNull isNotNull=new IsNotNull();
     protected static IsNull isNull=new IsNull();
-    protected static transient Map<String,ExpressionFunction> cache=new HashMap<>();
-    @SuppressWarnings("unchecked")
-    @Override
-    public Boolean doAction(RuleContext context, Rule rule) {
+    protected static transient Map<String, ExpressionFunction> cache=new HashMap<>();
+    @Override public Boolean doMessage(IMessage message, AbstractContext context) {
+        try {
+            Boolean isMatch=null;
+            if(this.homologousVar!=null){
+                isMatch=context.matchFromHomologousCache(context.getMessage(),this.homologousVar);
+            }
+            if(isMatch!=null){
+                return isMatch;
+            }
+            isMatch=context.matchFromCache(context.getMessage(),this);
+            if(isMatch!=null){
+                return isMatch;
+            }
+            long startTime=System.currentTimeMillis();
 
-        ExpressionFunction function = cache.get(functionName);
-        if(function==null){
-            function=context.getExpressionFunction(functionName, this, context, rule);
-            cache.put(functionName,function);
+            isMatch=executeFunctionDirectly(message,context);
+            long cost=System.currentTimeMillis()-startTime;
+            long timeout=10;
+            if(ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT)!=null){
+                timeout=Long.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT));
+            }
+            if(cost>timeout){
+                LOG.warn("SLOW-"+cost+"----"+this.toString()+ PrintUtil.LINE+"the var value is "+ message.getMessageBody().getString(varName));
+            }
+            return isMatch;
+        } catch (Exception e) {
+            LOG.error("SLOW-"+this.toString()+ PrintUtil.LINE+"the var value is "+ message.getMessageBody().getString(varName),e);
+            throw e;
         }
+    }
+
+    private transient LikeRegex likeRegex;
+    @SuppressWarnings("unchecked")
+    protected Boolean executeFunctionDirectly(IMessage message, AbstractContext context) {
+
+        ExpressionFunction function = getExpressionFunction(getFunctionName(),message,context,this);
 
         if (function == null) {
-            return false;
+            return null;
         }
         /**
          * 表达式新增fieldFlag 如：src_port=desc_port fieldFlag为true时，设置value为对应的字段值
@@ -125,89 +165,41 @@ public class Expression<T> extends BasedConfigurable
         if (fieldFlag && !initFlag) {
             synchronized (Expression.class) {
                 if (fieldFlag && !initFlag) {
-                    Var var = context.getVar(rule.getConfigureName(), String.valueOf(value));
-                    if (var == null) {
-                        LOG.error("Expression context.getVar var is null,expressName is: " + this.getConfigureName()
-                            + " ,varName is: " + String.valueOf(value));
-                        return false;
-                    }
-                    Object varObject = null;
-                    varObject = var.getVarValue(context, rule);
-                    if (varObject == null) {
-                        LOG.error(
-                            "Expression context.getVar varObject is null,expressName is: " + this.getConfigureName()
-                                + " ,varName is: " + String.valueOf(value));
-                        return false;
-                    }
+                    Object varObject = var.doMessage(message, context);
                     this.value = (T)String.valueOf(varObject).trim();
                 }
             }
         }
         boolean result = false;
         try {
+
             if(RegexFunction.isRegex(functionName)){
-                return regexFunction.doExpressionFunction(this,context,rule);
+                String varValue=message.getMessageBody().getString(this.varName);
+                String regex=(String)this.value;
+                return varValue!=null&&StringUtil.matchRegex(varValue,regex);
             }
             if(LikeFunction.isLikeFunciton(functionName)){
-                return likeFunction.doExpressionFunction(this,context,rule);
+                String varValue=message.getMessageBody().getString(this.varName);
+                String like=(String)this.value;
+                if(this.likeRegex==null){
+                    this.likeRegex=new LikeRegex(like);
+                }
+                return varValue!=null&&likeRegex.match(varValue);
             }
-            if(InFunction.matchFunction(functionName)){
-                return inFunction.doExpressionFunction(this,context,rule);
+            if(var==null){
+                var=new ContextVar();
+                ((ContextVar) var).setFieldName(this.varName);
             }
-            if(IsNull.matchFunction(functionName)){
-                return isNull.doExpressionFunction(this,context,rule);
-            }
-            if(IsNotNull.matchFunction(functionName)){
-                return isNotNull.doExpressionFunction(this,context,rule);
-            }
-            result = function.doFunction(this, context, rule);
+            result = function.doFunction(message,context,this);
         } catch (Exception e) {
             LOG.error(
-                "Expression doAction function.doFunction error,rule is: " + rule.getConfigureName() + " ,express is:"
+                "Expression doAction function.doFunction error,rule is: " + getConfigureName() + " ,express is:"
                     + getConfigureName(), e);
+            throw e;
         }
         return result;
     }
 
-    public Boolean getExpressionValue(RuleContext context, Rule rule) {
-
-//        if(RegexFunction.isRegex(functionName)|| LikeFunction.isLikeFunciton(functionName)){
-//            Boolean value=ScriptExpressionGroupsProxy.inFilterCache(getVarName(),getValue().toString(),context.getMessage(),context);
-//            if(value!=null){
-//                return value;
-//            }
-//        }
-
-//        Boolean result = context.getExpressionValue(getConfigureName());
-//        if (result != null) {
-//            return result;
-//        }
-        try {
-
-            long start=System.currentTimeMillis();
-            Boolean isMatch=context.matchFromCache(context.getMessage(),this);
-            if(isMatch!=null){
-                return isMatch;
-            }
-            boolean result= doAction(context, rule);
-//            if(!RelationExpression.class.isInstance(this)){
-//                if((System.currentTimeMillis()-start)>10){
-//                    System.out.println("==============="+toJson());
-//                }
-//            }
-            return result;
-//            if (result != null) {
-//                context.putExpressionValue(getNameSpace(), getConfigureName(), result);
-//            }
-        } catch (Exception e) {
-            LOG.error("Expression getExpressionValue error,rule is:" + rule.getConfigureName() + " ,express is: "
-                + getConfigureName(), e);
-            return false;
-        }
-        //if(result==false){
-        //    context.setNotFireExpression(this.toString());
-        //}
-    }
 
     @SuppressWarnings("unchecked")
     @Override
@@ -286,7 +278,7 @@ public class Expression<T> extends BasedConfigurable
                 // value经过加密 需要解密
                 if (aesFlag == 1) {
                     try {
-                        this.value = (T)AESUtil.aesDecrypt(valueJson, AES_KEY);
+                        this.value = (T) AESUtil.aesDecrypt(valueJson, AES_KEY);
                     } catch (Exception e) {
                         this.value = (T)this.dataType.getData(valueJson);
                     }
@@ -387,11 +379,6 @@ public class Expression<T> extends BasedConfigurable
         return true;
     }
 
-    @Override
-    public boolean volidate(RuleContext context, Rule rule) {
-        return true;
-    }
-
     public String getDataTypestr() {
         return dataTypestr;
     }
@@ -459,5 +446,35 @@ public class Expression<T> extends BasedConfigurable
         }
         return false;
     }
+
+    public HomologousVar getHomologousVar() {
+        return homologousVar;
+    }
+
+    public void setHomologousVar(HomologousVar homologousVar) {
+        this.homologousVar = homologousVar;
+    }
+    protected ExpressionFunction getExpressionFunction(String functionName, Object... paras) {
+        try {
+            FunctionConfigure fc = ScriptComponent.getInstance().getFunctionService().getFunctionConfigure(functionName, paras);
+            if (fc == null) {
+                return null;
+            }
+            return (ExpressionFunction)fc.getBean();
+        } catch (Exception e) {
+            LOG.error("RuleContext getExpressionFunction error,name is: " + functionName, e);
+            return null;
+        }
+
+    }
+
+    public Var getVar() {
+        return var;
+    }
+
+    public void setVar(Var var) {
+        this.var = var;
+    }
+
 
 }

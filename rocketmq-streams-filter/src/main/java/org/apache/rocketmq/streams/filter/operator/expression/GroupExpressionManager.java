@@ -25,10 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
-import org.apache.rocketmq.streams.common.optimization.LikeRegex;
+import org.apache.rocketmq.streams.common.optimization.RegexEngine;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 
@@ -37,7 +35,7 @@ import org.apache.rocketmq.streams.filter.operator.Rule;
  */
 public class GroupExpressionManager {
     protected Rule rule;
-    protected Map<String, HyperscanRegex> hyperscanRegexMap = new HashMap<>();
+    protected Map<String, RegexEngine> regexEngineMap = new HashMap<>();
     protected List<GroupExpression> groupExpressions = new ArrayList<>();
 
     public GroupExpressionManager(Rule rule) {
@@ -47,14 +45,14 @@ public class GroupExpressionManager {
 
     public void compile() {
         for (Expression expression : rule.getExpressionMap().values()) {
-            if (SimpleExpression.class.isInstance(expression) &&(RegexFunction.isRegex(expression.getFunctionName()))) {
+            if (SimpleExpression.class.isInstance(expression) && (RegexFunction.isRegex(expression.getFunctionName()))) {
                 String varName = expression.getVarName();
-                HyperscanRegex hyperscanRegex = hyperscanRegexMap.get(varName);
-                if (hyperscanRegex == null) {
-                    hyperscanRegex = new HyperscanRegex();
-                    hyperscanRegexMap.put(varName, hyperscanRegex);
+                RegexEngine regexEngine = regexEngineMap.get(varName);
+                if (regexEngine == null) {
+                    regexEngine = new RegexEngine();
+                    regexEngineMap.put(varName, regexEngine);
                 }
-                hyperscanRegex.addRegex((String)expression.getValue(), expression.getConfigureName());
+                regexEngine.addRegex((String) expression.getValue(), expression.getConfigureName());
 //                if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
 //                    String like=(String)expression.getValue();
 //                    LikeRegex likeRegex=new LikeRegex(like);
@@ -67,21 +65,21 @@ public class GroupExpressionManager {
 
             }
         }
-        for (HyperscanRegex hyperscanRegex : hyperscanRegexMap.values()) {
-            hyperscanRegex.compile();
+        for (RegexEngine theEngine : regexEngineMap.values()) {
+            theEngine.compile();
         }
     }
 
     public void matchAndSetResult(RuleContext context) {
         Set<String> allRegexResult = new HashSet<>();
         JSONObject msg = context.getMessage().getMessageBody();
-        Iterator<Entry<String, HyperscanRegex>> it = hyperscanRegexMap.entrySet().iterator();
+        Iterator<Entry<String, RegexEngine>> it = regexEngineMap.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<String, HyperscanRegex> entry = it.next();
+            Entry<String, RegexEngine> entry = it.next();
             String varName = entry.getKey();
             String varValue = msg.getString(varName);
-            HyperscanRegex hyperscanRegex = entry.getValue();
-            Set<String> expressionNames = hyperscanRegex.matchExpression(varValue);
+            RegexEngine regexEngine = entry.getValue();
+            Set<String> expressionNames = regexEngine.matchExpression(varValue);
             allRegexResult.addAll(expressionNames);
         }
         for (GroupExpression groupExpression : groupExpressions) {

@@ -17,12 +17,12 @@
 package org.apache.rocketmq.streams.filter.operator.var;
 
 import com.alibaba.fastjson.JSONObject;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
 
 public class ConstantVar<T> extends Var<T> {
 
@@ -34,17 +34,10 @@ public class ConstantVar<T> extends Var<T> {
     private String dataTypestr;
 
     @Override
-    public T doAction(RuleContext context, Rule rule) {
+    public T doMessage(IMessage message, AbstractContext context) {
         return value;
     }
 
-    @Override
-    public boolean volidate(RuleContext context, Rule rule) {
-        if (value == null || dataType == null) {
-            return false;
-        }
-        return true;
-    }
 
     @SuppressWarnings("unchecked")
     @Override
@@ -67,7 +60,7 @@ public class ConstantVar<T> extends Var<T> {
     @Override
     protected void setJsonObject(JSONObject jsonObject) {
         String dataTypeJson = jsonObject.getString("dataType");
-        dataType = (DataType<T>)DataTypeUtil.createDataType(dataTypeJson);
+        dataType = (DataType<T>) DataTypeUtil.createDataType(dataTypeJson);
         String valueString = jsonObject.getString("value");
         this.value = (T)dataType.getData(valueString);
 

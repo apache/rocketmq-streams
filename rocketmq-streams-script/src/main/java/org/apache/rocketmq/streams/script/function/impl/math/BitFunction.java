@@ -183,7 +183,7 @@ public class BitFunction {
      * @param a
      * @return
      */
-    @FunctionMethod(value = "and", alias = "and", comment = "运算符按位“与”操作")
+    @FunctionMethod(value = "bitAnd", alias = "bitAnd", comment = "运算符按位“与”操作")
     public Integer and(IMessage message, FunctionContext context,
                        @FunctionParamter(value = "String", comment = "按位取反的第一个常量值") String a,
                        @FunctionParamter(value = "String", comment = "按位取反的第二个常量值") String b) {

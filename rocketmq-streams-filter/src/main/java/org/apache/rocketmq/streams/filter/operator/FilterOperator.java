@@ -28,4 +28,6 @@ public class FilterOperator extends Rule {
         super(expression);
     }
 
+
+
 }

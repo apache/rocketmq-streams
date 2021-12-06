@@ -21,34 +21,29 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
 
-public class ChannelAction extends Action<Boolean> implements IAfterConfigurableRefreshListener {
+public class SinkAction extends Action<Boolean> implements IAfterConfigurableRefreshListener {
 
-    private static final Log LOG = LogFactory.getLog(ChannelAction.class);
+    private static final Log LOG = LogFactory.getLog(SinkAction.class);
     protected String channelName;
     protected transient IChannel channel;
 
-    public ChannelAction() {
+    public SinkAction() {
         setType(Action.TYPE);
     }
 
-    public ChannelAction setChannel(IChannel channel) {
+    public SinkAction setChannel(IChannel channel) {
         this.channelName = channel.getConfigureName();
         this.channel = channel;
         return this;
     }
 
     @Override
-    public Boolean doAction(RuleContext context, Rule rule) {
-        channel.batchAdd(context.getMessage());
-        return true;
-    }
-
-    @Override
-    public boolean volidate(RuleContext context, Rule rule) {
+    public Boolean doMessage(IMessage message, AbstractContext context) {
+        channel.batchAdd(message);
         return true;
     }
 

@@ -51,7 +51,7 @@ public class ExtraFieldFunction {
      * @param context
      * @param expandFieldName
      */
-    @FunctionMethod(value = "expandField", comment = "json字段展开到外层数据结")
+    @FunctionMethod(value = "expandField" ,alias = "expand_json", comment = "json字段展开到外层数据结")
     public void expandField(IMessage channelMessage, FunctionContext context,
                             @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String expandFieldName) {
         if (StringUtil.isEmpty(expandFieldName)) {

@@ -71,16 +71,14 @@ public class JsonValueFunction {
         return ReflectUtil.getBeanFieldOrJsonValue(bean, pattern);
     }
 
+
     public static void main(String[] args) {
-        String jsonPattern="$.meta_conf.aliUid";
         JSONObject msg=new JSONObject();
         JSONObject metaConf=new JSONObject();
-        metaConf.put("aliUid","23433223233");
-        msg.put("meta_conf",metaConf);
-        JSONObject jsonObject=new JSONObject();
-        jsonObject.put("content",msg);
+        metaConf.put("asset.type","ECS");
+        msg.put("_input",metaConf);
         ScriptComponent scriptComponent=ScriptComponent.getInstance();
-        List<IMessage> msgs=scriptComponent.getService().executeScript(jsonObject,"aliuid=json_value(content,'$.meta_conf.aliUid');");
+        List<IMessage> msgs=scriptComponent.getService().executeScript(msg,"a=EQUALS(json_field(_input, 'asset.type'),'ECS');");
         for(IMessage message:msgs){
             System.out.println(message.getMessageBody());
         }

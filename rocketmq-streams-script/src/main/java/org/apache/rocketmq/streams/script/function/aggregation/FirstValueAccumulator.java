@@ -35,17 +35,17 @@ public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccum
 
 
     @Override
-    public FirstValueAccumulator.FirstValue createAccumulator() {
+    public FirstValue createAccumulator() {
         return new FirstValue();
     }
 
     @Override
-    public T getValue(FirstValueAccumulator.FirstValue accumulator) {
+    public T getValue(FirstValue accumulator) {
         return (T) accumulator.value;
     }
 
     @Override
-    public void accumulate(FirstValueAccumulator.FirstValue accumulator, Object... parameters) {
+    public void accumulate(FirstValue accumulator, Object... parameters) {
         if (CollectionUtil.isEmpty(parameters) || parameters[0] == null) {
             return;
         }
@@ -56,13 +56,13 @@ public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccum
     }
 
     @Override
-    public void merge(FirstValueAccumulator.FirstValue accumulator, Iterable<FirstValueAccumulator.FirstValue> its) {
+    public void merge(FirstValue accumulator, Iterable<FirstValue> its) {
         if(accumulator.value!=null){
             return;
         }
-        Iterator<FirstValueAccumulator.FirstValue> it = its.iterator();
+        Iterator<FirstValue> it = its.iterator();
         while (it.hasNext()) {
-            FirstValueAccumulator.FirstValue next = it.next();
+            FirstValue next = it.next();
             if (next != null&&next.value!=null) {
                 accumulator.value=next.value;
                 return;
@@ -71,7 +71,7 @@ public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccum
     }
 
     @Override
-    public void retract(FirstValueAccumulator.FirstValue  accumulator, String... parameters) {
+    public void retract(FirstValue  accumulator, String... parameters) {
         //TODO
     }
 

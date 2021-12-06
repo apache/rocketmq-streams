@@ -24,10 +24,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
+import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
+import org.apache.rocketmq.streams.filter.function.script.CaseFunction;
+import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.RuleExpression;
+import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.optimization.casewhen.AbstractWhenExpression;
+import org.apache.rocketmq.streams.filter.optimization.casewhen.SingleCaseWhenExpression;
+import org.apache.rocketmq.streams.filter.optimization.script.ScriptOptimization;
+import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
+import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
+import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 public class ScriptTreeNode extends TreeNode<ScriptChainStage> {
     protected transient ScriptDependent scriptDependent;
@@ -38,8 +50,69 @@ public class ScriptTreeNode extends TreeNode<ScriptChainStage> {
         scriptDependent=new ScriptDependent(functionScript);
     }
 
-    @Override public Set<String> traceaField(String varName) {
-        return scriptDependent.traceaField(varName);
+    @Override public Set<String> traceaField(String varName, AtomicBoolean isBreak, List<IScriptExpression> depenentScripts) {
+        return scriptDependent.traceaField(varName,isBreak,depenentScripts);
+    }
+
+    @Override public List<CommonExpression> traceDepenentToSource() {
+        FunctionScript functionScript=(FunctionScript)stage.getScript();
+        List<IScriptExpression> scriptExpressions=functionScript.getScriptExpressions();
+        List<CommonExpression> commonExpressions=new ArrayList<>();
+        for(IScriptExpression scriptExpression:scriptExpressions){
+            if(CommonExpression.support(scriptExpression)){
+                CommonExpression commonExpression=  new CommonExpression(scriptExpression);
+                traceDepenentToSource(this,commonExpression,commonExpression.getVarName());
+                commonExpressions.add(commonExpression);
+            }else if(GroupScriptExpression.class.isInstance(scriptExpression)){
+                GroupScriptExpression groupScriptExpression=(GroupScriptExpression)scriptExpression;
+                List<CommonExpression> commonExpressionList=traceIfExpression(groupScriptExpression.getIfExpresssion());
+                if(commonExpressionList!=null){
+                    commonExpressions.addAll(commonExpressionList);
+                }
+                if(groupScriptExpression.getElseIfExpressions()!=null){
+                    for(GroupScriptExpression subGroup:groupScriptExpression.getElseIfExpressions()){
+                        commonExpressionList=traceIfExpression(subGroup.getIfExpresssion());
+                        if(commonExpressionList!=null){
+                            commonExpressions.addAll(commonExpressionList);
+                        }
+                    }
+                }
+            }else if(AbstractWhenExpression.class.isInstance(scriptExpression)){
+                AbstractWhenExpression abstractWhenExpression=(AbstractWhenExpression)scriptExpression;
+                List<IScriptExpression> scriptExpressionList=abstractWhenExpression.getIfExpressions();
+                for(IScriptExpression ifExpression:scriptExpressionList){
+                    List<CommonExpression> commonExpressionList=traceIfExpression(ifExpression);
+                    if(commonExpressionList!=null){
+                        commonExpressions.addAll(commonExpressionList);
+                    }
+                }
+            }else if(scriptExpression instanceof ScriptOptimization.BlinkRuleV2Exprssion){
+                ScriptOptimization.BlinkRuleV2Exprssion blinkRuleV2Exprssion=(ScriptOptimization.BlinkRuleV2Exprssion)scriptExpression;
+                List<Expression> expressions=blinkRuleV2Exprssion.getExpressions();
+                for(Expression expression:expressions){
+                    List<CommonExpression> commonExpressionList=this.traceDepenentToSource(expression);
+                    if(commonExpressionList!=null){
+                        commonExpressions.addAll(commonExpressionList);
+                    }
+                }
+            }
+        }
+        return commonExpressions;
+    }
+
+    protected List<CommonExpression> traceIfExpression(IScriptExpression expresssion) {
+
+        if(expresssion.getFunctionName()!=null&&CaseFunction.isCaseFunction(expresssion.getFunctionName())){
+            IScriptParamter scriptParamter=(IScriptParamter)expresssion.getScriptParamters().get(0);
+            String expressionStr= IScriptOptimization.getParameterValue(scriptParamter);
+            Rule rule= ExpressionBuilder.createRule("tmp","tmp",expressionStr);
+            return traceDepenentToSource(rule);
+        }
+        if(RuleExpression.class.isInstance(expresssion)){
+            RuleExpression ruleExpression=(RuleExpression)expresssion;
+            return traceDepenentToSource(ruleExpression.getRule());
+        }
+        return null;
     }
 
 }

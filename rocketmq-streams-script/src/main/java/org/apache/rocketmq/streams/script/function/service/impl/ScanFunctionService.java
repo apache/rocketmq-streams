@@ -35,7 +35,7 @@ public class ScanFunctionService extends DefaultFunctionServiceImpl implements I
 
     protected AbstractScan scan = new AbstractScan() {
         @Override
-        protected void doProcessor(Class clazz) {
+        protected void doProcessor(Class clazz, String functionName) {
             try {
                 if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers()) || Modifier.isTransient(
                     clazz.getModifiers()) || Modifier.isPrivate(clazz.getModifiers())) {
@@ -76,7 +76,7 @@ public class ScanFunctionService extends DefaultFunctionServiceImpl implements I
     }
 
     public void scanClassDir(File jarFile, String packageName, ClassLoader classLoader) {
-        scan.scanClassDir(jarFile, packageName, classLoader);
+        scan.scanClassDir(jarFile, packageName, classLoader, null);
     }
 
     public void scanClassDir(String dir, String packageName, ClassLoader classLoader) {
