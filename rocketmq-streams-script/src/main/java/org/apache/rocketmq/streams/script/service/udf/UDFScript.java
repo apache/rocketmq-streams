@@ -77,7 +77,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
     protected boolean initConfigurable() {
         registFunctionSerivce(scriptComponent.getFunctionService());
         FunctionConfigure functionConfigure =
-            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), (initParameters == null ? new Object[0] : initParameters));
+            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName());
         if (functionConfigure == null) {
             return true;
         }
@@ -104,14 +104,19 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
             return;
         }
 
-        //add by 林行  将实例化逻辑从initConfigurable抽取到这里的原因：1、实例化过程慢要下载很多JAR影响整体流程。2、将所有pythonudf/blinkjarudf这种需要下载的udf
+        // 将实例化逻辑从initConfigurable抽取到这里的原因：1、实例化过程慢要下载很多JAR影响整体流程。2、将所有pythonudf/blinkjarudf这种需要下载的udf
         // 都统一用单独的定时器处理
         if (initBeanClass(iFunctionService)) {
             Method[] methods = instance.getClass().getMethods();
             for (Method method : methods) {
                 if (method.getName().equals(methodName)) {
                     FunctionType functionType = getFunctionType();
-                    iFunctionService.registeFunction(functionName, instance, method, functionType);
+                    if(List.class.isAssignableFrom(method.getReturnType())) {
+                        iFunctionService.registeUserDefinedUDTFFunction(functionName, initMethodName, method);
+                    }else {
+                        iFunctionService.registeFunction(functionName, instance, method, functionType);
+                    }
+
                 } else if (method.getName().equals(initMethodName)) {
                     iFunctionService.registeFunction(createInitMethodName(), instance, method);
                 }

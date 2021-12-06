@@ -27,19 +27,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
-import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.model.NameCreator;
-import org.apache.rocketmq.streams.common.optimization.HyperscanRegex;
+import org.apache.rocketmq.streams.common.optimization.RegexEngine;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.function.expression.LikeFunction;
 import org.apache.rocketmq.streams.filter.function.expression.RegexFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.var.Var;
 
 /**
- *  group by var name from all expression
+ * group by var name from all expression
  */
 public class GroupExpression extends Expression<List<Expression>> {
     protected Rule rule;
@@ -48,51 +47,52 @@ public class GroupExpression extends Expression<List<Expression>> {
     protected boolean isOrRelation = true;//是否是or关系
     protected Map<String, Boolean> expressionName2Result = new HashMap<>();//正则类表达式的名字和结果的映射
     protected Set<String> regexExpressionNameSet = new HashSet<>();//正则类表达式的名字
-    protected HyperscanRegex hyperscanRegex;
-    protected List<Expression> notRegexExpression=new ArrayList<>();
-    protected AtomicBoolean hasCompile=new AtomicBoolean(false);
-    public GroupExpression(Rule rule, String varName, boolean isOrRelation) {
+    protected RegexEngine regexEngine;
+    protected List<Expression> notRegexExpression = new ArrayList<>();
+    protected AtomicBoolean hasCompile = new AtomicBoolean(false);
+    protected transient Var var;
+
+    public GroupExpression(Rule rule, Var var, boolean isOrRelation) {
         this.rule = rule;
-        this.varName = varName;
+        this.var = var;
+        this.varName = var.getVarName();
         this.isOrRelation = isOrRelation;
         this.setConfigureName(NameCreator.createNewName("expression.group"));
         value = new ArrayList<>();
         this.setNameSpace(rule.getNameSpace());
-        fingerprintCache=FingerprintCache.getInstance();
+        fingerprintCache = FingerprintCache.getInstance();
     }
 
-    public void compile(){
-        if(!hasCompile.compareAndSet(false,true)){
+    public void compile() {
+        if (!hasCompile.compareAndSet(false, true)) {
             return;
         }
-        hyperscanRegex=new HyperscanRegex();
+        regexEngine = new RegexEngine();
         for (Expression expression : getValue()) {
-            if (SimpleExpression.class.isInstance(expression) &&(RegexFunction.isRegex(expression.getFunctionName()))) {
-                hyperscanRegex.addRegex((String)expression.getValue(), expression.getConfigureName());
-            }else {
+            if (SimpleExpression.class.isInstance(expression) && (RegexFunction.isRegex(expression.getFunctionName()))) {
+                regexEngine.addRegex((String) expression.getValue(), expression.getConfigureName());
+            } else {
                 notRegexExpression.add(expression);
             }
         }
-        hyperscanRegex.compile();
+        regexEngine.compile();
 
     }
 
     @Override
-    public Boolean doAction(RuleContext context, Rule rule) {
+    public Boolean doMessage(IMessage message, AbstractContext context) {
         String varValue = context.getMessage().getMessageBody().getString(varName);
         BitSetCache.BitSet bitset = fingerprintCache.getLogFingerprint(getFingerprintNamespace(), varValue);
         if (bitset == null) {
-            bitset=new BitSetCache.BitSet(1);
-            Boolean isMatch = executeMatch(context, rule);
+            bitset = new BitSetCache.BitSet(1);
+            Boolean isMatch = executeMatch(message, context);
             if (isMatch) {
                 bitset.set(0);
             }
-            fingerprintCache.addLogFingerprint(getFingerprintNamespace(),varValue, bitset);
+            fingerprintCache.addLogFingerprint(getFingerprintNamespace(), varValue, bitset);
         }
         return bitset.get(0);
     }
-
-
 
     @Override
     public String toString() {
@@ -106,30 +106,33 @@ public class GroupExpression extends Expression<List<Expression>> {
 
         return set;
     }
+
     protected transient String fingerpringtNamespace;
-    protected String getFingerprintNamespace(){
-        if(fingerpringtNamespace==null){
-            return MapKeyUtil.createKey(getNameSpace(),rule.getConfigureName(),getConfigureName());
+
+    protected String getFingerprintNamespace() {
+        if (fingerpringtNamespace == null) {
+            return MapKeyUtil.createKey(getNameSpace(), rule.getConfigureName(), getConfigureName());
         }
         return fingerpringtNamespace;
     }
 
-    private Boolean executeMatch(RuleContext context, Rule rule) {
+    private Boolean executeMatch(IMessage message, AbstractContext context) {
         compile();
-        JSONObject msg = context.getMessage().getMessageBody();
-        String varValue=msg.getString(varName);
-        Set<String> expressionNames = hyperscanRegex.matchExpression(varValue);
-        if(isOrRelation){
-            if(expressionNames.size()>0){
+        JSONObject msg = message.getMessageBody();
+        String varValue = msg.getString(varName);
+        Set<String> expressionNames = regexEngine.matchExpression(varValue);
+        if (isOrRelation) {
+            if (expressionNames.size() > 0) {
                 return true;
             }
-        }else {
-            if(expressionNames.size()<hyperscanRegex.size()){
+        } else {
+            if (expressionNames.size() < regexEngine.size()) {
                 return false;
             }
         }
         for (Expression expression : notRegexExpression) {
-            boolean  isMatch = expression.doAction(context, rule);;
+            boolean isMatch = expression.doMessage(message, context);
+            ;
             if (isOrRelation) {
                 if (isMatch) {
                     return true;
@@ -187,8 +190,7 @@ public class GroupExpression extends Expression<List<Expression>> {
 //        String regex = "ab.*fd";
 //        System.out.println(StringUtil.matchRegex(content, regex));
 
-
-        BitSetCache.BitSet bitset=new BitSetCache.BitSet(1);
+        BitSetCache.BitSet bitset = new BitSetCache.BitSet(1);
 //        bitset.set(0);
         System.out.println(bitset.getBytes().length);
     }

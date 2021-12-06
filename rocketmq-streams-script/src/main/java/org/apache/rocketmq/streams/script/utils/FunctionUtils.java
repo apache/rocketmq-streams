@@ -24,7 +24,7 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.IgnoreMessage;
 import org.apache.rocketmq.streams.common.datatype.DateDataType;
-import org.apache.rocketmq.streams.common.utils.DateUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class FunctionUtils {
@@ -78,17 +78,27 @@ public class FunctionUtils {
         return isDouble(fieldName);
     }
 
+
     public static boolean isLong(String fieldName) {
+        if(StringUtil.isEmpty(fieldName)){
+            return false;
+        }
         boolean match = StringUtil.matchRegex(fieldName, LONG);
         return match;
     }
 
     public static boolean isDouble(String fieldName) {
+        if(StringUtil.isEmpty(fieldName)){
+            return false;
+        }
         boolean match = StringUtil.matchRegex(fieldName, DOUBLE);
         return match;
     }
 
     public static boolean isBoolean(String fieldName) {
+        if(StringUtil.isEmpty(fieldName)){
+            return false;
+        }
         String value = fieldName.toLowerCase();
         if ("true".equals(value) || "false".equals(value)) {
             return true;
@@ -97,31 +107,22 @@ public class FunctionUtils {
     }
 
     public static Long getLong(String fieldName) {
-        if (isLong(fieldName)) {
-            return Long.valueOf(fieldName);
-        }
-        return null;
+        return Long.valueOf(fieldName);
     }
 
     public static Boolean getBoolean(String fieldName) {
-        if (!isBoolean(fieldName)) {
-            return null;
-        }
         return Boolean.valueOf(fieldName);
     }
 
     public static Double getDouble(String fieldName) {
-        if (isDouble(fieldName)) {
-            return Double.valueOf(fieldName);
-        }
-        return null;
+        return Double.valueOf(fieldName);
     }
 
     public static String getConstant(String fieldName) {
         if (StringUtil.isEmpty(fieldName)) {
             return fieldName;
         }
-        fieldName = fieldName.trim();
+       // fieldName = fieldName.trim();
         if (fieldName.startsWith("'") && fieldName.endsWith("'")) {
             if (fieldName.equals("''")) {
                 return "";
@@ -145,7 +146,10 @@ public class FunctionUtils {
             return getDouble(fieldName);
         } else if (isBoolean(fieldName)) {
             return getBoolean(fieldName);
-        } else {
+        } else if("".equals(fieldName)){
+            return "";
+        }
+        else {
             return null;
         }
     }
@@ -255,5 +259,6 @@ public class FunctionUtils {
         System.out.println(tmp);
         System.out.println(doRecoverConstants(tmp, cache));
 
+        System.out.println(StringUtil.matchRegex("",LONG));
     }
 }

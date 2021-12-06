@@ -16,16 +16,12 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import com.alibaba.fastjson.JSONObject;
 import java.util.List;
-import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.filter.operator.expression.SimpleExpression;
-import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
@@ -46,7 +42,7 @@ public class ScriptFunction extends AbstractExpressionFunction {
     @Override
     @FunctionMethod("operator")
     @FunctionMethodAilas("执行脚本")
-    public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
 
         Object valueObject = expression.getValue();
         String valueString = "";
@@ -82,7 +78,7 @@ public class ScriptFunction extends AbstractExpressionFunction {
      * @param expression
      * @return
      */
-    private String createScript(String valueString, RuleContext context, Expression expression) {
+    private String createScript(String valueString, AbstractContext context, Expression expression) {
         valueString = FunctionUtils.getConstant(valueString);
         String functionStr = valueString;
 
@@ -124,19 +120,4 @@ public class ScriptFunction extends AbstractExpressionFunction {
         return false;
     }
 
-    public static void main(String[] args) {
-        ScriptFunction scriptFunction = new ScriptFunction();
-        Expression expression = new SimpleExpression("inner_message", "operator", "'~((___lower_proc_path_1,regex,\'"
-            + "(rdesktop|filebeat|\\/tmp\\/go-build|headless_shell|dongxingrpc|流量|scheduler|check|gpg-agent"
-            + "|/fireball|magneticod|portainer|kube|/vfs|jingling|/netstat|busybox|/tomcat|server|ping|bitcoind"
-            + "|/desktop|docker|aliprobe|safe|update|service|query|svchost\\"
-            + ".exe|mozilla|firefox|ss-server|parity|aria2c|daemon|software|/perl|/redis|/gnome|/bin/ssh|msinfo\\"
-            + ".exe|chrome\\.exe|/bin/ping|/ali|/usr/local/cloudmonitor/|sock|w3wp\\"
-            + ".exe|/usr/local/aegis|/phantomjs|filenet|tunnel|probe)\'))'");
-
-        Message message = new Message(new JSONObject());
-        Rule rule = new Rule();
-        rule.setNameSpace("3r3");
-        scriptFunction.doExpressionFunction(expression, new RuleContext(new JSONObject(), rule), rule);
-    }
 }

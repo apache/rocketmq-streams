@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.field;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import java.util.List;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -37,6 +38,17 @@ public class FieldFunction {
             name = fieldName;
         }
         return (T) message.getMessageBody().get(name);
+    }
+
+    @FunctionMethod(value = "json_field", alias = "get_json_field", comment = "获取字段值")
+    public Object getJsonFieldValue(IMessage message, FunctionContext context,
+        @FunctionParamter(value = "string", comment = "字段的名称，不需要引号") String fieldName,String jsonField) {
+        JSONObject fieldValue=message.getMessageBody().getJSONObject(fieldName);
+        if(fieldValue==null){
+            return null;
+        }
+        jsonField= FunctionUtils.getConstant(jsonField);
+        return fieldValue.get(jsonField);
     }
 
     @FunctionMethod(value = "char_length", alias = "len", comment = "求字段代码字符串或常量的长度")

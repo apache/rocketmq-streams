@@ -35,5 +35,4 @@ public class IFScopeFunction {
     public void endIf(IMessage message, FunctionContext context) {
 
     }
-
 }

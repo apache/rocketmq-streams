@@ -37,6 +37,8 @@ import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.ExpressionRelationParser;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.filter.operator.expression.SimpleExpression;
+import org.apache.rocketmq.streams.filter.operator.var.ConstantVar;
+import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.filter.optimization.ExpressionOptimization;
 
@@ -138,6 +140,10 @@ public class ExpressionBuilder {
         String relationStr = parseExpression(namespace, ruleName, expressionStr, expressions);
         if (expressions != null && expressions.size() == 1) {
             if (expressions.get(0).getConfigureName().equals(relationStr)) {
+                Expression expression=expressions.get(0);
+                ContextVar contextVar=new ContextVar();
+                contextVar.setFieldName(expression.getVarName());
+                expression.setVar(contextVar);
                 return expressions.get(0);
             }
         }
@@ -147,6 +153,17 @@ public class ExpressionBuilder {
             for (RelationExpression relation : relationExpressions) {
                 relation.setDataType(listDataType);
             }
+        }
+        Map<String,Expression> map=new HashMap<>();
+        for(Expression expression:expressions){
+            ContextVar contextVar=new ContextVar();
+            contextVar.setFieldName(expression.getVarName());
+            expression.setVar(contextVar);
+            map.put(expression.getConfigureName(),expression);
+        }
+        for(RelationExpression relation:relationExpressions){
+            relation.setExpressionMap(map);
+            map.put(relation.getConfigureName(),relation);
         }
         return relationExpression;
     }
@@ -204,6 +221,7 @@ public class ExpressionBuilder {
         addConfigurable2Map(rule.getActionMap(), ruleCreator.getActionList());
         ruleCreator.setRootExpression(expression);
         rule = ruleCreator.createRule();
+        rule.initElements();
         ruleCreator.getMetaData().toObject(ruleCreator.getMetaData().toJson());//metadata的一个bug，如果不做这步，map为空。后续版本修复后可以去掉
         return rule;
     }

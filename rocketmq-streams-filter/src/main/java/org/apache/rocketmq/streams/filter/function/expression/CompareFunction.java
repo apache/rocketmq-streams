@@ -18,9 +18,10 @@ package org.apache.rocketmq.streams.filter.function.expression;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
@@ -30,14 +31,14 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
     private static final Log LOG = LogFactory.getLog(CompareFunction.class);
 
     @Override
-    public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
         if (!expression.volidate()) {
             return false;
         }
         Object varValue = null;
         String varName = expression.getVarName();
-        Var var = context.getVar(varName);
-        varValue = var.getVarValue(context, rule);
+        Var var =expression.getVar();
+        varValue = var.doMessage(message, context);
         /**
          * 两个数字比较的情况
          */
@@ -46,6 +47,9 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
         }
 
         if (varValue == null || expression.getValue() == null) {
+            return false;
+        }
+        if(StringUtil.isEmpty(varValue.toString())||StringUtil.isEmpty(expression.getValue().toString())){
             return false;
         }
         Object basicVarValue = expression.getDataType().getData(varValue.toString());
@@ -61,7 +65,7 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
         Class varClass = basicVarValue == null ? expression.getDataType().getDataClass() : basicVarValue.getClass();
         Class valueClass = basicValue == null ? expression.getDataType().getDataClass() : basicValue.getClass();
         try {
-            match = (Boolean)ReflectUtil.invoke(this, "compare",
+            match = (Boolean) ReflectUtil.invoke(this, "compare",
                 new Class[] {varClass, valueClass},
                 new Object[] {basicVarValue, basicValue});
         } catch (Exception e) {

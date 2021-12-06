@@ -16,26 +16,10 @@
  */
 package org.apache.rocketmq.streams.filter.operator.action;
 
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 
-public interface IConfigurableAction<T> {
+public interface IConfigurableAction<T> extends IStreamOperator<IMessage,T> {
 
-    /**
-     * 根据规则上下文执行configurable组件的默认动作
-     *
-     * @param context 规则上下文，一条数据一个
-     * @param rule    当前正在执行的规则
-     * @return
-     */
-    T doAction(RuleContext context, Rule rule);
 
-    /**
-     * 验证configurable组件的输入参数是否有效
-     *
-     * @param context 规则上下文，一条数据一个
-     * @param rule    当前正在执行的规则
-     * @return
-     */
-    boolean volidate(RuleContext context, Rule rule);
 }

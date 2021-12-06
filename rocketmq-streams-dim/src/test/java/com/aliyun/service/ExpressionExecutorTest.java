@@ -27,7 +27,7 @@ public class ExpressionExecutorTest {
     private static final String CREDIBLE_PROPERTIES = "credible" + File.separator + "credible.properties";
     private FilterComponent filterComponent;
 
-    private String namespace = "yundun.credible.net.vistor";
+    private String namespace = "test.credible.net.vistor";
     private String ruleNameSpace = "credible.rule.net.vistor";
     private String selectorName = "credible.selector.net.vistor";
     private String selectorExpression = "(host_uuid,=,0a2153e2-e45c-403f-8d5f-d811f400c3fb)";

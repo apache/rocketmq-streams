@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.filter;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.List;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.junit.Test;
 
@@ -29,6 +30,7 @@ public class FilterComponentTest {
         jsonObject.put("ip", "1.2.2.3");
         jsonObject.put("uid", 1224);
         jsonObject.put("vmip", "1.1.1.1");
-        filterComponent.excuteRule(jsonObject, rule);
+        List<Rule> ruleList=filterComponent.excuteRule(jsonObject, rule);
+        System.out.println(ruleList.size());
     }
 }

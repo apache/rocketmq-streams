@@ -21,8 +21,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
 
 public abstract class Var<T> extends BasedConfigurable implements IConfigurable, IConfigurableAction<T>, Serializable {
@@ -45,28 +43,6 @@ public abstract class Var<T> extends BasedConfigurable implements IConfigurable,
         this.varName = varName;
     }
 
-    public Object getVarValue(RuleContext context, Rule rule) {
-        if (context.containsVarName(getVarName())) {
-            return context.getVarCacheValue(getVarName());
-        }
-        Object value = doMonitorAction(context, rule);
-        context.putVarValue(getNameSpace(), getVarName(), value);
-        return value;
-    }
-
-    protected Object doMonitorAction(RuleContext context, Rule rule) {
-        Object value = null;
-
-        try {
-            value = doAction(context, rule);
-        } catch (Exception e) {
-            LOG.error(
-                "Var doMonitorAction doAction error, var is: " + getVarName() + " ,rule is : " + rule.getRuleCode(), e);
-            return null;
-        }
-        return value;
-
-    }
 
     @Override
     public boolean init() {
