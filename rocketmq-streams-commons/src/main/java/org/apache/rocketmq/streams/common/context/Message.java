@@ -80,6 +80,7 @@ public class Message implements IMessage {
     public Message copy() {
         Message msg = new Message(this.message);
         msg.header = getHeader().copy();
+        msg.setSystemMessage(this.systemMessage);
         return msg;
     }
 

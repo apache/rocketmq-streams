@@ -77,7 +77,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
     protected boolean initConfigurable() {
         registFunctionSerivce(scriptComponent.getFunctionService());
         FunctionConfigure functionConfigure =
-            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName());
+            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), (initParameters == null ? new Object[0] : initParameters));
         if (functionConfigure == null) {
             return true;
         }
