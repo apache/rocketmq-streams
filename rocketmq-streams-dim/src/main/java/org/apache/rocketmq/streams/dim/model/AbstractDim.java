@@ -33,7 +33,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.ByteArrayMemoryTable;
 import org.apache.rocketmq.streams.common.cache.ListMemoryTable;
-import org.apache.rocketmq.streams.common.cache.MappedByteBufferTable;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
@@ -309,7 +308,7 @@ public abstract class AbstractDim extends BasedConfigurable {
             memoryTable = new ByteArrayMemoryTable();
         }else {
             LOG.info(String.format("init MappedByteBufferTable."));
-            memoryTable = new MappedByteBufferTable();
+            memoryTable = new ByteArrayMemoryTable();
         }
         loadData2Memory(memoryTable);
         return memoryTable;
