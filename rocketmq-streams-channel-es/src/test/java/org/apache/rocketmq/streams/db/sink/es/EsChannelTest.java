@@ -46,8 +46,8 @@ public class EsChannelTest {
         esChannel.setPort(port + "");
         esChannel.setEsIndex("es_index_test");
         esChannel.setNeedAuth(true);
-        esChannel.setAuthUsername("elastic");
-        esChannel.setAuthPassword("Admin123");
+        esChannel.setAuthUsername("*");
+        esChannel.setAuthPassword("*");
         esChannel.init();
         return esChannel;
     }
