@@ -39,12 +39,12 @@ public class ContantsUtil {
         CONSTANTS_SIGNS_REPLACE.put("\\'", "^^^^");
         CONSTANTS_SIGNS_REPLACE.put("\\\"", "~~~~~");
         CONSTANTS_SIGNS_REPLACE.put("''", "*****");
-        CONSTANTS_SIGNS_REPLACE.put("\"", "------");
+        CONSTANTS_SIGNS_REPLACE.put("\"", "&@--@&");
         CONSTANTS_SIGNS_REPLACE.put("#######", "#######");
 
 
         CONSTANTS_REPLACE_SIGNS.put("%%%%%", "\\\\");
-        CONSTANTS_REPLACE_SIGNS.put("------", "\"");
+        CONSTANTS_REPLACE_SIGNS.put("&@--@&", "\"");
         CONSTANTS_REPLACE_SIGNS.put("^^^^", "'");
         CONSTANTS_REPLACE_SIGNS.put("~~~~~", "\\\"");
         CONSTANTS_REPLACE_SIGNS.put("*****", "''");

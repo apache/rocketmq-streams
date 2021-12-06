@@ -78,10 +78,4 @@ public class FileClassLoader extends ClassLoader {
         return out.toByteArray();
 
     }
-
-    public static void main(String[] args) throws ClassNotFoundException {
-        FileClassLoader fileClassLoader = new FileClassLoader("/tmp", FileClassLoader.class.getClassLoader());
-        Class clazz = fileClassLoader.loadClass("com.aliyun.yundun.dipper.channel.self.UpgradeFunction");
-        System.out.println(clazz.getName());
-    }
 }

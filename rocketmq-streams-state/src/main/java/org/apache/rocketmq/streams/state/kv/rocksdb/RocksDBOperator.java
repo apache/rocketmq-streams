@@ -44,7 +44,7 @@ public class RocksDBOperator {
     }
 
     public RocksDBOperator() {
-        this(FileUtil.concatFilePath(StringUtil.isEmpty(FileUtil.getJarPath()) ? DB_PATH + File.separator + RuntimeUtil.getDipperInstanceId() : FileUtil.getJarPath() + File.separator + RuntimeUtil.getDipperInstanceId(), "rocksdb"));
+        this(FileUtil.concatFilePath( DB_PATH + File.separator + RuntimeUtil.getDipperInstanceId(), "rocksdb"));
     }
 
     public RocksDBOperator(String rocksdbFilePath) {

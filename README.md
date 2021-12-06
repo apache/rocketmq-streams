@@ -21,7 +21,6 @@
 import org.apache.rocketmq.streams.client.transform.DataStream;
 
 DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
-
     source
     .fromFile("～/admin/data/text.txt",false)
     .map(message->message)
@@ -116,3 +115,4 @@ source
     .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
     .start();
 ```
+——————————————

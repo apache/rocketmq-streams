@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.channel.source;
 
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -38,7 +40,10 @@ import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
+import org.apache.rocketmq.streams.common.metadata.MetaData;
+import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
@@ -69,6 +74,12 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      */
     protected int maxFetchLogGroupSize = 100;
     protected List<String> logFingerprintFields;//log fingerprint to filter msg quickly
+
+
+    protected String encoding=CHARSET;//字节编码方式
+    protected String fieldDelimiter;//如果是分割符分割，分割符
+    protected MetaData metaData;//主要用于分割符拆分字段当场景
+    protected List<String> headerFieldNames;
 
 
     /**
@@ -214,7 +225,79 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     }
 
+    public JSONObject create(byte[] msg,Map<String, ?> headProperties) {
+        try {
+            String data = new String(msg, getEncoding());
+            return create(data,headProperties);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            throw new RuntimeException("msg encode error ");
+        }
+
+    }
+    public JSONObject create(String message,Map<String, ?> headProperties) {
+        JSONObject msg=create(message);
+        if(this.headerFieldNames!=null&&headProperties!=null){
+            for(String fieldName:this.headerFieldNames){
+                msg.put(fieldName,headProperties.get(fieldName));
+            }
+        }
+        return msg;
+    }
     public JSONObject create(String message) {
+        if(isJsonData){
+            return createJson(message);
+        }
+        //主要是sql场景
+        if(this.metaData!=null){
+            JSONObject msg=new JSONObject();
+            //分割符
+            if(this.fieldDelimiter!=null){
+                String[] values=message.split(this.fieldDelimiter);
+
+                List<MetaDataField> fields=this.metaData.getMetaDataFields();
+                if(values.length!=this.metaData.getMetaDataFields().size()){
+                    throw new RuntimeException("expect table column's count equals data size ("+fields.size()+","+values.length+")");
+                }
+                for(int i=0;i<values.length;i++){
+                    MetaDataField field =fields.get(i);
+                    String fildName=field.getFieldName();
+                    String valueStr=values[i];
+                    Object value=field.getDataType().getData(valueStr);
+                    msg.put(fildName,value);
+                }
+                return msg;
+            }else {
+                //单字段场景
+                List<MetaDataField> metaDataFields=this.metaData.getMetaDataFields();
+                MetaDataField metaDataField=null;
+                for(MetaDataField field:metaDataFields){
+                    if(this.headerFieldNames==null){
+                        metaDataField=field;
+                        break;
+                    }
+                    if(!this.headerFieldNames.contains(field.getFieldName())){
+                        metaDataField=field;
+                        break;
+                    }
+                }
+                if(metaDataField!=null){
+                    msg.put(metaDataField.getFieldName(),message);
+                    return msg;
+                }
+            }
+        }else {
+            //sdk场景
+            if(this.fieldDelimiter!=null){
+                String[] values=message.split(this.fieldDelimiter);
+                List<String> columns=new ArrayList<>();
+                for(String value:values){
+                    columns.add(value);
+                }
+                return createJson(columns);
+            }
+        }
+
         return createJson(message);
     }
 
@@ -225,6 +308,13 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @return
      */
     public AbstractContext executeMessage(Message channelMessage) {
+        if(BatchFinishMessage.isBatchFinishMessage(channelMessage)){
+            /**
+             * 可以通过真实信息发送，消息结束通知
+             */
+            channelMessage.getHeader().setSystemMessage(true);
+            channelMessage.setSystemMessage(new BatchFinishMessage(channelMessage));
+        }
         AbstractContext context = new Context(channelMessage);
         if (isSplitInRemoving(channelMessage)) {
             return context;
@@ -254,7 +344,9 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      *
      * @return
      */
-    public abstract boolean supportNewSplitFind();
+    public boolean supportNewSplitFind() {
+        return false;
+    }
 
     /**
      * 能否发现分片移走了，如果不支持，系统会模拟实现
@@ -268,7 +360,10 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      *
      * @return
      */
-    public abstract boolean supportOffsetRest();
+    @Deprecated
+    public boolean supportOffsetRest(){
+        return false;
+    }
 
     /**
      * 系统模拟新分片发现，把消息中的分片保存下来，如果第一次收到，认为是新分片
@@ -342,7 +437,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     }
 
     public Map<String, List<ISplit>> getWorkingSplitsGroupByInstances() {
-        return null;
+        return new HashMap<>();
     }
 
     /**
@@ -583,4 +678,35 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         checkPointManager.finish();
     }
 
+    public String getEncoding() {
+        return encoding;
+    }
+
+    public void setEncoding(String encoding) {
+        this.encoding = encoding;
+    }
+
+    public String getFieldDelimiter() {
+        return fieldDelimiter;
+    }
+
+    public void setFieldDelimiter(String fieldDelimiter) {
+        this.fieldDelimiter = fieldDelimiter;
+    }
+
+    public MetaData getMetaData() {
+        return metaData;
+    }
+
+    public void setMetaData(MetaData metaData) {
+        this.metaData = metaData;
+    }
+
+    public List<String> getHeaderFieldNames() {
+        return headerFieldNames;
+    }
+
+    public void setHeaderFieldNames(List<String> headerFieldNames) {
+        this.headerFieldNames = headerFieldNames;
+    }
 }

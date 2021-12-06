@@ -20,11 +20,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sinkcache.DataSourceAutoFlushTask;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
+import org.apache.rocketmq.streams.common.schedule.ScheduleManager;
+import org.apache.rocketmq.streams.common.schedule.ScheduleTask;
 import org.apache.rocketmq.streams.common.utils.ThreadUtil;
 
 /**
@@ -40,6 +43,8 @@ public class MessageCache<R> implements IMessageCache<R> {
     protected AtomicBoolean openAutoFlushLock = new AtomicBoolean(false);
     protected volatile int autoFlushSize = 300;
     protected volatile int autoFlushTimeGap = 1000;
+
+    protected ExecutorService autoFlushExecutorService;
 
 
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
@@ -68,9 +73,9 @@ public class MessageCache<R> implements IMessageCache<R> {
             autoFlushTask = new DataSourceAutoFlushTask(true, this);
             autoFlushTask.setAutoFlushSize(this.autoFlushSize);
             autoFlushTask.setAutoFlushTimeGap(this.autoFlushTimeGap);
-            Thread thread = new Thread(autoFlushTask);
-            thread.setName("memory-cache-auto-flush-task-" + flushCallBack.getClass().getSimpleName());
-            thread.start();
+            ScheduleTask scheduleTask=new ScheduleTask(autoFlushTask,autoFlushTask);
+            scheduleTask.setExecutorService(this.autoFlushExecutorService);
+            ScheduleManager.getInstance().regist(scheduleTask);
         }
     }
 
@@ -161,5 +166,13 @@ public class MessageCache<R> implements IMessageCache<R> {
 
     public IMessageFlushCallBack<R> getFlushCallBack() {
         return flushCallBack;
+    }
+
+    public ExecutorService getAutoFlushExecutorService() {
+        return autoFlushExecutorService;
+    }
+
+    public void setAutoFlushExecutorService(ExecutorService autoFlushExecutorService) {
+        this.autoFlushExecutorService = autoFlushExecutorService;
     }
 }

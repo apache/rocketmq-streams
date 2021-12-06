@@ -55,7 +55,7 @@ public class ReflectUtil {
     private static final String AUTOWIRED_CLASS_NAME = "org.springframework.beans.factory.annotation.Autowired";
     private static Class AUTOWIRED_CLASS = null;
     private static final Log LOG = LogFactory.getLog(ReflectUtil.class);
-    private static final String SPLIT_SIGN = "\\.";                               // 及联调用的分隔符。如a.b.c
+    public static final String SPLIT_SIGN = "\\.";                               // 及联调用的分隔符。如a.b.c
 
     static {
         try {
@@ -634,6 +634,9 @@ public class ReflectUtil {
 
     public static void setFieldValue(Object object, String fieldName, Object fieldValue) {
         try {
+            if(fieldValue==null){
+                return;
+            }
             Class clazz = object.getClass();
 
             Field field = findField(clazz, fieldName);

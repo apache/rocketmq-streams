@@ -18,6 +18,7 @@
 package org.apache.rocketmq.streams.client.source;
 
 import com.alibaba.fastjson.JSONObject;
+
 import com.google.common.collect.Sets;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.CollectionSource;
@@ -51,13 +52,17 @@ public class DataStreamSource {
         return new DataStreamSource(namespace, pipelineName);
     }
 
-    public DataStream fromArray(Object[] o){
+    public static DataStreamSource create(String namespace, String pipelineName, String[] duplicateKeys, Long windowSize) {
+        return new DataStreamSource(namespace, pipelineName);
+    }
+
+    public DataStream fromArray(Object[] o) {
         MemoryCache cache = new MemoryCache(o);
         return fromMemory(cache, o instanceof JSONObject[]);
     }
 
-    public DataStream fromMemory(MemoryCache memoryCache, boolean isJson){
-        MemorySource memorySource=new MemorySource();
+    public DataStream fromMemory(MemoryCache memoryCache, boolean isJson) {
+        MemorySource memorySource = new MemorySource();
         this.mainPipelineBuilder.addConfigurables(memoryCache);
         memorySource.setMemoryCache(memoryCache);
         memorySource.setJsonData(isJson);
@@ -76,12 +81,9 @@ public class DataStreamSource {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
 
-
-
     public DataStream fromRocketmq(String topic, String groupName, String namesrvAddress) {
         return fromRocketmq(topic, groupName, false, namesrvAddress);
     }
-
 
     public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress) {
         return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress);
@@ -97,7 +99,6 @@ public class DataStreamSource {
         this.mainPipelineBuilder.setSource(rocketMQSource);
         return new DataStream(this.mainPipelineBuilder, null);
     }
-
 
     public DataStream fromMultipleDB(String url, String userName, String password, String tablePattern) {
         DynamicMultipleDBScanSource source = new DynamicMultipleDBScanSource();
@@ -122,8 +123,6 @@ public class DataStreamSource {
         this.mainPipelineBuilder.setSource(source);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, (ChainStage)null);
     }
-
-
 
     public DataStream fromCollection(JSONObject... elements) {
         CollectionSource source = new CollectionSource();

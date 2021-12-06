@@ -35,7 +35,7 @@ public interface IStateBackend<K,V> {
     int size(String namespace);
 
 
-    Map<K,V> get(String namespace,List<K> key);
+    Map<K,V> get(String namespace, List<K> key);
 
     /**
      * Removes the mapping for a key from this map if it is present
@@ -67,7 +67,7 @@ public interface IStateBackend<K,V> {
      *         map does not permit null keys
      * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      */
-    V remove(String namespace,K key);
+    V remove(String namespace, K key);
 
 
     /**
@@ -89,7 +89,7 @@ public interface IStateBackend<K,V> {
      * @throws IllegalArgumentException if some property of a key or value in
      *         the specified map prevents it from being stored in this map
      */
-    void putAll(String namespace,Map<? extends K, ? extends V> m);
+    void putAll(String namespace, Map<? extends K, ? extends V> m);
 
     /**
      * Removes all of the mappings from this map (optional operation).
@@ -139,11 +139,11 @@ public interface IStateBackend<K,V> {
 
 
 
-    void removeKeys(String namespace,Collection<String> keys);
+    void removeKeys(String namespace, Collection<String> keys);
 
 
 
-    void scanEntity(String namespace,IEntryProcessor<K, V> processor);
+    void scanEntity(String namespace, IEntryProcessor<K, V> processor);
 
 
     V putIfAbsent(String namespace, K key, V value);

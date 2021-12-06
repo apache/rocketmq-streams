@@ -210,7 +210,7 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
 
     @Override
     public void clearCache(ISplit split, Class<T> clazz) {
-        deleteRange(split.getQueueId(), split.getPlusQueueId(), clazz);
+        deleteRange(split.getQueueId(),  clazz);
     }
 
 
@@ -221,11 +221,11 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
         //String plusWindowInstaceId=null;
         //  String lastWord=windowInstanceId.substring(windowInstanceId.length()-2,windowInstanceId.length());
         String firstKey = MapKeyUtil.createKey(queueId, windowInstanceId);
-        deleteRange(firstKey, firstKey, clazz);
+        deleteRange(firstKey, clazz);
 
     }
 
-    protected void deleteRange(String startKey, String endKey, Class<T> clazz) {
+    protected void deleteRange(String startKey, Class<T> clazz) {
         try {
             // rocksDB.deleteRange(getKeyBytes(startKey),getKeyBytes(endKey));
             WindowBaseValueIterator<T> iterator = getByKeyPrefix(startKey, clazz, true);

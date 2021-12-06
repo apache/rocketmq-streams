@@ -105,7 +105,6 @@ public class RocketMQChannelTest extends AbstractChannelTest {
 
     protected Properties createChannelProperties() {
         Properties properties = new Properties();
-        //        properties = PropertiesUtils.getResourceProperties(this.getClass(), "com/aliyun/yundun/dipper/channel/adapter/dipper.properties");
         Iterator<Map.Entry<Object, Object>> it = ComponentCreator.getProperties().entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<Object, Object> entry = it.next();

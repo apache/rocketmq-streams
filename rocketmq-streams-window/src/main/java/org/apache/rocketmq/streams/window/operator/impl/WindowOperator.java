@@ -263,6 +263,11 @@ public class WindowOperator extends AbstractShuffleWindow {
     @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
         return storage.getMaxSplitNum(instance,getWindowBaseValueClass());
     }
+
+    @Override public boolean supportBatchMsgFinish() {
+        return true;
+    }
+
     protected void calculateWindowValue(WindowValue windowValue, IMessage msg) {
         windowValue.calculate(this,msg);
 
@@ -372,10 +377,6 @@ public class WindowOperator extends AbstractShuffleWindow {
                 return prefix+targetQueue.getQueueId();
             }
 
-            @Override
-            public String getPlusQueueId() {
-                return prefix+targetQueue.getPlusQueueId();
-            }
 
             @Override
             public Object getQueue() {

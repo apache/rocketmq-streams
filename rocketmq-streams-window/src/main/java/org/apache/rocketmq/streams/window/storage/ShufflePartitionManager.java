@@ -77,7 +77,8 @@ public class ShufflePartitionManager {
 
     public synchronized void clearSplit(String queueId) {
         splitId2AllWindowInstanceFinishInit.remove(queueId);
-        for (String windowInstanceId : this.windowInstanceId2FinishInit.keySet()) {
+        Map<String, Boolean> map=new HashMap<>(this.windowInstanceId2FinishInit);
+        for (String windowInstanceId : map.keySet()) {
             if (windowInstanceId.startsWith(queueId)) {
                 this.windowInstanceId2FinishInit.remove(windowInstanceId);
             }
