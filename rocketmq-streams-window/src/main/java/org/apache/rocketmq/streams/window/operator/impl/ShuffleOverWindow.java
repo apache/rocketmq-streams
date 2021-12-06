@@ -22,13 +22,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
-public class ShuffleOverWindow extends WindowOperator {
+public class ShuffleOverWindow extends WindowOperator implements IAfterConfigurableRefreshListener {
     protected static String TOPN_KEY="___TopN_";
     protected transient List<OrderBy> orderList;
     protected List<String> orderFieldNames;//name contains 2 part:name;true/false
@@ -88,7 +89,7 @@ public class ShuffleOverWindow extends WindowOperator {
 
 
     @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        super.doProcessAfterRefreshConfigurable(configurableService);
+        super.windowInit();
         if(orderList==null){
             synchronized (this){
                 if(orderList==null){

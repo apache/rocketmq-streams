@@ -296,14 +296,6 @@ public class OptimizationRegex {
         return MapKeyUtil.createKey("&", allWordList);
     }
 
-    public static void main(String[] args) {
-        String regex = ("php-fpm|fpm-php|php-cgi|java|apache|httpd|yarn|mysql|oracle|redis|hadoop|nginx|websphere|jboss|jenkins|tomcat|elasticsearch|oracledatabase|oracleweblogic").replace("\\\\", "\\");
-        OptimizationRegex optimizationRegex = new OptimizationRegex(regex);
-        //Boolean value= optimizationRegex.match("mv fdsld dofdsfpreload");
-        //System.out.println(value);
-        System.out.println(optimizationRegex);
-
-    }
 
     public boolean isSupportOptimizate() {
         return supportOptimizate;

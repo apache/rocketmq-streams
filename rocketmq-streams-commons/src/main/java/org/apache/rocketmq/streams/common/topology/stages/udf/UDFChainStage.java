@@ -79,8 +79,10 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
 
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        byte[] bytes = Base64Utils.decode(udfOperatorClassSerializeValue);
-        selfChainStage = InstantiationUtil.deserializeObject(bytes);
+        if(udfOperatorClassSerializeValue!=null){
+            byte[] bytes = Base64Utils.decode(udfOperatorClassSerializeValue);
+            selfChainStage = InstantiationUtil.deserializeObject(bytes);
+        }
         preFingerprint=loadLogFinger();
     }
 

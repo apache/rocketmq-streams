@@ -31,7 +31,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
@@ -66,7 +66,7 @@ public class TransitSink extends AbstractSink  implements IAfterConfigurableRefr
             try {
 
                 pipline.doMessage(copyMessage, newContext);
-                if (!MessageGloableTrace.existFinshBranch(copyMessage)) {
+                if (!MessageGlobleTrace.existFinishBranch(copyMessage)) {
                     if(bitSet!=null){
                         bitSet.set(index);
                         addNoFireMessage(message, bitSet);

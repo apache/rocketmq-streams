@@ -25,4 +25,8 @@ public class StreamBuilder {
         return DataStreamSource.create(namespace, jobName);
     }
 
+    public static DataStreamSource dataStream(String namespace, String jobName, String[] duplicateKeys, Long windowSize) {
+        return DataStreamSource.create(namespace, jobName, duplicateKeys, windowSize);
+    }
+
 }

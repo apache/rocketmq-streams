@@ -21,7 +21,7 @@ import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
-import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -94,7 +94,7 @@ public class MessageHeader {
     /**
      * 在pipline中消息会被拆分，在有多分支时，会被copy，这个对象会在任何变动时，都保持全局唯一，不允许copy，复制，创建，一个message全局唯一
      */
-    protected MessageGloableTrace messageGloableTrace;
+    protected MessageGlobleTrace messageGloableTrace;
 
     /**
      * trace id of every message
@@ -311,11 +311,11 @@ public class MessageHeader {
         this.piplineExecutorMonitor = piplineExecutorMonitor;
     }
 
-    public MessageGloableTrace getMessageGloableTrace() {
+    public MessageGlobleTrace getMessageGloableTrace() {
         return messageGloableTrace;
     }
 
-    public void setMessageGloableTrace(MessageGloableTrace messageGloableTrace) {
+    public void setMessageGloableTrace(MessageGlobleTrace messageGloableTrace) {
         this.messageGloableTrace = messageGloableTrace;
     }
 

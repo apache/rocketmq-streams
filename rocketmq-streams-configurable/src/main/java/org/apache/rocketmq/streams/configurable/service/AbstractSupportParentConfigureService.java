@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
@@ -35,7 +36,6 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
     private static final Log LOG = LogFactory.getLog(AbstractSupportParentConfigureService.class);
     protected IConfigurableService configureService = null;
     protected IConfigurableService parentConfigureService = null;
-    //protected IConfigurableService shareConfigureService = null;
     protected Properties properties;
 
     public AbstractSupportParentConfigureService() {
@@ -62,10 +62,8 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
 
     @Override
     public boolean refreshConfigurable(String namespace) {
-
         if (!IConfigurableService.PARENT_CHANNEL_NAME_SPACE.equals(namespace)) {
             parentConfigureService.refreshConfigurable(IConfigurableService.PARENT_CHANNEL_NAME_SPACE);
-            // initShareConfigurableService(namespace);
         }
         configureService.refreshConfigurable(namespace);
         return true;
@@ -77,12 +75,6 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
         if (result == null) {
             result = new ArrayList<>();
         }
-        //if (shareConfigureService != null) {
-        //    List<IConfigurable> share = shareConfigureService.queryConfigurable(type);
-        //    if (share != null) {
-        //        result.addAll(share);
-        //    }
-        //}
         if (parentConfigureService == null) {
             return result;
         }
@@ -102,9 +94,6 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
         if (parentConfigureService == null) {
             return null;
         }
-        //if (shareConfigureService != null) {
-        //    configurable = shareConfigureService.queryConfigurableByIdent(type, name);
-        //}
         if (configurable != null) {
             return configurable;
         }
@@ -120,9 +109,6 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
         if (parentConfigureService == null) {
             return null;
         }
-        //if (shareConfigureService != null) {
-        //    configurable = shareConfigureService.queryConfigurableByIdent(identification);
-        //}
         if (configurable != null) {
             return configurable;
         }
@@ -159,49 +145,8 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
         return null;
     }
 
-    //protected void initShareConfigurableService(String namespace) {
-    //    if (parentConfigureService == null) {
-    //        return;
-    //    }
-    //    shareConfigureService = new AbstractReadOnlyConfigurableService() {
-    //
-    //        @Override
-    //        public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type) {
-    //            refreshConfigurable(namespace);
-    //            return queryConfigurableByType(type);
-    //        }
-    //
-    //        @Override
-    //        protected List<IConfigurable> loadConfigurables(String namespace) {
-    //            List<IConfigurable> parent = parentConfigureService.queryConfigurable(ShareConfiguable.TYPE);
-    //            List<IConfigurable> shareConfigurables = new ArrayList<>();
-    //            if (parent == null) {
-    //                return shareConfigurables;
-    //            }
-    //            for (IConfigurable configurable : parent) {
-    //                ShareConfiguable shareConfiguable = (ShareConfiguable) configurable;
-    //                if (shareConfiguable.getShareAll() || shareConfiguable.getShareNameSpaces().contains(namespace)) {
-    //                    String sharedNameSpace = shareConfiguable.getSharedNameSpace();
-    //                    String sharedType = shareConfiguable.getSharedType();
-    //                    String sharedName = shareConfiguable.getSharedName();
-    //                    List<IConfigurable> sharedConfigrables =
-    //                        createAndQueryConfigurable(sharedNameSpace, sharedType, sharedName);
-    //                    if (sharedConfigrables != null) {
-    //                        shareConfigurables.addAll(sharedConfigrables);
-    //                    }
-    //                }
-    //            }
-    //            return shareConfigurables;
-    //        }
-    //
-    //
-    //    };
-    //    shareConfigureService.refreshConfigurable(namespace);
-    //
-    //}
-
     protected List<IConfigurable> createAndQueryConfigurable(String sharedNameSpace, String sharedType,
-                                                             String sharedName) {
+        String sharedName) {
         IConfigurableService innerSharedConfigurableService =
             ConfigurableServiceFactory.createConfigurableService(properties);
         innerSharedConfigurableService.refreshConfigurable(sharedNameSpace);

@@ -75,7 +75,7 @@ public class CheckPointStorageFactory {
         }
 
         if(storage == null){
-            logger.error(String.format("checkpoint storage name config error, name is %s. use default checkpoint type db.", name));
+           // logger.error(String.format("checkpoint storage name config error, name is %s. use default checkpoint type db.", name));
             return defaultStorage;
         }
         return null;

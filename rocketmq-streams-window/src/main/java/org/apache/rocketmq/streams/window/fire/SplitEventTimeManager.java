@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.window.fire;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
@@ -90,10 +92,8 @@ public class SplitEventTimeManager {
             return null;
         }
         Long min=null;
-        Iterator<Map.Entry<String, Long>> it = messageSplitId2MaxTime.entrySet().iterator();
-        while (it.hasNext()){
-            Map.Entry<String, Long> entry=it.next();
-            Long eventTime=entry.getValue();
+        Set<Long> eventTimes=new HashSet<>(messageSplitId2MaxTime.values());
+        for(Long eventTime:eventTimes){
             if(eventTime==null){
                 return null;
             }
@@ -144,29 +144,28 @@ public class SplitEventTimeManager {
                 if(allSplitSize>workingSplitSize){
                     return false;
                 }
-            }else {
+            }
+            if(this.splitsGroupByInstance==null){
                 return false;
             }
-        }
-        if(this.splitsGroupByInstance==null){
-            return false;
-        }
-        //add time out policy: no necessary waiting for other split
-        if (splitReadyTime == null) {
-            synchronized (this) {
-                if (splitReadyTime == null) {
-                    splitReadyTime = System.currentTimeMillis();
+            //add time out policy: no necessary waiting for other split
+            if (splitReadyTime == null) {
+                synchronized (this) {
+                    if (splitReadyTime == null) {
+                        splitReadyTime = System.currentTimeMillis();
+                    }
                 }
             }
-        }
-        if (workingSplitSize == messageSplitId2MaxTime.size()) {
-            this.isAllSplitReceived = true;
-            return true;
-        } else {
             if (System.currentTimeMillis() - splitReadyTime >= 1000 * 60) {
                 this.isAllSplitReceived = true;
                 return true;
             }
+        }
+
+
+        if (workingSplitSize == messageSplitId2MaxTime.size()) {
+            this.isAllSplitReceived = true;
+            return true;
         }
         return false;
     }

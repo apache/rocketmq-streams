@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.common.topology.builder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
@@ -59,15 +60,27 @@ public class PipelineBuilder implements Serializable {
      */
     protected String pipelineName;
 
-    protected MetaData channelMetaData;//数据源的格式，非必须
+    /**
+     * 数据源的格式，非必须
+     */
+
+    protected MetaData channelMetaData;
 
     /**
      * 如果需要制作拓扑结构，则保存当前构建的stage
      */
     protected ChainStage currentChainStage;
 
-    protected String parentTableName;//在sql tree中，存储当前节点父节点的table name，主要用于双流join场景，用于判断是否是右流join
-    protected boolean isBreak = false;//设置这个值后，后面的所有逻辑都不再继续
+    /**
+     * 在sql tree中，存储当前节点父节点的table name，主要用于双流join场景，用于判断是否是右流join
+     */
+    protected String parentTableName;
+
+    /**
+     * 设置这个值后，后面的所有逻辑都不再继续
+     */
+
+    protected boolean isBreak = false;
 
     public PipelineBuilder(String namespace, String pipelineName) {
         pipeline.setNameSpace(namespace);
@@ -108,7 +121,7 @@ public class PipelineBuilder implements Serializable {
     public List<String> createSQL() {
         List<String> sqls = new ArrayList<>();
         for (IConfigurable configurable : configurables) {
-            AbstractConfigurable abstractConfigurable = (AbstractConfigurable) configurable;
+            AbstractConfigurable abstractConfigurable = (AbstractConfigurable)configurable;
             sqls.add(AbstractConfigurable.createSQL(configurable));
         }
         return sqls;
@@ -260,7 +273,7 @@ public class PipelineBuilder implements Serializable {
             this.pipeline.setChannelNextStageLabel(lableNames);
         } else {
             currentChainStage.setNextStageLabels(lableNames);
-            for(ChainStage stage:nextStages){
+            for (ChainStage stage : nextStages) {
                 stage.getPrevStageLabels().add(currentChainStage.getLabel());
             }
         }

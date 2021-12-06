@@ -94,5 +94,13 @@
             <version>3.5.2</version>
         </dependency>
 
+        <!-- re2j -->
+        <dependency>
+            <groupId>com.google.re2j</groupId>
+            <artifactId>re2j</artifactId>
+            <version>1.6</version>
+        </dependency>
+
+
     </dependencies>
 </project>

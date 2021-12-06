@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.configurable.service;
 
 import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
@@ -25,8 +26,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
 public class ConfigurableServiceFactory {
-    private static ServiceLoaderComponent<IConfigurableService> configurableServiceLoaderComponent =
-        ServiceLoaderComponent.getInstance(IConfigurableService.class);
+    private static ServiceLoaderComponent<IConfigurableService> configurableServiceLoaderComponent = ServiceLoaderComponent.getInstance(IConfigurableService.class);
     public static final String CONFIGURABLE_SERVICE_TYPE = "dipper.configurable.service.type";
     private static final Log LOG = LogFactory.getLog(ConfigurableServiceFactory.class);
 
@@ -36,11 +36,10 @@ public class ConfigurableServiceFactory {
             properties1.putAll(properties);
             String type = properties1.getProperty(CONFIGURABLE_SERVICE_TYPE);
             if (StringUtil.isEmpty(type)) {
-                type = IConfigurableService.DEFAULT_SERVICE_NAME;
-                ;
+                type = IConfigurableService.MEMORY_SERVICE_NAME;
             }
-            IConfigurableService configurableService = getConfigurableServcieType(type);
-            if (AbstractSupportParentConfigureService.class.isInstance(configurableService)) {
+            IConfigurableService configurableService = getConfigurableServiceType(type);
+            if (configurableService instanceof AbstractSupportParentConfigureService) {
                 ((AbstractSupportParentConfigureService)configurableService).initMethod(properties1);
             }
             return configurableService;
@@ -51,8 +50,8 @@ public class ConfigurableServiceFactory {
 
     }
 
-    public static IConfigurableService getConfigurableServcieType(String type) {
-        IConfigurableService configurableService = (IConfigurableService)configurableServiceLoaderComponent.getService().loadService(type);
+    public static IConfigurableService getConfigurableServiceType(String type) {
+        IConfigurableService configurableService = configurableServiceLoaderComponent.getService().loadService(type);
         return ReflectUtil.forInstance(configurableService.getClass().getName());
     }
 }

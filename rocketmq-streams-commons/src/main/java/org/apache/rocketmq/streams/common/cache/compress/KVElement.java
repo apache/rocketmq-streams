@@ -22,7 +22,7 @@ public class KVElement {
 
     protected ByteArray nextAddressByte;
 
-    protected CacheKV.MapAddress nextAddress;
+    protected MapAddress nextAddress;
 
     protected ByteArray keyHashCode;
 
@@ -43,21 +43,21 @@ public class KVElement {
 
     public KVElement(ByteArray byteArray) {
         this.nextAddressByte = byteArray.subByteArray(0, 4);
-        nextAddress = new CacheKV.MapAddress(this.nextAddressByte);
+        nextAddress = new MapAddress(this.nextAddressByte);
         this.keyHashCode = byteArray.subByteArray(4, 16);
         if (!noValue) {
             value = byteArray.subByteArray(20, 4);
         }
     }
 
-    public static byte[] createByteArray(CacheKV.MapAddress nextAddress, byte[] keyHashCode, int value,
+    public static byte[] createByteArray(MapAddress nextAddress, byte[] keyHashCode, int value,
         int elementSize) {
         KVElement element = new KVElement(nextAddress, keyHashCode, value);
         element.setElementSize(elementSize);
         return element.getBytes();
     }
 
-    private KVElement(CacheKV.MapAddress nextAddress, byte[] keyHashCode, int value) {
+    private KVElement(MapAddress nextAddress, byte[] keyHashCode, int value) {
         this.nextAddress = nextAddress;
         this.keyHashCode = new ByteArray(keyHashCode, 0, keyHashCode.length);
         if (!noValue) {

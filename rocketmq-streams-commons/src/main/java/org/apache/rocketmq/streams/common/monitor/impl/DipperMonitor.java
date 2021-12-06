@@ -461,7 +461,6 @@ public class DipperMonitor implements IMonitor {
         this.sampleData = sampleData;
         return this.sampleData;
     }
-    //    protected   static IConfiguableCreatorService creatorService= ReflectUtil.forInstance("com.aliyun.yundun.dipper.siem.developer.CreatorServcie");;
 
     /**
      * 通过上下文获取采样数据，因为有的数据比较大，只取一条

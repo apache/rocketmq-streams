@@ -18,11 +18,12 @@ package org.apache.rocketmq.streams.common.channel.sinkcache;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.schedule.IScheduleCondition;
 
 /**
  * 自动刷新缓存的任务，开始openAutoFlush后，可以由独立线程完成数据的flush，不必显式调用
  */
-public class DataSourceAutoFlushTask implements Runnable {
+public class DataSourceAutoFlushTask implements Runnable, IScheduleCondition {
 
     private static final Log LOG = LogFactory.getLog(DataSourceAutoFlushTask.class);
 
@@ -40,19 +41,8 @@ public class DataSourceAutoFlushTask implements Runnable {
 
     @Override
     public void run() {
-        while (isAutoFlush) {
-            try {
-                if (messageCache.getMessageCount() < autoFlushSize && (lastUpdateTime != null && (System.currentTimeMillis() - lastUpdateTime) < autoFlushTimeGap)) {
-                    Thread.sleep(100);
-                    continue;
-                }
-
-                messageCache.flush();
-                lastUpdateTime = System.currentTimeMillis();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        messageCache.flush();
+        lastUpdateTime = System.currentTimeMillis();
     }
 
     public boolean isAutoFlush() {
@@ -85,5 +75,12 @@ public class DataSourceAutoFlushTask implements Runnable {
 
     public void setAutoFlushTimeGap(int autoFlushTimeGap) {
         this.autoFlushTimeGap = autoFlushTimeGap;
+    }
+
+    @Override public boolean canExecute() {
+        if (messageCache.getMessageCount() < autoFlushSize && (lastUpdateTime != null && (System.currentTimeMillis() - lastUpdateTime) < autoFlushTimeGap)) {
+            return false;
+        }
+        return true;
     }
 }

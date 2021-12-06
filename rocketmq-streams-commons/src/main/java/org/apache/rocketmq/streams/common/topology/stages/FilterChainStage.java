@@ -275,13 +275,14 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
               if(isOpenHyperscan()){
                   rule.setSupportHyperscan(true);
               }
-
-                ruleName2JsonObject.put(rules.get(i).getConfigureName(), rules.get(i).toOutputJson());
+                  ruleName2JsonObject.put(rules.get(i).getConfigureName(), rules.get(i).toOutputJson());
                 i++;
             }
         }
+        if(this.preFingerprint==null){
+            this.preFingerprint=loadLogFinger();
+        }
 
-        this.preFingerprint=loadLogFinger();
 
     }
 
@@ -332,5 +333,9 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
 
     public void setOpenHyperscan(boolean openHyperscan) {
         this.openHyperscan = openHyperscan;
+    }
+
+    public void setPreFingerprint(PreFingerprint preFingerprint) {
+        this.preFingerprint = preFingerprint;
     }
 }
