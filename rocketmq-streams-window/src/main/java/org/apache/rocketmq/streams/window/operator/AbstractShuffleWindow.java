@@ -49,6 +49,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
             this.windowFireSource.init();
             this.windowFireSource.start(getFireReceiver());
             this.shuffleChannel = new ShuffleChannel(this);
+            this.shuffleChannel.init();
             windowCache.setBatchSize(5000);
             windowCache.setShuffleChannel(shuffleChannel);
         }
@@ -74,14 +75,15 @@ public abstract class AbstractShuffleWindow extends AbstractWindow implements IA
      * @param messages
      * @param instance
      */
-    public abstract void  shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
+    public abstract void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
 
     /**
      * 触发window
      *
      * @param instance
      */
-    protected abstract int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset);
+    protected abstract int fireWindowInstance(WindowInstance instance, String queueId,
+        Map<String, String> queueId2Offset);
 
     public abstract void clearCache(String queueId);
 }

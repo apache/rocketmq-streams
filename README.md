@@ -116,4 +116,3 @@ source
     .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
     .start();
 ```
-——————————————

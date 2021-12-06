@@ -18,14 +18,18 @@ package org.apache.rocketmq.streams.window.shuffle;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.lang3.StringUtils;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -34,32 +38,27 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.FileUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
+import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.window.model.WindowInstance;
-import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator.WindowRowOperator;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 负责处理分片
@@ -73,11 +72,9 @@ public class ShuffleChannel extends AbstractSystemChannel {
     protected static final String SHUFFLE_MESSAGES = "SHUFFLE_MESSAGES";
     protected String MSG_OWNER = "MSG_OWNER";//消息所属的window
 
-
     private static final String SHUFFLE_TRACE_ID = "SHUFFLE_TRACE_ID";
 
     protected ShuffleCache shuffleCache;
-
 
     protected Map<String, ISplit> queueMap = new ConcurrentHashMap<>();
     protected List<ISplit> queueList;//所有的分片
@@ -97,18 +94,16 @@ public class ShuffleChannel extends AbstractSystemChannel {
         channelConfig.put(CHANNEL_PROPERTY_KEY_PREFIX, ConfigureFileKey.WINDOW_SHUFFLE_CHANNEL_PROPERTY_PREFIX);
         channelConfig.put(CHANNEL_TYPE, ConfigureFileKey.WINDOW_SHUFFLE_CHANNEL_TYPE);
 
-
         this.shuffleCache = new ShuffleCache(window);
         this.shuffleCache.init();
         this.shuffleCache.openAutoFlush();
 
-
     }
 
-    protected transient AtomicBoolean hasStart=new AtomicBoolean(false);
+    protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
+
     @Override public void startChannel() {
-        if(hasStart.compareAndSet(false,true)){
-            init();
+        if (hasStart.compareAndSet(false, true)) {
             super.startChannel();
         }
 
@@ -117,7 +112,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     /**
      * init shuffle channel
      */
-    public void init(){
+    public void init() {
         this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
 
         this.producer = createSink(window.getNameSpace(), window.getConfigureName());
@@ -205,7 +200,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceiveBeforeCache(window, msgs, queueId);
             }
 
-
             beforeBatchAdd(oriMessage, message);
 
             for (WindowInstance windowInstance : windowInstances) {
@@ -233,7 +227,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 window.getStorage().loadSplitData2Local(queueId, windowInstance.createWindowInstanceId(), window.getWindowBaseValueClass(), new WindowRowOperator(windowInstance, queueId, window));
                 window.initWindowInstanceMaxSplitNum(windowInstance);
             }
-
 
         } else {
             for (String queueId : newSplitMessage.getSplitIds()) {
@@ -303,7 +296,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         }
         afterFlushCallback(oriMessage, context);
     }
-
 
     /**
      * if the message offset is old filter the repeate message
@@ -379,7 +371,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         return pipeline.getSource().getNameSpace();
     }
 
-
     @Override
     public String getConfigureName() {
         return window.getConfigureName() + "_shuffle";
@@ -394,7 +385,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
     public String getType() {
         return Pipeline.TYPE;
     }
-
 
     public ISplit getSplit(Integer index) {
         return queueList.get(index);
