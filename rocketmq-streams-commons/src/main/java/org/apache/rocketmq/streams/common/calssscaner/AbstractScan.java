@@ -57,12 +57,12 @@ public abstract class AbstractScan {
             if(!jar.getName().endsWith(".jar")){
                 continue;
             }
-            scanClassDir(jar,packageName,classLoader);
+            scanClassDir(jar,packageName,classLoader, null);
         }
     }
 
-    public void scanClassDir(File jarFile, String packageName, ClassLoader classLoader) {
-        scanClassInJar(jarFile.getAbsolutePath(), packageName, classLoader);
+    public void scanClassDir(File jarFile, String packageName, ClassLoader classLoader, String functionName) {
+        scanClassInJar(jarFile.getAbsolutePath(), packageName, classLoader, functionName);
     }
 
     public void scanClassDir(String dir, String packageName, ClassLoader classLoader) {
@@ -92,7 +92,7 @@ public abstract class AbstractScan {
                 String className = file.getName();
                 if (className.endsWith(CLASS_REAR)) {
                     Class clazz = classLoader.loadClass(packageName + "." + className.replace(CLASS_REAR, ""));
-                    doProcessor(clazz);
+                    doProcessor(clazz, null);
                 }
             } catch (ClassNotFoundException e) {
                 LOG.error("load class error " + file.getName(), e);
@@ -205,11 +205,11 @@ public abstract class AbstractScan {
         int index = jarUrl.indexOf("!/");
         String packageName = createPackageName(dirName);
         jarUrl = jarUrl.substring(0, index);
-        scanClassInJar(jarUrl, packageName, this.getClass().getClassLoader());
+        scanClassInJar(jarUrl, packageName, this.getClass().getClassLoader(), null);
 
     }
 
-    protected void scanClassInJar(String jarPath, String packageName, ClassLoader classLoader) {
+    protected void scanClassInJar(String jarPath, String packageName, ClassLoader classLoader, String functionName) {
         try {
             if (classLoader == null) {
                 classLoader = this.getClass().getClassLoader();
@@ -221,7 +221,7 @@ public abstract class AbstractScan {
                 String className = entries.nextElement().getName().replace("/", ".");
                 if (className.startsWith(packageName) && className.endsWith(".class")) {
                     className = className.replace(CLASS_REAR, "");
-                    doRegisterFunction(className, classLoader);
+                    doRegisterFunction(functionName, className, classLoader);
                 }
 
             }
@@ -265,19 +265,19 @@ public abstract class AbstractScan {
     }
 
     protected void doRegisterFunction(String className) {
-        doRegisterFunction(className, this.getClass().getClassLoader());
+        doRegisterFunction(null, className, this.getClass().getClassLoader());
     }
 
-    protected void doRegisterFunction(String className, ClassLoader classLoader) {
+    protected void doRegisterFunction(String functionName, String className, ClassLoader classLoader) {
         Class clazz = null;
         try {
             clazz = Class.forName(className, true, classLoader);
-            doProcessor(clazz);
+            doProcessor(clazz, functionName);
         } catch (Exception e) {
             e.printStackTrace();
             LOG.error("初始化类错误" + e.getMessage(), e);
         }
     }
 
-    protected abstract void doProcessor(Class clazz);
+    protected abstract void doProcessor(Class clazz, String functionName);
 }

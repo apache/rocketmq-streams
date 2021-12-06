@@ -25,12 +25,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.PropertiesUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * 创建组件，如果参数未发生变化（如果未传入，则是配置文件的参数），返回同一个组件对象，如果发生变化，返回不同的组件对象
@@ -100,56 +102,25 @@ public class ComponentCreator {
         return kvs;
     }
 
+
+
+    public static void createMemoryProperties(Long pollingTime) {
+        Properties properties = new Properties();
+        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.MEMORY_SERVICE_NAME);
+        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
+        ComponentCreator.properties = loadOtherProperty(properties);
+    }
+
     public static void createProperties(Properties properties) {
         ComponentCreator.properties = loadOtherProperty(properties);
     }
 
-    public static void createDBProperties(String url, String userName, String password, String tableName, String driverClass) {
-        Properties properties = new Properties();
-        properties.put(AbstractComponent.JDBC_DRIVER, driverClass);
-        properties.put(AbstractComponent.JDBC_URL, url);
-        properties.put(AbstractComponent.JDBC_USERNAME, userName);
-        properties.put(AbstractComponent.JDBC_PASSWORD, password);
-        properties.put(AbstractComponent.JDBC_TABLE_NAME, tableName);
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.DEFAULT_SERVICE_NAME);
-        ComponentCreator.properties = loadOtherProperty(properties);
-    }
-
-    public static void createDBProperties(String url, String userName, String password, String tableName, Long pollingTime, String... kvs) {
-        Properties properties = new Properties();
-        properties.put(AbstractComponent.JDBC_DRIVER, AbstractComponent.DEFAULT_JDBC_DRIVER);
-        properties.put(AbstractComponent.JDBC_URL, url);
-        properties.put(AbstractComponent.JDBC_USERNAME, userName);
-        properties.put(AbstractComponent.JDBC_PASSWORD, password);
-        properties.put(AbstractComponent.JDBC_TABLE_NAME, tableName);
-        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.DEFAULT_SERVICE_NAME);
-        ComponentCreator.properties = loadOtherProperty(properties, kvs);
-    }
-
-    public static Properties createFileProperties(String filePathName, Long pollingTime, String... kvs) {
-        Properties properties = new Properties();
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.FILE_SERVICE_NAME);
-        properties.put(IConfigurableService.FILE_PATH_NAME, filePathName);
-        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
-        Properties properties1 = loadOtherProperty(properties, kvs);
-        ComponentCreator.properties = properties1;
-        return properties1;
-    }
-
-    public static void createMemoryProperties(Long pollingTime, String... kvs) {
-        Properties properties = new Properties();
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.MEMORY_SERVICE_NAME);
-        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
-        ComponentCreator.properties = loadOtherProperty(properties, kvs);
-    }
-
-    public static void createProperties(String propertiesFilePath, String... kvs) {
+    public static void createProperties(String propertiesFilePath) {
         Properties properties = PropertiesUtils.getResourceProperties(propertiesFilePath);
         if (properties == null) {
             properties = PropertiesUtils.loadPropertyByFilePath(propertiesFilePath);
         }
-        ComponentCreator.properties = loadOtherProperty(properties, kvs);
+        ComponentCreator.properties = loadOtherProperty(properties);
     }
 
     private static Properties loadOtherProperty(Properties tmp, String... kvs) {
@@ -185,7 +156,7 @@ public class ComponentCreator {
     }
 
     protected static <T extends IComponent> T getComponent(String namespace, Class componentType, boolean isStart,
-                                                           String... kvs) {
+        String... kvs) {
         Properties properties = loadOtherProperty(ComponentCreator.properties, kvs);
         String[] kvArray = createKV(properties);
         return (T)getComponentInner(namespace, componentType, isStart, kvArray);
@@ -205,7 +176,7 @@ public class ComponentCreator {
 
     @Deprecated
     public static <T extends IComponent> T getComponentUsingPropertiesFile(String namespace, Class componentType,
-                                                                           String propertiesPath) {
+        String propertiesPath) {
         return (T)getComponentInner(namespace, componentType, true, propertiesPath);
     }
 
@@ -246,7 +217,8 @@ public class ComponentCreator {
         } else if (o.getClass().isArray()) {
             String[] properties = (String[])o;
             String pk = MapKeyUtil.createKeyBySign("_", properties);
-            return MapKeyUtil.createKey(key, pk);
+            String md5Pk = StringUtil.createMD5Str(pk);
+            return MapKeyUtil.createKey(key, md5Pk);
         }
         return key;
     }
@@ -273,7 +245,6 @@ public class ComponentCreator {
         }
         return;
     }
-
 
     public static void createProperty(String outputFilePath) {
         Properties properties = ComponentCreator.getProperties();

@@ -104,3 +104,35 @@ source
     .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
     .start();
 ```
+
+# Deployment
+Rocketmq-Streams 的任务提供多种发布方式， 用户可以依照自己的需求自行选择
+
+## 与应用程序集成
+Rocketmq-Streams 核心就是一个独立的jar包， 用户可以在自己的应用中引该jar包， 然后进行自己逻辑的开发， 并在自己的应用中启动， 此时流任务和应用共享资源。
+
+## 独立部署
+1. 通过```mvn clean install``` 构建工程
+2. 从```rocketmq-streams-runner/target/rocket-streams-1.0.0-SNAPSHOT-distribution.tar.gz``` 中获取tar.gz包， 并解压
+3. ```rocketmq-streams```目录架构如下：
+   + ```bin```  指令目录，包括启动和停止指令
+   + ```conf```  配置目录，包括日志配置以及应用的相关配置文件
+   + ```jobs```  任务目录， 独立打包后的rocketmq-streams jar包
+   + ```lib```  依赖包
+   + ```log```  日志目录
+
+### 发布应用
+用户依赖rocketmq-streams，开发流处理程序，独立打包后， 将jar包拷贝到jobs目录， 通过指令即可完成任务的启动和运行；可以通过启动多个独立的应用程序；
+
+```java
+bin/start.sh org.apache.rocketmq.streams.examples.filesource.FileSourceExample(实时任务的入口类)
+```
+多个任务可以同时启动，入口类用逗号分隔
+
+```java
+bin/start.sh org.apache.rocketmq.streams.examples.filesource.FileSourceExample,org.apache.rocketmq.streams.examples.checkpoint.RemoteCheckpointTest
+```
+任务停止
+```java
+bin/stop.sh org.apache.rocketmq.streams.examples.filesource.FileSourceExample(实时任务的入口类)
+```

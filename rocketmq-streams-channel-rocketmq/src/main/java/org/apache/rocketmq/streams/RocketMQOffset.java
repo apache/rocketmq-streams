@@ -29,17 +29,17 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.debug.DebugWriter;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 
 public class RocketMQOffset implements OffsetStore {
     protected OffsetStore offsetStore;
-    protected AbstractSupportOffsetResetSource source;
+    protected AbstractSupportShuffleSource source;
     private AtomicBoolean starting;
 
-    public RocketMQOffset(OffsetStore offsetStore, AbstractSupportOffsetResetSource source){
+    public RocketMQOffset(OffsetStore offsetStore, AbstractSupportShuffleSource source){
         this.offsetStore=offsetStore;
         this.source=source;
         this.starting = new AtomicBoolean(true);

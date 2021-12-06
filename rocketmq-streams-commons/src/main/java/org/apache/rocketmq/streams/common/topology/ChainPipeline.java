@@ -17,16 +17,19 @@
 package org.apache.rocketmq.streams.common.topology;
 
 import com.alibaba.fastjson.JSONObject;
+
 import com.google.common.collect.Lists;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.streams.common.cache.compress.impl.LongValueKV;
-import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
@@ -38,7 +41,8 @@ import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.group.MonitorCommander;
-import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.IHomologousOptimization;
+import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
@@ -56,9 +60,13 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
 
     private final transient int duplicateCacheSize = 1000000;
     private transient LongValueKV duplicateCache;
-    //    private transient Map<String, Long> duplicateCache;
     private transient List<String> duplicateFields;
     private transient int duplicateCacheExpirationTime;
+
+    private transient int homologousRulesCaseSize = 2000000;
+    private transient int homologousExpressionCaseSize = 2000000;
+    private transient int preFingerprintCaseSize = 2000000;
+    private transient IHomologousOptimization homologousOptimization; //对pipeline执行预编译的优化
 
     /**
      * 是否自动启动channel
@@ -116,13 +124,24 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 //主要监控channel的启动
                 pipelineMonitorForChannel = IMonitor.createMonitor(this);
             }
-            try {
-                source.start((IStreamOperator<T, T>) (message, context) -> {
-                    //每条消息一个，监控整个链路
+            if (this.homologousOptimization == null) {
+                Iterable<IHomologousOptimization> iterable = ServiceLoader.load(IHomologousOptimization.class);
+                Iterator<IHomologousOptimization> it = iterable.iterator();
+                if (it.hasNext()) {
+                    this.homologousOptimization = it.next();
+                    this.homologousOptimization.optimizate(Lists.newArrayList(this), this.homologousExpressionCaseSize, this.preFingerprintCaseSize);
+                }
+            }
 
+            try {
+                source.start((IStreamOperator<T, T>)(message, context) -> {
+                    //每条消息一个，监控整个链路
                     IMonitor pipelineMonitorForStage = context.startMonitor(monitorName);
                     pipelineMonitorForStage.setType(IMonitor.TYPE_DATAPROCESS);
                     message.getHeader().setPiplineName(this.getConfigureName());
+                    //在正式执行逻辑之前， 基于同源的优化策略先进行计算
+                    this.homologousOptimization.calculate(message, context);
+                    //然后再执行正式逻辑，测试正式逻辑遇到表达是计算，会先从头部信息上去找，如果找到就直接返回，如果没有才进行正式的计算
                     T t = receiver.doMessage(message, context);
                     pipelineMonitorForStage.endMonitor();
                     MonitorCommander.getInstance().finishMonitor(pipelineMonitorForStage.getName(), pipelineMonitorForStage);
@@ -177,16 +196,15 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 }
             }
         }
-
         if (!t.getHeader().isSystemMessage()) {
-            MessageGloableTrace.joinMessage(t);//关联全局监控器
+            MessageGlobleTrace.joinMessage(t);//关联全局监控器
         }
 
         if (!isTopology()) {
             return super.doMessageInner(t, context, replaceStage);
         }
         context.setMessage(t);
-        doNextStages(context, getMsgSourceName(),channelName, this.channelNextStageLabel,null);
+        doNextStages(context, getMsgSourceName(), channelName, this.channelNextStageLabel, null);
         return t;
     }
 
@@ -201,7 +219,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         return isTopology(this.channelNextStageLabel);
     }
 
-    public void doNextStages(AbstractContext context, String msgPrewSourceName,String currentLable, List<String> nextStageLabel,
+    public void doNextStages(AbstractContext context, String msgPrewSourceName, String currentLable, List<String> nextStageLabel,
         String prewSQLNodeName) {
 
         if (!isTopology(nextStageLabel)) {
@@ -216,7 +234,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             if (size > 1) {
                 copyContext = context.copy();
             }
-            T msg = (T) copyContext.getMessage();
+            T msg = (T)copyContext.getMessage();
             AbstractStage oriStage = stageMap.get(lable);
             if (oriStage == null) {
                 if (stages != null && stages.size() > 0) {
@@ -234,15 +252,9 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 }
             }
             AbstractStage stage = oriStage;
-            PreFingerprint preFingerprint=getPreFingerprint(currentLable,stage.getLabel());
-            if(preFingerprint!=null){
-                boolean isFilter=preFingerprint.filterByLogFingerprint(msg);
-                if(isFilter){
-                    copyContext.breakExecute();
-                    continue;
-                }
+            if (filterByPreFingerprint(msg, copyContext, currentLable, lable)) {
+                continue;
             }
-
 
             //boolean needFlush = needFlush(msg);
             if (StringUtil.isNotEmpty(oriMsgPrewSourceName)) {
@@ -260,19 +272,16 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             boolean isContinue = executeStage(stage, msg, copyContext);
 
             if (!isContinue) {
-
                 /**
                  * 只要执行到了window分支都不应该被过滤
                  */
                 if (stage.isAsyncNode() && !msg.getHeader().isSystemMessage()) {
-                    MessageGloableTrace.finishPipline(msg);
-
+                    MessageGlobleTrace.finishPipeline(msg);
                 }
-
                 continue;
             } else {
                 if (ChainStage.class.isInstance(stage)) {
-                    ChainStage chainStage = (ChainStage) stage;
+                    ChainStage chainStage = (ChainStage)stage;
                     String msgSourceName = chainStage.getMsgSourceName();
                     if (StringUtil.isNotEmpty(msgSourceName)) {
                         msgPrewSourceName = msgSourceName;
@@ -282,11 +291,11 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 List<String> labels = stage.doRoute(msg);
                 if (labels == null || labels.size() == 0) {
                     if (!msg.getHeader().isSystemMessage()) {
-                        MessageGloableTrace.finishPipline(msg);
+                        MessageGlobleTrace.finishPipeline(msg);
                     }
                     continue;
                 }
-                doNextStages(copyContext, msgPrewSourceName,stage.getLabel(), labels, stage.getOwnerSqlNodeTableName());
+                doNextStages(copyContext, msgPrewSourceName, stage.getLabel(), labels, stage.getOwnerSqlNodeTableName());
             }
         }
     }
@@ -330,24 +339,36 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         }
     }
 
+    protected boolean filterByPreFingerprint(IMessage t, AbstractContext context, String sourceName, String nextLable) {
+        PreFingerprint preFingerprint = getPreFingerprint(sourceName, nextLable);
+        if (preFingerprint != null) {
+            boolean isFilter = preFingerprint.filterByLogFingerprint(t);
+            if (isFilter) {
+                context.breakExecute();
+                return true;
+            }
+        }
+        return false;
+    }
+
     protected JSONObject createStageInfo(AbstractStage stage) {
         JSONObject jsonObject = null;
-        if (stage instanceof ChainStage) {
-            jsonObject = new JSONObject();
-            ChainStage chainStage = (ChainStage) stage;
-            return chainStage.toJsonObject();
-            //String entityName = chainStage.getEntityName();
-            ////todo 需要改写
-            //if (creatorService != null && StringUtil.isNotEmpty(entityName)) {
-            //    IConfigurableCreator creator = creatorService.getCreator(
-            //        entityName);
-            //    if(creator!=null){
-            //        String configures = creator.print(stage);
-            //        jsonObject.put("stageDetail", configures);
-            //    }
-            //
-            //}
-        }
+        //        if (stage instanceof ChainStage) {
+        //            jsonObject = new JSONObject();
+        //            ChainStage chainStage = (ChainStage) stage;
+        //            return chainStage.toJsonObject();
+        //            //String entityName = chainStage.getEntityName();
+        //            ////todo 需要改写
+        //            //if (creatorService != null && StringUtil.isNotEmpty(entityName)) {
+        //            //    IConfigurableCreator creator = creatorService.getCreator(
+        //            //        entityName);
+        //            //    if(creator!=null){
+        //            //        String configures = creator.print(stage);
+        //            //        jsonObject.put("stageDetail", configures);
+        //            //    }
+        //            //
+        //            //}
+        //        }
         return jsonObject;
     }
 
@@ -370,6 +391,9 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
 
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
+        createStageMap();
+        ISource source = configurableService.queryConfigurable(ISource.TYPE, channelName);
+        this.source = source;
         for (AbstractStage stage : getStages()) {
             stage.setPipeline(this);
             if (stage instanceof IAfterConfigurableRefreshListener) {
@@ -378,30 +402,27 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                     return;
                 }
                 IAfterConfigurableRefreshListener afterConfigurableRefreshListener =
-                    (IAfterConfigurableRefreshListener) stage;
+                    (IAfterConfigurableRefreshListener)stage;
 
                 afterConfigurableRefreshListener.doProcessAfterRefreshConfigurable(configurableService);
 
             }
         }
-        ISource source = configurableService.queryConfigurable(ISource.TYPE, channelName);
-        if (source == null) {
-            source = configurableService.queryConfigurable(IChannel.TYPE, channelName);
-        }
+
         if (source != this.source && this.source != null) {
             this.hasStart.set(false);
             this.source = source;
             startChannel();
         }
-        this.source = source;
+
         if (source instanceof AbstractConfigurable) {
-            AbstractConfigurable abstractConfigurable = (AbstractConfigurable) source;
+            AbstractConfigurable abstractConfigurable = (AbstractConfigurable)source;
             if (!abstractConfigurable.isInitSuccess() && this.isInitSuccess()) {
                 this.setInitSuccess(false);
                 return;
             }
         }
-        createStageMap();
+
         //修改发布状态为true或设置自动启动，需要调用startChannel
         if ((isAutoStart || isPublish()) && isInitSuccess()) {
             startChannel();

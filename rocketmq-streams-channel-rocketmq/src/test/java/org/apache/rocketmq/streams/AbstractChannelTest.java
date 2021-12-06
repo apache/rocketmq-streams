@@ -28,7 +28,7 @@ public abstract class AbstractChannelTest {
     @Test
     public void testChannel() throws InterruptedException {
         ISource channel = createSource();
-        channel.setGroupName("CID_YUNDUN_SOC_DIPPER_TEST");
+        channel.setGroupName("CID_XXX_TEST");
         channel.setMaxThread(1);
         channel.start((message, context) -> {
             //System.out.println(message.getMessageBody().getString(IChannel.OFFSET)+"-"+message.getMessageBody()

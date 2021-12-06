@@ -25,16 +25,19 @@ public class ByteArrayValueKV extends CacheKV<byte[]> {
 
     protected final static String CODE = "UTF-8";
     protected AdditionStore values;
-    protected boolean isFixedLength=false;
     public ByteArrayValueKV(int capacity) {
         super(capacity);
-        values = new AdditionStore();
+        values = new AdditionStore(-1);
     }
 
     public ByteArrayValueKV(int capacity,int elementSize) {
         super(capacity);
-        this.isFixedLength=true;
-        values = new AdditionStore(elementSize);
+        if(elementSize>0){
+            values = new AdditionStore(elementSize);
+        }else {
+            values=new AdditionStore(-1);
+        }
+
     }
 
     /**
@@ -44,7 +47,7 @@ public class ByteArrayValueKV extends CacheKV<byte[]> {
      * @return
      */
     @Override
-    public byte[] get(String key) {
+    public synchronized byte[] get(String key) {
         ByteArray value = super.getInner(key);
         if (value == null) {
             return null;
@@ -61,15 +64,14 @@ public class ByteArrayValueKV extends CacheKV<byte[]> {
      * @param value
      */
     @Override
-    public void put(String key, byte[] value) {
+    public synchronized void put(String key, byte[] value) {
         if (key == null || value == null) {
             return;
         }
-
         byte[] oriValue = get(key);
         if (oriValue != null) {
             if (oriValue.length != value.length) {
-                throw new RuntimeException("the string must length equals ,but not。 the key is " + key + ", the ori value is " + oriValue + ", the put value is " + value);
+                throw new RuntimeException("The lengths of the two values are inconsistent。 the key is " + key + ", the ori value size is " + oriValue.length + ", the put value size is " + value.length);
             }
         }
         MapAddress address = null;

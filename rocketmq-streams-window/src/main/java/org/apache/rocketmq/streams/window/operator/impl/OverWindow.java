@@ -136,6 +136,10 @@ public class OverWindow extends AbstractWindow {
         return null;
     }
 
+    @Override public boolean supportBatchMsgFinish() {
+        return false;
+    }
+
     @Override
     protected boolean initConfigurable() {
         return super.initConfigurable();

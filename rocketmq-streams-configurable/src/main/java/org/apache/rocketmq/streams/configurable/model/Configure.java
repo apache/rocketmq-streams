@@ -36,7 +36,6 @@ public class Configure extends Entity {
 
     public static String createTableSQL(String tableName) {
         return "/******************************************/\n"
-            + "/*   TableName = dipper_configure   */\n"
             + "/******************************************/\n"
             + "CREATE TABLE IF NOT EXISTS `" + tableName + "` (\n"
             + "  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',\n"

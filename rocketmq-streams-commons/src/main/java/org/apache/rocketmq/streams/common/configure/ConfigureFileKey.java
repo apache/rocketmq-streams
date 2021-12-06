@@ -35,6 +35,7 @@ public interface ConfigureFileKey {
     String JDBC_DRIVER = "dipper.rds.jdbc.driver";
     String JDBC_TABLE_NAME = "dipper.rds.table.name";
     String SECRECY = "dipper.configure.sec.key";
+    String SECRECY_DEFAULT = "93ea4211-6218-4353-b9cd-1d21618dbf4e";
 
     /**
      * 情报的连接信息
@@ -44,13 +45,29 @@ public interface ConfigureFileKey {
     String INTELLIGENCE_JDBC_PASSWORD = "intelligence.rds.jdbc.password";
     String INTELLIGENCE_SWTICH = "intelligence.switch.open";
     String INTELLIGENCE_TIP_DB_ENDPOINT = "intelligence.tip.db.endpoint";
+    String INTELLIGENCE_AK = "intelligence_ak";
+    String INTELLIGENCE_SK = "intelligence_sk";
+    String INTELLIGENCE_REGION = "intelligence_region";
+
+    /*
+     * regex engine option, "hyperscan or re2j". when this option not set, use hyperscan default
+     */
+    String DIPPER_REGEX_ENGINE = "dipper.regex.engine.option";
+
+    /**
+     * whether to start engine when loading configurable operator, true(default) or false
+     */
+    String DIPPER_RUNNING_STATUS = "dipper.running.status";
+
+    String DIPPER_RUNNING_STATUS_DEFAULT = "true";
 
     /**
      * 代表常量，不需要在配置文件配置
      */
     String JDBC_COMPATIBILITY_RULEENGINE_TABLE_NAME = "ruleengine_configure";
     /**
-     * 如果需要兼容老规则引擎规则，且规则存储在ruleengine_configure中时，设置为true。如果老规则迁移到了dipper_configure, 这个值不需要设置或设置成false即可。兼容老的规则引擎，老规则引擎的namespace 是name_space需要通过这个配置告诉resource做适配。
+     * 如果需要兼容老规则引擎规则，且规则存储在ruleengine_configure中时，设置为true。如果老规则迁移到了dipper_configure,
+     * 这个值不需要设置或设置成false即可。兼容老的规则引擎，老规则引擎的namespace 是name_space需要通过这个配置告诉resource做适配。
      */
     String JDBC_COMPATIBILITY_OLD_RULEENGINE = "dipper.rds.compatibility.old.ruleengine";
     /**

@@ -19,5 +19,5 @@ package org.apache.rocketmq.streams.common.interfaces;
 import org.apache.rocketmq.streams.common.channel.source.ISplitChangedListener;
 import org.apache.rocketmq.streams.common.checkpoint.ICheckPoint;
 
-public interface ISystemMessageProcessor extends ICheckPoint, ISplitChangedListener {
+public interface ISystemMessageProcessor extends ICheckPoint, ISplitChangedListener,IBatchMessageFinishNotify {
 }

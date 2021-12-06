@@ -49,7 +49,7 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
     /**
      * xml的位置，如果没有即默认位置
      */
-    protected PropertyConfigureDescriptorManager configureDiscriptorManager = new PropertyConfigureDescriptorManager();
+    protected PropertyConfigureDescriptorManager configureDescriptorManager = new PropertyConfigureDescriptorManager();
 
     private Properties properties;
 
@@ -61,7 +61,7 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
 
     protected Properties createDefaultProperty() {
         //createENVProperties();
-        Properties properties = null;
+        Properties properties ;
         properties = ComponentCreator.getProperties();
         if (properties == null) {
             properties = getDefaultProperties();
@@ -69,22 +69,23 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
         if (properties == null) {
             properties = new Properties();
         }
-        addSystemProperties(properties);
-        return properties;
+        Properties newProperties=new Properties();
+        newProperties.putAll(properties);
+        addSystemProperties(newProperties);
+        return newProperties;
     }
 
     public void initConfigurableServiceDescriptor() {
         addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_URL, null, true, ENV_JDBC_URL));
         addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_USERNAME, null, true, ENV_JDBC_USERNAME));
         addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_PASSWORD, null, true, ENV_JDBC_PASSWORD));
-        addConfigureDescriptor(
-            new ConfigureDescriptor("jdbc", JDBC_DRIVER, DEFAULT_JDBC_DRIVER, false, ENV_JDBC_DRIVER));
+        addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_DRIVER, DEFAULT_JDBC_DRIVER, false, ENV_JDBC_DRIVER));
         addConfigureDescriptor(new ConfigureDescriptor("http", HTTP_AK, true));
         addConfigureDescriptor(new ConfigureDescriptor("http", HTTP_SK, true));
     }
 
-    protected void addConfigureDescriptor(ConfigureDescriptor configureDiscriptor) {
-        configureDiscriptorManager.addConfigureDescriptor(configureDiscriptor);
+    protected void addConfigureDescriptor(ConfigureDescriptor configureDescriptor) {
+        configureDescriptorManager.addConfigureDescriptor(configureDescriptor);
     }
 
     /**
@@ -93,9 +94,9 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
      * @param properties
      */
     protected void addSystemProperties(Properties properties) {
-        for (List<ConfigureDescriptor> configureDescriptors : configureDiscriptorManager.getGroupByConfigures().values()) {
-            for (ConfigureDescriptor configureDiscriptor : configureDescriptors) {
-                String key = configureDiscriptor.getPropertyKey();
+        for (List<ConfigureDescriptor> configureDescriptors : configureDescriptorManager.getGroupByConfigures().values()) {
+            for (ConfigureDescriptor configureDescriptor : configureDescriptors) {
+                String key = configureDescriptor.getPropertyKey();
                 String value = ENVUtile.getSystemParameter(key);
                 if (value != null) {
                     properties.put(key, value);
@@ -110,15 +111,15 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
      * @return
      */
     protected Properties createENVProperties() {
-        if (configureDiscriptorManager.getGroupByConfigures() == null) {
+        if (configureDescriptorManager.getGroupByConfigures() == null) {
             return null;
         }
-        Iterator<List<ConfigureDescriptor>> it = configureDiscriptorManager.getGroupByConfigures().values().iterator();
+        Iterator<List<ConfigureDescriptor>> it = configureDescriptorManager.getGroupByConfigures().values().iterator();
         Properties properties = new Properties();
         boolean hasProperties = false;
         while (it.hasNext()) {
             List<ConfigureDescriptor> configureDiscriptors = it.next();
-            Properties p = configureDiscriptorManager.createENVProperties(configureDiscriptors);
+            Properties p = configureDescriptorManager.createENVProperties(configureDiscriptors);
             if (p != null) {
                 properties.putAll(p);
                 hasProperties = true;

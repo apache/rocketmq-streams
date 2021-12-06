@@ -35,6 +35,7 @@ import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySink;
 import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
@@ -88,6 +89,7 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                     }
                     IShuffleChannelBuilder shuffleChannelBuilder = (IShuffleChannelBuilder)builder;
                     ISink sink = shuffleChannelBuilder.createBySource(piplineSource);
+                    sink.init();
                     if (!(sink instanceof MemoryChannel) && !(sink instanceof AbstractSupportShuffleSink)) {
                         throw new RuntimeException("can not create shuffle channel, sink not extends AbstractSupportShuffleSink " + piplineSource.toJson());
                     }
@@ -130,7 +132,7 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                             ReflectUtil.setBeanFieldValue(sink, fieldName, value);
                         }
                     }
-
+                    shuffleSink.setHasInit(false);
                     shuffleSink.init();//在这里完成shuffle channel的创建
                     if (source == null) {
                         source = shuffleChannelBuilder.copy(piplineSource);
@@ -153,7 +155,10 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                     if (shuffleTopic != null && topicFiledName != null) {
                         ReflectUtil.setBeanFieldValue(source, topicFiledName, shuffleTopic);
                     }
-
+                    if(AbstractSource.class.isInstance(source)){
+                        AbstractSource abstractSource=(AbstractSource)source;
+                        abstractSource.setHasInit(false);
+                    }
                     source.init();
 
                     this.producer = shuffleSink;
@@ -210,6 +215,12 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         }
         Properties properties = createChannelProperties(namespace);
         ISource source = builder.createSource(namespace, name, properties, null);
+        if(MemorySource.class.isInstance(source)){
+            MemorySource memorySource=(MemorySource)source;
+            MemoryCache memoryCache=new MemoryCache();
+            memorySource.setMemoryCache(memoryCache);
+            memoryCache.init();
+        }
         source.init();
         return source;
     }
@@ -231,9 +242,19 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         if (!AbstractSupportShuffleSink.class.isInstance(sink)) {
             throw new RuntimeException("can not support shuffle " + sink.toJson());
         }
-        AbstractSupportShuffleSink abstractSupportShuffleSink = (AbstractSupportShuffleSink)sink;
-        abstractSupportShuffleSink.init();
-        return abstractSupportShuffleSink;
+        if(MemorySink.class.isInstance(sink)){
+            MemorySink memorySink=(MemorySink)sink;
+            if(!MemorySource.class.isInstance(this.consumer)){
+                throw new RuntimeException("shuffle cosumer need memory, real is "+this.consumer);
+            }
+            MemorySource memorySource=(MemorySource)this.consumer;
+            MemoryCache memoryCache=memorySource.getMemoryCache();
+            memorySink.setMemoryCache(memoryCache);
+        }
+
+        sink.init();
+
+        return (AbstractSupportShuffleSink)sink;
     }
 
     /**

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
@@ -31,7 +32,7 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
-import org.apache.rocketmq.streams.common.optimization.MessageGloableTrace;
+import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
@@ -91,14 +92,6 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
      * @return
      */
     protected T doMessageInner(T t, AbstractContext context, AbstractStage... replaceStage) {
-        PreFingerprint preFingerprint=getPreFingerprint("0","0");
-        if(preFingerprint!=null){
-            boolean isFilter=preFingerprint.filterByLogFingerprint(t);
-            if(isFilter){
-                context.breakExecute();
-                return t;
-            }
-        }
         return doMessageFromIndex(t, context, 0, replaceStage);
     }
 
@@ -111,13 +104,13 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
             boolean isContinue = executeStage(stage, t, context);
             if (!isContinue) {
                 if (stage.isAsyncNode()) {
-                    MessageGloableTrace.finishPipline(t);
+                    MessageGlobleTrace.finishPipeline(t);
                     ;
                 }
                 return t;
             }
         }
-        MessageGloableTrace.finishPipline(t);
+        MessageGlobleTrace.finishPipeline(t);
         return t;
     }
 
@@ -162,7 +155,10 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
                 stage.addNewSplit(t, context, (NewSplitMessage)systemMessage);
             } else if (systemMessage instanceof RemoveSplitMessage) {
                 stage.removeSplit(t, context, (RemoveSplitMessage)systemMessage);
-            } else {
+            } else if (systemMessage instanceof BatchFinishMessage) {
+                stage.batchMessageFinish(t, context, (BatchFinishMessage)systemMessage);
+            }
+            else {
                 if(systemMessage==null){
                     return true;
                 }
@@ -199,7 +195,7 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
                     newSplits.add(subT);
                 }
             }
-            MessageGloableTrace.clear(t);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
+            MessageGlobleTrace.clear(t);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
             //if (needFlush) {
             //    flushStage(stage, lastMsg, context);
             //}
@@ -221,7 +217,7 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
                 context.closeSplitMode(t);
             }
             boolean isContinue = doMessage(t, stage, context);
-            MessageGloableTrace.clear(t);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
+            MessageGlobleTrace.clear(t);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
             //if (needFlush) {
             //    flushStage(stage, t, context);
             //}
@@ -327,6 +323,10 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
 
     public void setSourceIdentification(String sourceIdentification) {
         this.sourceIdentification = sourceIdentification;
+    }
+
+    public Map<String, Map<String, PreFingerprint>> getPreFingerprintExecutor() {
+        return preFingerprintExecutor;
     }
 
     public void setMsgSourceName(String msgSourceName) {

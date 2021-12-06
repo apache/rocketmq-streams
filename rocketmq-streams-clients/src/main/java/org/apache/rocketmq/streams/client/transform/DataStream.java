@@ -93,7 +93,6 @@ public class DataStream implements Serializable {
     public DataStream script(String script) {
         ChainStage<?> stage = this.mainPipelineBuilder.createStage(new ScriptOperator(script));
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
-
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
     public DataStream filterByExpression(String expression,  String... logFingerFieldNames){
@@ -475,14 +474,14 @@ public class DataStream implements Serializable {
             fileChannel.setBatchSize(batchSize);
         }
         ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);
-        mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
     public DataStreamAction toFile(String filePath, boolean isAppend) {
         FileSink fileChannel = new FileSink(filePath, isAppend);
         ChainStage<?> output = mainPipelineBuilder.createStage(fileChannel);
-        mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
@@ -508,6 +507,21 @@ public class DataStream implements Serializable {
     }
 
     public DataStreamAction toDB(String url, String userName, String password, String tableName) {
+        DBSink dbChannel = new DBSink(url, userName, password, tableName);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(dbChannel);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+    }
+
+    public DataStreamAction toDB(String url, String userName, String password, String tableName, String sqlMode) {
+        DBSink dbChannel = new DBSink(url, userName, password, tableName);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(dbChannel);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStreamAction(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+    }
+
+    public DataStreamAction toDB(String url, String userName, String password, String tableName, String sqlMode,
+        Boolean sqlCache) {
         DBSink dbChannel = new DBSink(url, userName, password, tableName);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(dbChannel);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);

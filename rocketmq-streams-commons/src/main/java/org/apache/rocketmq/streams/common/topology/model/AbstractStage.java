@@ -23,12 +23,14 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
+import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -264,12 +266,17 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             if(sourceLable==null||nextLable==null){
                 return null;
             }
-            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,sourceLable,nextLable);
+            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,sourceLable,nextLable,-1,this, FingerprintCache.getInstance());
             return preFingerprint;
         } else {
-            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,"0","0");
+            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,"0","0",-1,this, FingerprintCache.getInstance());
             return preFingerprint;
         }
+    }
+
+    @Override
+    public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
+
     }
 
     public List<String> getNextStageLabels() {

@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.common.topology.stages;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -33,6 +34,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
+import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class OutputChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfigurableRefreshListener {
@@ -56,7 +58,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
      * 如果需要把输出关闭或mock到一个其他channel，可以通过配置一个mockchannel。同时通过配置文件
      */
     protected transient ISink mockSink;
-
+    protected transient AtomicInteger count=new AtomicInteger(0);
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
@@ -76,7 +78,10 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
                     }
                 }
             }
-
+            boolean isWindowTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+            if(isWindowTest){
+                System.out.println("output count is "+count.incrementAndGet());
+            }
             /**
              * 主要是输出可能影响线上数据，可以通过配置文件的开关，把所有的输出，都指定到一个其他输出中
              */
