@@ -29,9 +29,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.AbstractBatchSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 
 /**
@@ -208,6 +210,7 @@ public class FileSource extends AbstractBatchSource {
 
                 }
                 sendCheckpoint(fileIterator.file.getName());
+                executeMessage((Message) BatchFinishMessage.create());
                 fileIterator.close();
                 countDownLatch.countDown();
                 ;

@@ -54,7 +54,7 @@ public class WindowInstanceTest {
     public void testWindowInstanceNormalMode() {
         WindowOperator window = new WindowOperator();
         window.init();
-        window.doProcessAfterRefreshConfigurable(null);
+//        window.doProcessAfterRefreshConfigurable(null);
         window.setFireMode(0);
         window.setTimeFieldName("time");
         window.setSlideInterval(5);

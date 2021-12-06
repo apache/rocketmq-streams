@@ -64,10 +64,6 @@ public class RocketMQMessageQueue extends BasedConfigurable implements ISplit<Ro
         return getQueueId(this.queue);
     }
 
-    @Override
-    public String getPlusQueueId() {
-        return MapKeyUtil.createKeyBySign("_",queue.getTopic(),queue.getBrokerName(),getSplitNumerStr(queue.getQueueId()+1)+"");
-    }
 
     public static String getQueueId(MessageQueue queue){
 

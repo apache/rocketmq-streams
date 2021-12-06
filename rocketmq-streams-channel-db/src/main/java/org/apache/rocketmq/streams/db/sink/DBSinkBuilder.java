@@ -25,7 +25,7 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 
 @AutoService(IChannelBuilder.class)
-@ServiceName(DBSinkBuilder.TYPE)
+@ServiceName(value = DBSinkBuilder.TYPE,aliasName = "db")
 public class DBSinkBuilder implements IChannelBuilder {
     public static final String TYPE = "rds";
 

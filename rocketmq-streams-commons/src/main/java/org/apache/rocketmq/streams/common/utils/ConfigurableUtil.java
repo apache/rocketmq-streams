@@ -157,12 +157,17 @@ public class ConfigurableUtil {
     }
 
     public static void setProperty2Configurable(Object configurable, String filedName, JSONObject message) {
-        String fieldJsonStr = message.getString(filedName);
-        if (StringUtil.isEmpty(fieldJsonStr)) {
+        Object field = message.get(filedName);
+        if (field==null) {
             return;
         }
-        DataType dataType = DataTypeUtil.createFieldDataType(configurable, filedName);
-        Object fieldValue = dataType.getData(fieldJsonStr);
+        Object fieldValue=field;
+        if(String.class.isInstance(field)){
+            String fieldJsonStr=(String)field;
+            DataType dataType = DataTypeUtil.createFieldDataType(configurable, filedName);
+            fieldValue = dataType.getData(fieldJsonStr);
+        }
+
         if (fieldValue != null) {
             ReflectUtil.setBeanFieldValue(configurable, filedName, fieldValue);
         }

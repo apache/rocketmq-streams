@@ -20,22 +20,62 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+import org.apache.rocketmq.streams.common.cache.compress.ByteArray;
 
 public class NumberUtils {
-
-    public static byte[] toByte(int n) {
-        byte[] b = new byte[4];
+    public static byte[] toByte(int n,int byteSize) {
+        byte[] b = new byte[byteSize];
         b[0] = (byte)(n & 0xff);
         b[1] = (byte)(n >> 8 & 0xff);
         b[2] = (byte)(n >> 16 & 0xff);
         b[3] = (byte)(n >> 24 & 0xff);
         return b;
     }
+    public static byte[] toByte(int n) {
+        return toByte(n,4);
+    }
+
+    public static byte[] toByte(long n) {
+        byte[] b = new byte[8];
+        b[0] = (byte)(n & 0xff);
+        b[1] = (byte)(n >> 8 & 0xff);
+        b[2] = (byte)(n >> 16 & 0xff);
+        b[3] = (byte)(n >> 24 & 0xff);
+        b[4] = (byte)(n >>32 & 0xff);
+        b[5] = (byte)(n >> 40 & 0xff);
+        b[6] = (byte)(n >> 48 & 0xff);
+        b[7] = (byte)(n >> 56 & 0xff);
+        return b;
+    }
+
 
     public static int toInt(byte b) {
         byte[] bytes = new byte[1];
         bytes[0] = b;
         return toInt(bytes);
+    }
+
+    public static boolean isFirstBitZero(ByteArray byteArray){
+        byte firstByte= byteArray.getByte(byteArray.getSize() - 1);
+        return isFirstBitZero(firstByte);
+    }
+
+
+    public static boolean isFirstBitZero(Integer integer) {
+        ByteArray byteArray=new ByteArray(NumberUtils.toByte(integer));
+        return isFirstBitZero(byteArray);
+    }
+
+    public static boolean isFirstBitZero(byte firstByte){
+        int conflictValue = NumberUtils.toInt(firstByte);
+        int conflictFlag = conflictValue >> 7;
+        if (conflictFlag == 1) {
+            return false;
+        } else {
+           return true;
+        }
     }
 
     /**
@@ -153,6 +193,34 @@ public class NumberUtils {
         return num;
     }
 
+
+    public static byte[] zlibCompress(byte[] input){
+        Deflater deflater=new Deflater();
+        byte[] output = new byte[input.length+10+new Double(Math.ceil(input.length*0.25f)).intValue()];
+        Deflater compresser = new Deflater();
+        compresser.setInput(input);
+        compresser.finish();
+        int compressedDataLength = compresser.deflate(output);
+        compresser.end();
+        return Arrays.copyOf(output, compressedDataLength);
+    }
+    /**
+     * 解压缩
+     * @param barr   须要解压缩的字节数组
+     * @return
+     * @throws Exception
+     */
+    public static byte[] zlibInfCompress(byte[] barr)throws Exception{
+        byte[] result=new byte[2014];
+        Inflater inf=new Inflater();
+        inf.setInput(barr);
+        int infLen=inf.inflate(result);
+        inf.end();
+        return Arrays.copyOf(result, infLen);
+    }
+
+
+
     /**
      * 去掉小数点，防止序列化反序列化过程中出现类型不一致，因为计算过程中统一使用了double类型
      *
@@ -171,9 +239,11 @@ public class NumberUtils {
     }
 
     public static void main(String[] args) {
-        int num = createBitMapInt(true, false, false, false, true);
-        num = setNumFromBitMapInt(num, 1);
-        System.out.println(getNumFromBitMapInt(num, 4));
+        String str="10.10.10.11";
+        System.out.println(str.getBytes().length);
+        byte[] bytes=zlibCompress(str.getBytes());
+        System.out.println(bytes.length);
 
     }
+
 }

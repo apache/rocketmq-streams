@@ -48,16 +48,19 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
     @Override
     public int addCache(R msg) {
         String queueId = createSplitId(msg);
-        MessageCache messageCache = new MessageCache(flushCallBack);
-        messageCache.setAutoFlushSize(this.autoFlushSize);
-        messageCache.setAutoFlushTimeGap(this.autoFlushTimeGap);
-        MessageCache existMessageCache = queueMessageCaches.putIfAbsent(queueId, messageCache);
-        if (existMessageCache != null) {
-            messageCache = existMessageCache;
-        } else {
+        MessageCache messageCache =queueMessageCaches.get(queueId);
+        if(messageCache==null){
+            messageCache=new MessageCache(flushCallBack);
+            messageCache.setAutoFlushSize(this.autoFlushSize);
+            messageCache.setAutoFlushTimeGap(this.autoFlushTimeGap);
             messageCache.setBatchSize(batchSize);
             if(this.isOpenAutoFlush){
                 messageCache.openAutoFlush();
+            }
+            messageCache.setAutoFlushExecutorService(this.autoFlushExecutorService);
+            MessageCache existMessageCache = queueMessageCaches.putIfAbsent(queueId, messageCache);
+            if (existMessageCache != null) {
+                messageCache = existMessageCache;
             }
         }
         messageCache.addCache(msg);

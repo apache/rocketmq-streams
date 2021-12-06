@@ -156,6 +156,9 @@ public class WindowValue extends WindowBaseValue implements Serializable {
      */
     public void setAggColumnResult(String jsonArrayStr) {
         jsonArrayStr = decodeSQLContent(jsonArrayStr);
+        if(jsonArrayStr==null){
+            return;
+        }
         JSONArray functionResultJson = JSONArray.parseArray(jsonArrayStr);
         for (int i = 0; i < functionResultJson.size(); i++) {
             JSONObject jsonObject = functionResultJson.getJSONObject(i);
@@ -523,6 +526,9 @@ public class WindowValue extends WindowBaseValue implements Serializable {
 
     protected String decodeSQLContent(String sqlContent) {
         try {
+            if(StringUtil.isEmpty(sqlContent)){
+                return null;
+            }
             return new String(Base64Utils.decode(sqlContent), "UTF-8");
         } catch (Exception e) {
             throw new RuntimeException("decode sql content error " + sqlContent, e);

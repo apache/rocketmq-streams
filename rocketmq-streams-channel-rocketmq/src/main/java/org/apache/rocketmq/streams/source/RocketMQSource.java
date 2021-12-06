@@ -20,9 +20,12 @@ package org.apache.rocketmq.streams.source;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueByConfig;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -38,7 +41,7 @@ import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSupportOffsetResetSource;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
@@ -57,32 +60,42 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class RocketMQSource extends AbstractSupportOffsetResetSource {
+public class RocketMQSource extends AbstractSupportShuffleSource {
 
     protected static final Log LOG = LogFactory.getLog(RocketMQSource.class);
+
+    private static final String STRATEGY_AVERAGE = "average";
+    private static final String STRATEGY_MACHINE = "machine";
+    private static final String STRATEGY_CONFIG = "config";
+
     @ENVDependence
     protected String tags = "*";
-
-    private transient DefaultMQPushConsumer consumer;
-
-    protected Long pullIntervalMs;
 
     /**
      * 消息队列命名空间接入点
      */
     protected String namesrvAddr;
 
+    protected Long pullIntervalMs;
+
+    protected String strategyName;
+
+    protected transient DefaultMQPushConsumer consumer;
     protected transient ConsumeFromWhere consumeFromWhere;//默认从哪里消费,不会被持久化。不设置默认从尾部消费
     protected transient String consumerOffset;//从哪里开始消费
 
     public RocketMQSource() {}
 
-    public RocketMQSource(String topic, String tags, String groupName,
-                          String namesrvAddr) {
+    public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr) {
+        this(topic, tags, groupName, namesrvAddr, STRATEGY_AVERAGE);
+    }
+
+    public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr, String strategyName) {
         this.topic = topic;
         this.tags = tags;
         this.groupName = groupName;
         this.namesrvAddr = namesrvAddr;
+        this.strategyName = strategyName;
     }
 
     @Override
@@ -109,8 +122,16 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
             if (pullIntervalMs != null) {
                 consumer.setPullInterval(pullIntervalMs);
             }
+            AllocateMessageQueueStrategy defaultStrategy = new AllocateMessageQueueAveragely();
+            if (STRATEGY_AVERAGE.equalsIgnoreCase(this.strategyName)) {
+                consumer.setAllocateMessageQueueStrategy(defaultStrategy);
+            } else if (STRATEGY_MACHINE.equalsIgnoreCase(this.strategyName)) {
+                //consumer.setAllocateMessageQueueStrategy(new AllocateMessageQueueByMachine(defaultStrategy));
+            } else if (STRATEGY_CONFIG.equalsIgnoreCase(this.strategyName)) {
+                consumer.setAllocateMessageQueueStrategy(new AllocateMessageQueueByConfig());
+            }
 
-            consumer.setPersistConsumerOffsetInterval((int) this.checkpointTime);
+            consumer.setPersistConsumerOffsetInterval((int)this.checkpointTime);
             consumer.setConsumeMessageBatchMaxSize(maxFetchLogGroupSize);
             consumer.setNamesrvAddr(this.namesrvAddr);
             if (consumeFromWhere != null) {
@@ -122,13 +143,12 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
             Map<String, Boolean> isFirstDataForQueue = new HashMap<>();
             //consumer.setCommitOffsetWithPullRequestEnable(false);
             consumer.subscribe(topic, tags);
-            consumer.registerMessageListener((MessageListenerOrderly) (msgs, context) -> {
+            consumer.registerMessageListener((MessageListenerOrderly)(msgs, context) -> {
                 try {
                     int i = 0;
                     for (MessageExt msg : msgs) {
-                        String data = new String(msg.getBody(), CHARSET);
-                        JSONObject jsonObject = create(data);
 
+                        JSONObject jsonObject = create(msg.getBody(), msg.getProperties());
 
                         String queueId = RocketMQMessageQueue.getQueueId(context.getMessageQueue());
                         String offset = msg.getQueueOffset() + "";
@@ -147,7 +167,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                                 }
                             }
                         }
-
 
                         if (i == msgs.size() - 1) {
                             message.getHeader().setNeedFlush(true);
@@ -199,7 +218,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
         }
     }
 
-
     @Override
     public Map<String, List<ISplit>> getWorkingSplitsGroupByInstances() {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
@@ -240,13 +258,13 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
             Iterator var5 = consumerConnection.getConnectionSet().iterator();
 
             while (var5.hasNext()) {
-                Connection connection = (Connection) var5.next();
+                Connection connection = (Connection)var5.next();
                 String clientId = connection.getClientId();
                 ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(groupName, clientId, false);
                 Iterator var9 = consumerRunningInfo.getMqTable().keySet().iterator();
 
                 while (var9.hasNext()) {
-                    MessageQueue messageQueue = (MessageQueue) var9.next();
+                    MessageQueue messageQueue = (MessageQueue)var9.next();
                     results.put(messageQueue, clientId.split("@")[1]);
                 }
             }
@@ -258,8 +276,8 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
     }
 
     /**
-     * 设置offset存储，包装原有的RemoteBrokerOffsetStore，在保存offset前发送系统消息
-     * this method suggest to be removed, use check barrier to achieve checkpoint asynchronous.
+     * 设置offset存储，包装原有的RemoteBrokerOffsetStore，在保存offset前发送系统消息 this method suggest to be removed, use check barrier to achieve checkpoint asynchronous.
+     *
      * @param consumer
      */
     protected void setOffsetStore(DefaultMQPushConsumer consumer) {
@@ -278,16 +296,15 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
                 super.removeOffset(mq);
             }
 
-
             @Override
             public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway)
-                    throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+                throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
                 sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
                 if (DebugWriter.isOpenDebug()) {
                     ConcurrentMap<MessageQueue, AtomicLong> offsetTable = ReflectUtil.getDeclaredField(this, "offsetTable");
                     DebugWriter.getInstance(getTopic()).writeSaveOffset(mq, offsetTable.get(mq));
                 }
-//                LOG.info("the queue Id is " + new RocketMQMessageQueue(mq).getQueueId() + ",rocketmq start save offset，the save time is " + DateUtil.getCurrentTimeString());
+                //                LOG.info("the queue Id is " + new RocketMQMessageQueue(mq).getQueueId() + ",rocketmq start save offset，the save time is " + DateUtil.getCurrentTimeString());
                 super.updateConsumeOffsetToBroker(mq, offset, isOneway);
             }
         };
@@ -331,7 +348,6 @@ public class RocketMQSource extends AbstractSupportOffsetResetSource {
         }
 
     }
-
 
     @Override
     public void destroy() {

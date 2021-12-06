@@ -29,6 +29,7 @@ public class Message implements IMessage {
 
     protected ISystemMessage systemMessage;
 
+
     protected MessageHeader header = new MessageHeader();
 
     public Message(JSONObject message) {
@@ -126,4 +127,6 @@ public class Message implements IMessage {
     public void setSystemMessage(ISystemMessage systemMessage) {
         this.systemMessage = systemMessage;
     }
+
+
 }

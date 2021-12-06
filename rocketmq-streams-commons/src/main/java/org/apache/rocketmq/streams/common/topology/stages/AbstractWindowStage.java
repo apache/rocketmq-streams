@@ -19,12 +19,15 @@ package org.apache.rocketmq.streams.common.topology.stages;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
@@ -68,10 +71,18 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
     }
 
     @Override
+    public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
+        window.getWindowCache().finishBatchMsg(checkPointMessage);
+    }
+
+    @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         window = configurableService.queryConfigurable(IWindow.TYPE, windowName);
         PiplineRecieverAfterCurrentNode receiver = getReceiverAfterCurrentNode();
         window.setFireReceiver(receiver);
+        if (Boolean.TRUE.equals(Boolean.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_RUNNING_STATUS, ConfigureFileKey.DIPPER_RUNNING_STATUS_DEFAULT)))) {
+            window.windowInit();
+        }
     }
 
     public String getWindowName() {

@@ -30,6 +30,7 @@ import java.util.UUID;
 import org.apache.rocketmq.streams.common.cache.compress.AdditionStore;
 import org.apache.rocketmq.streams.common.cache.compress.ByteArray;
 import org.apache.rocketmq.streams.common.cache.compress.CacheKV;
+import org.apache.rocketmq.streams.common.cache.compress.MapAddress;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.junit.Assert;
 

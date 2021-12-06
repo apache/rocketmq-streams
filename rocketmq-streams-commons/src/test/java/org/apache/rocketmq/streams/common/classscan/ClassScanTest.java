@@ -25,7 +25,7 @@ public class ClassScanTest {
     public void testScan() {
         AbstractScan scan = new AbstractScan() {
             @Override
-            protected void doProcessor(Class clazz) {
+            protected void doProcessor(Class clazz, String functionName) {
                 System.out.println(clazz.getName());
             }
         };

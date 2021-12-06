@@ -18,6 +18,7 @@
 package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONObject;
+
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
@@ -46,7 +47,7 @@ public class DataStreamTest implements Serializable {
     @Test
     public void testFromFile() {
         dataStream
-            .fromFile("/Users/junjie.cheng/text.txt", false)
+            .fromFile("/Users/junjie.cheng/test.sql", false)
             .map(message -> message + "--")
             .toPrint(1)
             .start();
@@ -65,7 +66,7 @@ public class DataStreamTest implements Serializable {
     @Test
     public void testDBCheckPoint() {
         dataStream
-            .fromRocketmq("topic_xxxx02", "consumer_xxxx02", "127.0.0.1:9876")
+            .fromRocketmq("topic_xxxx02", "consumer_xxxx02", "服务器.:9876")
             .map(message -> message + "--")
             .toPrint(1)
             .with(WindowStrategy.exactlyOnce("", "", ""))
@@ -111,7 +112,7 @@ public class DataStreamTest implements Serializable {
             .fromFile("/Users/junjie.cheng/text.txt", false)
             .map(message -> message + "--")
             .toPrint(1)
-            .start();
+            .start(true);
 
     }
 

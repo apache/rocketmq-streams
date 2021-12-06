@@ -354,9 +354,4 @@ public class SQLFormatterUtil {
         }
     }
 
-    public static void main(String[] args) {
-        String sql = "select  a.* , '2' as typeNew,'3' as srcFrom, 'baseline:level' as levelFile,b.single_result,b.id as resultID,'baseline:assert' as assertType ,c.name as eventName, c.risk_assert_type as risk_assert_type from  risk_check_result as a Left JOIN risk_check_single_result as b ON a.id = b.result_id LEFT JOIN risk_item as c  ON c.id = a.risk_item_id where  a.gmt_modified>#{modify_time}  order  by  gmt_modified  limit  1000";
-        String a = new SQLFormatterUtil().format(sql);
-        System.out.println(a);
-    }
 }

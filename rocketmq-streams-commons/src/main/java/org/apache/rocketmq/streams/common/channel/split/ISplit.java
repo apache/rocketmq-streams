@@ -29,12 +29,6 @@ public interface ISplit<T, Q> extends Comparable<T>, Serializable, IJsonable {
 
     String getQueueId();
 
-    /**
-     * 比当前queueId大的queueId的值，最好只大一点点，主要应用在rocksdb 做范围查询,因为结束部分是开区间，只要大一点点就行
-     *
-     * @return
-     */
-    String getPlusQueueId();
 
     /**
      * 获取具体的队列 获取具体的队列

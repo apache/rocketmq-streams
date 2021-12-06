@@ -18,6 +18,8 @@ package org.apache.rocketmq.streams.window.operator.join;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.parser.ParserConfig;
+import com.alibaba.fastjson.util.TypeUtils;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
@@ -95,10 +97,10 @@ public class DBOperator implements Operator {
         String messageId = windowNameSpace + "_" + windowName + "_" + queueId + "_" + offset;
 
         List<String> leftJoinFieldNames = window.getJSONArray("leftJoinFieldNames") != null ?
-            window.getJSONArray("leftJoinFieldNames").toJavaList(String.class) :
+            toJavaList(window.getJSONArray("leftJoinFieldNames")) :
             new ArrayList<>();
         List<String> rightJoinFieldNames = window.getJSONArray("rightJoinFieldNames") != null ?
-            window.getJSONArray("rightJoinFieldNames").toJavaList(String.class) :
+            toJavaList(window.getJSONArray("rightJoinFieldNames")) :
             new ArrayList<>();
 
         String messageKey = generateKey(message.getMessageBody(), routeLabel, leftJoinFieldNames, rightJoinFieldNames);
@@ -123,6 +125,23 @@ public class DBOperator implements Operator {
         state.setMessageBody(messageBody.toJSONString());
 
         return state;
+    }
+
+    private  List<String> toJavaList(JSONArray jsonArray) {
+        List<String> list = new ArrayList<String>(jsonArray.size());
+
+        for (Object item : jsonArray) {
+            if(item==null){
+                list.add(null);
+            }else if(String.class.isInstance(item)) {
+                list.add((String)item);
+            }else {
+                list.add(item.toString());
+            }
+
+        }
+
+        return list;
     }
 
     /**

@@ -143,9 +143,9 @@ public class DBSink extends AbstractSink {
         List<String> duplicateKeys = Lists.newArrayList();
         fieldList.forEach(field -> {
             String fieldName = field.getFieldName();
-            insertFields.add(fieldName);
+            insertFields.add("`" + fieldName + "`");
             insertValues.add("'#{" + fieldName + "}'");
-            duplicateKeys.add(fieldName + " = VALUES(" + fieldName + ")");
+            duplicateKeys.add("`" + fieldName + "`" + " = VALUES(" + "`" + fieldName + "`" + ")");
         });
 
         String sql = "insert";

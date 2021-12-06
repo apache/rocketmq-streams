@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.model.Entity;
@@ -127,7 +128,7 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         }
         String theSecretValue;
         try {
-            theSecretValue = AESUtil.aesEncrypt(json, ConfigureFileKey.SECRECY);
+            theSecretValue = AESUtil.aesEncrypt(json, ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

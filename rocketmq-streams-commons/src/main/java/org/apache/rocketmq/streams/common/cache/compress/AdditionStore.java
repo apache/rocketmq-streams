@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.common.cache.compress;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class AdditionStore {
@@ -24,7 +25,7 @@ public class AdditionStore {
     /**
      * 每个冲突域列表，每个列表的最大值
      */
-    public static final int CONFLICT_UNIT_SIZE = 1024 * 1024;
+    public static final int CONFLICT_UNIT_SIZE = 16777216;
 
     /**
      * 如果value是非int值，可以通过这个值存储。原来value部分存储地址
@@ -56,9 +57,6 @@ public class AdditionStore {
      */
     protected int blockSize = CONFLICT_UNIT_SIZE;
 
-    public AdditionStore() {
-
-    }
 
     public AdditionStore(int elementSize, int blockSize) {
         this.elementSize = elementSize;
@@ -74,12 +72,64 @@ public class AdditionStore {
         this(elementSize, CONFLICT_UNIT_SIZE);
     }
 
+    public class DataElement{
+        protected byte[] bytes;
+        protected MapAddress mapAddress;
+        public DataElement(byte[] bytes,MapAddress mapAddress){
+            this.bytes=bytes;
+            this.mapAddress=mapAddress;
+        }
+
+        public byte[] getBytes() {
+            return bytes;
+        }
+
+        public MapAddress getMapAddress() {
+            return mapAddress;
+        }
+    }
+
+    public Iterator<DataElement> iterator(){
+        return new Iterator<DataElement>(){
+            int index=0;
+            int offset=0;
+            @Override public boolean hasNext() {
+                if(index<conflictIndex){
+                    return true;
+                }
+                if(offset<conflictOffset){
+                    return true;
+                }
+                return false;
+            }
+
+            @Override public DataElement next() {
+                MapAddress address=new MapAddress(index,offset);
+                ByteArray byteArray=getValue(address);
+                if(byteArray==null&&hasNext()){
+                    this.index++;
+                    this.offset=0;
+                    return next();
+                }
+                byte[] bytes= byteArray.getByteArray();
+                offset=offset+bytes.length+2;
+                if(offset>blockSize||(isVarLen==false&&offset+elementSize>blockSize)){
+                    this.index++;
+                    this.offset=0;
+                }
+                return new DataElement(bytes,address);
+            }
+        };
+
+
+    }
+
     /**
      * 把一个字节数组插入到存储中，并返回当前地址
      *
      * @param value
      */
-    public CacheKV.MapAddress add2Store(byte[] value) {
+    public MapAddress add2Store(byte[] value) {
         if (conflictIndex == -1 || values.size() <= conflictIndex) {
             byte[] bytes = new byte[blockSize];
             values.add(bytes);
@@ -97,10 +147,14 @@ public class AdditionStore {
             values.add(bytes);
             conflictOffset = 0;
             conflictIndex++;
+            if(conflictIndex>127){
+                throw new RuntimeException("exceed cache size "+conflictIndex);
+            }
         }
+
         byte[] bytes = values.get(conflictIndex);
 
-        CacheKV.MapAddress address = new CacheKV.MapAddress(conflictIndex, conflictOffset);
+        MapAddress address = new MapAddress(conflictIndex, conflictOffset);
         if (isVarLen) {
             int size = value.length;
             bytes[conflictOffset] = (byte) (size & 0xff);
@@ -125,7 +179,7 @@ public class AdditionStore {
      * @param mapAddress
      * @return
      */
-    public ByteArray getValue(CacheKV.MapAddress mapAddress) {
+    public ByteArray getValue(MapAddress mapAddress) {
         byte[] bytes = values.get(mapAddress.conflictIndex);
         if (bytes == null) {
             return null;
@@ -133,9 +187,20 @@ public class AdditionStore {
         if (!isVarLen) {
             return new ByteArray(bytes, mapAddress.offset, elementSize);
         } else {
+            if(mapAddress.offset+2>bytes.length){
+                return null;
+            }
             int len = new ByteArray(bytes, mapAddress.offset, 2).castInt(0, 2);
+            if(len==0){
+                return null;
+            }
             return new ByteArray(bytes, mapAddress.offset + 2, len);
         }
+    }
+
+    public int byteSize(){
+        long byteSize=this.blockSize*this.conflictIndex+this.blockSize;
+        return (int)(byteSize)/1024/1024;
     }
 
     public int getConflictIndex() {

@@ -27,11 +27,6 @@ public class MemorySplit extends BasedConfigurable implements ISplit<MemorySplit
     }
 
     @Override
-    public String getPlusQueueId() {
-        return 2 + "";
-    }
-
-    @Override
     public MemorySplit getQueue() {
         return this;
     }
