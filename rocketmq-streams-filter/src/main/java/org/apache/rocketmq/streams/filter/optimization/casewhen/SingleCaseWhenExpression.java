@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.streams.filter.optimization.casewhen;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
@@ -75,6 +77,18 @@ public class SingleCaseWhenExpression extends AbstractWhenExpression {
             }
         }
         return null;
+    }
+
+
+    @Override public Set<String> getNewFieldNames() {
+        Set<String> varNames=new HashSet<>();
+        for(IScriptExpression scriptExpression:this.afterScriptExpressions){
+            if(scriptExpression.getNewFieldNames()==null){
+                continue;
+            }
+            varNames.addAll(scriptExpression.getNewFieldNames());
+        }
+        return varNames;
     }
 
 

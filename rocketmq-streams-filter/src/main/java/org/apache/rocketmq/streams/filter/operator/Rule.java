@@ -26,12 +26,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
@@ -39,14 +43,14 @@ import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
+import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.FilterComponent;
-import org.apache.rocketmq.streams.filter.context.RuleMessage;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
-import org.apache.rocketmq.streams.filter.operator.action.impl.ChannelAction;
+import org.apache.rocketmq.streams.filter.operator.action.impl.SinkAction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.GroupExpression;
-import org.apache.rocketmq.streams.filter.operator.expression.GroupExpressionManager;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
 import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
@@ -55,6 +59,7 @@ import org.apache.rocketmq.streams.filter.optimization.ExpressionOptimization;
 
 public class Rule extends AbstractRule implements IAfterConfigurableRefreshListener,
     IStageBuilder<ChainStage> {
+    private static final Log LOG = LogFactory.getLog(Rule.class);
     private transient volatile Map<String, Var> varMap = new HashMap<>();
     private transient volatile Map<String, Expression> expressionMap = new HashMap<>();
     @Deprecated
@@ -62,6 +67,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     private transient Map<String, MetaData> metaDataMap = new HashMap<>();
     private transient volatile Map<String, JDBCDriver> dataSourceMap = new HashMap<>();
     private String expressionStr;//表达式
+    protected transient Expression rootExpression;
 
 //    protected transient GroupExpressionManager groupExpressionManager;
     /**
@@ -113,6 +119,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         rule.setRuleStatus(ruleStatus);
         rule.setConfigurableService(configurableService);
         rule.setPrivateDatas(privateDatas);
+        rule.rootExpression=rootExpression;
         return rule;
     }
 
@@ -123,17 +130,32 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             this.dataSourceMap = configurableService.queryConfigurableMapByType(ISink.TYPE);
 
         }
-        initExpression(configurableService);
         initVar(configurableService);
+        initExpression(configurableService);
         initAction(configurableService);
         initMetaData(configurableService);
-        if(supportHyperscan){
-            this.optimize();
-//            groupExpressionManager.compile();
+
+        initElements();
+    }
+
+    public void initElements() {
+        this.rootExpression=this.expressionMap.get(getExpressionName());
+        for(Expression expression:this.expressionMap.values()){
+            if(RelationExpression.class.isInstance(expression)){
+                RelationExpression relationExpression=(RelationExpression)expression;
+                relationExpression.setExpressionMap(this.expressionMap);
+            }else {
+                Var var=createVar(expression.getVarName());
+                expression.setVar(var);
+            }
+        }
+        for(Action action:this.actionMap.values()){
+            action.setDataSourceMap(this.dataSourceMap);
+            action.setMetaDataMap(this.metaDataMap);
         }
     }
 
-    public void addAction(ChannelAction action) {
+    public void addAction(SinkAction action) {
         actionMap.put(action.getConfigureName(), action);
         this.getActionNames().add(action.getConfigureName());
     }
@@ -220,6 +242,15 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         //        }
     }
 
+    protected Var createVar(String varName){
+        ContextVar contextVar = new ContextVar();
+        contextVar.setNameSpace(getNameSpace());
+        contextVar.setConfigureName(varName);
+        contextVar.setVarName(varName);
+        contextVar.setFieldName(varName);
+        return contextVar;
+    }
+
     /**
      * 赋值action给rule
      *
@@ -250,14 +281,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         } else if (ISink.TYPE.equals(type)) {
             dataSourceMap.put(configurable.getConfigureName(), (JDBCDriver)configurable);
         }
-    }
-
-    public void insertElement(IConfigurableService ruleEngineConfigurableService) {
-        insertOrUpdate(ruleEngineConfigurableService, varMap.values());
-        insertOrUpdate(ruleEngineConfigurableService, expressionMap.values());
-        insertOrUpdate(ruleEngineConfigurableService, actionMap.values());
-        insertOrUpdate(ruleEngineConfigurableService, metaDataMap.values());
-        insertOrUpdate(ruleEngineConfigurableService, dataSourceMap.values());
     }
 
     private <T extends IConfigurable> void insertOrUpdate(IConfigurableService ruleEngineConfigurableService,
@@ -334,20 +357,20 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     @Override
     public Boolean doMessage(IMessage message, AbstractContext context) {
+        boolean isTrace= TraceUtil.hit(message.getHeader().getTraceId());
+        boolean isFireRule = processExpress( message,context,isTrace);
 
-        List<Rule> fireRules= filterComponent.executeRule(message,context,this);
-        return fireRules!=null&&fireRules.size()>0;
+        return isFireRule;
+
+
     }
 
     public static final String FIRE_RULES = "fireRules";
 
     public boolean execute(JSONObject msg) {
-        List<Rule> fireRules = filterComponent.excuteRule(msg, this);
-       // msg.put(FIRE_RULES, createJsonArray(fireRules));
-        if (fireRules == null || fireRules.size() == 0) {
-            return false;
-        }
-        return true;
+        Message message=new Message(msg);
+        AbstractContext context=new Context(message);
+        return doMessage(message,context);
     }
 
     private JSONArray createJsonArray(List<Rule> fireRules) {
@@ -417,9 +440,9 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     @Override
     public void addConfigurables(PipelineBuilder pipelineBuilder) {
-        if (varMap.values() != null) {
-            pipelineBuilder.addConfigurables(varMap.values());
-        }
+//        if (varMap.values() != null) {
+//            pipelineBuilder.addConfigurables(varMap.values());
+//        }
         if (expressionMap.values() != null) {
             pipelineBuilder.addConfigurables(expressionMap.values());
         }
@@ -476,7 +499,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             String varName = expression.getVarName();
             GroupExpression groupExpression = varName2ExpressionNames.get(varName);
             if (groupExpression == null) {
-                groupExpression = new GroupExpression(this, varName, root.getRelation().equalsIgnoreCase("or"));
+                groupExpression = new GroupExpression(this, this.varMap.get(varName), root.getRelation().equalsIgnoreCase("or"));
                 varName2ExpressionNames.put(varName, groupExpression);
 
             }
@@ -533,8 +556,51 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         }
         return root;
     }
+
+    /**
+     * 处理Express
+     *
+     * @param context
+     * @return
+     */
+    @SuppressWarnings("rawtypes")
+    private boolean processExpress(IMessage message, AbstractContext context, boolean isTrace) {
+        try {
+            if (getExpressionName() == null) {
+                return false;
+            }
+
+            Expression expression = this.rootExpression;
+            if (expression == null) {
+               throw  new RuntimeException("need root expression");
+            }
+
+            boolean match = expression.doMessage(message,context);
+//            if (isTrace&&!RelationExpression.class.isInstance(expression)) {
+//                TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
+//                piplineExecutorMonitor.addNotFireExpression(expression.toString(), expression.getDependentFields(rule.getExpressionMap()));
+//                context.setExpressionMonitor(piplineExecutorMonitor);
+//            }
+            if (!match) {
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("DefaultRuleEngine processExpress error,rule is: " + getConfigureName(), e);
+            return false;
+        }
+        return true;
+    }
 //
 //    public GroupExpressionManager getGroupExpressionManager() {
 //        return groupExpressionManager;
 //    }
+
+    public Expression getRootExpression() {
+        return rootExpression;
+    }
+
+    public void setRootExpression(Expression rootExpression) {
+        this.rootExpression = rootExpression;
+    }
 }

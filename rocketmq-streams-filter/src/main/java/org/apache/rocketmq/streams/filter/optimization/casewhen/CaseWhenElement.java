@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.script.CaseFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.RuleExpression;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
 import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
@@ -56,11 +58,17 @@ public class CaseWhenElement {
 
 
         IScriptExpression ifExpression=groupScriptExpression.getIfExpresssion();
-        if(!CaseFunction.isCaseFunction(ifExpression.getFunctionName())){
-            throw new RuntimeException("can not support not casefunction's ifExpression");
+        if(RuleExpression.class.isInstance(ifExpression)){
+            this.rule=((RuleExpression)ifExpression).getRule();
+        }else {
+            if(!CaseFunction.isCaseFunction(ifExpression.getFunctionName())){
+                throw new RuntimeException("can not support not casefunction's ifExpression");
+            }
+            String ifStr= IScriptOptimization.getParameterValue((IScriptParamter) ifExpression.getScriptParamters().get(0));
+            this.rule= ExpressionBuilder.createRule("tmp","tmp",ifStr);
         }
-        String ifStr= IScriptOptimization.getParameterValue((IScriptParamter) ifExpression.getScriptParamters().get(0));
-        this.rule= ExpressionBuilder.createRule("tmp","tmp",ifStr);
+
+
         if(isCompressBeforeExpression){
             this.beforeExpressions=addBeforeExpressions(groupScriptExpression.getBeforeExpressions());
         }else {
@@ -151,6 +159,15 @@ public class CaseWhenElement {
     }
     public Set<String> getDependentFields(){
        return rule.getDependentFields();
+    }
+
+
+    public Set<String> getNewFieldNames(){
+        Set<String> newFieldNames=new HashSet<>();
+        for(IScriptExpression then:thenScriptExpressionList){
+            newFieldNames.addAll(then.getNewFieldNames());
+        }
+        return newFieldNames;
     }
 
     public Rule getRule() {

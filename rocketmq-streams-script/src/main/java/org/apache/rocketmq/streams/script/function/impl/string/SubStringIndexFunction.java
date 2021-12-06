@@ -105,10 +105,10 @@ public class SubStringIndexFunction {
 
     @FunctionMethod(value = "blink_substr", alias = "blink_substring", comment = "截取从指定的索引startIndex开始,长度为len的字符，index从1开始，需要做下处理")
     public String substringindexForBlink(IMessage message, FunctionContext context,
-                                         @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
+                                         @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsgField,
                                          @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String startIndex,
                                          @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String len) {
-        oriMsg = FunctionUtils.getValueString(message, context, oriMsg);
+        String oriMsg = FunctionUtils.getValueString(message, context, oriMsgField);
         String index = FunctionUtils.getValueString(message, context, startIndex);
         String lengthStr = FunctionUtils.getValueString(message, context, len);
         Integer fromIndex = Integer.valueOf(index);
@@ -124,8 +124,11 @@ public class SubStringIndexFunction {
             fromIndex = oriMsg.length() + fromIndex - length + 1;
             endIndex = fromIndex + length;
         }
-        if (endIndex >= oriMsg.length()) {
+        if (oriMsg!=null&&endIndex >= oriMsg.length()) {
             endIndex = oriMsg.length();
+        }
+        if(oriMsg==null){
+            return null;
         }
         return oriMsg.substring(fromIndex, endIndex);
     }

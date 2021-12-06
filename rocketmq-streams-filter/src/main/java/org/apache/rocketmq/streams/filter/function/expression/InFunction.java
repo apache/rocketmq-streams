@@ -20,9 +20,9 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -45,18 +45,15 @@ public class InFunction extends AbstractExpressionFunction {
     @Override
     @FunctionMethod(value = "in", alias = "~in")
     @FunctionMethodAilas("包含")
-    public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
-        if (!expression.volidate()) {
-            return false;
-        }
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
 
-        Var var = context.getVar(rule.getConfigureName(), expression.getVarName());
+        Var var = expression.getVar();
         if (var == null) {
             return false;
         }
         Object varObject = null;
         Object valueObject = null;
-        varObject = var.getVarValue(context, rule);
+        varObject = var.doMessage(message,context);
         valueObject = expression.getValue();
 
         if (varObject == null || valueObject == null) {

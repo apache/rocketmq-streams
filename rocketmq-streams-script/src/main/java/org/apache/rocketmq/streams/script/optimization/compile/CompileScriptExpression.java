@@ -108,7 +108,7 @@ public class CompileScriptExpression {
                 parameters[index] = functionConfigure.getRealValue(index,compileParameter.getValue(message, context));
             }
         }
-        Object value = functionConfigure.directReflectExecute(parameters);
+        Object value = scriptExpression.executeFunctionConfigue(message,context,functionConfigure,parameters);
         if (isSimpleNewFieldName && value != null) {
             message.getMessageBody().put(scriptExpression.getNewFieldName(), value);
         } else {

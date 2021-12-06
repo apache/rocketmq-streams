@@ -21,18 +21,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.cache.CompressTable;
+import org.apache.rocketmq.streams.common.cache.ByteArrayMemoryTable;
+import org.apache.rocketmq.streams.common.cache.ListMemoryTable;
+import org.apache.rocketmq.streams.common.cache.MappedByteBufferTable;
+import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -42,6 +49,7 @@ import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
+import org.apache.rocketmq.streams.script.ScriptComponent;
 
 /**
  * 这个结构代表一张表 存放表的全部数据和索引
@@ -62,19 +70,17 @@ public abstract class AbstractDim extends BasedConfigurable {
      */
     protected List<String> indexs = new ArrayList<>();
 
+    protected boolean isLarge = false;//if isLarge=true use MapperByteBufferTable 内存结构
     /**
      * 把表数据转化成二进制存储在CompressTable中
      */
-    protected transient volatile CompressTable dataCache;
+    protected transient volatile AbstractMemoryTable dataCache;
 
     /**
      * 建立名单的时候，可以指定多组索引，索引的值当作key，row在datacache的index当作value，可以快速匹配索引对应的row key：索引的值 value：row在dataCache的index当作value，可以快速匹配索引对应的row
      */
     protected transient DimIndex nameListIndex;
-
-    //是否是唯一索引，唯一索引会用IntValueKV存储，有更高的压缩率
-    protected boolean isUniqueIndex = false;
-
+    protected transient Set<String> columnNames;
     //定时加载表数据到内存
     protected transient ScheduledExecutorService executorService;
 
@@ -91,15 +97,16 @@ public abstract class AbstractDim extends BasedConfigurable {
     @Override
     protected boolean initConfigurable() {
         boolean success = super.initConfigurable();
-        loadNameList();
-        executorService = new ScheduledThreadPoolExecutor(3);
-        executorService.scheduleWithFixedDelay(new Runnable() {
-
-            @Override
-            public void run() {
-                loadNameList();
-            }
-        }, pollingTimeMintue, pollingTimeMintue, TimeUnit.MINUTES);
+        if (Boolean.TRUE.equals(Boolean.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_RUNNING_STATUS, ConfigureFileKey.DIPPER_RUNNING_STATUS_DEFAULT)))) {
+            loadNameList();
+            executorService = new ScheduledThreadPoolExecutor(3);
+            executorService.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    loadNameList();
+                }
+            }, pollingTimeMintue, pollingTimeMintue, TimeUnit.MINUTES);
+        }
         return success;
     }
 
@@ -110,9 +117,10 @@ public abstract class AbstractDim extends BasedConfigurable {
         try {
             LOG.info(getConfigureName() + " begin polling data");
             //全表数据
-            CompressTable dataCacheVar = loadData();
+            AbstractMemoryTable dataCacheVar = loadData();
             this.dataCache = dataCacheVar;
             this.nameListIndex = buildIndex(dataCacheVar);
+            this.columnNames = this.dataCache.getCloumnName2Index().keySet();
         } catch (Exception e) {
             LOG.error("Load configurables error:" + e.getMessage(), e);
         }
@@ -124,24 +132,13 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param dataCacheVar 维表
      * @return
      */
-    protected DimIndex buildIndex(CompressTable dataCacheVar) {
+    protected DimIndex buildIndex(AbstractMemoryTable dataCacheVar) {
         DimIndex dimIndex = new DimIndex(this.indexs);
-        dimIndex.setUnique(isUniqueIndex);
         dimIndex.buildIndex(dataCacheVar);
         return dimIndex;
     }
 
-    /**
-     * 根据索引名和索引值查询匹配的行号
-     *
-     * @param indexName
-     * @param indexValue
-     * @return
-     */
-    public List<Integer> findRowIdByIndex(String indexName, String indexValue) {
-        return nameListIndex == null ? Collections.emptyList() : nameListIndex.getRowIds(indexName, indexValue);
-    }
-
+ 
     /**
      * 软引用缓存，最大可能保存索引执行器，避免频繁创建，带来额外开销 同时会保护内存不被写爆，当内存不足时自动回收内存
      */
@@ -172,13 +169,13 @@ public abstract class AbstractDim extends BasedConfigurable {
     public List<Map<String, Object>> matchExpression(String expressionStr, JSONObject msg, boolean needAll, String script) {
         IndexExecutor indexNamelistExecutor = cache.get(expressionStr);
         if (indexNamelistExecutor == null) {
-            indexNamelistExecutor = new IndexExecutor(expressionStr, getNameSpace(), this.indexs);
+            indexNamelistExecutor = new IndexExecutor(expressionStr, getNameSpace(), this.indexs,dataCache.getCloumnName2DatatType().keySet());
             cache.put(expressionStr, indexNamelistExecutor);
         }
         if (indexNamelistExecutor.isSupport()) {
             return indexNamelistExecutor.match(msg, this, needAll, script);
         } else {
-            return matchExpressionByLoop(expressionStr, msg, needAll);
+            return matchExpressionByLoop(dataCache.rowIterator(),expressionStr, msg, needAll,script,columnNames);
         }
     }
 
@@ -191,11 +188,10 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @return
      */
     protected List<Map<String, Object>> matchExpressionByLoop(String expressionStr, JSONObject msg, boolean needAll) {
-        CompressTable dataCache = this.dataCache;
-        List<Map<String, Object>> rows = matchExpressionByLoop(dataCache.newIterator(), expressionStr, msg, needAll);
+        AbstractMemoryTable dataCache = this.dataCache;
+        List<Map<String, Object>> rows = matchExpressionByLoop(dataCache.rowIterator(), expressionStr, msg, needAll,null,columnNames);
         return rows;
     }
-
     /**
      * 全表扫描，做表达式匹配，返回全部匹配结果。join中有使用
      *
@@ -204,33 +200,25 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param needAll
      * @return
      */
-    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it, String expressionStr, JSONObject msg, boolean needAll) {
+    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it, String expressionStr, JSONObject msg, boolean needAll){
+        return matchExpressionByLoop(it,expressionStr,msg,needAll,null,new HashSet<>());
+    }
+    /**
+     * 全表扫描，做表达式匹配，返回全部匹配结果。join中有使用
+     *
+     * @param expressionStr
+     * @param msg
+     * @param needAll
+     * @return
+     */
+    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it, String expressionStr, JSONObject msg, boolean needAll, String script,Set<String> colunmNames) {
         List<Map<String, Object>> rows = new ArrayList<>();
+        Rule ruleTemplete = ExpressionBuilder.createRule("tmp", "tmpRule", expressionStr);
         while (it.hasNext()) {
-            Map<String, Object> values = it.next();
-            Rule ruleTemplete = ExpressionBuilder.createRule("tmp", "tmpRule", expressionStr);
-            Rule rule = ruleTemplete.copy();
-            Map<String, Expression> expressionMap = new HashMap<>();
-            for (Expression expression : rule.getExpressionMap().values()) {
-                expressionMap.put(expression.getConfigureName(), expression);
-                if (RelationExpression.class.isInstance(expression)) {
-                    continue;
-                }
-                Object object = expression.getValue();
-                if (object != null && DataTypeUtil.isString(object.getClass())) {
-                    String fieldName = (String)object;
-                    Object value = values.get(fieldName);
-                    if (value != null) {
-                        Expression e = expression.copy();
-                        e.setValue(value.toString());
-                        expressionMap.put(e.getConfigureName(), e);
-                    }
-                }
-            }
-            rule.setExpressionMap(expressionMap);
-            boolean matched = rule.execute(msg);
-            if (matched) {
-                rows.add(values);
+            Map<String, Object> oldRow = it.next();
+            Map<String, Object> newRow = isMatch(ruleTemplete,oldRow,msg,script,colunmNames);
+            if (newRow!=null) {
+                rows.add(newRow);
                 if (needAll == false) {
                     return rows;
                 }
@@ -239,7 +227,95 @@ public abstract class AbstractDim extends BasedConfigurable {
         return rows;
     }
 
-    protected abstract CompressTable loadData();
+    /**
+     * 和维表的一行数据进行匹配，如果维表中有函数，先执行函数
+     * @param ruleTemplete
+     * @param dimRow
+     * @param msgRow
+     * @param script
+     * @param colunmNames
+     * @return
+     */
+    public static Map<String, Object>  isMatch(Rule ruleTemplete ,Map<String, Object> dimRow, JSONObject msgRow,  String script,Set<String> colunmNames){
+        Map<String, Object> oldRow =dimRow;
+        Map<String, Object> newRow=executeScript(oldRow,script);
+        if (ruleTemplete == null) {
+            return newRow;
+        }
+        Rule rule = ruleTemplete.copy();
+        Map<String, Expression> expressionMap = new HashMap<>();
+        String dimAsName=null;;
+        for (Expression expression : rule.getExpressionMap().values()) {
+            expressionMap.put(expression.getConfigureName(), expression);
+            if (RelationExpression.class.isInstance(expression)) {
+                continue;
+            }
+            Object object = expression.getValue();
+            if (object != null && DataTypeUtil.isString(object.getClass())) {
+                String fieldName = (String)object;
+                Object value = newRow.get(fieldName);
+                if (value != null) {
+                    Expression e = expression.copy();
+                    e.setValue(value.toString());
+                    expressionMap.put(e.getConfigureName(), e);
+                }
+            }
+            if(expression.getVarName().indexOf(".")!=-1){
+                String[] values=expression.getVarName().split("\\.");
+                if(values.length==2){
+                    String asName=values[0];
+                    String varName=values[1];
+                    if(colunmNames.contains(varName)){
+                        dimAsName=asName;
+                    }
+                }
+
+            }
+        }
+        rule.setExpressionMap(expressionMap);
+        rule.initElements();
+        JSONObject copyMsg=msgRow;
+        if(StringUtil.isNotEmpty(dimAsName)){
+            copyMsg= new JSONObject(msgRow);
+            for(String key:newRow.keySet()){
+                copyMsg.put(dimAsName+"."+key,newRow.get(key));
+            }
+        }
+        boolean matched = rule.execute(copyMsg);
+        if(matched){
+            return newRow;
+        }
+        return null;
+    }
+
+
+    protected static Map<String, Object> executeScript(Map<String, Object> oldRow, String script) {
+        if (script == null) {
+            return oldRow;
+        }
+        ScriptComponent scriptComponent = ScriptComponent.getInstance();
+        JSONObject msg = new JSONObject();
+        msg.putAll(oldRow);
+        scriptComponent.getService().executeScript(msg, script);
+        return msg;
+    }
+
+
+
+    protected AbstractMemoryTable loadData(){
+        AbstractMemoryTable memoryTable = null;
+        if(!isLarge){
+            LOG.info(String.format("init ByteArrayMemoryTable."));
+            memoryTable = new ByteArrayMemoryTable();
+        }else {
+            LOG.info(String.format("init MappedByteBufferTable."));
+            memoryTable = new MappedByteBufferTable();
+        }
+        loadData2Memory(memoryTable);
+        return memoryTable;
+    }
+
+    protected abstract void loadData2Memory(AbstractMemoryTable table);
 
     @Override
     public void destroy() {
@@ -295,15 +371,19 @@ public abstract class AbstractDim extends BasedConfigurable {
         this.indexs = indexs;
     }
 
-    public CompressTable getDataCache() {
+    public AbstractMemoryTable getDataCache() {
         return dataCache;
     }
 
-    public boolean isUniqueIndex() {
-        return isUniqueIndex;
+    public boolean isLarge() {
+        return isLarge;
     }
 
-    public void setUniqueIndex(boolean uniqueIndex) {
-        isUniqueIndex = uniqueIndex;
+    public void setLarge(boolean large) {
+        isLarge = large;
+    }
+
+    public DimIndex getNameListIndex() {
+        return nameListIndex;
     }
 }

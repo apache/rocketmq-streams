@@ -194,34 +194,4 @@ public class ConditionExpressionParser implements IScriptExpressionParser {
         return true;
     }
 
-    public static void main(String[] args) {
-        String scriptValue
-            = "if((___lower_cmdline_10026,like,'%syncappvpublishingserver%\"%'))"
-            + "{___case_10001='win_exec_payload_syncappvpublishingserver';}elseif((___lower_cmdline_10027,like,"
-            + "'%runscripthelper%surfacecheck%')){___case_10001='win_exec_payload_runscripthelper';}elseif("
-            + "(___lower_cmdline_10028,like,'%winword%/l%.dll')){___case_10001='win_exec_payload_winword';}elseif("
-            + "(___lower_cmdline_10029,like,'%indefaultinstall%inf%'))"
-            + "{___case_10001='win_exec_payload_indefaultinstall';}elseif(___regexp_10013)"
-            + "{___case_10001='win_exec_payload_mavinject32';}elseif((___lower_cmdline_10031,like,'%fsi.exe%c:%'))"
-            + "{___case_10001='win_exec_payload_fsi';}elseif(___regexp_10014){___case_10001='win_exec_payload_te';"
-            + "}elseif(___regexp_10015){___case_10001='win_exec_payload_atbroker';}elseif(___regexp_10016)"
-            + "{___case_10001='win_exec_payload_bginfo';}elseif(___regexp_10017)"
-            + "{___case_10001='win_exec_payload_dnx';}elseif((___regexp_10018&___regexp_10019))"
-            + "{___case_10001='win_exec_payload_rcsi';}elseif((___regexp_10020&___regexp_10021))"
-            + "{___case_10001='win_exec_payload_msxsl';}elseif(___regexp_10022)"
-            + "{___case_10001='win_exec_payload_ieexec';}elseif(___regexp_10023)"
-            + "{___case_10001='win_exec_payload_tracker';}elseif((___lower_cmdline_10040,like,'%pubprn"
-            + ".vbs%operator%http%')){___case_10001='win_exec_payload_pubprn';}elseif((___lower_cmdline_10041,like,"
-            + "'%cscript%/b%slmgr.vbs%')){___case_10001='win_exec_payload_slmgr_vbs';}elseif((___lower_cmdline_10042,"
-            + "like,'%cscript%/b%winrm%')){___case_10001='win_exec_payload_winrm';}elseif((___lower_cmdline_10043,"
-            + "like,'%cl_invocation.ps1%syncinvoke%')){___case_10001='win_exec_payload_cl_invocation';"
-            + "}else{___case_10001=null_10001;};";
-        String value = scriptValue;
-        value = value.replace("’", "'");
-        value = value.replace("‘", "'");
-        value = value.replace("’", "'");
-        List<IScriptExpression> scriptExpressions = FunctionParser.getInstance().parse(value);
-        System.out.println();
-    }
-
 }

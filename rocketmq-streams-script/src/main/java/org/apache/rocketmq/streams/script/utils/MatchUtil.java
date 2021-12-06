@@ -68,14 +68,4 @@ public class MatchUtil {
         return pattern.matcher(str).matches();
     }
 
-	/*public static void main(String[] args) {
-
-		System.out.println(MatchUtil.isNumber(""));
-		System.out.println(MatchUtil.isNumber(null));
-		System.out.println(MatchUtil.isNumber("1516697438000"));
-		System.out.println(MatchUtil.isNumber("2018-01-23 16:29:47"));
-		String time = "1516697438000";
-		time = DateUtil.longToString(Long.parseLong(time));
-		System.out.println(time);
-	}*/
 }

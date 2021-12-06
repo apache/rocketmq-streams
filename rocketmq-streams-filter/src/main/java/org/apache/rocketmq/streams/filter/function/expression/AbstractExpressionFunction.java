@@ -18,11 +18,9 @@ package org.apache.rocketmq.streams.filter.function.expression;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
-import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 
 public abstract class AbstractExpressionFunction implements ExpressionFunction {
@@ -31,36 +29,18 @@ public abstract class AbstractExpressionFunction implements ExpressionFunction {
     private static final Log RULEENGINE_MESSAGE_LOG = LogFactory.getLog("ruleengine_message");
 
     @Override
-    public Boolean doFunction(Expression expression, RuleContext context, Rule rule) {
-        String name = MapKeyUtil.createKey(Expression.TYPE, expression.getConfigureName());
-        IMonitor monitor = null;
-        if (context != null && context.getRuleMonitor() != null) {
-            monitor = context.getRuleMonitor().createChildren(name);
-        }
+    public Boolean doFunction(IMessage message, AbstractContext context, Expression expression) {
         try {
-            Boolean result = doExpressionFunction(expression, context, rule);
-            if (monitor != null) {
-                monitor.setResult(result);
-                monitor.endMonitor();
-                if (monitor.isSlow()) {
-                    monitor.setSampleData(context).put("expression_info", expression.toJson());
-                }
-            }
+            Boolean result = doExpressionFunction(message, context,expression);
             return result;
         } catch (RegexTimeoutException e) {
-            LOG.error("AbstractExpressionFunction RegexTimeoutException", e);
-            RULEENGINE_MESSAGE_LOG.warn("AbstractExpressionFunction doFunction error", e);
-            if (monitor != null) {
-                monitor.occureError(e, "AbstractExpressionFunction doFunction error", e.getMessage());
-                monitor.setSampleData(context).put("expression_info", expression.toJsonObject());
-            }
-
-            throw e;
+          e.printStackTrace();
+          throw e;
         }
 
     }
 
     @SuppressWarnings("rawtypes")
-    protected abstract Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule);
+    protected abstract Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression);
 
 }

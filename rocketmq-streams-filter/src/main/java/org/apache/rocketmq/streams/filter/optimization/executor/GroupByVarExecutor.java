@@ -29,7 +29,10 @@ import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.script.CaseFunction;
+import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.RuleExpression;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.filter.optimization.result.GroupQuickFilterResult;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.impl.string.RegexFunction;
@@ -108,6 +111,14 @@ public class GroupByVarExecutor extends AbstractExecutor implements IScriptOptim
                     if(expressions.size()>0){
                         for(Expression simpleExpression:expressions){
                             this.regist(simpleExpression.getVarName(),simpleExpression);
+                        }
+                    }
+                }else if(RuleExpression.class.isInstance(scriptExpression)){
+                    RuleExpression ruleExpression=(RuleExpression)scriptExpression;
+                    Rule rule=ruleExpression.getRule();
+                    for(Expression expression1:rule.getExpressionMap().values()){
+                        if(!RelationExpression.class.isInstance(expression1)){
+                            this.regist(expression1.getVarName(),expression1);
                         }
                     }
                 }

@@ -18,14 +18,12 @@ package org.apache.rocketmq.streams.filter.builder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.filter.contants.RuleElementType;
-import org.apache.rocketmq.streams.filter.operator.action.impl.MetaDataAction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.filter.operator.var.ConstantVar;
@@ -122,15 +120,6 @@ public class RuleElementBuilder {
         return relationExpression;
     }
 
-    public static MetaDataAction createAction(String namespace, String name, String metaDataName,
-                                              Map<String, String> varName2FieldName) {
-        MetaDataAction metaDataAction = new MetaDataAction();
-        metaDataAction.setNameSpace(namespace);
-        metaDataAction.setType(RuleElementType.ACTION.getType());
-        metaDataAction.setConfigureName(name);
-        metaDataAction.setMetaDataName(metaDataName);
-        metaDataAction.setVarName2FieldName(varName2FieldName);
-        return metaDataAction;
-    }
+
 
 }
