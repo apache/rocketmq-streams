@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.condition;
 
+import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -33,7 +34,14 @@ public class GreateEqualsFunction {
                          @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String value) {
         String leftValue = FunctionUtils.getValueString(message, context, fieldName);
         if (FunctionUtils.isConstant(value)) {
-            return leftValue.equals(FunctionUtils.getConstant(value));
+            //support varchar and int transfer automatically
+            try {
+                BigDecimal right = new BigDecimal(FunctionUtils.getConstant(value));
+                BigDecimal left = new BigDecimal(leftValue);
+                return left.compareTo(right) >= 0;
+            } catch (Exception e) {
+                return leftValue.compareTo(FunctionUtils.getConstant(value)) >= 0;
+            }
         } else if (FunctionUtils.isLong(value)) {
             Long left = FunctionUtils.getLong(leftValue.toString());
             Long right = FunctionUtils.getLong(value);

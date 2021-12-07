@@ -34,11 +34,8 @@ import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.contants.RuleElementType;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
-import org.apache.rocketmq.streams.filter.operator.action.impl.CaseWhenAction;
-import org.apache.rocketmq.streams.filter.operator.action.impl.MetaDataAction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.ExpressionRelationParser;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
@@ -46,10 +43,6 @@ import org.apache.rocketmq.streams.filter.operator.var.ConstantVar;
 import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
 import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
-import org.apache.rocketmq.streams.script.operator.expression.ScriptParameter;
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
-import org.apache.rocketmq.streams.script.service.IScriptParamter;
-import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 /**
  * 通过这个工具可以快速创建一条规则。这个工具默认消息流的字段名＝metadata的字段名
@@ -376,63 +369,9 @@ public class RuleBuilder {
     //    return this;
     //}
 
-    public RuleBuilder addMetaDataAction(String namespace, String metaDataName, Map<String, String> varName2FieldName) {
-        initVarName2FieldName(varName2FieldName);
-        String actionName = actionNameCreator.createName();
-        MetaDataAction action =
-            RuleElementBuilder.createAction(namespace, actionName, metaDataName, varName2FieldName);
-        actionList.add(action);
-        return this;
-    }
-
-    /**
-     * 创建输出，可以把触发规则的数据写入到指定的为止，此方法主要是db
-     *
-     * @param varName2FieldName 消息中的字段名和数据表的名字映射
-     * @param url
-     * @param userName
-     * @param password
-     * @return
-     */
-    public RuleBuilder addDBAction(String url, String userName, String password, String tableName,
-                                   Map<String, String> varName2FieldName) {
-        initVarName2FieldName(varName2FieldName);
-
-        JDBCDriver dataSource = new JDBCDriver();
-        dataSource.setUrl(url);
-        dataSource.setNameSpace(namespace);
-        dataSource.setUserName(userName);
-        dataSource.setPassword(password);
-        dataSource.setJdbcDriver("com.mysql.jdbc.Driver");
-        dataSource.setType(ISink.TYPE);
-        dataSource.setConfigureName(dataSourceNameCreator.createName());
-        dataSourceList.add(dataSource);
-
-        String metaDataName = metaDataNameCreator.createName();
-        String actionName = actionNameCreator.createName();
-        MetaData metaData =
-            RuleElementBuilder.createMetaData(namespace, metaDataName, createMetaDataFiledStr(varName2FieldName));
-        metaData.setTableName(tableName);
-        metaData.setDataSourceName(dataSource.getConfigureName());
-        metaDataList.add(metaData);
-        MetaDataAction action =
-            RuleElementBuilder.createAction(namespace, actionName, metaDataName, varName2FieldName);
-        actionList.add(action);
-        return this;
-    }
 
 
 
-
-    public RuleBuilder addCaseWhenAction(IScriptExpression scriptExpression){
-        String actionName = actionNameCreator.createName();
-        Action action=new CaseWhenAction();
-        ((CaseWhenAction) action).setScriptExpression(scriptExpression);
-        action.setNameSpace("tmp");
-        action.setConfigureName(actionName);
-        actionList.add(action);
-        return this;
-    }
 
 
 
@@ -445,6 +384,7 @@ public class RuleBuilder {
     public Rule generateRule(IConfigurableService ruleEngineConfigurableService) {
         Rule rule = createRule();
         insertOrUpdate(ruleEngineConfigurableService);
+        rule.initElements();
         return rule;
     }
 

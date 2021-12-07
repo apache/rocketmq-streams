@@ -200,7 +200,7 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
 
                 });
             } else {
-                parameters = parseParameter(parameterStr, flag2ExpressionStr);
+                parameters = parseParameter(parameterStr, flag2ExpressionStr,0);
             }
             scriptExpression.setFunctionName(functionName.trim());
             scriptExpression.setParameters(parameters);
@@ -251,7 +251,7 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
      *
      * @param parameterStr
      */
-    protected List<IScriptParamter> parseParameter(String parameterStr, Map<String, String> flag2ExpressionStr) {
+    protected List<IScriptParamter> parseParameter(String parameterStr, Map<String, String> flag2ExpressionStr,int flag) {
         if (StringUtil.isEmpty(parameterStr)) {
             return new ArrayList();
         }
@@ -265,7 +265,6 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
             return parserSimpleParameter(parameterStr, flag2ExpressionStr);
         }
         Map<String, IScriptParamter> parameterMap = new HashMap<>();
-        int flag = 0;
         int firstCloseBracketesIndex = parameterStr.indexOf(")");
         int functionOpenBracketesIndex = paserFunctionOpenBracketesIndex(firstCloseBracketesIndex, parameterStr);
         String functionName = paserFunctionName(parameterStr, functionOpenBracketesIndex);
@@ -275,7 +274,8 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
         IScriptParamter scriptParameter = this.parse(tmp.trim());
         parameterMap.put(ScriptParserUtil.createConsKey(flag), scriptParameter);
         parameterStr = parameterStr.replace(expressionStr, ScriptParserUtil.createConsKey(flag));
-        parameters = parseParameter(parameterStr, flag2ExpressionStr);
+        flag++;
+        parameters = parseParameter(parameterStr, flag2ExpressionStr,flag);
         rebackExpressionParameters(parameterMap, parameters);
         return parameters;
     }

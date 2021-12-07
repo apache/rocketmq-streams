@@ -30,6 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
@@ -67,6 +68,8 @@ public class FunctionConfigure {
     private FunctionType functionType = FunctionType.UDF;
 
     private DataType returnDataType;
+
+    private boolean isUserDefinedUDTF=false;//是否用户用规范自定义的udtf
 
     /**
      * 主要做性能优化的参数组合，可以更快的组装成反射信息
@@ -203,20 +206,6 @@ public class FunctionConfigure {
             return result;
         } catch (Exception e) {
             e.printStackTrace();
-            DataType[] dataTypes = DataTypeUtil.createDataType(method);
-            String paras = "[";
-            boolean isFirst = true;
-            for (Object object : dataParameters) {
-                if (isFirst) {
-                    isFirst = false;
-                } else {
-                    paras = paras + ",";
-                }
-                paras = paras + (object == null ? null : object);
-            }
-            paras = paras + "]";
-            StringBuilder error = new StringBuilder(method.getName() + " execute error。the paramet real  is " + paras + ";the method is" + method);
-            LOG.error(error.toString(), e);
             throw new RuntimeException("执行方法出错" + method.getName(), e);
         }
     }
@@ -345,6 +334,11 @@ public class FunctionConfigure {
                 if (value == null) {
                     return null;//说明参数不匹配，直接返回
                 }
+            } else if(NotSupportDataType.class.isInstance(dataType)){
+                if(dataType.getDataClass().isAssignableFrom(value.getClass())){
+                    return value;
+                }
+                return null;
             } else {
                 if (DataTypeUtil.isString(dataType) == false && String.class.isInstance(value)) {
                     value = dataType.getData(value.toString());
@@ -574,5 +568,13 @@ public class FunctionConfigure {
 
     public boolean isVariableParameter() {
         return isVariableParameter;
+    }
+
+    public boolean isUserDefinedUDTF() {
+        return isUserDefinedUDTF;
+    }
+
+    public void setUserDefinedUDTF(boolean userDefinedUDTF) {
+        isUserDefinedUDTF = userDefinedUDTF;
     }
 }

@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -30,18 +30,18 @@ public class NotContainsFunction extends AbstractExpressionFunction {
     @Override
     @FunctionMethod("notContains")
     @FunctionMethodAilas("不包含")
-    public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
         if (!expression.volidate()) {
             return false;
         }
 
-        Var var = context.getVar(rule.getConfigureName(), expression.getVarName());
+        Var var = expression.getVar();
         if (var == null) {
             return false;
         }
         Object varObject = null;
         Object valueObject = null;
-        varObject = var.getVarValue(context, rule);
+        varObject = var.doMessage(message,context);
         valueObject = expression.getValue();
         if (varObject == null) {
             return true;

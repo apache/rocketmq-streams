@@ -73,6 +73,9 @@ public class MinAccumulator implements IAccumulator<String, MinAccumulator.MinAc
                 }
             } else if (parameters[0] instanceof String) {
                 String input = (String)parameters[0];
+                if("".equals(input)){
+                    return;
+                }
                 if (accumulator.min == null) {
                     accumulator.min = input;
                     return;

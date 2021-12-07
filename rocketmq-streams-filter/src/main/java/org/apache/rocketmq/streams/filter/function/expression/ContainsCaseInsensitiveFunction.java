@@ -18,8 +18,8 @@ package org.apache.rocketmq.streams.filter.function.expression;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -34,20 +34,20 @@ public class ContainsCaseInsensitiveFunction extends AbstractExpressionFunction 
     @Override
     @FunctionMethod("containsCaseInsensitiveFunction")
     @FunctionMethodAilas("包含(忽略大小写)")
-    public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
 
         try {
             if (!expression.volidate()) {
                 return false;
             }
 
-            Var var = context.getVar(rule.getConfigureName(), expression.getVarName());
+            Var var = expression.getVar();
             if (var == null) {
                 return false;
             }
             Object varObject = null;
             Object valueObject = null;
-            varObject = var.getVarValue(context, rule);
+            varObject = var.doMessage(message,context);
             valueObject = expression.getValue();
 
             if (varObject == null || valueObject == null) {
@@ -65,7 +65,7 @@ public class ContainsCaseInsensitiveFunction extends AbstractExpressionFunction 
                 return false;
             }
         } catch (Exception e) {
-            LOG.error("ContainsCaseInsensitiveFunction error: rule name is: " + rule.getConfigureName(), e);
+            LOG.error("ContainsCaseInsensitiveFunction error: rule name is: " + expression.getConfigureName(), e);
             return false;
         }
 

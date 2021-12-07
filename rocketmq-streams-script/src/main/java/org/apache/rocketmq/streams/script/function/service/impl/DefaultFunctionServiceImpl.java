@@ -91,14 +91,22 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     public void registeFunction(String functionName, IDipperInterfaceAdpater dipperInterfaceAdpater) {
         this.functionName2Adapter.put(functionName, dipperInterfaceAdpater);
     }
-
+    @Override
+    public void registeUserDefinedUDTFFunction(String functionName, Object bean, Method method) {
+        FunctionConfigure functionConfigure= registeFunctionInner(functionName,bean,method,FunctionType.UDTF);
+        functionConfigure.setUserDefinedUDTF(true);
+    }
     @Override
     public void registeFunction(String functionName, Object bean, Method method, FunctionType functionType) {
-        LOG.debug("FunctionServiceImpl registeFunction,functionName:" + functionName + " ,method:" + method);
+        registeFunctionInner(functionName,bean,method,functionType);
+    }
+
+    private FunctionConfigure registeFunctionInner(String functionName, Object bean, Method method, FunctionType functionType) {
+       // LOG.debug("FunctionServiceImpl registeFunction,functionName:" + functionName + " ,method:" + method);
         try {
             if (IDipperInterfaceAdpater.class.isInstance(bean)) {
                 registeFunction(functionName, (IDipperInterfaceAdpater)bean);
-                return;
+                return null;
             }
             FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
             if (functionConfigureMap == null) {
@@ -107,8 +115,10 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
             }
             FunctionConfigure engine = new FunctionConfigure(functionName, method, bean, functionType);
             functionConfigureMap.registFunction(engine);
+            return engine;
         } catch (Exception e) {
             LOG.error("DefaultFunctionServiceImpl registeFunction error", e);
+            throw new RuntimeException("can not regeiste this method "+functionName);
         }
     }
 
@@ -289,12 +299,12 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     public FunctionConfigure getFunctionConfigure(String functionName, Object... allParameters) {
         FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
         if (functionConfigureMap == null) {
-            LOG.warn("get function may be not registe engine for " + functionName);
+            //LOG.warn("get function may be not registe engine for " + functionName);
             return null;
         }
         FunctionConfigure engine = functionConfigureMap.getFunction(allParameters);
         if (engine == null) {
-            LOG.warn("get engine may be not registe engine for " + functionName);
+            //LOG.warn("get engine may be not registe engine for " + functionName);
             return null;
         }
         return engine;

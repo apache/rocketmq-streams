@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.context;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -34,11 +35,8 @@ public class ContextFunction {
         return true;
     }
 
-    @FunctionMethod(value = INNER_MESSAGE)
-    public void joinInnerMessage(IMessage message, FunctionContext context) {
-        if (ComponentCreator.getPropertyBooleanValue(ConfigureFileKey.INNER_MESSAGE_SWITCH)) {
-            message.getMessageBody().put(INNER_MESSAGE, message.getMessageBody());
-        }
-
+    @FunctionMethod(value = "copy_msg",alias = "orig_msg")
+    public JSONObject joinInnerMessage(IMessage message, FunctionContext context) {
+        return message.getMessageBody();
     }
 }

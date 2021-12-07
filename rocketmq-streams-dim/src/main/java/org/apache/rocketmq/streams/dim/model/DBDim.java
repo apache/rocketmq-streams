@@ -21,12 +21,17 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.cache.CompressTable;
+import org.apache.rocketmq.streams.common.cache.ByteArrayMemoryTable;
+import org.apache.rocketmq.streams.common.cache.ListMemoryTable;
+import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.apache.rocketmq.streams.db.driver.batchloader.BatchRowLoader;
+import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
 
 public class DBDim extends AbstractDim {
 
@@ -45,6 +50,8 @@ public class DBDim extends AbstractDim {
 
     private String sql;//sql 会被定时执行
 
+    protected String idFieldName;
+
     private static transient AtomicInteger nameCreator = new AtomicInteger(0);
 
     /**
@@ -59,13 +66,21 @@ public class DBDim extends AbstractDim {
     }
 
     @Override
-    protected CompressTable loadData() {
+    protected void loadData2Memory(AbstractMemoryTable tableCompress){
+        if(StringUtil.isNotEmpty(idFieldName)){
+            BatchRowLoader batchRowLoader=new BatchRowLoader(idFieldName, sql, new IRowOperator() {
+                @Override public synchronized void doProcess(Map<String, Object> row) {
+                    tableCompress.addRow(row);
+                }
+            });
+            batchRowLoader.startLoadData();
+            return ;
+        }
         List<Map<String, Object>> rows = executeQuery();
-        CompressTable tableCompress = new CompressTable();
+
         for (Map<String, Object> row : rows) {
             tableCompress.addRow(row);
         }
-        return tableCompress;
     }
 
     protected List<Map<String, Object>> executeQuery() {
@@ -129,6 +144,14 @@ public class DBDim extends AbstractDim {
 
     public Boolean getSupportBatch() {
         return supportBatch;
+    }
+
+    public String getIdFieldName() {
+        return idFieldName;
+    }
+
+    public void setIdFieldName(String idFieldName) {
+        this.idFieldName = idFieldName;
     }
 
     public void setSupportBatch(Boolean supportBatch) {

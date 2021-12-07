@@ -48,14 +48,13 @@ public class CaseWhenBuilder {
     }
 
     public static boolean canSupportSingleCaseWhen(GroupScriptExpression groupScriptExpression){
-//        if(CollectionUtil.isEmpty(groupScriptExpression.getElseIfExpressions())){
-//            return false;
-//        }
-//        if(groupScriptExpression.getElseIfExpressions().size()<5){
-//            return false;
-//        }
-//        return true;
-        return false;
+        if(CollectionUtil.isEmpty(groupScriptExpression.getElseIfExpressions())){
+            return false;
+        }
+        if(groupScriptExpression.getElseIfExpressions().size()<5){
+            return false;
+        }
+        return true;
     }
     public static List<IScriptExpression> compile(String namespace,String name,List<IScriptExpression> expressions) {
         expressions=mergeGroupScriptExpression(expressions);
@@ -63,6 +62,11 @@ public class CaseWhenBuilder {
         return expressions;
     }
 
+    /**
+     * Merge multiple groups of groupby into one object, and merge the prefix and suffix of groupby
+     * @param expressions
+     * @return
+     */
     protected static List<IScriptExpression> mergeGroupScriptExpression(List<IScriptExpression> expressions) {
         List<IScriptExpression> scriptExpressions=new ArrayList<>();
         boolean startGroup=false;
@@ -98,7 +102,9 @@ public class CaseWhenBuilder {
     }
 
 
+    /*
 
+     */
     public static List<IScriptExpression> groupGroupScriptExpression(String namespace,String name,List<IScriptExpression> expressions) {
         List<IScriptExpression> scriptExpressions=new ArrayList<>();
         MutilCaseWhenExpression mutilCaseWhenExpression=null;

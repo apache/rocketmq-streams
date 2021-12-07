@@ -45,6 +45,8 @@ public interface IFunctionService {
      */
     void registeFunction(String functionName, Object bean, Method method, FunctionType functionType);
 
+
+    void registeUserDefinedUDTFFunction(String functionName, Object bean, Method method);
     /**
      * 给一个接口取名字，并注册。 可以通过名字获取接口，单不支持通过函数名调用
      *
