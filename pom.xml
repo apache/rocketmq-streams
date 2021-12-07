@@ -57,7 +57,6 @@
         <module>rocketmq-streams-channel-syslog</module>
         <module>rocketmq-streams-channel-es</module>
         <module>rocketmq-streams-runner</module>
-        <module>rocketmq-streams-channel-kafka</module>
     </modules>
 
     <properties>
@@ -308,11 +307,6 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-channel-kafka</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
