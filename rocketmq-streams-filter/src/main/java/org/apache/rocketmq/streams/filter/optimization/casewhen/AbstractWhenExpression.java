@@ -30,6 +30,7 @@ import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCa
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+import org.apache.rocketmq.streams.filter.operator.RuleExpression;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
@@ -133,7 +134,7 @@ public abstract class AbstractWhenExpression implements IScriptExpression {
     @Override public Set<String> getNewFieldNames() {
         Set<String> varNames=new HashSet<>();
         for(CaseWhenElement caseWhenElement:this.allCaseWhenElement){
-            varNames.addAll(caseWhenElement.getDependentFields());
+            varNames.addAll(caseWhenElement.getNewFieldNames());
         }
         return varNames;
     }
@@ -205,4 +206,11 @@ public abstract class AbstractWhenExpression implements IScriptExpression {
         return stringBuilder.toString();
     }
 
+    public List<IScriptExpression> getIfExpressions() {
+        List<IScriptExpression> ruleScripts=new ArrayList<>();
+        for(CaseWhenElement caseWhenElement:allCaseWhenElement){
+            ruleScripts.add(new RuleExpression(caseWhenElement.getRule()));
+        }
+        return ruleScripts;
+    }
 }

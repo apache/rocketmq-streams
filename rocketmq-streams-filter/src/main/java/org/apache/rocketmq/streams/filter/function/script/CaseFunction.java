@@ -33,7 +33,7 @@ public class CaseFunction {
 
 
     public static boolean isCaseFunction(String functionName){
-        if("if".equals(functionName)||"case".equals(functionName)){
+        if("if".equals(functionName)||"case".equals(functionName)||"!".equals(functionName)||"!if".equals(functionName)){
             return true;
         }
         return false;
@@ -75,20 +75,6 @@ public class CaseFunction {
         return !match(message, context, value);
     }
 
-    //(___in_2&((___compare_5|__fdfddf)|___compare_7))
-    //(___in_2&((___compare_5|(a,==,b))|___compare_7))
-    public static void main(String[] args) {
-        String scriptValue
-            = "if((___in_2&((___compare_5|___compare_6)|___compare_7))){___case_1=___cast_java应用执行可疑指令_1;};";
-        ScriptComponent scriptComponent = ScriptComponent.getInstance();
-        JSONObject msg = new JSONObject();
-        msg.put("___in_2", true);
-        msg.put("___compare_5", true);
-        msg.put("___compare_6", true);
-        msg.put("___compare_7", false);
-        msg.put("___cast_java应用执行可疑指令_1", "fdsfdsdsff");
-        List<IMessage> messages = scriptComponent.getService().executeScript(msg, scriptValue);
-        System.out.println(messages.get(0).getMessageBody().toJSONString());
-    }
+
 
 }

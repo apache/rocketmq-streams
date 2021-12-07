@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.rocketmq.streams.common.datatype.IntDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.expression.Equals;
@@ -56,10 +57,11 @@ public class IndexExecutor {
 
     private Set<String> indexNames = new HashSet<>();
 
-    public IndexExecutor(String expressionStr, String namespace, List<String> index) {
+    private Set<String> columnNames;
+    public IndexExecutor(String expressionStr, String namespace, List<String> index,Set<String> columns) {
         this.expressionStr = expressionStr;
         this.namespace = namespace;
-
+        this.columnNames=columns;
         List<String> allIndex = new ArrayList<>();
         for (String indexName : index) {
             String[] values = indexName.split(";");
@@ -94,7 +96,7 @@ public class IndexExecutor {
             }
         }
 
-        this.isSupport = true;
+        this.isSupport=true;
         List<Expression> indexExpressions = new ArrayList<>();
         List<Expression> otherExpressions = new ArrayList<>();
         if (relationExpression != null) {
@@ -109,7 +111,7 @@ public class IndexExecutor {
             relationExpression.setValue(new ArrayList<>());
             for (String expressionName : expressionNames) {
                 Expression subExpression = map.get(expressionName);
-                if (subExpression != null && !RelationExpression.class.isInstance(subExpression)) {
+                if (subExpression != null && !RelationExpression.class.isInstance(subExpression)&&this.indexNames.contains(subExpression.getValue())) {
                     indexExpressions.add(subExpression);
                 } else {
                     otherExpressions.add(subExpression);
@@ -145,12 +147,7 @@ public class IndexExecutor {
         if (otherExpressions.size() == 0) {
             return;
         }
-        Rule rule = null;
-        if (relationExpression == null) {
-            rule = ExpressionBuilder.createRule(namespace, "tmpRule", expression);
-        } else {
-            rule = ExpressionBuilder.createRule(namespace, "tmpRule", expression, expressions, relationExpressions);
-        }
+        Rule rule = ExpressionBuilder.createRule("tmp","tmp",expressionStr);
 
         this.rule = rule;
 
@@ -177,49 +174,17 @@ public class IndexExecutor {
 
     private static IntDataType intDataType = new IntDataType();
 
-    public List<Map<String, Object>> match(JSONObject msg, AbstractDim nameList, boolean needAll) {
-        return match(msg, nameList, needAll);
-    }
-
     public List<Map<String, Object>> match(JSONObject msg, AbstractDim nameList, boolean needAll, String script) {
         List<Map<String, Object>> rows = new ArrayList<>();
         String msgValue = createValue(msg);
-        List<Integer> rowIds = nameList.findRowIdByIndex(indexNameKey, msgValue);
+        List<Integer> rowIds = nameList.getNameListIndex() == null ? Collections.emptyList() :  nameList.getNameListIndex().getRowIds(indexNameKey, msgValue);;
         if (rowIds == null) {
             return null;
         }
         for (Integer rowId : rowIds) {
             Map<String, Object> oldRow = nameList.getDataCache().getRow(rowId);
-            Map<String, Object> newRow = executeScript(oldRow, script);
-            if (rule == null) {
-                rows.add(newRow);
-                if (needAll == false) {
-                    return rows;
-                }
-                continue;
-            }
-            Rule ruleTemplete = this.rule;
-            Rule rule = ruleTemplete.copy();
-            Map<String, Expression> expressionMap = new HashMap<>();
-            for (Expression expression : rule.getExpressionMap().values()) {
-                expressionMap.put(expression.getConfigureName(), expression);
-                if (RelationExpression.class.isInstance(expression)) {
-                    continue;
-                }
-                Object object = expression.getValue();
-                if (object != null && DataTypeUtil.isString(object.getClass())) {
-                    String fieldName = (String)object;
-                    Object o = newRow.get(fieldName);
-                    if (o != null) {
-                        Expression e = expression.copy();
-                        e.setValue(o.toString());
-                        expressionMap.put(e.getConfigureName(), e);
-                    }
-                }
-            }
-            rule.setExpressionMap(expressionMap);
-            boolean matched = rule.execute(msg);
-            if (matched) {
+            Map<String, Object> newRow=AbstractDim.isMatch(this.rule,oldRow,msg,script,this.columnNames);
+            if (newRow!=null) {
                 rows.add(newRow);
                 if (needAll == false) {
                     return rows;
@@ -229,16 +194,7 @@ public class IndexExecutor {
         return rows;
     }
 
-    protected Map<String, Object> executeScript(Map<String, Object> oldRow, String script) {
-        if (script == null) {
-            return oldRow;
-        }
-        ScriptComponent scriptComponent = ScriptComponent.getInstance();
-        JSONObject msg = new JSONObject();
-        msg.putAll(oldRow);
-        scriptComponent.getService().executeScript(msg, script);
-        return msg;
-    }
+
 
     /**
      * 按顺序创建msg的key

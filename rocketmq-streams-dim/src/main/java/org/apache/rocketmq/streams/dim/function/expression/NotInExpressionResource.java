@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.dim.function.expression;
 
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -31,15 +31,14 @@ public class NotInExpressionResource extends InExpressionResource {
      *
      * @param expression
      * @param context
-     * @param rule
      * @return
      */
     @FunctionMethod("not_in_expression_resouce")
     @FunctionMethodAilas("not_in_expression_resouce(resourceName->(varName,functionName,value)&((varName,"
         + "functionName,value)|(varName,functionName,value)))")
     @Override
-    public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
-        return !match(expression, context, rule, false);
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
+        return !match(message,context,expression, false);
     }
 
 }

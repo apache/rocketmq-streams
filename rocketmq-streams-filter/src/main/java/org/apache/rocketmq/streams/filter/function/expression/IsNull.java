@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.rocketmq.streams.filter.context.RuleContext;
-import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -32,13 +32,13 @@ public class IsNull extends AbstractExpressionFunction {
     @Override
     @FunctionMethod(value = "isNull", alias = "null")
     @FunctionMethodAilas("为空")
-    public Boolean doExpressionFunction(Expression expression, RuleContext context, Rule rule) {
-        Var var = context.getVar(rule.getConfigureName(), expression.getVarName());
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
+        Var var = expression.getVar();
         if (var == null) {
-            return true;
+            return false;
         }
         Object varObject = null;
-        varObject = var.getVarValue(context, rule);
+        varObject = var.doMessage(message,context);
         if (varObject == null) {
             return true;
         }

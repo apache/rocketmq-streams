@@ -41,6 +41,11 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-channel-http</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-core</artifactId>
+            <version>3.5.0</version>
+        </dependency>
     </dependencies>
 
 
