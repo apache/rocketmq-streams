@@ -22,7 +22,7 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 public class FileSourceExample {
     public static void main(String[] args) {
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
-        source.fromFile("/Users/test.sql", false)
+        source.fromFile("data.txt", false)
             .map(message -> message)
             .toPrint(1)
             .start();

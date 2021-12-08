@@ -22,21 +22,28 @@ import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 
 public class BatchFinishMessage implements ISystemMessage {
-    public static String PRIMARY_KEY="__Primary_KEY";
+    public static String PRIMARY_KEY = "__Primary_KEY";
     protected IMessage message;
-    public BatchFinishMessage(IMessage message){
-        this.message=message;
-    }
-    public static IMessage create(){
-        JSONObject msg=new JSONObject();
-        msg.put(PRIMARY_KEY,true);
-        return new Message(msg);
-    }
-    public static boolean isBatchFinishMessage(IMessage message) {
-        return message.getMessageBody().getBooleanValue(PRIMARY_KEY);
+
+    public BatchFinishMessage(IMessage message) {
+        this.message = message;
     }
 
-    public IMessage getMsg(){
+    public static IMessage create() {
+        JSONObject msg = new JSONObject();
+        msg.put(PRIMARY_KEY, true);
+        return new Message(msg);
+    }
+
+    public static boolean isBatchFinishMessage(IMessage message) {
+        try {
+            return message.getMessageBody().getBooleanValue(PRIMARY_KEY);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public IMessage getMsg() {
         return message;
     }
 }
