@@ -78,7 +78,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
     protected Long pullIntervalMs;
 
-    protected String strategyName;
+    protected String strategyName = STRATEGY_AVERAGE;
 
     protected transient DefaultMQPushConsumer consumer;
     protected transient ConsumeFromWhere consumeFromWhere;//默认从哪里消费,不会被持久化。不设置默认从尾部消费
