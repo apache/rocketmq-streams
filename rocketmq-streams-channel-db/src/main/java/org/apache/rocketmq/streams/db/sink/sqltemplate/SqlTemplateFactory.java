@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.db.sink.sqltemplate;
 
-import org.apache.rocketmq.streams.common.metadata.MetaData;
-
 import java.util.Arrays;
+import org.apache.rocketmq.streams.common.metadata.MetaData;
 
 /**
  * @description

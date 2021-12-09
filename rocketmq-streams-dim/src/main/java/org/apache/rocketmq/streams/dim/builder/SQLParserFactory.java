@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.dim.builder;
 
-import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
 public class SQLParserFactory {

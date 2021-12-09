@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.db.sink.sqltemplate;
 
-import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.common.utils.SQLUtil;
-
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.metadata.MetaData;
+import org.apache.rocketmq.streams.common.utils.SQLUtil;
 
 /**
  * @author zengyu.cw

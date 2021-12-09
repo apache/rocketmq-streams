@@ -22,41 +22,40 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
-import org.apache.rocketmq.streams.common.functions.FilterFunction;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.junit.Test;
 
 public class FileTest {
     @Test
-    public void testFilter(){
-        DataStreamSource dataStream =DataStreamSource.create("namespace","name");
-        dataStream.fromFile("/tmp/file.txt",false)
-            .filter((message)->{
-                JSONObject jsonObject= JSON.parseObject((String)message);
-                if(Objects.nonNull(jsonObject)){
-                    int inFlow=jsonObject.getIntValue("InFlow");
-                    if(inFlow>2){
+    public void testFilter() {
+        DataStreamSource dataStream = DataStreamSource.create("namespace", "name");
+        dataStream.fromFile("/tmp/file.txt", false)
+            .filter((message) -> {
+                JSONObject jsonObject = JSON.parseObject((String) message);
+                if (Objects.nonNull(jsonObject)) {
+                    int inFlow = jsonObject.getIntValue("InFlow");
+                    if (inFlow > 2) {
                         return false;
-                    }else {
+                    } else {
                         return true;
                     }
                 }
                 return true;
 
-        }).toPrint(1)
+            }).toPrint(1)
             .start();
-        
+
     }
 
     @Test
-    public void testWriteFile(){
-        List<String> lines=new ArrayList<>();
-        for(int i=0;i<4;i++){
-            JSONObject jsonObject=new JSONObject();
-            jsonObject.put("InFlow",i);
+    public void testWriteFile() {
+        List<String> lines = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("InFlow", i);
             lines.add(jsonObject.toJSONString());
         }
         lines.add("");
-        FileUtil.write("/tmp/file.txt",lines);
+        FileUtil.write("/tmp/file.txt", lines);
     }
 }

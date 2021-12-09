@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.utils;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -24,7 +23,6 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.IgnoreMessage;
 import org.apache.rocketmq.streams.common.datatype.DateDataType;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class FunctionUtils {

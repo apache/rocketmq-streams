@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.window.model;
 
-import java.awt.Window;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

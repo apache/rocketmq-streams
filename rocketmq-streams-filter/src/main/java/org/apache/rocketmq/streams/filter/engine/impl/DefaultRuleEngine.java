@@ -121,17 +121,6 @@ public class DefaultRuleEngine implements IRuleEngine {
              * 判断rule的status 如果是观察者模式，则写入到观察者库中的观察表里
              */
             if (rule.getRuleStatus().intValue() == 3) {
-//                if (!context.getContextConfigure().isAction2Online()) {
-//                    // LOG.warn("DefaultRuleEngine fireAction ignore : configure action2Online false!");
-//                    if (context.getContextConfigure().isActionOnline2Observer()) {
-//                        Action action = getAction(RuleContext.OBSERVER_NAME,rule);
-//                        if (action == null) {
-//                            return;
-//                        }
-//                        doAction(message,context, action, rule);
-//                    }
-//                    return;
-//                }
                 try {
                     if (rule.getActionNames() == null || rule.getActionNames().size() == 0) {
                         return;
@@ -145,12 +134,9 @@ public class DefaultRuleEngine implements IRuleEngine {
                     }
                 } catch (Exception e) {
                     LOG.error("DefaultRuleEngine fire atciton error: ruleName is" + rule.getConfigureName(), e);
-                   // context.addErrorMessage(rule, "DefaultRuleEngine fire atciton error: " + e.getMessage());
                 }
             } else {
-//                if (context.getContextConfigure() != null && !context.getContextConfigure().isAction2Observer()) {
-//                    return;
-//                }
+
                 Action action = getAction(RuleContext.OBSERVER_NAME,rule);
                 if (action == null) {
                     return;
@@ -173,32 +159,6 @@ public class DefaultRuleEngine implements IRuleEngine {
     @SuppressWarnings("rawtypes")
     protected void doAction(final IMessage message, AbstractContext context, final Action action, final Rule rule) {
         action.doMessage(message,context);
-//        context.getActionExecutor().execute(new Runnable() {
-//
-//            @Override
-//            public void run() {
-////                IMonitor monitor = context.getRuleMonitor();
-////                IMonitor actionMonitor = monitor.createChildren(action);
-//                try {
-//
-//
-//                    if (monitor != null) {
-//                        actionMonitor.endMonitor();
-//                        if (actionMonitor.isSlow()) {
-//                            actionMonitor.setSampleData(context).put("action_info", action.toJsonObject());
-//                        }
-//                    }
-//                } catch (Exception e) {
-//                    String errorMsg = "DefaultRuleEngine doAction error,rule: " + rule.getRuleCode() + " ,action: "
-//                        + action.getConfigureName();
-//                    //                    RULEENGINE_MESSAGE_LOG.warn(errorMsg
-//                    //                        , e);
-//                    actionMonitor.occureError(e, errorMsg, e.getMessage());
-//                    actionMonitor.setSampleData(context).put("action_info", action.toJsonObject());
-//                }
-//
-//            }
-//        });
     }
 
     public Action getAction(String name, Rule rule) {

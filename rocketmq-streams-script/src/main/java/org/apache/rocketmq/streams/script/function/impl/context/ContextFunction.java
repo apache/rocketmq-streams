@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.script.function.impl.context;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;

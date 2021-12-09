@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 import org.apache.rocketmq.streams.state.backend.IStateBackend;

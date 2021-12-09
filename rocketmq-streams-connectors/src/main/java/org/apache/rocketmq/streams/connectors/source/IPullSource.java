@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.connectors.source;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 

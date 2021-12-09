@@ -49,7 +49,6 @@ import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
-import org.apache.rocketmq.streams.http.source.util.HttpUtil;
 
 public abstract class AbstractIntelligenceCache extends BasedConfigurable implements
     IAfterConfigurableRefreshListener {

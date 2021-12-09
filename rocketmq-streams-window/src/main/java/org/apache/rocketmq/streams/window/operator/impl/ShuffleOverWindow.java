@@ -16,17 +16,13 @@
  */
 package org.apache.rocketmq.streams.window.operator.impl;
 
-import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.window.model.WindowInstance;
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 public class ShuffleOverWindow extends WindowOperator implements IAfterConfigurableRefreshListener {

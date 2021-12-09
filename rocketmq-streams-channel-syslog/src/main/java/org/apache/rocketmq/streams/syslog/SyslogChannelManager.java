@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.syslog;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.graylog2.syslog4j.SyslogConstants;

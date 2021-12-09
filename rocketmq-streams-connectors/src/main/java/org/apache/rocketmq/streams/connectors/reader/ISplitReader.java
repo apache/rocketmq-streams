@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.streams.connectors.reader;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
-
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.connectors.model.PullMessage;
 

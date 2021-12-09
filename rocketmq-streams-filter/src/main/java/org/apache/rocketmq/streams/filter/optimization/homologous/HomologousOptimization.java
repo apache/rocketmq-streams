@@ -17,16 +17,13 @@
 package org.apache.rocketmq.streams.filter.optimization.homologous;
 
 import com.google.auto.service.AutoService;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.IHomologousOptimization;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.stages.SubPiplineChainStage;
 import org.apache.rocketmq.streams.filter.optimization.dependency.CommonExpression;
 import org.apache.rocketmq.streams.filter.optimization.dependency.DependencyTree;
 
