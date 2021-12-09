@@ -19,13 +19,12 @@
 
 package org.apache.rocketmq.streams.examples.mutilconsumer;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.streams.examples.rocketmqsource.ProducerFromFile;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
 import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;

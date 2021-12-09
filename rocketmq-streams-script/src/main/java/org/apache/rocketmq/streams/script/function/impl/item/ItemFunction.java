@@ -16,13 +16,9 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.item;
 
-import com.alibaba.fastjson.JSONObject;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import jnr.ffi.annotations.In;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;

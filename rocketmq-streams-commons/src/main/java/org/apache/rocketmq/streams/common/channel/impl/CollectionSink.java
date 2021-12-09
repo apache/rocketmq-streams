@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl;
 
-import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
-import org.apache.rocketmq.streams.common.context.IMessage;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
+import org.apache.rocketmq.streams.common.context.IMessage;
 
 /**
  * @description just support json object

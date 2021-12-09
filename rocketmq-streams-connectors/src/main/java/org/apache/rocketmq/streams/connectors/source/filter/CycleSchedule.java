@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.connectors.source.filter;
 
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -25,6 +23,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 
 /**
  * @description 用来做分区选取

@@ -17,10 +17,9 @@
 package org.apache.rocketmq.streams.common.checkpoint;
 
 import com.alibaba.fastjson.JSONObject;
+import java.io.Serializable;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.Entity;
-
-import java.io.Serializable;
 
 /**
  * @create 2021-08-06 16:21:30

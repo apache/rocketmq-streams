@@ -19,11 +19,8 @@ package org.apache.rocketmq.streams.filter.optimization.dependency;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
@@ -31,14 +28,11 @@ import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprin
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
-import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
-import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
-import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class FilterTreeNode extends TreeNode<FilterChainStage> {

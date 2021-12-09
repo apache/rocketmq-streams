@@ -21,7 +21,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.auto.service.AutoService;
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
-import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;

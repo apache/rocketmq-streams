@@ -17,14 +17,13 @@
 package org.apache.rocketmq.streams.db.sink.db;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.MysqlInsertIgnoreIntoSqlTemplate;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.MysqlInsertIntoSqlTemplate;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.MysqlInsertIntoWithDuplicateKeySqlTemplate;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @description

@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.streams.window.sqlcache;
 
-import java.util.List;
-
 public interface ISQLElement {
 
     boolean isWindowInstanceSQL();

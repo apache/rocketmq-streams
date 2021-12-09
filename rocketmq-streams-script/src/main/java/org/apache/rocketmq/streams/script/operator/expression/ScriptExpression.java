@@ -17,13 +17,11 @@
 package org.apache.rocketmq.streams.script.operator.expression;
 
 import com.alibaba.fastjson.JSONObject;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
@@ -31,9 +29,7 @@ import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReference
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IExpressionResultCache;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.optimization.HomologousVar;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;

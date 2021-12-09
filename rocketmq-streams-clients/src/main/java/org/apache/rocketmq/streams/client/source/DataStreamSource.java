@@ -34,8 +34,8 @@
 package org.apache.rocketmq.streams.client.source;
 
 import com.alibaba.fastjson.JSONObject;
-
 import com.google.common.collect.Sets;
+import java.util.Set;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.CollectionSource;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
@@ -44,13 +44,10 @@ import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-
 import org.apache.rocketmq.streams.connectors.source.CycleDynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.DynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
 import org.apache.rocketmq.streams.source.RocketMQSource;
-
-import java.util.Set;
 
 public class DataStreamSource {
     protected PipelineBuilder mainPipelineBuilder;

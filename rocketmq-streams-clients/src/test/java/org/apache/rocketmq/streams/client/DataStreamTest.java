@@ -18,7 +18,12 @@
 package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONObject;
-
+import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
@@ -27,13 +32,6 @@ import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class DataStreamTest implements Serializable {
 

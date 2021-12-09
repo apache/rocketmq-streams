@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.es.sink;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.auto.service.AutoService;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.AbstractSupportShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
@@ -25,8 +26,6 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
-
-import java.util.Properties;
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(value = ESSinkBuilder.TYPE, aliasName = "elasticsearch")

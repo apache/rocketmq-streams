@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.client.sink;
 
 import com.google.auto.service.AutoService;
 import org.apache.rocketmq.streams.common.channel.builder.AbstractChannelSQLSupportShuffleSQLParser;
-import org.apache.rocketmq.streams.common.channel.builder.AbstractSupportShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
@@ -27,7 +26,7 @@ import org.apache.rocketmq.streams.common.model.ServiceName;
 @AutoService(IChannelBuilder.class)
 @ServiceName(value = UDFDefinedSQLParser.TYPE, aliasName = "source_alias_name")
 public class UDFDefinedSQLParser extends AbstractChannelSQLSupportShuffleSQLParser {
-    public static final String TYPE="source_type";
+    public static final String TYPE = "source_type";
 
     @Override protected String getSourceClass() {
         return null;

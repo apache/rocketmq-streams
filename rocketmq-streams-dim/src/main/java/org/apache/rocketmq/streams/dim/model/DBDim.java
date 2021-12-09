@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.cache.ByteArrayMemoryTable;
-import org.apache.rocketmq.streams.common.cache.ListMemoryTable;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.utils.IPUtil;

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.window.fire;
 
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public class WindowFireManager {

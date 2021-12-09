@@ -21,9 +21,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.model.ThreadContext;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
 import org.apache.rocketmq.streams.script.function.service.impl.ScanFunctionService;
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
-import org.python.icu.impl.coll.BOCSU;
 
 /**
  * 脚本执行的上下文

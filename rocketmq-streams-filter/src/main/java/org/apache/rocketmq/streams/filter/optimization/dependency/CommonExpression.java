@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.optimization.dependency;
 
-import com.sun.org.apache.bcel.internal.generic.FADD;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;

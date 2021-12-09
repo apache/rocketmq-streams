@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.configurable.service;
 
 import java.util.Properties;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;

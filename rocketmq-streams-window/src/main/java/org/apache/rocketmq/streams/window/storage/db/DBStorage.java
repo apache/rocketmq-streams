@@ -32,7 +32,6 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
-import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.AbstractWindowStorage;
 import org.apache.rocketmq.streams.window.storage.IRemoteStorage;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
