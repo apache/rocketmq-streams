@@ -296,8 +296,8 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
                     Set<String> splitIds = new HashSet<>();
                     splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
                     removeSplit(splitIds);
-                    super.removeOffset(mq);
                 }
+                super.removeOffset(mq);
             }
 
             @Override
