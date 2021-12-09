@@ -16,11 +16,20 @@
  */
 package org.apache.rocketmq.streams.common.metadata;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
-
-import java.sql.*;
-import java.util.*;
 
 /**
  * @description metaDataUtils

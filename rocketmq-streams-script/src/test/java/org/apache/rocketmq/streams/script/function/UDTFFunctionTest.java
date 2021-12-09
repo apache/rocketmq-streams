@@ -17,15 +17,14 @@
 package org.apache.rocketmq.streams.script.function;
 
 import com.alibaba.fastjson.JSONObject;
+import java.lang.reflect.Method;
+import java.util.List;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.function.function.JavaObjectUDFFunction;
 import org.apache.rocketmq.streams.script.function.function.Person;
 import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.junit.Test;
-
-import java.lang.reflect.Method;
-import java.util.List;
 
 public class UDTFFunctionTest {
 

@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.filter.optimization.dependency;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,8 +30,6 @@ import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
-import org.python.icu.impl.coll.BOCSU;
 
 /**
  * raverse the pipeline to create a prefix filter fingerprint

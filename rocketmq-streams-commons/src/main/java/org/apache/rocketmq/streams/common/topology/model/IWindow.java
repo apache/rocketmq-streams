@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.topology.model;
 
-import java.util.Set;
-
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.common.interfaces;
 
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
-import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 

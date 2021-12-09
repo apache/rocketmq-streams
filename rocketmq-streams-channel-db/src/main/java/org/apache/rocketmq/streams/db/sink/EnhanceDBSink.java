@@ -17,6 +17,10 @@
 package org.apache.rocketmq.streams.db.sink;
 
 import com.alibaba.fastjson.JSONObject;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.IChannel;
@@ -37,11 +41,6 @@ import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.ISqlTemplate;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.SqlTemplateFactory;
-
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 /**
  * @description enhance db sink, support atomic sink and multiple sink

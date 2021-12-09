@@ -18,9 +18,7 @@ package org.apache.rocketmq.streams.common.channel.builder;
 
 import com.alibaba.fastjson.JSONObject;
 import java.util.Properties;
-import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 
 public abstract class AbstractSupportShuffleChannelBuilder implements IChannelBuilder, IShuffleChannelBuilder {

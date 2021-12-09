@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.script.operator.expression;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;

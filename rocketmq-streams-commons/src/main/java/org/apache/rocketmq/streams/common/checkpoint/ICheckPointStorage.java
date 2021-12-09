@@ -16,10 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
-
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-
 import java.util.List;
+import org.apache.rocketmq.streams.common.channel.source.ISource;
 
 /**
  * @description 负责checkpoint的保存、恢复
