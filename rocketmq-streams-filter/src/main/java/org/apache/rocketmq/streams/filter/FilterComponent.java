@@ -28,7 +28,6 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.builder.RuleBuilder;
 import org.apache.rocketmq.streams.filter.context.ContextConfigure;
-import org.apache.rocketmq.streams.filter.context.RuleMessage;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.service.IRuleEngineService;
 import org.apache.rocketmq.streams.filter.service.impl.RuleEngineServiceImpl;

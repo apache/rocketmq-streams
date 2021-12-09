@@ -47,15 +47,15 @@ StreamBuilder 用于构建流任务的源； 内部包含```dataStream()```和``
 DataStreamSource 是分段式编程的源头类，用于对接各种数据源， 从各大消息队列中获取数据；
 
 + ```fromFile```  从文件中读取数据， 该方法包含俩个参数
-  + ```filePath``` 文件路径，必填参数
-  + ```isJsonData```  是否json数据， 非必填参数， 默认为```true```
+    + ```filePath``` 文件路径，必填参数
+    + ```isJsonData```  是否json数据， 非必填参数， 默认为```true```
 
 
 + ```fromRocketmq``` 从rocketmq中获取数据，包含四个参数
-  + ```topic``` rocketmq消息队列的topic名称，必填参数
-  + ```groupName``` 消费者组的名称，必填参数
-  + ```isJson``` 是否json格式，非必填参数
-  + ```tags``` rocketmq消费的tags值，用于过滤消息，非必填参数
+    + ```topic``` rocketmq消息队列的topic名称，必填参数
+    + ```groupName``` 消费者组的名称，必填参数
+    + ```isJson``` 是否json格式，非必填参数
+    + ```tags``` rocketmq消费的tags值，用于过滤消息，非必填参数
 
 + ```from``` 自定义的数据源， 通过实现ISource接口实现自己的数据源
 
@@ -80,12 +80,12 @@ DataStream实现了一系列常见的流计算算子
 + ```toRocketmq``` 将结果输出到rocketmq
 + ```to``` 将结果经过自定义的ISink接口输出到指定的存储
 + ```window``` 在窗口内进行相关的统计分析，一般会与```groupBy```连用， ```window()```用来定义窗口的大小， ```groupBy()```用来定义统计分析的主key，可以指定多个
-  + ```count``` 在窗口内计数
-  + ```min``` 获取窗口内统计值的最小值
-  + ```max``` 获取窗口内统计值得最大值
-  + ```avg``` 获取窗口内统计值的平均值
-  + ```sum``` 获取窗口内统计值的加和值
-  + ```reduce``` 在窗口内进行自定义的汇总运算
+    + ```count``` 在窗口内计数
+    + ```min``` 获取窗口内统计值的最小值
+    + ```max``` 获取窗口内统计值得最大值
+    + ```avg``` 获取窗口内统计值的平均值
+    + ```sum``` 获取窗口内统计值的加和值
+    + ```reduce``` 在窗口内进行自定义的汇总运算
 + ```join``` 根据条件将将俩个流进行关联， 合并为一个大流进行相关的运算
 + ```union``` 将俩个流进行合并
 + ```split``` 将一个数据流按照标签进行拆分，分为不同的数据流供下游进行分析计算
@@ -115,11 +115,11 @@ Rocketmq-Streams 核心就是一个独立的jar包， 用户可以在自己的�
 1. 通过```mvn clean install``` 构建工程
 2. 从```rocketmq-streams-runner/target/rocket-streams-1.0.0-SNAPSHOT-distribution.tar.gz``` 中获取tar.gz包， 并解压
 3. ```rocketmq-streams```目录架构如下：
-   + ```bin```  指令目录，包括启动和停止指令
-   + ```conf```  配置目录，包括日志配置以及应用的相关配置文件
-   + ```jobs```  任务目录， 独立打包后的rocketmq-streams jar包
-   + ```lib```  依赖包
-   + ```log```  日志目录
+    + ```bin```  指令目录，包括启动和停止指令
+    + ```conf```  配置目录，包括日志配置以及应用的相关配置文件
+    + ```jobs```  任务目录， 独立打包后的rocketmq-streams jar包
+    + ```lib```  依赖包
+    + ```log```  日志目录
 
 ### 发布应用
 用户依赖rocketmq-streams，开发流处理程序，独立打包后， 将jar包拷贝到jobs目录， 通过指令即可完成任务的启动和运行；可以通过启动多个独立的应用程序；

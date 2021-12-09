@@ -16,20 +16,23 @@
  */
 package org.apache.rocketmq.streams.connectors.balance.impl;
 
-import java.util.*;
-
 import com.google.auto.service.AutoService;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.connectors.balance.AbstractBalance;
-import org.apache.rocketmq.streams.connectors.balance.ISourceBalance;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
+import org.apache.rocketmq.streams.connectors.balance.AbstractBalance;
+import org.apache.rocketmq.streams.connectors.balance.ISourceBalance;
+import org.apache.rocketmq.streams.connectors.source.SourceInstance;
 import org.apache.rocketmq.streams.lease.LeaseComponent;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
-import org.apache.rocketmq.streams.connectors.source.SourceInstance;
 import org.apache.rocketmq.streams.lease.service.ILeaseService;
 
 @AutoService(ISourceBalance.class)

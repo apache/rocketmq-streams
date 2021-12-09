@@ -16,16 +16,13 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.mutiltask;
 
-import com.google.auto.service.AutoService;
 import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.topology.task.StreamsTask;
 
 public class MutilTaskSink extends AbstractSink implements IAfterConfigurableRefreshListener {

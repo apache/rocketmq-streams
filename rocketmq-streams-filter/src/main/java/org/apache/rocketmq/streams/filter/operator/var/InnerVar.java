@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.operator.var;
 
-import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 

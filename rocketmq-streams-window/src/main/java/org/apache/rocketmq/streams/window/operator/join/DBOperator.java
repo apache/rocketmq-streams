@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.window.operator.join;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.parser.ParserConfig;
-import com.alibaba.fastjson.util.TypeUtils;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;

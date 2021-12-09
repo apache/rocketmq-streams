@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.streams.script.operator.expression;
+
 import java.util.Set;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
-import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 public interface ICaseDependentParser {
     /**

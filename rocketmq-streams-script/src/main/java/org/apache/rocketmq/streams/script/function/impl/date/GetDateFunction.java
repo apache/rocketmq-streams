@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.date;
 
-import java.util.Date;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;

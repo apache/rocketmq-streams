@@ -28,7 +28,6 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.schedule.ScheduleManager;
 import org.apache.rocketmq.streams.common.schedule.ScheduleTask;
-import org.apache.rocketmq.streams.common.utils.ThreadUtil;
 
 /**
  * 消息缓存的实现，通过消息队列做本地缓存。目前多是用了这个实现

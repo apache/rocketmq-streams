@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.streams.window.debug;
 
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-
 public class WindowDebug {
 
     protected String sumFieldName;

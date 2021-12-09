@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.filter.optimization.script;
 
 import com.google.auto.service.AutoService;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,13 +26,10 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentificati
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.filter.optimization.casewhen.CaseWhenBuilder;
 import org.apache.rocketmq.streams.filter.optimization.dependency.BlinkRuleV2Expression;
 import org.apache.rocketmq.streams.filter.optimization.executor.GroupByVarExecutor;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
-import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
 import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.script.utils;
 
 import java.util.List;
-import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;

@@ -16,11 +16,8 @@
  */
 package org.apache.rocketmq.streams.filter.function.script;
 
-import com.alibaba.fastjson.JSONObject;
-import java.util.List;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
-import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.context.FunctionContext;

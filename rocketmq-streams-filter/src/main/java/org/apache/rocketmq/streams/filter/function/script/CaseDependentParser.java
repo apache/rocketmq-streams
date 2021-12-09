@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.filter.function.script;
 
 import com.google.auto.service.AutoService;
-import java.util.ArrayList;
 import java.util.Set;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.operator.Rule;

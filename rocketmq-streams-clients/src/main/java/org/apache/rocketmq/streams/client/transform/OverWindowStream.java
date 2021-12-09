@@ -21,8 +21,6 @@ import java.util.Set;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.operator.impl.OverWindow;
 import org.apache.rocketmq.streams.window.operator.impl.ShuffleOverWindow;
 
 public class OverWindowStream {

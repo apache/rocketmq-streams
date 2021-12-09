@@ -17,9 +17,7 @@
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.apache.rocketmq.streams.common.cache.compress.AdditionStore;
 import org.apache.rocketmq.streams.common.cache.compress.ByteArray;
 import org.apache.rocketmq.streams.common.cache.compress.CacheKV;

@@ -15,9 +15,14 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.streams.connectors.source;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.metadata.MetaDataUtils;
 import org.apache.rocketmq.streams.connectors.reader.DBScanReader;
@@ -25,12 +30,6 @@ import org.apache.rocketmq.streams.connectors.reader.ISplitReader;
 import org.apache.rocketmq.streams.connectors.source.filter.DataFormatPatternFilter;
 import org.apache.rocketmq.streams.connectors.source.filter.PatternFilter;
 import org.apache.rocketmq.streams.db.DynamicMultipleDBSplit;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @description DynamicMultipleDBScanSource

@@ -16,16 +16,13 @@
  */
 package org.apache.rocketmq.streams.syslog;
 
-import java.util.Date;
-
 import com.alibaba.fastjson.JSONObject;
-
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.syslog.SyslogChannel;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
+import java.util.Date;
+import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.channel.IChannel;
+import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.junit.Test;
