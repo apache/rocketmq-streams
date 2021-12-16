@@ -17,14 +17,10 @@
 package org.apache.rocketmq.streams.script.function.aggregation;
 
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
-import org.apache.rocketmq.streams.state.kv.rocksdb.RocksdbState;
 @Function
 @UDAFFunction("FIRST_VALUE")
 public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccumulator.FirstValue> {

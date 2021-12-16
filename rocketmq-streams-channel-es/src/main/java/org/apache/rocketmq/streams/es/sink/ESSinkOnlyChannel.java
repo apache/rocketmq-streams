@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.streams.es.sink;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
@@ -33,11 +37,6 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class ESSinkOnlyChannel extends AbstractSink {
     private static final Log LOG = LogFactory.getLog(ESSinkOnlyChannel.class);

@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.checkpoint;
 
-import org.apache.rocketmq.streams.common.context.MessageOffset;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.context.MessageOffset;
 
 /**
  * @create 2021-08-11 15:51:50

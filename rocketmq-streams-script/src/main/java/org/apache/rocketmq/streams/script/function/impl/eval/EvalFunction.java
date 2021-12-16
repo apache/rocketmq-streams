@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.script.function.impl.eval;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.script.ScriptComponent;

@@ -20,7 +20,6 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;

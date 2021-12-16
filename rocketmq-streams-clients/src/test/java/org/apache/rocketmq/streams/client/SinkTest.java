@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONObject;
-
-import com.google.gson.JsonObject;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSink;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.junit.Test;

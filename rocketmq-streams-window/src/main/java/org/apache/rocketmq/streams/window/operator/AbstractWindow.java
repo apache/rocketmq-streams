@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.operator;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,58 +27,48 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configure.StreamsConfigure;
-import org.apache.rocketmq.streams.common.context.Context;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.context.MessageHeader;
+import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAfterCurrentNode;
+import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
+import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.model.IWindow;
+import org.apache.rocketmq.streams.common.topology.stages.WindowChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
-import org.apache.rocketmq.streams.script.ScriptComponent;
+import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
+import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
+import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
+import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
+import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.apache.rocketmq.streams.script.service.IScriptExpression;
+import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
-import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.offset.IWindowMaxValueManager;
 import org.apache.rocketmq.streams.window.offset.WindowMaxValueManager;
 import org.apache.rocketmq.streams.window.source.WindowFireSource;
-import org.apache.rocketmq.streams.window.state.impl.WindowValue;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.MessageHeader;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
-import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
-import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.common.topology.stages.WindowChainStage;
-import org.apache.rocketmq.streams.common.topology.model.IWindow;
-import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
-import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
-import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
-import org.apache.rocketmq.streams.script.service.IScriptParamter;
-import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
-import org.apache.rocketmq.streams.script.service.IAccumulator;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
+import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
-import org.python.antlr.ast.Str;
-
-import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 /**
  * window definition in the pipeline, created by user's configure in WindowChainStage

@@ -18,11 +18,9 @@ package org.apache.rocketmq.streams.dim.model;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.cache.ByteArrayMemoryTable;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 

@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.streams.client;
 
+import java.util.Date;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
 import org.apache.rocketmq.streams.db.sink.EnhanceDBSink;
-
-import java.util.Date;
 
 /**
  * @description

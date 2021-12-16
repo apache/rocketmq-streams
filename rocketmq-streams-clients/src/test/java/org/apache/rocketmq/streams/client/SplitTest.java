@@ -27,8 +27,6 @@ import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.functions.FilterFunction;
 import org.apache.rocketmq.streams.common.functions.FlatMapFunction;
-import org.apache.rocketmq.streams.common.functions.MapFunction;
-import org.apache.rocketmq.streams.common.functions.ReduceFunction;
 import org.apache.rocketmq.streams.common.functions.SplitFunction;
 import org.junit.Test;
 

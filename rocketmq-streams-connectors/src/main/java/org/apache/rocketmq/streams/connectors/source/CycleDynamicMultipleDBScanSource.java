@@ -17,6 +17,13 @@
 package org.apache.rocketmq.streams.connectors.source;
 
 import com.alibaba.fastjson.JSONObject;
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
@@ -33,11 +40,6 @@ import org.apache.rocketmq.streams.connectors.reader.ISplitReader;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleScheduleFilter;
 import org.apache.rocketmq.streams.db.CycleSplit;
-
-import java.io.Serializable;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @description

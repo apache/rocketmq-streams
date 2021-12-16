@@ -16,26 +16,24 @@
  */
 package org.apache.rocketmq.streams.syslog;
 
+import com.alibaba.fastjson.JSONObject;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import com.alibaba.fastjson.JSONObject;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
-import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
+import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.graylog2.syslog4j.server.SyslogServerConfigIF;
 import org.graylog2.syslog4j.server.SyslogServerEventIF;
 import org.graylog2.syslog4j.server.SyslogServerIF;

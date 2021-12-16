@@ -46,7 +46,6 @@ import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.FilterComponent;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
 import org.apache.rocketmq.streams.filter.operator.action.impl.SinkAction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;

@@ -17,15 +17,9 @@
 package org.apache.rocketmq.streams.script.function.impl.relation;
 
 import com.alibaba.fastjson.JSONObject;
-import java.lang.reflect.Method;
-import java.util.List;
-import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
-import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
-import org.apache.rocketmq.streams.script.context.FunctionContext;
-import org.apache.rocketmq.streams.script.function.model.FunctionType;
 
 @Function
 public class AndFunction {
