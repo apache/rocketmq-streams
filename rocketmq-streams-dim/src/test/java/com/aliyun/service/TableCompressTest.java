@@ -23,10 +23,8 @@ import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.ByteArrayMemoryTable;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntListKV;
-import org.apache.rocketmq.streams.common.cache.compress.impl.LongListKV;
 import org.junit.Test;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 public class TableCompressTest {

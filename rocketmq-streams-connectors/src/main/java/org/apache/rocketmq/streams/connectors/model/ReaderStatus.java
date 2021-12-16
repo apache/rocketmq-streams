@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.connectors.model;
 
-import org.apache.rocketmq.streams.common.model.Entity;
-import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-
 import java.util.Date;
 import java.util.List;
+import org.apache.rocketmq.streams.common.model.Entity;
+import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 
 /**
  * @description

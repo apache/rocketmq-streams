@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.syslog;
 
+import java.util.Date;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
-
-import java.util.Date;
 
 public class SyslogParser {
 

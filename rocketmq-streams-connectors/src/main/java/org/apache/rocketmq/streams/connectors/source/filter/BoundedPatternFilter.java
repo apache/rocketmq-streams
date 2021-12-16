@@ -16,11 +16,10 @@
  */
 package org.apache.rocketmq.streams.connectors.source.filter;
 
+import java.io.Serializable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.connectors.model.ReaderStatus;
-
-import java.io.Serializable;
 
 /**
  * @description 过滤掉已经完成的reader

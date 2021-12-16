@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.client.sink;
 
 import java.util.List;
-import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleUDFSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;

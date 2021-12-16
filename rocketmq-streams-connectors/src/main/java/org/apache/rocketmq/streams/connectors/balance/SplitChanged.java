@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.connectors.balance;
 
 import java.util.List;
-
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 
 public class SplitChanged {

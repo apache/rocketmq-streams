@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.syslog;
 
-import org.apache.rocketmq.streams.common.channel.IChannel;
-
 public interface ISyslogRouter {
 
     /**

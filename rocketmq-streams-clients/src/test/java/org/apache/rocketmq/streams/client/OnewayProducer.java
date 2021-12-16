@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.client;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;

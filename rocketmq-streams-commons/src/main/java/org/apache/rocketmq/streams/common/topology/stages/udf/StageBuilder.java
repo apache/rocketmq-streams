@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
+import java.io.Serializable;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -25,8 +26,6 @@ import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
-
-import java.io.Serializable;
 
 /**
  * 给用户提供自定义的抽象类

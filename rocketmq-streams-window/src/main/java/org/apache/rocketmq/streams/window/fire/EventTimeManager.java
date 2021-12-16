@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.window.fire;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.source.ISource;

@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.client.strategy;
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 
 public class WindowStrategy implements Strategy {
