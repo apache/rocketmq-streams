@@ -149,6 +149,7 @@
         <commons-lang.version>2.5</commons-lang.version>
         <elasticsearch.version>7.4.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
 
