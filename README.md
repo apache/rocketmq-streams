@@ -35,7 +35,7 @@ DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-Preview</version>
 </dependency>
 ```
 
