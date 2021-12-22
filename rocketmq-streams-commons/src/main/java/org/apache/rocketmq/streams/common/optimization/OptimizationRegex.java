@@ -80,10 +80,6 @@ public class OptimizationRegex {
                 }
             }
         }
-        //String regex2Optimization=regex+":"+this.toString();
-        //List<String> allRegexs=new ArrayList<>();
-        //allRegexs.add(regex2Optimization);
-        //FileUtil.write("/Users/yuanxiaodong/Documents/dipper_engine/regex.txt",allRegexs,true);
 
     }
 
@@ -113,15 +109,11 @@ public class OptimizationRegex {
                 String word = orWord.get(i);
                 if (contentLen > word.length() && content.indexOf(word) != -1) {
                     isMatch = true;
-                    //AtomicInteger count=keyword2Count.get(word);
-                    //count.incrementAndGet();
+
                     break;
                 }
             }
             if (!isMatch) {
-                //String keyword=orIndex2Keyword.get(index);
-                //AtomicInteger count=keyword2Count.get(keyword);
-                //count.incrementAndGet();
                 return false;
             }
             //index++;
