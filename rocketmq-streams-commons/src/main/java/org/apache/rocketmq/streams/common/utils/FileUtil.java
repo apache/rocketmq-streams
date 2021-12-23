@@ -236,10 +236,7 @@ public class FileUtil {
                         System.out.println("创建目标目录成功");
                     }
                     File targetFile = new File(targetPath, targetFileName);
-                    //                    System.out.println(targetFile.getName());
-                    //                    if (!(targetFile.getParentFile().exists())) {
-                    //                        targetFile.getParentFile().mkdirs();
-                    //                    }
+
                     System.out.println("创建目标目录成功:" + targetFile.getParent());
                     if (!targetFile.exists()) {
                         targetFile.createNewFile();
@@ -270,8 +267,6 @@ public class FileUtil {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            // jar:file:/Users/yuanxiaodong/alibaba/rule-engine-feature/5/rules-engine/engine/target/ruleengine
-            // .jar!/com/aliyun/filter/function/expression
         }
 
     }
