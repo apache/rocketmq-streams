@@ -25,7 +25,7 @@ DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-Preview-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -113,7 +113,7 @@ Rocketmq-Streams 核心就是一个独立的jar包， 用户可以在自己的�
 
 ## 独立部署
 1. 通过```mvn clean install``` 构建工程
-2. 从```rocketmq-streams-runner/target/rocket-streams-1.0.0-SNAPSHOT-distribution.tar.gz``` 中获取tar.gz包， 并解压
+2. 从```rocketmq-streams-runner/target/rocket-streams-1.0.0-Preview-SNAPSHOT-distribution.tar.gz``` 中获取tar.gz包， 并解压
 3. ```rocketmq-streams```目录架构如下：
     + ```bin```  指令目录，包括启动和停止指令
     + ```conf```  配置目录，包括日志配置以及应用的相关配置文件

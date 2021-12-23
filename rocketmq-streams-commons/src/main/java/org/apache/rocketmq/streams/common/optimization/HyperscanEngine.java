@@ -77,7 +77,7 @@ public class HyperscanEngine<T> implements IStreamRegex<T> {
                 this.scanner = scanner;
                 break;
             } catch (CompileErrorException e) {
-                if(scanner!=null){
+                if (scanner != null) {
                     scanner.close();
                 }
                 Expression expression = e.getFailedExpression();

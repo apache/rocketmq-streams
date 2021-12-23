@@ -28,10 +28,60 @@
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-Preview-SNAPSHOT</version>
     <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
     <url>https://rocketmq.apache.org/</url>
+
+
+    <scm>
+        <url>git@github.com:apache/rocketmq-streams.git</url>
+        <connection>scm:git:git@github.com:apache/rocketmq-streams.git</connection>
+        <developerConnection>scm:git:git@github.com:apache/rocketmq-streams.git</developerConnection>
+        <tag>1.0.0-Preview</tag>
+    </scm>
+
+    <mailingLists>
+        <mailingList>
+            <name>Development List</name>
+            <subscribe>dev-subscribe@rocketmq.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@rocketmq.apache.org</unsubscribe>
+            <post>dev@rocketmq.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>User List</name>
+            <subscribe>users-subscribe@rocketmq.apache.org</subscribe>
+            <unsubscribe>users-unsubscribe@rocketmq.apache.org</unsubscribe>
+            <post>users@rocketmq.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>Commits List</name>
+            <subscribe>commits-subscribe@rocketmq.apache.org</subscribe>
+            <unsubscribe>commits-unsubscribe@rocketmq.apache.org</unsubscribe>
+            <post>commits@rocketmq.apache.org</post>
+        </mailingList>
+    </mailingLists>
+
+    <developers>
+        <developer>
+            <id>Apache RocketMQ</id>
+            <name>Apache RocketMQ of ASF</name>
+            <url>https://rocketmq.apache.org/</url>
+        </developer>
+    </developers>
+
+    <organization>
+        <name>Apache Software Foundation</name>
+        <url>http://www.apache.org</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <modules>
         <module>rocketmq-streams-commons</module>
@@ -99,6 +149,7 @@
         <commons-lang.version>2.5</commons-lang.version>
         <elasticsearch.version>7.4.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
 
