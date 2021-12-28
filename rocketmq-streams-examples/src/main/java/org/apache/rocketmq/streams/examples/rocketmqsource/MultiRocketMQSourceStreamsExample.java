@@ -31,7 +31,11 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.*;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC_OTHER;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME_OTHER;
 
 public class MultiRocketMQSourceStreamsExample {
     private static ExecutorService producerPool = Executors.newFixedThreadPool(2);
