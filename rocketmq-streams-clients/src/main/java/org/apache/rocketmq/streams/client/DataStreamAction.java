@@ -99,14 +99,17 @@ public class DataStreamAction extends DataStream {
         }
 
         ConfigurableComponent configurableComponent = ComponentCreator.getComponent(mainPipelineBuilder.getPipelineNameSpace(), ConfigurableComponent.class, kvs);
-        ChainPipeline pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
-        pipeline.startChannel();
+
         if (this.otherPipelineBuilders != null) {
             for (PipelineBuilder builder : otherPipelineBuilders) {
                 ChainPipeline otherPipeline = builder.build(configurableComponent.getService());
                 otherPipeline.startChannel();
             }
         }
+
+        ChainPipeline pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
+        pipeline.startChannel();
+
         if (isAsync) {
             return;
         }
