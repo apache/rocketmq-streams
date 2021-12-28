@@ -107,7 +107,7 @@ public class DataStreamSource {
         rocketMQSource.setJsonData(isJson);
         rocketMQSource.setNamesrvAddr(namesrvAddress);
         this.mainPipelineBuilder.setSource(rocketMQSource);
-        return new DataStream(this.mainPipelineBuilder, null);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
 
     public DataStream fromMultipleDB(String url, String userName, String password, String tablePattern) {
