@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
+
 @AutoService(IChannelBuilder.class)
 @ServiceName(value = SyslogChannelBuilder.TYPE, aliasName = "SyslogSource")
 public class SyslogChannelBuilder implements IChannelBuilder {
@@ -63,7 +64,7 @@ public class SyslogChannelBuilder implements IChannelBuilder {
     protected JSONObject createFormatProperty(Properties properties) {
         JSONObject formatProperties = new JSONObject();
         for (Object object : properties.keySet()) {
-            String key = (String)object;
+            String key = (String) object;
             if ("type".equals(key)) {
                 continue;
             }
@@ -72,6 +73,10 @@ public class SyslogChannelBuilder implements IChannelBuilder {
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "protol", "Protol");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "port", "port");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "ipListStr", "clientIp");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "ipListStr", "client_ips");
+
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "protol", "protol");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "ipListStr", "clientip");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "ipListStr", "client_ips");
         return formatProperties;
     }

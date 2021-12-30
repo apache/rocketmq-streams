@@ -26,13 +26,21 @@ import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 
 @Function
 public class DistinctFunction {
-    protected static int MAX_SIZE=2000000;
-    protected KeySet cache=new KeySet(MAX_SIZE);
+    protected static int MAX_SIZE = 2000000;
+    protected KeySet cache;
 
-    public boolean containsOrPut(String... keys){
-        String key= MapKeyUtil.createKey(keys);
-        boolean success= cache.contains(key);
-        if(!success){
+    public boolean containsOrPut(String... keys) {
+        if (cache == null) {
+            synchronized (this) {
+                if (cache == null) {
+                    cache = new KeySet(MAX_SIZE);
+                }
+            }
+        }
+        cache = new KeySet(MAX_SIZE);
+        String key = MapKeyUtil.createKey(keys);
+        boolean success = cache.contains(key);
+        if (!success) {
             cache.add(key);
             /**
              * 如果超过最大值，直接归0
@@ -40,7 +48,7 @@ public class DistinctFunction {
             if (cache.getSize() > MAX_SIZE) {
                 synchronized (this) {
                     if (cache.getSize() > MAX_SIZE) {
-                        cache=new KeySet(MAX_SIZE);
+                        cache = new KeySet(MAX_SIZE);
                     }
                 }
             }
@@ -48,19 +56,18 @@ public class DistinctFunction {
         return success;
     }
 
-
     @FunctionMethod(value = "distinct")
     public boolean distinct(IMessage message, AbstractContext context,
         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
-        String[] values=new String[fieldNames.length];
-        int i=0;
-        for(String fieldName:fieldNames){
-            values[i]=message.getMessageBody().getString(fieldName);
+        String[] values = new String[fieldNames.length];
+        int i = 0;
+        for (String fieldName : fieldNames) {
+            values[i] = message.getMessageBody().getString(fieldName);
             i++;
         }
 
-        boolean isContains= containsOrPut(values);
-        if(isContains){
+        boolean isContains = containsOrPut(values);
+        if (isContains) {
             context.breakExecute();
         }
         return isContains;

@@ -17,6 +17,8 @@
 package org.apache.rocketmq.streams.common;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.junit.Test;
@@ -24,21 +26,28 @@ import org.junit.Test;
 public class MessasgeCacheTest {
     @Test
     public void testSink() throws InterruptedException {
-        OutputPrintChannel first=new OutputPrintChannel();
-        OutputPrintChannel second=new OutputPrintChannel();
+        OutputPrintChannel first = new OutputPrintChannel();
+        OutputPrintChannel second = new OutputPrintChannel();
         first.init();
         second.init();
+        ExecutorService executorService = Executors.newFixedThreadPool(100);
+        for (int i = 0; i < 10; i++) {
+            JSONObject msg = new JSONObject();
+            msg.put("name", "chris" + i);
+            executorService.execute(new Runnable() {
+                @Override public void run() {
+                    first.batchAdd(new Message(msg));
+                }
+            });
 
-        for(int i=0;i<20;i++){
-            JSONObject msg=new JSONObject();
-            msg.put("name","chris"+i);
-            first.batchAdd(new Message(msg));
-            JSONObject msg2=new JSONObject();
-            msg2.put("name","chris2_"+i);
-            second.batchAdd(new Message(msg2));
+            JSONObject msg2 = new JSONObject();
+            msg2.put("name", "chris2_" + i);
+            executorService.execute(new Runnable() {
+                @Override public void run() {
+                    second.batchAdd(new Message(msg2));
+                }
+            });
         }
-        first.flush();
-        second.flush();
         Thread.sleep(1000000000);
     }
 }

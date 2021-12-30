@@ -41,7 +41,8 @@ public class MemorySink extends AbstractSupportShuffleSink implements IAfterConf
     protected String cacheName;
     protected transient MemoryCache memoryCache;
 
-    public MemorySink() {}
+    public MemorySink() {
+    }
 
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
@@ -53,7 +54,7 @@ public class MemorySink extends AbstractSupportShuffleSink implements IAfterConf
         }
         try {
             for (IMessage msg : messages) {
-                memoryCache.queue.offer(msg.getMessageValue().toString());
+                memoryCache.queue.offer(msg.getMessageValue());
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

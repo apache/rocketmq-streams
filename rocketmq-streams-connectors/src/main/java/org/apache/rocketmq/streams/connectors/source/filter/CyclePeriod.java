@@ -27,24 +27,23 @@ import org.apache.commons.logging.LogFactory;
  */
 public enum CyclePeriod {
 
-    CYCLE_PERIOD_DATE(){
-
+    CYCLE_PERIOD_DATE() {
         @Override
         void argsParser(String expr) throws ParseException {
             super.argsParser(expr);
             interval = 24 * 3600 * 1000;
             int length = expr.length();
-            if(length == 8 && checkFormat(expr, PatternFilter.yyyyMMdd)){
+            if (length == 8 && checkFormat(expr, PatternFilter.yyyyMMdd)) {
                 format = PatternFilter.yyyyMMdd;
-            }else if(length == 14 && checkFormat(expr, PatternFilter.yyyyMMddHHmmss)){
+            } else if (length == 14 && checkFormat(expr, PatternFilter.yyyyMMddHHmmss)) {
                 format = PatternFilter.yyyyMMddHHmmss;
-            }else{
+            } else {
                 throw new RuntimeException(String.format("unsupported format : %s, only support yyyymmdd 、 yyyymmddhhmmss.", expr));
             }
         }
 
         @Override
-        Date format(Date strDate){
+        Date format(Date strDate) {
             Date date = new Date(strDate.getTime());
             date.setHours(0);
             date.setMinutes(0);
@@ -53,25 +52,24 @@ public enum CyclePeriod {
         }
 
     },
-    CYCLE_PERIOD_HOUR(){
-
+    CYCLE_PERIOD_HOUR() {
         @Override
         void argsParser(String expr) throws ParseException {
             super.argsParser(expr);
             interval = 3600 * 1000;
 
             int length = expr.length();
-            if(length == 10 && checkFormat(expr, PatternFilter.yyyyMMddHH)){
+            if (length == 10 && checkFormat(expr, PatternFilter.yyyyMMddHH)) {
                 format = PatternFilter.yyyyMMddHH;
-            }else if(length == 14 && checkFormat(expr, PatternFilter.yyyyMMddHHmmss)){
+            } else if (length == 14 && checkFormat(expr, PatternFilter.yyyyMMddHHmmss)) {
                 format = PatternFilter.yyyyMMddHHmmss;
-            }else{
+            } else {
                 throw new RuntimeException(String.format("unsupported format : %s, only support yyyymmdd 、 yyyymmddhhmmss.", expr));
             }
         }
 
         @Override
-        Date format(Date strDate){
+        Date format(Date strDate) {
             Date date = new Date(strDate.getTime());
             date.setMinutes(0);
             date.setSeconds(0);
@@ -79,31 +77,29 @@ public enum CyclePeriod {
         }
 
     },
-    CYCLE_PERIOD_MINUTE(){
-
+    CYCLE_PERIOD_MINUTE() {
         @Override
         void argsParser(String expr) throws ParseException {
             super.argsParser(expr);
             interval = 60 * 1000;
             int length = expr.length();
-            if(length == 12 && checkFormat(expr, PatternFilter.yyyyMMddHHmm)){
+            if (length == 12 && checkFormat(expr, PatternFilter.yyyyMMddHHmm)) {
                 format = PatternFilter.yyyyMMddHHmm;
-            }else if(length == 14 && checkFormat(expr, PatternFilter.yyyyMMddHHmmss)){
+            } else if (length == 14 && checkFormat(expr, PatternFilter.yyyyMMddHHmmss)) {
                 format = PatternFilter.yyyyMMddHHmmss;
-            }else{
+            } else {
                 throw new RuntimeException(String.format("unsupported format : %s, only support yyyymmdd 、 yyyymmddhhmmss.", expr));
             }
         }
 
         @Override
-        Date format(Date strDate){
+        Date format(Date strDate) {
             Date date = new Date(strDate.getTime());
             date.setSeconds(0);
             return date;
         }
 
-    }
-    ;
+    };
 
     boolean isHistory = false;
 
@@ -118,25 +114,26 @@ public enum CyclePeriod {
     static final Log logger = LogFactory.getLog(CyclePeriod.class);
 
     void argsParser(String expr) throws ParseException {
-        if(expr.matches("^\\d+$")){
+        if (expr.matches("^\\d+$")) {
             isHistory = true;
             hisDateString = expr;
         }
     }
 
-    Date format(Date strDate){
+    Date format(Date strDate) {
         throw new RuntimeException(String.format("unsupported type.", strDate));
     }
 
     /**
      * expr可能是yyyymmdd 或者 20210917
+     *
      * @param expr
      * @param format
      * @return
      */
-    final boolean checkFormat(String expr, String format){
+    final boolean checkFormat(String expr, String format) {
 
-        if(!isHistory){
+        if (!isHistory) {
             return expr.equalsIgnoreCase(format);
         }
 
@@ -154,11 +151,11 @@ public enum CyclePeriod {
         return getDateFormat().parse(hisDateString);
     }
 
-    public SimpleDateFormat getDateFormat(){
+    public SimpleDateFormat getDateFormat() {
         return new SimpleDateFormat(format);
     }
 
-    public long getInterval(){
+    public long getInterval() {
         return interval;
     }
 
@@ -173,8 +170,6 @@ public enum CyclePeriod {
     public void setInterval(long interval) {
         this.interval = interval;
     }
-
-
 
     public int getCycle() {
         return cycle;
@@ -200,7 +195,6 @@ public enum CyclePeriod {
         this.hisDateString = hisDateString;
     }
 
-
     public static CyclePeriod getInstance(String expression) throws ParseException {
 
         String[] str = expression.split("\\-");
@@ -210,13 +204,13 @@ public enum CyclePeriod {
         String cycleStr = tmp.substring(0, tmp.length() - 1);
         int cycle = Integer.parseInt(cycleStr);
         CyclePeriod cyclePeriod = null;
-        if(tmp.endsWith("d")){
+        if (tmp.endsWith("d")) {
             cyclePeriod = CYCLE_PERIOD_DATE;
-        }else if(tmp.endsWith("h")){
+        } else if (tmp.endsWith("h")) {
             cyclePeriod = CYCLE_PERIOD_HOUR;
-        }else if(tmp.endsWith("m")){
+        } else if (tmp.endsWith("m")) {
             cyclePeriod = CYCLE_PERIOD_MINUTE;
-        }else{
+        } else {
             new RuntimeException(String.format("unsupported format : %s", expression));
         }
         cyclePeriod.argsParser(expr);
@@ -224,7 +218,5 @@ public enum CyclePeriod {
 
         return cyclePeriod;
     }
-
-
 
 }

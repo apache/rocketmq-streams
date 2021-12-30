@@ -29,7 +29,7 @@ public class RocketMQSourceExample2 {
      * 1、make sure your rocketmq server has been started.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
 
         try {
             Thread.sleep(1000 * 3);
@@ -44,26 +44,25 @@ public class RocketMQSourceExample2 {
                 RMQ_CONSUMER_GROUP_NAME,
                 false,
                 NAMESRV_ADDRESS)
-                .forEach((message)->{
-                    System.out.println("forEach: before===========");
-                    System.out.println("forEach: "+message);
-                    System.out.println("forEach: after===========");
-                })
-                .map(message -> message)
-                .filter((value) -> {
-                    System.out.println("filter: ===========");
-                    String messageValue = (String)value;
-                    return messageValue.contains("InFlow");
-                })
-                .flatMap((message)->{
-                    String value = (String) message;
-                    String[] result = value.split(" ");
-                    return Arrays.asList(result);
-                })
-                .toPrint(1)
-                .start();
+            .forEach((message) -> {
+                System.out.println("forEach: before===========");
+                System.out.println("forEach: " + message);
+                System.out.println("forEach: after===========");
+            })
+            .map(message -> message)
+            .filter((value) -> {
+                System.out.println("filter: ===========");
+                String messageValue = (String) value;
+                return messageValue.contains("InFlow");
+            })
+            .flatMap((message) -> {
+                String value = (String) message;
+                String[] result = value.split(" ");
+                return Arrays.asList(result);
+            })
+            .toPrint(1)
+            .start();
 
     }
-
 
 }

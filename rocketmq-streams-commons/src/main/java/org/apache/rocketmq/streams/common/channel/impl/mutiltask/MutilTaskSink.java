@@ -27,19 +27,18 @@ import org.apache.rocketmq.streams.common.topology.task.StreamsTask;
 
 public class MutilTaskSink extends AbstractSink implements IAfterConfigurableRefreshListener {
 
-
     protected transient StreamsTask streamsTask;
     protected String taskName;
 
     @Override public boolean batchAdd(IMessage message) {
-        Context context=new Context(message);
-        streamsTask.doMessage(message,context);
+        Context context = new Context(message);
+        streamsTask.doMessage(message, context);
         return true;
     }
 
     @Override public boolean batchSave(List<IMessage> messages) {
-        if(messages!=null){
-            for(IMessage message:messages){
+        if (messages != null) {
+            for (IMessage message : messages) {
                 batchAdd(message);
             }
         }
@@ -71,7 +70,7 @@ public class MutilTaskSink extends AbstractSink implements IAfterConfigurableRef
     }
 
     @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        streamsTask=new StreamsTask();
+        streamsTask = new StreamsTask();
         streamsTask.setConfigureName(taskName);
         streamsTask.setNameSpace(getNameSpace());
         streamsTask.init();

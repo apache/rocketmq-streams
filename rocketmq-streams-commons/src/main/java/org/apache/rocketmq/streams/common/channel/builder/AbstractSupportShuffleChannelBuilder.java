@@ -29,7 +29,6 @@ public abstract class AbstractSupportShuffleChannelBuilder implements IChannelBu
         return ConfigurableUtil.create(pipelineSource.getNameSpace(), pipelineSource.getConfigureName(), jsonObject, pipelineSource.getClass().getName());
     }
 
-
     protected JSONObject createFormatProperty(Properties properties) {
         JSONObject formatProperties = new JSONObject();
         for (Object object : properties.keySet()) {

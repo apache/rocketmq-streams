@@ -136,7 +136,7 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
 
     @Override
     public <T> T queryConfigurable(String configurableType, String name) {
-        return (T)queryConfigurableByIdent(configurableType, name);
+        return (T) queryConfigurableByIdent(configurableType, name);
     }
 
     @Override

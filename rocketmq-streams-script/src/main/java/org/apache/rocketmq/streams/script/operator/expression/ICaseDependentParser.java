@@ -27,6 +27,5 @@ public interface ICaseDependentParser {
      */
     Set<String> getDependentFields(IScriptExpression scriptExpression);
 
-
     boolean isCaseFunction(IScriptExpression scriptExpression);
 }

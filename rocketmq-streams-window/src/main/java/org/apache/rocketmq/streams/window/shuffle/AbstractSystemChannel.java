@@ -80,14 +80,14 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                     ISource piplineSource = pipeline.getSource();
                     ServiceLoaderComponent serviceLoaderComponent = ComponentCreator.getComponent(IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
 
-                    IChannelBuilder builder = (IChannelBuilder)serviceLoaderComponent.loadService(piplineSource.getClass().getSimpleName());
+                    IChannelBuilder builder = (IChannelBuilder) serviceLoaderComponent.loadService(piplineSource.getClass().getSimpleName());
                     if (builder == null) {
                         throw new RuntimeException("can not create shuffle channel, not find channel builder " + piplineSource.toJson());
                     }
                     if (!(builder instanceof IShuffleChannelBuilder)) {
                         throw new RuntimeException("can not create shuffle channel, builder not impl IShuffleChannelBuilder " + piplineSource.toJson());
                     }
-                    IShuffleChannelBuilder shuffleChannelBuilder = (IShuffleChannelBuilder)builder;
+                    IShuffleChannelBuilder shuffleChannelBuilder = (IShuffleChannelBuilder) builder;
                     ISink sink = shuffleChannelBuilder.createBySource(piplineSource);
                     sink.init();
                     if (!(sink instanceof MemoryChannel) && !(sink instanceof AbstractSupportShuffleSink)) {
@@ -101,15 +101,15 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
 
                         sink = new MemorySink();
                         source = new MemorySource();
-                        ((MemorySink)sink).setMemoryCache(memoryCache);
-                        ((MemorySource)source).setMemoryCache(memoryCache);
+                        ((MemorySink) sink).setMemoryCache(memoryCache);
+                        ((MemorySource) source).setMemoryCache(memoryCache);
                         memoryCache.init();
                     }
 
                     Properties properties = new Properties();
                     putDynamicPropertyValue(new HashSet<>(), properties);
 
-                    AbstractSupportShuffleSink shuffleSink = (AbstractSupportShuffleSink)sink;
+                    AbstractSupportShuffleSink shuffleSink = (AbstractSupportShuffleSink) sink;
                     //todo 为什么这里的分区数量要和源头topic的分区数量一直？
                     shuffleSink.setSplitNum(getShuffleSplitCount(shuffleSink));
                     shuffleSink.setNameSpace(createShuffleChannelNameSpace(pipeline));
@@ -155,8 +155,8 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                     if (shuffleTopic != null && topicFiledName != null) {
                         ReflectUtil.setBeanFieldValue(source, topicFiledName, shuffleTopic);
                     }
-                    if(AbstractSource.class.isInstance(source)){
-                        AbstractSource abstractSource=(AbstractSource)source;
+                    if (AbstractSource.class.isInstance(source)) {
+                        AbstractSource abstractSource = (AbstractSource) source;
                         abstractSource.setHasInit(false);
                     }
                     source.init();
@@ -175,8 +175,7 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
      * @param message
      * @return
      */
-    protected abstract String createShuffleTopic(String topic,
-                                                 ChainPipeline message);
+    protected abstract String createShuffleTopic(String topic, ChainPipeline message);
 
     protected abstract int getShuffleSplitCount(AbstractSupportShuffleSink shuffleSink);
 
@@ -215,9 +214,9 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         }
         Properties properties = createChannelProperties(namespace);
         ISource source = builder.createSource(namespace, name, properties, null);
-        if(MemorySource.class.isInstance(source)){
-            MemorySource memorySource=(MemorySource)source;
-            MemoryCache memoryCache=new MemoryCache();
+        if (MemorySource.class.isInstance(source)) {
+            MemorySource memorySource = (MemorySource) source;
+            MemoryCache memoryCache = new MemoryCache();
             memorySource.setMemoryCache(memoryCache);
             memoryCache.init();
         }
@@ -242,19 +241,19 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         if (!AbstractSupportShuffleSink.class.isInstance(sink)) {
             throw new RuntimeException("can not support shuffle " + sink.toJson());
         }
-        if(MemorySink.class.isInstance(sink)){
-            MemorySink memorySink=(MemorySink)sink;
-            if(!MemorySource.class.isInstance(this.consumer)){
-                throw new RuntimeException("shuffle cosumer need memory, real is "+this.consumer);
+        if (MemorySink.class.isInstance(sink)) {
+            MemorySink memorySink = (MemorySink) sink;
+            if (!MemorySource.class.isInstance(this.consumer)) {
+                throw new RuntimeException("shuffle cosumer need memory, real is " + this.consumer);
             }
-            MemorySource memorySource=(MemorySource)this.consumer;
-            MemoryCache memoryCache=memorySource.getMemoryCache();
+            MemorySource memorySource = (MemorySource) this.consumer;
+            MemoryCache memoryCache = memorySource.getMemoryCache();
             memorySink.setMemoryCache(memoryCache);
         }
 
         sink.init();
 
-        return (AbstractSupportShuffleSink)sink;
+        return (AbstractSupportShuffleSink) sink;
     }
 
     /**
@@ -267,9 +266,8 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         if (StringUtil.isEmpty(type)) {
             return null;
         }
-        ServiceLoaderComponent serviceLoaderComponent = ComponentCreator.getComponent(
-            IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
-        IChannelBuilder builder = (IChannelBuilder)serviceLoaderComponent.loadService(type);
+        ServiceLoaderComponent serviceLoaderComponent = ComponentCreator.getComponent(IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
+        IChannelBuilder builder = (IChannelBuilder) serviceLoaderComponent.loadService(type);
         return builder;
     }
 
@@ -283,8 +281,8 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         Iterator<Map.Entry<Object, Object>> it = ComponentCreator.getProperties().entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<Object, Object> entry = it.next();
-            String key = (String)entry.getKey();
-            String value = (String)entry.getValue();
+            String key = (String) entry.getKey();
+            String value = (String) entry.getValue();
             if (key.startsWith(getChannelConfig().get(CHANNEL_PROPERTY_KEY_PREFIX))) {
                 String channelKey = key.replace(getChannelConfig().get(CHANNEL_PROPERTY_KEY_PREFIX), "");
                 if (channelKey.startsWith(namespace)) {//支持基于namespace 做shuffle window共享

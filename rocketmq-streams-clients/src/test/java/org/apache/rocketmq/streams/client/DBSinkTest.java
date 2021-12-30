@@ -28,22 +28,22 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
-/**
+ * /**
+ *
  * @description
  */
 public class DBSinkTest {
 
     DataStreamSource dataStream;
 
-//    String url = "*";
+    //    String url = "*";
 //    String userName = "*";
 //    String password = "*";
 //    String tableName = "*";
-    static String url = "jdbc:mysql://sonar.mysql.rdstest.tbsite.net:3306/platform-service?serverTimezone=GMT%2b8";
-    static String userName = "platformservice";
-    static String password = "platformservice";
-    static String tableName = "table";
-
+    static String url = "";
+    static String userName = "";
+    static String password = "";
+    static String tableName = "";
 
     @Before
     public void init() {
@@ -52,15 +52,15 @@ public class DBSinkTest {
     }
 
     @Test
-    public void testToMultiDB(){
+    public void testToMultiDB() {
         List<JSONObject> list = new ArrayList();
-        String[] partitions = new String[]{
+        String[] partitions = new String[] {
             "20210709000000",
             "20210710000000"
         };
-        for(int i = 0; i< 100000 ; i++){
+        for (int i = 0; i < 100000; i++) {
             //0,1随机数，整数
-            int index = (int)(2 * Math.random());
+            int index = (int) (2 * Math.random());
             JSONObject msg = new JSONObject();
             msg.put("ds", partitions[index]);
             msg.put("value", String.valueOf(Math.random()));
@@ -73,11 +73,11 @@ public class DBSinkTest {
     }
 
     @Test
-    public void testToEnhanceDB(){
+    public void testToEnhanceDB() {
         List<JSONObject> list = new ArrayList();
-        for(int i = 0; i< 100000 ; i++){
+        for (int i = 0; i < 100000; i++) {
             //0,1随机数，整数
-            int index = (int)(2 * Math.random());
+            int index = (int) (2 * Math.random());
             JSONObject msg = new JSONObject();
             msg.put("name", String.valueOf(Math.random()));
             msg.put("age", new Random().nextInt());

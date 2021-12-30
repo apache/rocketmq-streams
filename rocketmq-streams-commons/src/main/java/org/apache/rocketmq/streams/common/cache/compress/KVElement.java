@@ -22,7 +22,7 @@ public class KVElement {
 
     protected ByteArray nextAddressByte;
 
-    protected MapAddress nextAddress;
+    protected KVAddress nextAddress;
 
     protected ByteArray keyHashCode;
 
@@ -34,36 +34,48 @@ public class KVElement {
     /**
      * 是否没有value
      */
-    protected boolean noValue = false;
+    protected boolean hasValue = false;
 
     /**
      * 元素个数
      */
-    protected int elementSize = 24;
+    protected int elementSize = 26;
 
-    public KVElement(ByteArray byteArray) {
-        this.nextAddressByte = byteArray.subByteArray(0, 4);
-        nextAddress = new MapAddress(this.nextAddressByte);
-        this.keyHashCode = byteArray.subByteArray(4, 16);
-        if (!noValue) {
-            value = byteArray.subByteArray(20, 4);
+    public KVElement(ByteArray byteArray, boolean hasValue) {
+        if (!hasValue) {
+            elementSize = 21;
+        } else {
+            elementSize = 26;
         }
+        this.hasValue = hasValue;
+        this.nextAddressByte = byteArray.subByteArray(0, 5);
+        nextAddress = new KVAddress(this.nextAddressByte);
+        this.keyHashCode = byteArray.subByteArray(5, 16);
+        if (hasValue) {
+            value = byteArray.subByteArray(21, 5);
+        }
+
     }
 
-    public static byte[] createByteArray(MapAddress nextAddress, byte[] keyHashCode, int value,
-        int elementSize) {
+    public static byte[] createByteArray(KVAddress nextAddress, byte[] keyHashCode, ByteArray value, boolean hasValue) {
         KVElement element = new KVElement(nextAddress, keyHashCode, value);
-        element.setElementSize(elementSize);
+        if (!hasValue) {
+            element.elementSize = 21;
+        } else {
+            element.elementSize = 26;
+        }
+        element.hasValue = hasValue;
         return element.getBytes();
     }
 
-    private KVElement(MapAddress nextAddress, byte[] keyHashCode, int value) {
+    private KVElement(KVAddress nextAddress, byte[] keyHashCode, ByteArray value) {
         this.nextAddress = nextAddress;
         this.keyHashCode = new ByteArray(keyHashCode, 0, keyHashCode.length);
-        if (!noValue) {
-            this.value = new ByteArray(NumberUtils.toByte(value));
+        this.value = value;
+        if (value != null) {
+            this.hasValue = true;
+            this.elementSize = 26;
         }
-
     }
 
     public boolean isEmpty() {
@@ -92,9 +104,9 @@ public class KVElement {
     public byte[] getBytes() {
         byte[] bytes = new byte[elementSize];
         NumberUtils.putSubByte2ByteArray(bytes, 0, nextAddress.createBytes());
-        NumberUtils.putSubByte2ByteArray(bytes, 4, keyHashCode.getByteArray());
-        if (!noValue) {
-            NumberUtils.putSubByte2ByteArray(bytes, 20, value.getByteArray());
+        NumberUtils.putSubByte2ByteArray(bytes, 5, keyHashCode.getByteArray());
+        if (hasValue) {
+            NumberUtils.putSubByte2ByteArray(bytes, 21, value.getByteArray());
         }
 
         return bytes;
@@ -104,20 +116,12 @@ public class KVElement {
         this.value = new ByteArray(NumberUtils.toByte(value));
     }
 
-    public boolean isNoValue() {
-        return noValue;
+    public boolean isHasValue() {
+        return hasValue;
     }
 
     public int getElementSize() {
         return elementSize;
-    }
-
-    public KVElement setElementSize(int elementSize) {
-        this.elementSize = elementSize;
-        if (this.elementSize == 20) {
-            this.noValue = true;
-        }
-        return this;
     }
 
 }

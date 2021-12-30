@@ -63,10 +63,11 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
      */
     private transient List<IBaseStreamOperator<IMessage, IMessage, FunctionContext>> receivers = new ArrayList<>();
 
-
     protected transient IScriptOptimization.IOptimizationCompiler optimizationCompiler;
 
-    public FunctionScript() {setType(AbstractScript.TYPE);}
+    public FunctionScript() {
+        setType(AbstractScript.TYPE);
+    }
 
     public FunctionScript(String value) {
         this();
@@ -99,15 +100,10 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
     @Override
     public List<IMessage> doMessage(IMessage message, AbstractContext context) {
 
-
         FunctionContext functionContext = new FunctionContext(message);
         if (context != null) {
             context.syncSubContext(functionContext);
         }
-//        if(this.optimizationCompiler!=null){
-//            FilterResultCache quickFilterResult= this.optimizationCompiler.execute(message,functionContext);
-//            context.setQuickFilterResult(quickFilterResult);
-//        }
 
         List<IMessage> result = AbstractContext.executeScript(message, functionContext, this.receivers);
         if (context != null) {
@@ -194,7 +190,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
                     Map<String, IScriptExpression> map = new HashMap<>();
                     for (IScriptExpression expression : this.scriptExpressions) {
                         if (ScriptExpression.class.isInstance(expression)) {
-                            ScriptExpression scriptExpression = (ScriptExpression)expression;
+                            ScriptExpression scriptExpression = (ScriptExpression) expression;
                             if (scriptExpression.getNewFieldName() != null) {
                                 map.put(scriptExpression.getNewFieldName(), scriptExpression);
                             }
@@ -243,29 +239,30 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
     public void setScript(String script) {
         this.value = script;
     }
-    protected transient AtomicBoolean hasStart=new AtomicBoolean(false);
-    @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        if(hasStart.compareAndSet(false,true)){
 
-            IScriptOptimization scriptOptimization=null;
+    protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
+
+    @Override
+    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
+        if (hasStart.compareAndSet(false, true)) {
+
+            IScriptOptimization scriptOptimization = null;
             // optimize case when
-            ServiceLoaderComponent serviceLoaderComponent=ServiceLoaderComponent.getInstance(IScriptOptimization.class);
-            List<IScriptOptimization> scriptOptimizations=serviceLoaderComponent.loadService();
-            if(scriptOptimizations!=null&&scriptOptimizations.size()>0){
-                scriptOptimization=scriptOptimizations.get(0);
+            ServiceLoaderComponent serviceLoaderComponent = ServiceLoaderComponent.getInstance(IScriptOptimization.class);
+            List<IScriptOptimization> scriptOptimizations = serviceLoaderComponent.loadService();
+            if (scriptOptimizations != null && scriptOptimizations.size() > 0) {
+                scriptOptimization = scriptOptimizations.get(0);
             }
-
-
 
             if (this.scriptExpressions == null) {
                 LOG.debug("empty function");
             } else {
-                List<IScriptExpression> expressions=this.scriptExpressions;
-                if(scriptOptimization!=null){
-                    this.optimizationCompiler=scriptOptimization.compile(this.scriptExpressions,this);
-                    expressions =this.optimizationCompiler.getOptimizationExpressionList();
+                List<IScriptExpression> expressions = this.scriptExpressions;
+                if (scriptOptimization != null) {
+                    this.optimizationCompiler = scriptOptimization.compile(this.scriptExpressions, this);
+                    expressions = this.optimizationCompiler.getOptimizationExpressionList();
                 }
-                this.scriptExpressions=expressions;
+                this.scriptExpressions = expressions;
                 List<IBaseStreamOperator<IMessage, IMessage, FunctionContext>> newReceiver = new ArrayList<>();
                 //转化成istreamoperator 接口
                 for (IScriptExpression scriptExpression : expressions) {
@@ -274,7 +271,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
                         return message;
                     });
                 }
-                this.receivers=newReceiver;
+                this.receivers = newReceiver;
             }
         }
     }

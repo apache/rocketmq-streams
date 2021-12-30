@@ -69,7 +69,7 @@ public class FunctionConfigure {
 
     private DataType returnDataType;
 
-    private boolean isUserDefinedUDTF=false;//是否用户用规范自定义的udtf
+    private boolean isUserDefinedUDTF = false;//是否用户用规范自定义的udtf
 
     /**
      * 主要做性能优化的参数组合，可以更快的组装成反射信息
@@ -113,9 +113,7 @@ public class FunctionConfigure {
         /**
          * 打标识是否前缀是imessage，abstractcontext
          */
-        if (parameterDataTypes.length > 1 && parameterDataTypes[0].getDataClass().isAssignableFrom(IMessage.class)
-            && parameterDataTypes[1].getDataClass().isAssignableFrom(
-            AbstractContext.class)) {
+        if (parameterDataTypes.length > 1 && parameterDataTypes[0].getDataClass().isAssignableFrom(IMessage.class) && parameterDataTypes[1].getDataClass().isAssignableFrom(AbstractContext.class)) {
             startWithContext = true;
         }
 
@@ -202,8 +200,7 @@ public class FunctionConfigure {
                 parameters = getRealParameters(jsonConfigure, dataParameters);
             }
             method.setAccessible(true);
-            Object result = method.invoke(bean, parameters);
-            return result;
+            return method.invoke(bean, parameters);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("执行方法出错" + method.getName(), e);
@@ -229,24 +226,23 @@ public class FunctionConfigure {
             if (parameters[0] == null || parameters[1] == null) {
                 return null;
             }
-            if (!IMessage.class.isInstance(parameters[0]) || !AbstractContext.class.isInstance(parameters[1])) {
+            if (!(parameters[0] instanceof IMessage) || !(parameters[1] instanceof AbstractContext)) {
                 return null;
             }
         } else {
-            if (parameters.length >= 2 && IMessage.class.isInstance(parameters[0]) && AbstractContext.class.isInstance(
-                parameters[1])) {
+            if (parameters.length >= 2 && parameters[0] instanceof IMessage && AbstractContext.class.isInstance(parameters[1])) {
                 return null;
             }
         }
 
         //如果不是变参数
-        if (isVariableParameter == false) {
+        if (!isVariableParameter) {
             if (parameterDataTypes.length != parameters.length) {
                 return null;
             }
             //如果全是字符串，不需要做参数转换
             if (isAllParaString()) {
-                if (parameters == null || parameters.length == 0) {
+                if (parameters.length == 0) {
                     return parameters;
                 }
                 int i = 0;
@@ -254,7 +250,7 @@ public class FunctionConfigure {
                     i = 2;
                 }
                 for (; i < parameters.length; i++) {
-                    DataType dataType = parameterDataTypes[i];
+                    DataType<?> dataType = parameterDataTypes[i];
                     Object value = parameters[i];
                     Object realValue = getRealValue(dataType, value);
                     if (value != null && realValue == null) {
@@ -265,7 +261,7 @@ public class FunctionConfigure {
                 return parameters;
             }
             for (Integer index : noStringDataTypeIndex) {
-                DataType dataType = parameterDataTypes[index];
+                DataType<?> dataType = parameterDataTypes[index];
                 Object value = parameters[index];
                 Object realValue = getRealValue(dataType, value);
                 if (value != null && realValue == null) {
@@ -278,17 +274,15 @@ public class FunctionConfigure {
 
         Class[] classes = method.getParameterTypes();
         Object[] realParameter = new Object[classes.length];
-        if (isVariableParameter && (parameters[parameters.length - 1] == null || !parameters[parameters.length - 1]
-            .getClass().isArray())) {
+        if (isVariableParameter && (parameters[parameters.length - 1] == null || !parameters[parameters.length - 1].getClass().isArray())) {
             /**
              * 特殊处理，自建函数都是带message，context前缀的。如果udf是一个数组，可能会被认为是符合的。所以要做下特殊判断
              */
-            if (parameterDataTypes.length == 1 && parameters.length >= 2 && IMessage.class.isInstance(parameters[0])
-                && AbstractContext.class.isInstance(parameters[1])) {
+            if (parameterDataTypes.length == 1 && parameters.length >= 2 && parameters[0] instanceof IMessage && parameters[1] instanceof AbstractContext) {
                 return null;
             }
             for (int i = 0; i < (classes.length - 1); i++) {
-                DataType dataType = parameterDataTypes[i];
+                DataType<?> dataType = parameterDataTypes[i];
                 Object value = parameters[i];
                 Object realValue = getRealValue(dataType, value);
                 if (value != null && realValue == null) {
@@ -300,8 +294,7 @@ public class FunctionConfigure {
             int classLength = classes.length - 1;
             Class elementClass = classes[classLength].getComponentType();
             DataType dataType = DataTypeUtil.getDataTypeFromClass(elementClass);
-            Object lastObjectArray = Array.newInstance(classes[classLength].getComponentType(),
-                parameters.length - (classLength));
+            Object lastObjectArray = Array.newInstance(classes[classLength].getComponentType(), parameters.length - (classLength));
 
             for (int i = 0; i < (parameters.length - (classLength)); i++) {
                 Object value = parameters[(classLength) + i];
@@ -316,14 +309,15 @@ public class FunctionConfigure {
         }
         return parameters;
     }
+
     public Object getRealValue(int parameterIndex, Object value) {
 
-        DataType datatype=this.parameterDataTypes[parameterIndex];
-        return getRealValue(datatype,value);
+        DataType<?> datatype = this.parameterDataTypes[parameterIndex];
+        return getRealValue(datatype, value);
 
     }
 
-    private Object getRealValue(DataType dataType, Object value) {
+    private Object getRealValue(DataType<?> dataType, Object value) {
         try {
             if (value == null) {
                 return null;
@@ -334,8 +328,8 @@ public class FunctionConfigure {
                 if (value == null) {
                     return null;//说明参数不匹配，直接返回
                 }
-            } else if(NotSupportDataType.class.isInstance(dataType)){
-                if(dataType.getDataClass().isAssignableFrom(value.getClass())){
+            } else if (NotSupportDataType.class.isInstance(dataType)) {
+                if (dataType.getDataClass().isAssignableFrom(value.getClass())) {
                     return value;
                 }
                 return null;
@@ -399,8 +393,7 @@ public class FunctionConfigure {
             }
             Object[] parameters = fillDataParameters(dataParamters);
             int configureParameterIndex = dataParamters.length;
-            Object[] configureParameters =
-                parseParameters(parameterConfigure, configureParameterIndex, parameterDataTypes.length);
+            Object[] configureParameters = parseParameters(parameterConfigure, configureParameterIndex, parameterDataTypes.length);
             int i = 0;
             for (Object object : configureParameters) {
                 parameters[i + configureParameterIndex] = object;
@@ -428,9 +421,8 @@ public class FunctionConfigure {
             JSONObject jsonObject = JSONObject.parseObject(parameterConfigure);
             String jsonArrayForString = jsonObject.getString(FunctionConfigure.FUNCTION_PARAMETERS);
             //JSONArray configureParamterlist = JSON.parseArray(jsonArrayForString);
-            Map<String, String> configureParamterMap =
-                JSONObject.parseObject(jsonArrayForString, new TypeReference<Map<String, String>>() {
-                });
+            Map<String, String> configureParamterMap = JSONObject.parseObject(jsonArrayForString, new TypeReference<Map<String, String>>() {
+            });
             Object[] parameters = new Object[allParamsSize - configureParameterIndex];
             for (int i = nextParameterIndex; i < allParamsSize; i++) {
                 String value = configureParamterMap.get(Integer.toString(i));
@@ -537,9 +529,8 @@ public class FunctionConfigure {
     public boolean startWith(Class[] classes) {
         try {
             for (int i = 0; i < classes.length; i++) {
-                DataType dataType = this.parameterDataTypes[i];
-                if (!dataType.getDataClass().isAssignableFrom(classes[i]) && !classes[i].isAssignableFrom(
-                    dataType.getDataClass())) {
+                DataType<?> dataType = this.parameterDataTypes[i];
+                if (!dataType.getDataClass().isAssignableFrom(classes[i]) && !classes[i].isAssignableFrom(dataType.getDataClass())) {
                     return false;
                 }
             }

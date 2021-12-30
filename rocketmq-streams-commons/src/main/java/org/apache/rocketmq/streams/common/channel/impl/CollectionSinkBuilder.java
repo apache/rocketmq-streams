@@ -35,7 +35,7 @@ public class CollectionSinkBuilder implements IChannelBuilder {
 
     @Override
     public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
-        throw new RuntimeException("can not support this method");
+        return new CollectionSource();
     }
 
     @Override

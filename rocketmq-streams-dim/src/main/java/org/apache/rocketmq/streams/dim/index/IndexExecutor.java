@@ -55,10 +55,11 @@ public class IndexExecutor {
     private Set<String> indexNames = new HashSet<>();
 
     private Set<String> columnNames;
-    public IndexExecutor(String expressionStr, String namespace, List<String> index,Set<String> columns) {
+
+    public IndexExecutor(String expressionStr, String namespace, List<String> index, Set<String> columns) {
         this.expressionStr = expressionStr;
         this.namespace = namespace;
-        this.columnNames=columns;
+        this.columnNames = columns;
         List<String> allIndex = new ArrayList<>();
         for (String indexName : index) {
             String[] values = indexName.split(";");
@@ -86,14 +87,14 @@ public class IndexExecutor {
 
         RelationExpression relationExpression = null;
         if (RelationExpression.class.isInstance(expression)) {
-            relationExpression = (RelationExpression)expression;
+            relationExpression = (RelationExpression) expression;
             if (!"and".equals(relationExpression.getRelation())) {
                 isSupport = false;
                 return;
             }
         }
 
-        this.isSupport=true;
+        this.isSupport = true;
         List<Expression> indexExpressions = new ArrayList<>();
         List<Expression> otherExpressions = new ArrayList<>();
         if (relationExpression != null) {
@@ -108,7 +109,7 @@ public class IndexExecutor {
             relationExpression.setValue(new ArrayList<>());
             for (String expressionName : expressionNames) {
                 Expression subExpression = map.get(expressionName);
-                if (subExpression != null && !RelationExpression.class.isInstance(subExpression)&&this.indexNames.contains(subExpression.getValue())) {
+                if (subExpression != null && !RelationExpression.class.isInstance(subExpression) && this.indexNames.contains(subExpression.getValue())) {
                     indexExpressions.add(subExpression);
                 } else {
                     otherExpressions.add(subExpression);
@@ -144,7 +145,7 @@ public class IndexExecutor {
         if (otherExpressions.size() == 0) {
             return;
         }
-        Rule rule = ExpressionBuilder.createRule("tmp","tmp",expressionStr);
+        Rule rule = ExpressionBuilder.createRule("tmp", "tmp", expressionStr);
 
         this.rule = rule;
 
@@ -174,14 +175,15 @@ public class IndexExecutor {
     public List<Map<String, Object>> match(JSONObject msg, AbstractDim nameList, boolean needAll, String script) {
         List<Map<String, Object>> rows = new ArrayList<>();
         String msgValue = createValue(msg);
-        List<Integer> rowIds = nameList.getNameListIndex() == null ? Collections.emptyList() :  nameList.getNameListIndex().getRowIds(indexNameKey, msgValue);;
+        List<Long> rowIds = nameList.getNameListIndex() == null ? Collections.emptyList() : nameList.getNameListIndex().getRowIds(indexNameKey, msgValue);
+        ;
         if (rowIds == null) {
             return null;
         }
-        for (Integer rowId : rowIds) {
+        for (Long rowId : rowIds) {
             Map<String, Object> oldRow = nameList.getDataCache().getRow(rowId);
-            Map<String, Object> newRow=AbstractDim.isMatch(this.rule,oldRow,msg,script,this.columnNames);
-            if (newRow!=null) {
+            Map<String, Object> newRow = AbstractDim.isMatch(this.rule, oldRow, msg, script, this.columnNames);
+            if (newRow != null) {
                 rows.add(newRow);
                 if (needAll == false) {
                     return rows;
@@ -190,8 +192,6 @@ public class IndexExecutor {
         }
         return rows;
     }
-
-
 
     /**
      * 按顺序创建msg的key

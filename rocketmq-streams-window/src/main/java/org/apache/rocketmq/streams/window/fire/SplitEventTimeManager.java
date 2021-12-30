@@ -35,8 +35,8 @@ import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public class SplitEventTimeManager {
     protected static final Log LOG = LogFactory.getLog(SplitEventTimeManager.class);
-    protected static Map<String,Long> messageSplitId2MaxTime=new HashMap<>();
-    private AtomicInteger queueIdCount=new AtomicInteger(0);
+    protected static Map<String, Long> messageSplitId2MaxTime = new HashMap<>();
+    private AtomicInteger queueIdCount = new AtomicInteger(0);
     protected Long lastUpdateTime;
 
     protected volatile Integer allSplitSize;
@@ -44,62 +44,58 @@ public class SplitEventTimeManager {
     protected Map<String, List<ISplit>> splitsGroupByInstance;
     protected ISource source;
 
-    protected volatile boolean isAllSplitReceived=false;
+    protected volatile boolean isAllSplitReceived = false;
     protected transient String queueId;
 
     private static Long splitReadyTime;
 
-    public SplitEventTimeManager(ISource source,String queueId){
-        this.source=source;
-        this.queueId=queueId;
-        if(source instanceof AbstractSource){
-            AbstractSource abstractSource=(AbstractSource)source;
-            List<ISplit> splits=abstractSource.getAllSplits();
-            if(splits==null){
-                this.allSplitSize=-1;
-            }else {
-                this.allSplitSize=splits.size();
+    public SplitEventTimeManager(ISource source, String queueId) {
+        this.source = source;
+        this.queueId = queueId;
+        if (source instanceof AbstractSource) {
+            AbstractSource abstractSource = (AbstractSource) source;
+            List<ISplit> splits = abstractSource.getAllSplits();
+            if (splits == null) {
+                this.allSplitSize = -1;
+            } else {
+                this.allSplitSize = splits.size();
             }
         }
     }
 
-    public void updateEventTime(IMessage message, AbstractWindow window){
+    public void updateEventTime(IMessage message, AbstractWindow window) {
         String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
-        if(StringUtil.isEmpty(oriQueueId)){
+        if (StringUtil.isEmpty(oriQueueId)) {
             return;
         }
-        Long occurTime = WindowInstance.getOccurTime(window,message);
-        if(occurTime==null){
-            return;
-        }
-        Long oldTime=messageSplitId2MaxTime.get(oriQueueId);
-        if(oldTime==null){
+        Long occurTime = WindowInstance.getOccurTime(window, message);
+        Long oldTime = messageSplitId2MaxTime.get(oriQueueId);
+        if (oldTime == null) {
             queueIdCount.incrementAndGet();
-            messageSplitId2MaxTime.put(oriQueueId,occurTime);
-        }else {
-            if(occurTime>oldTime){
-                messageSplitId2MaxTime.put(oriQueueId,occurTime);
+            messageSplitId2MaxTime.put(oriQueueId, occurTime);
+        } else {
+            if (occurTime > oldTime) {
+                messageSplitId2MaxTime.put(oriQueueId, occurTime);
             }
         }
     }
 
+    public Long getMaxEventTime() {
 
-    public Long getMaxEventTime(){
-
-        if(!isSplitsReceiver()){
+        if (!isSplitsReceiver()) {
             return null;
         }
-        Long min=null;
-        Set<Long> eventTimes=new HashSet<>(messageSplitId2MaxTime.values());
-        for(Long eventTime:eventTimes){
-            if(eventTime==null){
+        Long min = null;
+        Set<Long> eventTimes = new HashSet<>(messageSplitId2MaxTime.values());
+        for (Long eventTime : eventTimes) {
+            if (eventTime == null) {
                 return null;
             }
-            if(min==null){
-                min=eventTime;
-            }else {
-                if(eventTime<min){
-                    min=eventTime;
+            if (min == null) {
+                min = eventTime;
+            } else {
+                if (eventTime < min) {
+                    min = eventTime;
                 }
             }
         }
@@ -107,43 +103,42 @@ public class SplitEventTimeManager {
 
     }
 
-
-    protected boolean isSplitsReceiver(){
-        if(isAllSplitReceived){
+    protected boolean isSplitsReceiver() {
+        if (isAllSplitReceived) {
             return true;
         }
-        if(lastUpdateTime==null){
-            lastUpdateTime=System.currentTimeMillis();
+        if (lastUpdateTime == null) {
+            lastUpdateTime = System.currentTimeMillis();
         }
-        if(allSplitSize==null&&workingSplitSize==null){
-            if(source==null){
+        if (allSplitSize == null && workingSplitSize == null) {
+            if (source == null) {
                 return false;
             }
-            if(source instanceof AbstractSource){
-                AbstractSource abstractSource=(AbstractSource)source;
-                List<ISplit> splits=abstractSource.getAllSplits();
-                if(splits==null){
-                    this.allSplitSize=-1;
-                }else {
-                    this.allSplitSize=splits.size();
+            if (source instanceof AbstractSource) {
+                AbstractSource abstractSource = (AbstractSource) source;
+                List<ISplit> splits = abstractSource.getAllSplits();
+                if (splits == null) {
+                    this.allSplitSize = -1;
+                } else {
+                    this.allSplitSize = splits.size();
                 }
             }
         }
-        if(allSplitSize==-1){
+        if (allSplitSize == -1) {
             return true;
         }
-        if(allSplitSize!=-1&&workingSplitSize==null){
-            workingSplitSize=0;
+        if (allSplitSize != -1 && workingSplitSize == null) {
+            workingSplitSize = 0;
         }
-        if(allSplitSize!=-1&&allSplitSize>workingSplitSize){
-            if(System.currentTimeMillis()-lastUpdateTime>1000){
-                workingSplitSize=calcuteWorkingSplitSize();
-                lastUpdateTime=System.currentTimeMillis();
-                if(allSplitSize>workingSplitSize){
+        if (allSplitSize != -1 && allSplitSize > workingSplitSize) {
+            if (System.currentTimeMillis() - lastUpdateTime > 1000) {
+                workingSplitSize = calcuteWorkingSplitSize();
+                lastUpdateTime = System.currentTimeMillis();
+                if (allSplitSize > workingSplitSize) {
                     return false;
                 }
             }
-            if(this.splitsGroupByInstance==null){
+            if (this.splitsGroupByInstance == null) {
                 return false;
             }
             //add time out policy: no necessary waiting for other split
@@ -160,7 +155,6 @@ public class SplitEventTimeManager {
             }
         }
 
-
         if (workingSplitSize == messageSplitId2MaxTime.size()) {
             this.isAllSplitReceived = true;
             return true;
@@ -169,16 +163,16 @@ public class SplitEventTimeManager {
     }
 
     private Integer calcuteWorkingSplitSize() {
-        if(source instanceof AbstractSource){
-            AbstractSource abstractSource=(AbstractSource)source;
+        if (source instanceof AbstractSource) {
+            AbstractSource abstractSource = (AbstractSource) source;
             Map<String, List<ISplit>> splits = abstractSource.getWorkingSplitsGroupByInstances();
-            if(splits==null){
+            if (splits == null) {
                 return 0;
             }
-            this.splitsGroupByInstance=splits;
-            int count=0;
-            for(List<ISplit> splitList:splits.values()){
-                count+=splitList.size();
+            this.splitsGroupByInstance = splits;
+            int count = 0;
+            for (List<ISplit> splitList : splits.values()) {
+                count += splitList.size();
             }
             return count;
         }

@@ -43,6 +43,7 @@ public interface IWindowStorage<T extends WindowBaseValue> extends ICommonStorag
      * 删除一个窗口实例的数据，包括远程和本地存储
      */
     void delete(String windowInstanceId, String queueId, Class<T> clazz);
+
     /**
      * 加载一个窗口实例的数据到本地存储
      */

@@ -32,6 +32,7 @@ import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChain
  */
 public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage> implements IStageBuilder<ChainStage>, Serializable, IAfterConfigurableRefreshListener {
     private static final long serialVersionUID = 1L;
+
     @Override
     protected boolean initConfigurable() {
         return true;
@@ -63,14 +64,13 @@ public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage>
         };
     }
 
-
     @Override
     public boolean isAsyncNode() {
         return false;
     }
 
     @Override
-    public ChainStage createStageChain(PipelineBuilder pipelineBuilder) {
+    public ChainStage<?> createStageChain(PipelineBuilder pipelineBuilder) {
         return new UDFChainStage(this);
     }
 
@@ -84,7 +84,4 @@ public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage>
 
     }
 
-    public static void main(String[] args) {
-
-    }
 }

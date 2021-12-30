@@ -24,14 +24,13 @@ import org.apache.rocketmq.streams.connectors.model.PullMessage;
 
 public interface ISplitReader extends Serializable {
 
-
     /**
      * Open.
      *
      * @param split the split
      * @throws IOException the io exception
      */
-    void open(ISplit split) ;
+    void open(ISplit split);
 
     /**
      * Next boolean.
@@ -40,7 +39,7 @@ public interface ISplitReader extends Serializable {
      * @throws IOException          the io exception
      * @throws InterruptedException the interrupted exception
      */
-    boolean next() ;
+    boolean next();
 
     /**
      * Gets message.
@@ -54,7 +53,7 @@ public interface ISplitReader extends Serializable {
      *
      * @throws IOException the io exception
      */
-    SplitCloseFuture close() ;
+    SplitCloseFuture close();
 
     /**
      * Seek.
@@ -62,7 +61,7 @@ public interface ISplitReader extends Serializable {
      * @param cursor the cursor
      * @throws IOException the io exception
      */
-    void seek(String cursor) ;
+    void seek(String cursor);
 
     /**
      * Gets progress.
@@ -70,8 +69,7 @@ public interface ISplitReader extends Serializable {
      * @return the progress
      * @throws IOException the io exception
      */
-    String getProgress() ;
-
+    String getProgress();
 
     /**
      * Get message delay (millseconds)
@@ -87,14 +85,11 @@ public interface ISplitReader extends Serializable {
      */
     long getFetchedDelay();
 
-
     boolean isClose();
 
     ISplit getSplit();
 
-
     boolean isInterrupt();
-
 
     boolean interrupt();
 

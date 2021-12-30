@@ -43,7 +43,7 @@ public class FileChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     @Override
     public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
 
-        FileSource fileSource = (FileSource)ConfigurableUtil.create(FileSource.class.getName(), namespace, name, createFormatProperty(properties), null);
+        FileSource fileSource = (FileSource) ConfigurableUtil.create(FileSource.class.getName(), namespace, name, createFormatProperty(properties), null);
         return fileSource;
     }
 
@@ -54,7 +54,7 @@ public class FileChannelBuilder extends AbstractSupportShuffleChannelBuilder {
 
     @Override
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
-        FileSink fileSink = (FileSink)ConfigurableUtil.create(FileSink.class.getName(), namespace, name, createFormatProperty(properties), null);
+        FileSink fileSink = (FileSink) ConfigurableUtil.create(FileSink.class.getName(), namespace, name, createFormatProperty(properties), null);
         return fileSink;
     }
 
@@ -64,18 +64,21 @@ public class FileChannelBuilder extends AbstractSupportShuffleChannelBuilder {
      * @param properties
      * @return
      */
+    @Override
     protected JSONObject createFormatProperty(Properties properties) {
         JSONObject formatProperties = new JSONObject();
         for (Object object : properties.keySet()) {
-            String key = (String)object;
+            String key = (String) object;
             if ("type".equals(key)) {
                 continue;
             }
             formatProperties.put(key, properties.get(key));
         }
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "filePath", "filePath");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "filePath", "filepath");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "filePath", "fileName");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "thread.max.count");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");
         return formatProperties;
     }
 

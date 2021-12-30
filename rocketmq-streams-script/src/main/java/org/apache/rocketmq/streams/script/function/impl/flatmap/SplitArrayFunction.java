@@ -47,7 +47,7 @@ public class SplitArrayFunction {
      */
     @FunctionMethod(value = FUNTION_NAME, alias = "split_array", comment = "拆分json数组")
     public void splitArray(IMessage channelMessage, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "值为数组的字段名") String splitFieldName) {
+        @FunctionParamter(value = "string", comment = "值为数组的字段名") String splitFieldName) {
         boolean needFlush = channelMessage.getHeader().isNeedFlush();
         context.openSplitModel();
         if (StringUtil.isEmpty(splitFieldName)) {
@@ -65,10 +65,10 @@ public class SplitArrayFunction {
         List jsonArray = null;
 
         if (JSONArray.class.isInstance(object) || List.class.isInstance(object)) {
-            jsonArray = (List)object;
+            jsonArray = (List) object;
         }
         if (String.class.isInstance(object)) {
-            jsonArray = JSONArray.parseArray((String)object);
+            jsonArray = JSONArray.parseArray((String) object);
         }
 
         if (CollectionUtil.isEmpty(jsonArray)) {
@@ -79,14 +79,14 @@ public class SplitArrayFunction {
             Object value = jsonArray.get(i);
             IMessage newMessage = null;
             if (IMessage.class.isInstance(value)) {
-                IMessage message = (IMessage)value;
+                IMessage message = (IMessage) value;
                 //如0果这条数据需要刷新，则只需要最后一条刷新即可
 
                 message.getMessageBody().putAll(channelMessage.getMessageBody());
                 newMessage = message;
             } else if (Map.class.isInstance(value)) {
                 JSONObject jsonObject = copyJsonObjectExceptField(channelMessage.getMessageBody(), splitFieldName);
-                Map subJsonObject = (Map)value;
+                Map subJsonObject = (Map) value;
                 jsonObject.putAll(subJsonObject);
                 IMessage copyMessage = channelMessage.copy();
                 copyMessage.setMessageBody(jsonObject);
@@ -115,7 +115,7 @@ public class SplitArrayFunction {
      */
     @FunctionMethod(value = "split", alias = "STRING_SPLIT", comment = "字符串按分割符分割")
     public void splitA(IMessage channelMessage, FunctionContext context,
-                       @FunctionParamter(value = "string", comment = "字符串或字段名字") String splitFieldName, String sign) {
+        @FunctionParamter(value = "string", comment = "字符串或字段名字") String splitFieldName, String sign) {
         if (StringUtil.isEmpty(splitFieldName)) {
             return;
         }
@@ -130,17 +130,17 @@ public class SplitArrayFunction {
         }
         boolean needFlush = channelMessage.getHeader().isNeedFlush();
         context.openSplitModel();
-        int index=0;
+        int index = 0;
         for (int i = 0; i < values.length; i++) {
             String value = values[i];
             if ("null".equalsIgnoreCase(value)) {
                 continue;
             }
-            if(StringUtil.isEmpty(value)){
+            if (StringUtil.isEmpty(value)) {
                 continue;
             }
             IMessage newMessage = channelMessage.deepCopy();
-            newMessage.getMessageBody().put(FunctionType.UDTF.getName()  + index, value);
+            newMessage.getMessageBody().put(FunctionType.UDTF.getName() + index, value);
             index++;
             newMessage.getHeader().setTraceId(channelMessage.getHeader().getTraceId() + "_" + i);
             if (i < values.length - 1) {

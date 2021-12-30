@@ -23,14 +23,14 @@ import org.junit.Test;
 
 public class SinkTest {
     @Test
-    public void testSink(){
-        FileSink fileSink=new FileSink("/tmp/file.txt");
+    public void testSink() {
+        FileSink fileSink = new FileSink("/tmp/file.txt");
         fileSink.setBatchSize(1000);
         fileSink.init();
         fileSink.openAutoFlush();
-        for(int i=0;i<100;i++){
-            JSONObject msg=new JSONObject();
-            msg.put("name","chris"+i);
+        for (int i = 0; i < 100; i++) {
+            JSONObject msg = new JSONObject();
+            msg.put("name", "chris" + i);
             fileSink.batchAdd(new Message(msg));
         }
         fileSink.flush();

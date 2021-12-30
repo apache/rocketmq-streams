@@ -64,15 +64,16 @@ public class DBDim extends AbstractDim {
     }
 
     @Override
-    protected void loadData2Memory(AbstractMemoryTable tableCompress){
-        if(StringUtil.isNotEmpty(idFieldName)){
-            BatchRowLoader batchRowLoader=new BatchRowLoader(idFieldName, sql, new IRowOperator() {
-                @Override public synchronized void doProcess(Map<String, Object> row) {
+    protected void loadData2Memory(AbstractMemoryTable tableCompress) {
+        if (StringUtil.isNotEmpty(idFieldName)) {
+            BatchRowLoader batchRowLoader = new BatchRowLoader(idFieldName, sql, new IRowOperator() {
+                @Override
+                public synchronized void doProcess(Map<String, Object> row) {
                     tableCompress.addRow(row);
                 }
             });
             batchRowLoader.startLoadData();
-            return ;
+            return;
         }
         List<Map<String, Object>> rows = executeQuery();
 

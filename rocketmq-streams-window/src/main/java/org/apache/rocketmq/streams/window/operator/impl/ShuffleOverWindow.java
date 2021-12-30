@@ -26,49 +26,47 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 public class ShuffleOverWindow extends WindowOperator implements IAfterConfigurableRefreshListener {
-    protected static String TOPN_KEY="___TopN_";
+    protected static String TOPN_KEY = "___TopN_";
     protected transient List<OrderBy> orderList;
     protected List<String> orderFieldNames;//name contains 2 part:name;true/false
-    protected int topN=100;
+    protected int topN = 100;
     /**
      * 需要把生成的序列号返回设置到message，这个是序列号对应的名字
      */
     protected String rowNumerName;
 
     @Override protected boolean initConfigurable() {
-         boolean success= super.initConfigurable();
-         this.setSizeInterval(3600);
-         this.setSlideInterval(3600);
-         this.setTimeUnitAdjust(1);
-         this.setEmitBeforeValue(5L);
-         return success;
+        boolean success = super.initConfigurable();
+        this.setSizeInterval(3600);
+        this.setSlideInterval(3600);
+        this.setTimeUnitAdjust(1);
+        this.setEmitBeforeValue(5L);
+        return success;
     }
-
 
     @Override protected void calculateWindowValue(WindowValue windowValue, IMessage msg) {
         super.calculateWindowValue(windowValue, msg);
-        TopNState topNState=(TopNState)windowValue.getAggColumnResultByKey(TOPN_KEY);
-        if(topNState==null){
-            topNState=new TopNState(topN);
+        TopNState topNState = (TopNState) windowValue.getAggColumnResultByKey(TOPN_KEY);
+        if (topNState == null) {
+            topNState = new TopNState(topN);
 
         }
-        topNState.addAndSortMsg(msg.getMessageBody(),orderList);
-        windowValue.putAggColumnResult(TOPN_KEY,topNState);
+        topNState.addAndSortMsg(msg.getMessageBody(), orderList);
+        windowValue.putAggColumnResult(TOPN_KEY, topNState);
     }
 
     @Override public void sendFireMessage(List<WindowValue> windowValueList, String queueId) {
-        List<WindowValue> windowValues=new ArrayList<>();
-        for(WindowValue windowValue:windowValueList){
+        List<WindowValue> windowValues = new ArrayList<>();
+        for (WindowValue windowValue : windowValueList) {
 
-            TopNState topNState=(TopNState)windowValue.getAggColumnResultByKey(TOPN_KEY);
+            TopNState topNState = (TopNState) windowValue.getAggColumnResultByKey(TOPN_KEY);
 
-
-            if(topNState.isChanged()){
-                int i=0;
-                for(Map<String,Object> msg:topNState.getOrderMsgs(this.rowNumerName,this.getSelectMap().keySet())){
-                    WindowValue copy=windowValue.clone();
+            if (topNState.isChanged()) {
+                int i = 0;
+                for (Map<String, Object> msg : topNState.getOrderMsgs(this.rowNumerName, this.getSelectMap().keySet())) {
+                    WindowValue copy = windowValue.clone();
                     copy.setAggColumnMap(new HashMap<>());
-                    copy.setPartitionNum(copy.getPartitionNum()*topN+i);
+                    copy.setPartitionNum(copy.getPartitionNum() * topN + i);
                     copy.putComputedColumnResult(msg);
                     windowValues.add(copy);
                     i++;
@@ -80,24 +78,20 @@ public class ShuffleOverWindow extends WindowOperator implements IAfterConfigura
         super.sendFireMessage(windowValues, queueId);
     }
 
-
-
-
-
     @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         super.windowInit();
-        if(orderList==null){
-            synchronized (this){
-                if(orderList==null){
-                    List<OrderBy> list=new ArrayList<>();
-                    for(String name:orderFieldNames){
-                        String[] values=name.split(";");
-                        String fieldName=values[0];
-                        Boolean isAsc=Boolean.valueOf(values[1]);
-                        OrderBy orderBy=new OrderBy(fieldName,isAsc);
+        if (orderList == null) {
+            synchronized (this) {
+                if (orderList == null) {
+                    List<OrderBy> list = new ArrayList<>();
+                    for (String name : orderFieldNames) {
+                        String[] values = name.split(";");
+                        String fieldName = values[0];
+                        Boolean isAsc = Boolean.valueOf(values[1]);
+                        OrderBy orderBy = new OrderBy(fieldName, isAsc);
                         list.add(orderBy);
                     }
-                    this.orderList=list;
+                    this.orderList = list;
                 }
             }
         }

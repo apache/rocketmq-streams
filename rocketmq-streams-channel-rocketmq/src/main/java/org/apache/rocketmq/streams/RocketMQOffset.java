@@ -39,11 +39,12 @@ public class RocketMQOffset implements OffsetStore {
     protected AbstractSupportShuffleSource source;
     private AtomicBoolean starting;
 
-    public RocketMQOffset(OffsetStore offsetStore, AbstractSupportShuffleSource source){
-        this.offsetStore=offsetStore;
-        this.source=source;
+    public RocketMQOffset(OffsetStore offsetStore, AbstractSupportShuffleSource source) {
+        this.offsetStore = offsetStore;
+        this.source = source;
         this.starting = new AtomicBoolean(true);
     }
+
     @Override
     public void load() throws MQClientException {
         offsetStore.load();
@@ -51,12 +52,12 @@ public class RocketMQOffset implements OffsetStore {
 
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
-        offsetStore.updateOffset(mq,offset,increaseOnly);
+        offsetStore.updateOffset(mq, offset, increaseOnly);
     }
 
     @Override
     public long readOffset(MessageQueue mq, ReadOffsetType type) {
-         return offsetStore.readOffset(mq,type);
+        return offsetStore.readOffset(mq, type);
     }
 
     @Override
@@ -91,12 +92,12 @@ public class RocketMQOffset implements OffsetStore {
 
     @Override
     public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway)
-            throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         source.sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
-        if(DebugWriter.isOpenDebug()){
-            ConcurrentMap<MessageQueue, AtomicLong>offsetTable=ReflectUtil.getDeclaredField(this.offsetStore,"offsetTable");
-            DebugWriter.getInstance(source.getTopic()).writeSaveOffset(mq,offsetTable.get(mq));
+        if (DebugWriter.isOpenDebug()) {
+            ConcurrentMap<MessageQueue, AtomicLong> offsetTable = ReflectUtil.getDeclaredField(this.offsetStore, "offsetTable");
+            DebugWriter.getInstance(source.getTopic()).writeSaveOffset(mq, offsetTable.get(mq));
         }
-       offsetStore.updateConsumeOffsetToBroker(mq,offset,isOneway);
+        offsetStore.updateConsumeOffsetToBroker(mq, offset, isOneway);
     }
 }

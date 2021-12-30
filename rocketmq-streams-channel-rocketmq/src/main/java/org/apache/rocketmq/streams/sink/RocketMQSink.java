@@ -40,7 +40,6 @@ import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
-
 public class RocketMQSink extends AbstractSupportShuffleSink {
 
     private static final Log LOG = LogFactory.getLog(RocketMQSink.class);
@@ -61,6 +60,11 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     public RocketMQSink() {
     }
 
+    public RocketMQSink(String namesrvAddr, String topic) {
+        this.namesrvAddr = namesrvAddr;
+        this.topic = topic;
+    }
+
     public RocketMQSink(String namesrvAddr, String topic, String groupName) {
         this.namesrvAddr = namesrvAddr;
         this.topic = topic;
@@ -72,6 +76,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         this.topic = topic;
         this.groupName = groupName;
     }
+
     @Override
     protected boolean initConfigurable() {
         super.initConfigurable();
@@ -148,7 +153,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 //                            throw new RuntimeException("namesrvAddr can not be null.");
 //                        }
 
-                        if(StringUtil.isNotEmpty(this.namesrvAddr)){
+                        if (StringUtil.isNotEmpty(this.namesrvAddr)) {
                             producer.setNamesrvAddr(this.namesrvAddr);
                         }
                         producer.start();

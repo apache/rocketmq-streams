@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.common.cache.compress;
 
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
-public class MapAddress {
+public class KVAddress {
     /**
      * 是否在冲突域
      */
@@ -34,19 +34,19 @@ public class MapAddress {
      */
     protected int offset = 0;
 
-    public MapAddress(int conflictIndex, int offset) {
+    public KVAddress(int conflictIndex, int offset) {
         this.isConflict = true;
         this.conflictIndex = conflictIndex;
         this.offset = offset;
     }
 
-    public MapAddress(int offset) {
+    public KVAddress(int offset) {
         this.isConflict = false;
         this.conflictIndex = -1;
         this.offset = offset;
     }
 
-    public MapAddress() {
+    public KVAddress() {
 
     }
 
@@ -59,7 +59,8 @@ public class MapAddress {
      *
      * @param byteArray
      */
-    public MapAddress(ByteArray byteArray) {
+    public KVAddress(ByteArray byteArray) {
+
         byte firstByte = 0;
         firstByte = byteArray.getByte(byteArray.getSize() - 1);
         //  byte firstByte=byteArray.getByte(byteArray.getSize()-1);
@@ -69,32 +70,80 @@ public class MapAddress {
             isConflict = true;
         } else {
             isConflict = false;
-            this.offset = byteArray.castInt(0, 4);
+            this.offset = byteArray.castInt(0, 3);
             return;
         }
-        //TODO 这个地址是不是每次相同？
-        this.conflictIndex = conflictValue & 127;
+
+        byte[] bytes = new byte[2];
+        bytes[0] = byteArray.getByte(3);
+        int x = conflictValue & 127;
+        bytes[1] = NumberUtils.toByte(x)[0];
+        this.conflictIndex = NumberUtils.toInt(bytes);
         this.offset = byteArray.castInt(0, 3);
     }
 
     public byte[] createBytes() {
-        byte[] bytes = NumberUtils.toByte(offset);
+        byte[] values = NumberUtils.toByte(offset, 5);
+        byte[] indexBytes = NumberUtils.toByte(conflictIndex);
+        values[3] = indexBytes[0];
+        byte fisrtByte = indexBytes[1];
+
         int value = 0;
-        byte fisrtByte = (byte) (conflictIndex & 0xff);
         if (isConflict) {
             value = (fisrtByte | (1 << 7));//把第一位变成1
         } else {
-            return bytes;
+            return values;
         }
 
-        bytes[bytes.length - 1] = (byte) (value & 0xff);
-        return bytes;
+        values[4] = (byte) (value & 0xff);
+        return values;
     }
 
     public byte[] createBytesIngoreFirstBit() {
-        byte[] bytes = NumberUtils.toByte(offset);
-        byte fisrtByte = (byte) (conflictIndex & 0xff);
-        bytes[bytes.length - 1] = fisrtByte;
-        return bytes;
+        byte[] values = NumberUtils.toByte(offset, 5);
+        byte[] indexBytes = NumberUtils.toByte(conflictIndex);
+        values[3] = indexBytes[0];
+        values[4] = indexBytes[1];
+        return values;
+    }
+
+    public Long convertLongValue() {
+        byte[] bytes = createBytesIngoreFirstBit();
+        return NumberUtils.toLong(bytes);
+
+    }
+
+    public static KVAddress createMapAddressFromLongValue(Long value) {
+        byte[] bytes = NumberUtils.toByte(value);
+        return createAddressFromBytes(bytes);
+    }
+
+    public static KVAddress createAddressFromBytes(byte[] bytes) {
+        int offset = NumberUtils.toInt(bytes, 0, 3);
+        byte firstByte = bytes[4];
+        if (firstByte < 0) {
+            bytes[4] = 0;
+        }
+        int index = NumberUtils.toInt(bytes, 3, 2);
+        KVAddress mapAddress = new KVAddress(index, offset);
+        return mapAddress;
+
+    }
+
+    public int getConflictIndex() {
+        return conflictIndex;
+    }
+
+    public int getOffset() {
+        return offset;
+    }
+
+    public static void main(String[] args) {
+//        System.out.println(1L << 63);
+//        System.out.println(0x8000000000000000L);
+
+        KVAddress kvAddress = new KVAddress(new ByteArray(NumberUtils.toByte((long) Integer.MAX_VALUE + 1L)));
+        System.out.println(kvAddress);
+
     }
 }

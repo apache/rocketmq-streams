@@ -36,96 +36,90 @@ import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 @AutoService(IScriptOptimization.class)
-public class ScriptOptimization  implements IScriptOptimization{
+public class ScriptOptimization implements IScriptOptimization {
 
-    public static interface IExpressionExecutor<T>{
+    public static interface IExpressionExecutor<T> {
         boolean execute(IMessage message, AbstractContext context);
     }
 
-
-    @Override public IOptimizationCompiler compile(List<IScriptExpression> expressions, IConfigurableIdentification configurableIdentification) {
-        if(expressions!=null){
-            GroupByVarExecutor groupByVarExecutor=new GroupByVarExecutor(configurableIdentification.getNameSpace(),configurableIdentification.getConfigureName(),expressions);
-            //
-            expressions= blinkRuleV2ExpressionOptimizate(expressions,configurableIdentification);
-           // expressions=groupByVarExecutor.compile();
-            //expressions=CaseWhenBuilder.compile(configurableIdentification.getNameSpace(),configurableIdentification.getConfigureName(),expressions);
+    @Override public IOptimizationCompiler compile(List<IScriptExpression> expressions,
+        IConfigurableIdentification configurableIdentification) {
+        if (expressions != null) {
+            GroupByVarExecutor groupByVarExecutor = new GroupByVarExecutor(configurableIdentification.getNameSpace(), configurableIdentification.getConfigureName(), expressions);
+            expressions = blinkRuleV2ExpressionOptimizate(expressions, configurableIdentification);
             groupByVarExecutor.setScriptExpressions(expressions);
             return groupByVarExecutor;
         }
         return null;
     }
 
-    private List<IScriptExpression> blinkRuleV2ExpressionOptimizate(List<IScriptExpression> expressions,IConfigurableIdentification configurableIdentification) {
-        List<IScriptExpression> expressionList=new ArrayList<>();
-        for(IScriptExpression scriptExpression:expressions){
-            if(!FunctionScript.class.isInstance(configurableIdentification)){
+    private List<IScriptExpression> blinkRuleV2ExpressionOptimizate(List<IScriptExpression> expressions,
+        IConfigurableIdentification configurableIdentification) {
+        List<IScriptExpression> expressionList = new ArrayList<>();
+        for (IScriptExpression scriptExpression : expressions) {
+            if (!FunctionScript.class.isInstance(configurableIdentification)) {
                 expressionList.add(scriptExpression);
                 continue;
             }
-            FunctionScript functionScript=(FunctionScript)configurableIdentification;
-            boolean isSupport=BlinkRuleV2Expression.isBlinkRuleV2Parser(scriptExpression,functionScript.getConfigurableService());
-            if(!isSupport){
+            FunctionScript functionScript = (FunctionScript) configurableIdentification;
+            boolean isSupport = BlinkRuleV2Expression.isBlinkRuleV2Parser(scriptExpression, functionScript.getConfigurableService());
+            if (!isSupport) {
                 expressionList.add(scriptExpression);
                 continue;
             }
-            BlinkRuleV2Expression blinkRuleV2Expression=new BlinkRuleV2Expression("com.lyra.xs.udf.ext.sas_black_rule_v2",scriptExpression.getFunctionName());
-            List<IScriptParamter> scriptParamters=scriptExpression.getScriptParamters();
-            String[] varNames=new String[scriptParamters.size()];
-            int i=0;
-            for(IScriptParamter scriptParamter:scriptParamters){
-                String var=IScriptOptimization.getParameterValue(scriptParamter);
-                varNames[i]=var;
+            BlinkRuleV2Expression blinkRuleV2Expression = new BlinkRuleV2Expression("com.lyra.xs.udf.ext.sas_black_rule_v2", scriptExpression.getFunctionName());
+            List<IScriptParamter> scriptParamters = scriptExpression.getScriptParamters();
+            String[] varNames = new String[scriptParamters.size()];
+            int i = 0;
+            for (IScriptParamter scriptParamter : scriptParamters) {
+                String var = IScriptOptimization.getParameterValue(scriptParamter);
+                varNames[i] = var;
                 i++;
             }
-            BlinkRuleV2Expression.RuleSetGroup ruleSetGroup= blinkRuleV2Expression.getDependentFields(varNames);
-//            Set<String> dependentVarNames=ruleSetGroup.getVarNames();
-//            List<Expression> optimizateExpressions=ruleSetGroup.optimizate();
-            IScriptExpression ruleExpression=new BlinkRuleV2Exprssion(scriptExpression,ruleSetGroup);
+            BlinkRuleV2Expression.RuleSetGroup ruleSetGroup = blinkRuleV2Expression.getDependentFields(varNames);
+            IScriptExpression ruleExpression = new BlinkRuleV2Exprssion(scriptExpression, ruleSetGroup);
             expressionList.add(ruleExpression);
-    }
+        }
         return expressionList;
     }
 
-
-   public static class BlinkRuleV2Exprssion implements IScriptExpression<Integer>{
+    public static class BlinkRuleV2Exprssion implements IScriptExpression<Integer> {
         protected IScriptExpression ori;
         protected BlinkRuleV2Expression.RuleSetGroup group;
-        protected Map<String,List<BlinkRuleV2Expression.RuleSet>> ruleSetByCoreVarNames;
+        protected Map<String, List<BlinkRuleV2Expression.RuleSet>> ruleSetByCoreVarNames;
         protected FingerprintCache fingerprintCache;
-        public BlinkRuleV2Exprssion(IScriptExpression ori,BlinkRuleV2Expression.RuleSetGroup group){
-            this.ori=ori;
-            this.group=group;
-            ruleSetByCoreVarNames=group.optimizate();
-            fingerprintCache=new FingerprintCache(1000000);
+
+        public BlinkRuleV2Exprssion(IScriptExpression ori, BlinkRuleV2Expression.RuleSetGroup group) {
+            this.ori = ori;
+            this.group = group;
+            ruleSetByCoreVarNames = group.optimizate();
+            fingerprintCache = new FingerprintCache(1000000);
         }
 
-
-
-       @Override public Integer executeExpression(IMessage message, FunctionContext context) {
-            int ruleId=-1;
-            for(String coreVarName:ruleSetByCoreVarNames.keySet()){
-                BitSetCache.BitSet bitSet=fingerprintCache.getLogFingerprint(coreVarName,message.getMessageBody().getString(coreVarName));
-                if(bitSet!=null){
+        @Override public Integer executeExpression(IMessage message, FunctionContext context) {
+            int ruleId = -1;
+            for (String coreVarName : ruleSetByCoreVarNames.keySet()) {
+                BitSetCache.BitSet bitSet = fingerprintCache.getLogFingerprint(coreVarName, message.getMessageBody().getString(coreVarName));
+                if (bitSet != null) {
                     continue;
                 }
-                List<BlinkRuleV2Expression.RuleSet> ruleSets=ruleSetByCoreVarNames.get(coreVarName);
-                for(BlinkRuleV2Expression.RuleSet ruleSet:ruleSets){
-                    boolean isMatch= ruleSet.execute(message,context);
-                    if(isMatch){
-                        ruleId= ruleSet.getRuleId();
-                        String varName=ori.getNewFieldNames().iterator().next();
-                        message.getMessageBody().put(varName,ruleId);
+                List<BlinkRuleV2Expression.RuleSet> ruleSets = ruleSetByCoreVarNames.get(coreVarName);
+                for (BlinkRuleV2Expression.RuleSet ruleSet : ruleSets) {
+                    boolean isMatch = ruleSet.execute(message, context);
+                    if (isMatch) {
+                        ruleId = ruleSet.getRuleId();
+                        String varName = ori.getNewFieldNames().iterator().next();
+                        message.getMessageBody().put(varName, ruleId);
                         return ruleId;
                     }
                 }
-                bitSet=new BitSetCache.BitSet(1);
+                bitSet = new BitSetCache.BitSet(1);
                 bitSet.set(0);
-                fingerprintCache.addLogFingerprint(coreVarName,message.getMessageBody().getString(coreVarName),bitSet);
+                fingerprintCache.addLogFingerprint(coreVarName, message.getMessageBody().getString(coreVarName), bitSet);
             }
 
-            String varName=ori.getNewFieldNames().iterator().next();
-            message.getMessageBody().put(varName,ruleId);
+            String varName = ori.getNewFieldNames().iterator().next();
+            message.getMessageBody().put(varName, ruleId);
             return ruleId;
         }
 
@@ -142,7 +136,7 @@ public class ScriptOptimization  implements IScriptOptimization{
         }
 
         @Override public Object getScriptParamter(IMessage message, FunctionContext context) {
-            return ori.getScriptParamter(message,context);
+            return ori.getScriptParamter(message, context);
         }
 
         @Override public String getScriptParameterStr() {
@@ -157,17 +151,14 @@ public class ScriptOptimization  implements IScriptOptimization{
             return ori.getNewFieldNames();
         }
 
-
-
-
-       public List<Expression> getExpressions() {
-            List<Expression> expressions=new ArrayList<>();
-            for(BlinkRuleV2Expression.RuleSet ruleSet:this.group.getRuleSets()){
-                for(Expression expression:ruleSet.getExpressions()){
+        public List<Expression> getExpressions() {
+            List<Expression> expressions = new ArrayList<>();
+            for (BlinkRuleV2Expression.RuleSet ruleSet : this.group.getRuleSets()) {
+                for (Expression expression : ruleSet.getExpressions()) {
                     expressions.add(expression);
                 }
             }
             return expressions;
-       }
-   }
+        }
+    }
 }

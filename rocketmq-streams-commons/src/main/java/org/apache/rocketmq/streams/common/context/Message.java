@@ -29,12 +29,11 @@ public class Message implements IMessage {
 
     protected ISystemMessage systemMessage;
 
-
     protected MessageHeader header = new MessageHeader();
 
     public Message(JSONObject message) {
         this.message = message;
-        if (!UserDefinedMessage.class.isInstance(message)) {
+        if (!(message instanceof UserDefinedMessage)) {
             String messageValue = message.getString(UserDefinedMessage.class.getName());
             if (messageValue != null) {
                 this.message = new UserDefinedMessage(message, messageValue);
@@ -71,7 +70,7 @@ public class Message implements IMessage {
     @Override
     public Object getMessageValue() {
         if (this.message instanceof UserDefinedMessage) {
-            UserDefinedMessage userDefinedMessage = (UserDefinedMessage)this.message;
+            UserDefinedMessage userDefinedMessage = (UserDefinedMessage) this.message;
             return userDefinedMessage.getMessageValue();
         }
         return this.message;
@@ -88,7 +87,7 @@ public class Message implements IMessage {
     public Message deepCopy() {
         JSONObject jsonObject = new JSONObject();
         if (this.message instanceof UserDefinedMessage) {
-            jsonObject = new UserDefinedMessage(((UserDefinedMessage)this.message).getMessageValue());
+            jsonObject = new UserDefinedMessage(((UserDefinedMessage) this.message).getMessageValue());
         }
 
         for (String key : message.keySet()) {
@@ -96,16 +95,18 @@ public class Message implements IMessage {
         }
         Message message = new Message(jsonObject);
         message.setSystemMessage(getSystemMessage());
-        message.isJsonMessage=isJsonMessage;
+        message.isJsonMessage = isJsonMessage;
         message.header = getHeader().copy();
         return message;
     }
 
     public static JSONObject parseObject(String msg) {
         JSONObject jsonObject = JSONObject.parseObject(msg);
-        String userObjectString = jsonObject.getString(UserDefinedMessage.class.getName());
-        if (userObjectString != null) {
-            return new UserDefinedMessage(jsonObject, userObjectString);
+        if (jsonObject != null) {
+            String userObjectString = jsonObject.getString(UserDefinedMessage.class.getName());
+            if (userObjectString != null) {
+                return new UserDefinedMessage(jsonObject, userObjectString);
+            }
         }
         return jsonObject;
     }
@@ -127,6 +128,5 @@ public class Message implements IMessage {
     public void setSystemMessage(ISystemMessage systemMessage) {
         this.systemMessage = systemMessage;
     }
-
 
 }

@@ -29,16 +29,15 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 
-
 /**
  * @description
  */
-public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
+public abstract class AbstractCheckPointStorage implements ICheckPointStorage {
 
     static final Log logger = LogFactory.getLog(AbstractCheckPointStorage.class);
     protected transient IMessageCache<CheckPointMessage> messageCache;
 
-    public AbstractCheckPointStorage(){
+    public AbstractCheckPointStorage() {
         messageCache = new MessageCache<>(new IMessageFlushCallBack<CheckPointMessage>() {
             @Override
             public boolean flushMessage(List<CheckPointMessage> messages) {
@@ -53,41 +52,42 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
                 return true;
             }
         });
-        ((MessageCache)messageCache).setAutoFlushSize(50);
-        ((MessageCache)messageCache).setAutoFlushTimeGap(10 * 1000);
+        ((MessageCache) messageCache).setAutoFlushSize(50);
+        ((MessageCache) messageCache).setAutoFlushTimeGap(10 * 1000);
         messageCache.openAutoFlush();
     }
 
-    public void flush(){
+    public void flush() {
         messageCache.flush();
     }
-
 
     /**
      * 可能有多次的offset合并在一起，对offset合并
      * 合并包含两个逻辑：1.同1个CheckPointMessage中，选择最小的作为本次的offset
+     *
      * @param messages
      */
-    protected  Map<String, SourceState> mergeSourceState(List<CheckPointMessage> messages) {
-        Map<String,SourceState> sourceStateMap = new HashMap<>();
-        for(CheckPointMessage checkPointMessage:messages){
+    protected Map<String, SourceState> mergeSourceState(List<CheckPointMessage> messages) {
+        Map<String, SourceState> sourceStateMap = new HashMap<>();
+        for (CheckPointMessage checkPointMessage : messages) {
             SourceState sourceState = createSourceState(checkPointMessage);
-            if(sourceState == null){
+            if (sourceState == null) {
                 continue;
             }
             String sourceName = sourceState.getSourceName();
             SourceState existSourceState = sourceStateMap.get(sourceName);
             SourceState lastSourceState = sourceState;
-            if(existSourceState != null){
-                lastSourceState = merge(sourceState,existSourceState);
+            if (existSourceState != null) {
+                lastSourceState = merge(sourceState, existSourceState);
             }
-            sourceStateMap.put(sourceName,lastSourceState);
+            sourceStateMap.put(sourceName, lastSourceState);
         }
         return sourceStateMap;
     }
 
     /**
      * 如果多次的checkpoint在一起，先合并再保存
+     *
      * @param sourceState
      * @param existSourceState
      * @return
@@ -95,17 +95,17 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
     protected SourceState merge(SourceState sourceState, SourceState existSourceState) {
         Iterator<Map.Entry<String, MessageOffset>> it = sourceState.getQueueId2Offsets().entrySet()
             .iterator();
-        while (it.hasNext()){
-            Map.Entry<String, MessageOffset> entry=it.next();
+        while (it.hasNext()) {
+            Map.Entry<String, MessageOffset> entry = it.next();
             String queueId = entry.getKey();
             MessageOffset offset = entry.getValue();
             MessageOffset existOffset = existSourceState.getQueueId2Offsets().get(queueId);
-            if(existOffset == null){
-                existSourceState.getQueueId2Offsets().put(queueId,offset);
-            }else {
+            if (existOffset == null) {
+                existSourceState.getQueueId2Offsets().put(queueId, offset);
+            } else {
                 boolean isGreateThan = offset.greateThan(existOffset.getOffsetStr());
-                if(isGreateThan){
-                    existSourceState.getQueueId2Offsets().put(queueId,offset);
+                if (isGreateThan) {
+                    existSourceState.getQueueId2Offsets().put(queueId, offset);
                 }
             }
         }
@@ -114,6 +114,7 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
 
     /**
      * 一个pipeline流程中，找最小的offset提交保存
+     *
      * @param checkPointMessage
      * @return
      */
@@ -122,32 +123,32 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
         String pipelineName = checkPointMessage.getPipelineName();
 
         Map<String, MessageOffset> queueId2Offsets = new HashMap<>();
-        sourceState.setSourceName(CheckPointManager.createSourceName(checkPointMessage.getSource(),pipelineName));
+        sourceState.setSourceName(CheckPointManager.createSourceName(checkPointMessage.getSource(), pipelineName));
         sourceState.setQueueId2Offsets(queueId2Offsets);
 
-        for(CheckPointState checkPointState:checkPointMessage.getCheckPointStates()){
+        for (CheckPointState checkPointState : checkPointMessage.getCheckPointStates()) {
 
-            if(checkPointState.isReplyAnyOny()){
+            if (checkPointState.isReplyAnyOny()) {
                 continue;
             }
-            if(checkPointState.isReplyRefuse()){
+            if (checkPointState.isReplyRefuse()) {
                 return null;
             }
             Iterator<Map.Entry<String, MessageOffset>> it = checkPointState.getQueueIdAndOffset().entrySet()
                 .iterator();
-            while (it.hasNext()){
-                Map.Entry<String, MessageOffset> entry=it.next();
-                String queueId=entry.getKey();
+            while (it.hasNext()) {
+                Map.Entry<String, MessageOffset> entry = it.next();
+                String queueId = entry.getKey();
                 MessageOffset offset = entry.getValue();
                 MessageOffset existOffset = queueId2Offsets.get(queueId);
-                if(existOffset==null){
-                    queueId2Offsets.put(queueId,offset);
-                }else {
-                    boolean isGreateThan=existOffset.greateThan(offset.getOffsetStr());
-                    if(isGreateThan){
-                        queueId2Offsets.put(queueId,offset);
-                    }else {
-                        queueId2Offsets.put(queueId,existOffset);
+                if (existOffset == null) {
+                    queueId2Offsets.put(queueId, offset);
+                } else {
+                    boolean isGreateThan = existOffset.greateThan(offset.getOffsetStr());
+                    if (isGreateThan) {
+                        queueId2Offsets.put(queueId, offset);
+                    } else {
+                        queueId2Offsets.put(queueId, existOffset);
                     }
                 }
             }
@@ -158,14 +159,15 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
     /**
      * 先查询现在数据源的分片，如果已经不处理的分片，不做保存
      * 否则把结果保存到db中
+     *
      * @param sourceStateMap
      */
     protected void saveCheckPoint(Map<String, SourceState> sourceStateMap) {
 
         List<SourceSnapShot> checkPoints = new ArrayList<>();
 
-        for(SourceState sourceState:sourceStateMap.values()){
-            for(Map.Entry<String, MessageOffset> entry : sourceState.getQueueId2Offsets().entrySet()){
+        for (SourceState sourceState : sourceStateMap.values()) {
+            for (Map.Entry<String, MessageOffset> entry : sourceState.getQueueId2Offsets().entrySet()) {
                 CheckPoint checkPoint = new CheckPoint();
                 checkPoint.setSourceName(sourceState.getSourceName());
                 checkPoint.setQueueId(entry.getKey());
@@ -180,16 +182,16 @@ public abstract class AbstractCheckPointStorage implements ICheckPointStorage{
         save(checkPoints);
     }
 
-    public void addCheckPointMessage(CheckPointMessage message){
+    public void addCheckPointMessage(CheckPointMessage message) {
         List<CheckPointState> states = message.getCheckPointStates();
-        for(CheckPointState state : states){
+        for (CheckPointState state : states) {
             logger.debug(String.format("addCheckPointMessage states %s", state.getQueueIdAndOffset().toString()));
         }
         messageCache.addCache(message);
     }
 
     @Override
-    public void finish(){
+    public void finish() {
         this.messageCache.closeAutoFlush();
     }
 
