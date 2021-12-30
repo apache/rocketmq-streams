@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.streams.client.transform;
 
-import com.alibaba.fastjson.JSONObject;
 import java.util.Set;
+import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.functions.ReduceFunction;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
@@ -41,7 +41,8 @@ public class WindowStream {
     protected Set<PipelineBuilder> otherPipelineBuilders;
     protected ChainStage<?> currentChainStage;
 
-    public WindowStream(AbstractWindow window, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
+    public WindowStream(AbstractWindow window, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
+        ChainStage<?> currentChainStage) {
         this.pipelineBuilder = pipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
@@ -56,6 +57,16 @@ public class WindowStream {
      */
     public WindowStream count(String asName) {
         window.getSelectMap().put(asName, asName + "=count(" + asName + ")");
+        return this;
+    }
+
+    public WindowStream emitBeforeFire(Time emitTime) {
+        window.setEmitBeforeValue(emitTime.getLongValue());
+        return this;
+    }
+
+    public WindowStream emitAfterFire(Time emitTime) {
+        window.setEmitAfterValue(emitTime.getLongValue());
         return this;
     }
 
@@ -230,22 +241,19 @@ public class WindowStream {
      * @return
      */
     public <R, O> DataStream reduce(ReduceFunction<R, O> reduceFunction) {
-        window.setReducer(new IReducer() {
-            @Override
-            public JSONObject reduce(JSONObject accumulator, JSONObject msg) {
-                Object accumulatorValue = accumulator;
-                Object msgValue = msg;
-                if (msg instanceof UserDefinedMessage) {
-                    UserDefinedMessage userDefinedMessage = (UserDefinedMessage)msg;
-                    msgValue = userDefinedMessage.getMessageValue();
-                }
-                if (accumulator instanceof UserDefinedMessage) {
-                    UserDefinedMessage userDefinedMessage = (UserDefinedMessage)accumulator;
-                    accumulatorValue = userDefinedMessage.getMessageValue();
-                }
-                R result = reduceFunction.reduce((R)accumulatorValue, (O)msgValue);
-                return new UserDefinedMessage(result);
+        window.setReducer((IReducer) (accumulator, msg) -> {
+            Object accumulatorValue = accumulator;
+            Object msgValue = msg;
+            if (msg instanceof UserDefinedMessage) {
+                UserDefinedMessage userDefinedMessage = (UserDefinedMessage) msg;
+                msgValue = userDefinedMessage.getMessageValue();
             }
+            if (accumulator instanceof UserDefinedMessage) {
+                UserDefinedMessage userDefinedMessage = (UserDefinedMessage) accumulator;
+                accumulatorValue = userDefinedMessage.getMessageValue();
+            }
+            R result = reduceFunction.reduce((R) accumulatorValue, (O) msgValue);
+            return new UserDefinedMessage(result);
         });
         return new DataStream(pipelineBuilder, otherPipelineBuilders, currentChainStage);
     }

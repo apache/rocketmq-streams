@@ -28,22 +28,22 @@ public class FileDim extends AbstractDim {
     protected String filePath;
 
     @Override
-    protected void loadData2Memory(AbstractMemoryTable tableCompress){
-        List<String> rows= FileUtil.loadFileLine(filePath);
-        for(String row:rows){
-            JSONObject jsonObject= JSON.parseObject(row);
-            Map<String,Object> values=new HashMap<>();
-            for(String key:jsonObject.keySet()){
-                values.put(key,jsonObject.getString(key));
+    protected void loadData2Memory(AbstractMemoryTable tableCompress) {
+        List<String> rows = FileUtil.loadFileLine(filePath);
+        for (String row : rows) {
+            JSONObject jsonObject = JSON.parseObject(row);
+            Map<String, Object> values = new HashMap<>();
+            for (String key : jsonObject.keySet()) {
+                values.put(key, jsonObject.getString(key));
             }
             tableCompress.addRow(values);
         }
     }
 
     public static void main(String[] args) {
-       List<String> lines= FileUtil.loadFileLine("/tmp/data_model_extractor_config.txt");
-        for(String row:lines){
-            JSONObject jsonObject= JSON.parseObject(row);
+        List<String> lines = FileUtil.loadFileLine("/tmp/data_model_extractor_config.txt");
+        for (String row : lines) {
+            JSONObject jsonObject = JSON.parseObject(row);
             System.out.println(jsonObject);
         }
     }

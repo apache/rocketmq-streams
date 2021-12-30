@@ -63,14 +63,14 @@ public class DefaultRuleEngine implements IRuleEngine {
                 return fireRules;
             }
             try {
-                boolean isTrace= TraceUtil.hit(message.getHeader().getTraceId());
+                boolean isTrace = TraceUtil.hit(message.getHeader().getTraceId());
                 for (Rule rule : excuteRules) {
                     RuleContext ruleContext = new RuleContext(message.getMessageBody(), rule);
                     if (context != null) {
                         context.syncSubContext(ruleContext);
                     }
-                    boolean isFireRule=rule.doMessage(message,context);
-                    if (isFireRule == false&&isTrace) {
+                    boolean isFireRule = rule.doMessage(message, context);
+                    if (isFireRule == false && isTrace) {
                         TopologyFilterMonitor piplineExecutorMonitor = message.getHeader().getPiplineExecutorMonitor();
                         if (piplineExecutorMonitor != null) {
                             piplineExecutorMonitor.setNotFireRule(rule.getConfigureName());
@@ -82,7 +82,7 @@ public class DefaultRuleEngine implements IRuleEngine {
 
                         //doUnRepeateScript(ruleContext, rule);// 执行规则去重脚本
                         if (isAction) {
-                            fireAction(message,context, rule);
+                            fireAction(message, context, rule);
                         }
                     }
                 }
@@ -126,11 +126,11 @@ public class DefaultRuleEngine implements IRuleEngine {
                         return;
                     }
                     for (String actionName : rule.getActionNames()) {
-                        Action action = getAction(actionName,rule);
+                        Action action = getAction(actionName, rule);
                         if (action == null) {
                             continue;
                         }
-                        doAction(message,context,action, rule);
+                        doAction(message, context, action, rule);
                     }
                 } catch (Exception e) {
                     LOG.error("DefaultRuleEngine fire atciton error: ruleName is" + rule.getConfigureName(), e);
@@ -141,7 +141,7 @@ public class DefaultRuleEngine implements IRuleEngine {
                 if (action == null) {
                     return;
                 }
-                doAction(message,context,action, rule);
+                doAction(message, context, action, rule);
             }
 
         } catch (Exception e) {
@@ -165,6 +165,5 @@ public class DefaultRuleEngine implements IRuleEngine {
         Action action = rule.getActionMap().get(name);
         return action;
     }
-
 
 }

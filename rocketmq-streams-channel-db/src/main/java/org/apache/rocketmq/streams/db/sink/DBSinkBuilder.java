@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.db.sink;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.auto.service.AutoService;
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
@@ -25,20 +26,42 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 
 @AutoService(IChannelBuilder.class)
-@ServiceName(value = DBSinkBuilder.TYPE,aliasName = "db")
+@ServiceName(value = DBSinkBuilder.TYPE, aliasName = "db")
 public class DBSinkBuilder implements IChannelBuilder {
     public static final String TYPE = "rds";
 
     @Override
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
         DBSink sink = new DBSink();
-        sink.setUrl(properties.getProperty("url"));
-        sink.setUserName(properties.getProperty("userName"));
-        sink.setPassword(properties.getProperty("password"));
-        sink.setTableName(properties.getProperty("tableName"));
-        sink.setSqlMode(properties.getProperty("sqlMode"));
+        JSONObject proJson = createFormatProperty(properties);
+        sink.setUrl(proJson.getString("url"));
+        sink.setUserName(proJson.getString("userName"));
+        sink.setPassword(proJson.getString("password"));
+        sink.setTableName(proJson.getString("tableName"));
+        sink.setSqlMode(proJson.getString("sqlMode"));
         sink.setMetaData(metaData);
         return sink;
+    }
+
+    /**
+     * 创建标准的属性文件
+     *
+     * @param properties
+     * @return
+     */
+    protected JSONObject createFormatProperty(Properties properties) {
+        JSONObject formatProperties = new JSONObject();
+        for (Object object : properties.keySet()) {
+            String key = (String) object;
+            if ("type".equals(key)) {
+                continue;
+            }
+            formatProperties.put(key, properties.get(key));
+        }
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "userName", "username");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "tableName", "tablename");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "sqlMode", "sqlmode");
+        return formatProperties;
     }
 
     @Override

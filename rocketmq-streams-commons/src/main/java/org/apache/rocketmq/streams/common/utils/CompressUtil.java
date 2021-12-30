@@ -16,11 +16,16 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -54,35 +59,95 @@ public class CompressUtil {
         }
     }
 
-    /**
-     public static void gzip(String src, String dest) throws IOException {
-     FileInputStream is = null;
-     FileOutputStream os = null;
-     GZIPOutputStream gos = null;
-     try {
-     is = new FileInputStream(src);
-     os = new FileOutputStream(dest);
-     gos = new GZIPOutputStream(os);
+    public static byte[] gZip(String data) {
+        try {
+            return gZip(data.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-     int count;
-     byte data[] = new byte[BUFFER];
-     while ((count = is.read(data, 0, BUFFER)) != -1) {
-     gos.write(data, 0, count);
-     }
+    public static String unGzip(byte[] data) {
+        byte[] bytes = unGZip(data);
+        try {
+            return new String(bytes, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-     gos.finish();
-     gos.flush();
-     } finally {
-     if (gos != null) {
-     gos.close();
-     }
-     if (os != null) {
-     os.close();
-     }
-     if (is != null) {
-     is.close();
-     }
-     }
-     }
-     **/
+    /***
+     * 压缩GZip
+     *
+     * @param data
+     * @return
+     */
+    public static byte[] gZip(byte[] data) {
+        byte[] b = null;
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            GZIPOutputStream gzip = new GZIPOutputStream(bos);
+            gzip.write(data);
+            gzip.finish();
+            gzip.close();
+            b = bos.toByteArray();
+            bos.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return b;
+    }
+
+    /***
+     * 解压GZip
+     *
+     * @param data
+     * @return
+     */
+    public static byte[] unGZip(byte[] data) {
+        byte[] b = null;
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(data);
+            GZIPInputStream gzip = new GZIPInputStream(bis);
+            byte[] buf = new byte[1024];
+            int num = -1;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            while ((num = gzip.read(buf, 0, buf.length)) != -1) {
+                baos.write(buf, 0, num);
+            }
+            b = baos.toByteArray();
+            baos.flush();
+            baos.close();
+            gzip.close();
+            bis.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return b;
+    }
+
+    /***
+     * 压缩Zip
+     *
+     * @param data
+     * @return
+     */
+    public static byte[] zip(byte[] data) {
+        byte[] b = null;
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ZipOutputStream zip = new ZipOutputStream(bos);
+            ZipEntry entry = new ZipEntry("zip");
+            entry.setSize(data.length);
+            zip.putNextEntry(entry);
+            zip.write(data);
+            zip.closeEntry();
+            zip.close();
+            b = bos.toByteArray();
+            bos.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return b;
+    }
 }

@@ -46,40 +46,39 @@ public class CycleSchedule implements Serializable {
         cycleId.set(INIT_CYCLE_VERSION);
         cyclePeriod = CyclePeriod.getInstance(expression);
         isInit = true;
-        if(cyclePeriod.isHistory){
+        if (cyclePeriod.isHistory) {
             Date curCycleDateTime = calCycleDateTime(local);
             Date tmp = subMs(cyclePeriod.getHisDate());
             cycleDiff = curCycleDateTime.getTime() - tmp.getTime();
-        }else{
+        } else {
             cycleDiff = 0;
         }
     }
 
     /**
      * 去掉毫秒时间戳
+     *
      * @param date
      * @return
      */
-    private Date subMs(Date date){
-        long time = date.getTime()/1000 * 1000;
+    private Date subMs(Date date) {
+        long time = date.getTime() / 1000 * 1000;
         return new Date(time);
     }
 
-
     /**
-     *
      * @return 返回date格式的调度周期时间
      */
-    private Date calCycleDateTime(Date date){
+    private Date calCycleDateTime(Date date) {
         return cyclePeriod.format(date);
     }
 
-    public Cycle nextCycle(Date date){
+    public Cycle nextCycle(Date date) {
         Date local = subMs(date);
         local = cyclePeriod.format(local);
-        if(isInit){
+        if (isInit) {
             isInit = false;
-        }else{
+        } else {
             cycleId.incrementAndGet();
         }
         List<String> ret = calAllPattern(local);
@@ -93,15 +92,15 @@ public class CycleSchedule implements Serializable {
         return cycle;
     }
 
-    private String calCycleDateStr(Date date){
+    private String calCycleDateStr(Date date) {
         long d = date.getTime() - cycleDiff;
         Date d1 = new Date(d);
         return cyclePeriod.getDateFormat().format(d1);
     }
 
-    private List<String> calAllPattern(Date date){
+    private List<String> calAllPattern(Date date) {
         List<String> allPatterns = new ArrayList<>();
-        for(int i = 1; i <= cyclePeriod.getCycle(); i++){
+        for (int i = 1; i <= cyclePeriod.getCycle(); i++) {
             long d = date.getTime() - i * cyclePeriod.getInterval() - cycleDiff;
             String s = cyclePeriod.getDateFormat().format(new Date(d));
             allPatterns.add(s);
@@ -160,8 +159,7 @@ public class CycleSchedule implements Serializable {
         return INSTANCE;
     }
 
-
-    public static class Cycle extends BasedConfigurable implements Serializable{
+    public static class Cycle extends BasedConfigurable implements Serializable {
 
         private static final long serialVersionUID = 4842560538716388622L;
         Long cycleId;

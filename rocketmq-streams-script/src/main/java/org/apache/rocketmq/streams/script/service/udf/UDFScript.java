@@ -76,8 +76,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
     @Override
     protected boolean initConfigurable() {
         registFunctionSerivce(scriptComponent.getFunctionService());
-        FunctionConfigure functionConfigure =
-            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName());
+        FunctionConfigure functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), this.initParameters);
         if (functionConfigure == null) {
             return true;
         }
@@ -111,9 +110,9 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
             for (Method method : methods) {
                 if (method.getName().equals(methodName)) {
                     FunctionType functionType = getFunctionType();
-                    if(List.class.isAssignableFrom(method.getReturnType())) {
-                        iFunctionService.registeUserDefinedUDTFFunction(functionName, initMethodName, method);
-                    }else {
+                    if (List.class.isAssignableFrom(method.getReturnType())) {
+                        iFunctionService.registeUserDefinedUDTFFunction(functionName, instance, method);
+                    } else {
                         iFunctionService.registeFunction(functionName, instance, method, functionType);
                     }
 
@@ -129,8 +128,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
     @Override
     public void destroy() {
         super.destroy();
-        FunctionConfigure functionConfigure =
-            scriptComponent.getFunctionService().getFunctionConfigure(getCloseMethodName());
+        FunctionConfigure functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(getCloseMethodName());
         if (functionConfigure == null) {
             return;
         }
@@ -275,8 +273,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
     }
 
     @Override
-    public Object doMessage(IMessage channelMessage,
-                            AbstractContext context) {
+    public Object doMessage(IMessage channelMessage, AbstractContext context) {
         return instance;
     }
 

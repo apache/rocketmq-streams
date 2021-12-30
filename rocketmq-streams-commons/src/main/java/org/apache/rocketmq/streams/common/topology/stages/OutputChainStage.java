@@ -57,7 +57,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
      * 如果需要把输出关闭或mock到一个其他channel，可以通过配置一个mockchannel。同时通过配置文件
      */
     protected transient ISink mockSink;
-    protected transient AtomicInteger count=new AtomicInteger(0);
+    protected transient AtomicInteger count = new AtomicInteger(0);
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
@@ -77,9 +77,9 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
                     }
                 }
             }
-            boolean isWindowTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
-            if(isWindowTest){
-                System.out.println("output count is "+count.incrementAndGet());
+            boolean isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+            if (isWindowTest) {
+                System.out.println("output count is " + count.incrementAndGet());
             }
             /**
              * 主要是输出可能影响线上数据，可以通过配置文件的开关，把所有的输出，都指定到一个其他输出中

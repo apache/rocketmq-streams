@@ -17,70 +17,42 @@
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
 import org.apache.rocketmq.streams.common.cache.compress.CacheKV;
-import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
 
 /**
  * 支持key是string，value是int的场景，支持size不大于10000000.只支持int，long，boolean，string类型
  */
-public class KeySet implements ICacheKV {
-
-    protected CacheKV cacheKV;
+public class KeySet extends CacheKV {
 
     public KeySet(int capacity) {
-        cacheKV = new CacheKV(capacity, 20) {
-            @Override
-            public Object get(String key) {
-                boolean exist = contains(key);
-                if (exist) {
-                    return key;
-                }
-                return null;
-            }
+        super(capacity, false);
 
-            @Override
-            public void put(String key, Object value) {
-                putInner(key, 1, true);
-            }
-
-            @Override
-            public boolean contains(String key) {
-                MapElementContext context = queryMapElementByHashCode(key);
-                if (context.isMatchKey()) {
-                    return true;
-                }
-                return false;
-            }
-
-        };
-    }
-
-    public void add(String key) {
-        cacheKV.putInner(key, 1, true);
     }
 
     @Override
     public Object get(String key) {
-        return cacheKV.get(key);
+        boolean exist = contains(key);
+        if (exist) {
+            return key;
+        }
+        return null;
     }
 
     @Override
     public void put(String key, Object value) {
-        cacheKV.put(key, value);
+        putInner(key, null, true);
     }
 
     @Override
     public boolean contains(String key) {
-        return cacheKV.contains(key);
+        MapElementContext context = queryMapElementByHashCode(key);
+        if (context.isMatchKey()) {
+            return true;
+        }
+        return false;
     }
 
-    @Override
-    public int getSize() {
-        return cacheKV.getSize();
-    }
-
-    @Override
-    public int calMemory() {
-        return cacheKV.calMemory();
+    public void add(String key) {
+        super.putInner(key, null, true);
     }
 
     public static void main(String[] args) throws InterruptedException {

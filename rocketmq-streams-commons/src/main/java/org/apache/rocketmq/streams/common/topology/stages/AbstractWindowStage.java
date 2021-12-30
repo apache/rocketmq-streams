@@ -33,21 +33,21 @@ import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IWindow;
 
 public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage<T> implements
-        IAfterConfigurableRefreshListener {
+    IAfterConfigurableRefreshListener {
     protected String windowName;
     protected transient IWindow window;
 
     @Override
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
-       if(window.getWindowCache()==null){//over window windowcache  is null
-           return;
-       }
-        if(message.getHeader().isNeedFlush()){
-            if(window.getWindowCache()!=null&&message.getHeader().getCheckpointQueueIds()!=null&&message.getHeader().getCheckpointQueueIds().size()>0){
+        if (window.getWindowCache() == null) {//over window windowcache  is null
+            return;
+        }
+        if (message.getHeader().isNeedFlush()) {
+            if (window.getWindowCache() != null && message.getHeader().getCheckpointQueueIds() != null && message.getHeader().getCheckpointQueueIds().size() > 0) {
                 window.getWindowCache().checkpoint(message.getHeader().getCheckpointQueueIds());
-            }else {
-                if(window.getWindowCache()!=null){
-                    Set<String> queueIds=new HashSet<>();
+            } else {
+                if (window.getWindowCache() != null) {
+                    Set<String> queueIds = new HashSet<>();
                     queueIds.add(message.getHeader().getQueueId());
                     window.getWindowCache().checkpoint(queueIds);
                 }
@@ -55,7 +55,7 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
             }
 
         }
-        CheckPointState checkPointState=  new CheckPointState();
+        CheckPointState checkPointState = new CheckPointState();
         checkPointState.setQueueIdAndOffset(window.getWindowCache().getFinishedQueueIdAndOffsets(checkPointMessage));
         checkPointMessage.reply(checkPointState);
     }
@@ -64,6 +64,7 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
     public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
 
     }
+
     @Override
     public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
 
@@ -77,8 +78,7 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         window = configurableService.queryConfigurable(IWindow.TYPE, windowName);
-        PiplineRecieverAfterCurrentNode receiver = getReceiverAfterCurrentNode();
-        window.setFireReceiver(receiver);
+        window.setFireReceiver(getReceiverAfterCurrentNode());
         if (Boolean.TRUE.equals(Boolean.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_RUNNING_STATUS, ConfigureFileKey.DIPPER_RUNNING_STATUS_DEFAULT)))) {
             window.windowInit();
         }

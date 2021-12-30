@@ -105,7 +105,6 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
         this.batchSize = batchSize;
     }
 
-
     public ISplit getISplit() {
         return iSplit;
     }
@@ -114,14 +113,14 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
         this.iSplit = iSplit;
     }
 
-    public DBScanReader(){
+    public DBScanReader() {
 
     }
 
-    transient ThreadLocal<JDBCDriver> threadLocal = new ThreadLocal<JDBCDriver>(){
+    transient ThreadLocal<JDBCDriver> threadLocal = new ThreadLocal<JDBCDriver>() {
 
         @Override
-        public JDBCDriver initialValue(){
+        public JDBCDriver initialValue() {
             logger.info(String.format("%s initial jdbcDriver. ", Thread.currentThread().getName()));
             return DriverBuilder.createDriver(AbstractComponent.DEFAULT_JDBC_DRIVER, url, userName, password);
         }
@@ -143,10 +142,10 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
 
     @Override
     public boolean next() {
-        if(interrupt){
+        if (interrupt) {
             return false;
         }
-        if(isFinished()){
+        if (isFinished()) {
             finish();
             ThreadUtil.sleep(10 * 1000);
             return false;
@@ -158,7 +157,7 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
         List<Map<String, Object>> resultData = jdbcDriver.queryForList(batchQuery);
         offsetStart = offsetEnd;
         pullMessages.clear();
-        for(Map<String, Object> r : resultData){
+        for (Map<String, Object> r : resultData) {
             PullMessage msg = new PullMessage();
             JSONObject data = JSONObject.parseObject(JSON.toJSONString(r));
             msg.setMessage(data);
@@ -186,11 +185,11 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
 
     @Override
     public void seek(String cursor) {
-        if(cursor == null || cursor.trim().equals("")){
+        if (cursor == null || cursor.trim().equals("")) {
             cursor = "0";
         }
         offset = Long.parseLong(cursor);
-        if(offset < minOffset){
+        if (offset < minOffset) {
             offset = minOffset;
         }
         offsetStart = offset;
@@ -240,12 +239,12 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
 
     @Override
     public void finish() {
-        if(isFinishedCall){
+        if (isFinishedCall) {
             return;
         }
         pullMessages = null;
         updateReaderStatus();
-        IBoundedSource tmp = (IBoundedSource)iSource;
+        IBoundedSource tmp = (IBoundedSource) iSource;
         tmp.boundedFinishedCallBack(this.iSplit);
         isFinishedCall = true;
     }
@@ -258,10 +257,10 @@ public class DBScanReader implements ISplitReader, IBoundedSourceReader, Seriali
         this.iSource = iSource;
     }
 
-    private final void updateReaderStatus(){
+    private final void updateReaderStatus() {
         String sourceName = CycleDynamicMultipleDBScanSource.createKey(this.getISource());
         int finish = Integer.valueOf(1);
-        int total = ((CycleDynamicMultipleDBScanSource)iSource).getTotalReader();
+        int total = ((CycleDynamicMultipleDBScanSource) iSource).getTotalReader();
         ReaderStatus readerStatus = ReaderStatus.create(sourceName, iSplit.getQueueId(), finish, total);
         logger.info(String.format("create reader status %s.", readerStatus));
         ORMUtil.batchReplaceInto(readerStatus);

@@ -27,7 +27,7 @@ import org.apache.rocketmq.streams.db.sink.EnhanceDBSink;
 /**
  * @description
  */
-public class ScheduledTask implements Runnable{
+public class ScheduledTask implements Runnable {
 
     CycleSchedule schedule;
     String sinkTableName;
@@ -36,7 +36,8 @@ public class ScheduledTask implements Runnable{
     String userName;
     String password;
 
-    public ScheduledTask(String expression, String url, String userName, String password, String sourceTableName, String sinkTableName){
+    public ScheduledTask(String expression, String url, String userName, String password, String sourceTableName,
+        String sinkTableName) {
         schedule = CycleSchedule.getInstance(expression, new Date());
         this.sourceTableName = sourceTableName;
         this.sinkTableName = sinkTableName;
@@ -50,7 +51,6 @@ public class ScheduledTask implements Runnable{
         ComponentCreator.getProperties().put(ConfigureFileKey.IS_ATOMIC_DB_SINK, "true");
 
     }
-
 
     @Override
     public void run() {

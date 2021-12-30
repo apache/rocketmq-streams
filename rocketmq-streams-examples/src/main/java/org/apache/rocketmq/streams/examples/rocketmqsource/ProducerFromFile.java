@@ -85,7 +85,7 @@ public class ProducerFromFile {
         } catch (Throwable t) {
             t.printStackTrace();
         } finally {
-            if (reader!= null) {
+            if (reader != null) {
                 try {
                     reader.close();
                 } catch (IOException e) {

@@ -18,13 +18,10 @@ package org.apache.rocketmq.streams.common.topology;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 
@@ -58,69 +55,6 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
 
     public void setCancelAfterConfigurableRefreshListerner(boolean cancelAfterConfigurableRefreshListerner) {
         this.cancelAfterConfigurableRefreshListerner = cancelAfterConfigurableRefreshListerner;
-    }
-
-    /**
-     * 获取当前节点后续pipeline节点
-     *
-     * @return
-     */
-    public PiplineRecieverAfterCurrentNode getReceiverAfterCurrentNode() {
-        ChainPipeline pipeline = (ChainPipeline) getPipeline();
-
-        return new PiplineRecieverAfterCurrentNode(pipeline,this.getLabel());
-    }
-
-    /**
-     * 执行当前后续的节点
-     */
-    public class PiplineRecieverAfterCurrentNode implements IStreamOperator<IMessage, AbstractContext<IMessage>>,
-        IConfigurableIdentification {
-        protected ChainPipeline pipeline;
-        protected String currentLable;
-
-        public PiplineRecieverAfterCurrentNode(ChainPipeline pipeline,String currentLable) {
-            this.currentLable=currentLable;
-            this.pipeline = pipeline;
-        }
-
-        public PiplineRecieverAfterCurrentNode() {
-
-        }
-
-        @Override
-        public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
-            //设置window触发后需要执行的逻辑
-            if (pipeline.isTopology()) {
-                pipeline.doNextStages(context, getMsgSourceName(),currentLable, getNextStageLabels(), getOwnerSqlNodeTableName());
-                return context;
-
-            } else {
-                final int index = chooseWindowStageNextIndex(pipeline);
-
-                pipeline.doMessageFromIndex(message, context, index);
-                return context;
-            }
-        }
-
-        public ChainPipeline getPipeline() {
-            return pipeline;
-        }
-
-        @Override
-        public String getConfigureName() {
-            return pipeline.getConfigureName();
-        }
-
-        @Override
-        public String getNameSpace() {
-            return pipeline.getNameSpace();
-        }
-
-        @Override
-        public String getType() {
-            return pipeline.getType();
-        }
     }
 
     /**
@@ -161,32 +95,9 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
         sendSystem(message, context, set);
     }
 
-    /**
-     * 选择当前stage所在的位置
-     *
-     * @param pipeLine
-     * @return
-     */
-    protected int chooseWindowStageNextIndex(ChainPipeline pipeLine) {
-        List<AbstractStage<?>> stages = pipeLine.getStages();
-        for (int i = 0; i < stages.size(); i++) {
-            AbstractStage stage = stages.get(i);
-            if (isCurrentWindowStage(stage)) {
-                return (i + 1);
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * 判断stage是否是当前stage
-     *
-     * @param stage
-     * @return
-     */
-
-    protected boolean isCurrentWindowStage(AbstractStage stage) {
-        return this.equals(stage);
+    protected SectionPipeline getReceiverAfterCurrentNode() {
+        SectionPipeline receiver = new SectionPipeline((ChainPipeline) getPipeline(), this);
+        return receiver;
     }
 
 }

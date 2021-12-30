@@ -35,206 +35,208 @@ import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 public class DebugWriter {
-    protected String filePath="/tmp/rocketmq-streams/window_debug";
-    protected static Map<String,DebugWriter> debugWriterMap=new HashMap<>();
-    protected boolean openDebug=false;
-    protected  String countFileName;
-    protected boolean openRocksDBTest=false;
-    public DebugWriter(String windowName){
-        filePath=filePath+"/"+windowName;
-        File file=new File(filePath);
+    protected String filePath = "/tmp/rocketmq-streams/window_debug";
+    protected static Map<String, DebugWriter> debugWriterMap = new HashMap<>();
+    protected boolean openDebug = false;
+    protected String countFileName;
+    protected boolean openRocksDBTest = false;
+
+    public DebugWriter(String windowName) {
+        filePath = filePath + "/" + windowName;
+        File file = new File(filePath);
         file.deleteOnExit();
-        String value=ComponentCreator.getProperties().getProperty("window.debug");
-        if(StringUtil.isNotEmpty(value)){
-            openDebug=Boolean.valueOf(value);
+        String value = ComponentCreator.getProperties().getProperty("window.debug");
+        if (StringUtil.isNotEmpty(value)) {
+            openDebug = Boolean.valueOf(value);
         }
-        value=ComponentCreator.getProperties().getProperty("window.debug.countFileName");
-        if(StringUtil.isNotEmpty(value)){
-            countFileName=value;
+        value = ComponentCreator.getProperties().getProperty("window.debug.countFileName");
+        if (StringUtil.isNotEmpty(value)) {
+            countFileName = value;
         }
-        value=ComponentCreator.getProperties().getProperty("window.debug.dir");
-        if(StringUtil.isNotEmpty(value)){
-            filePath=value;
+        value = ComponentCreator.getProperties().getProperty("window.debug.dir");
+        if (StringUtil.isNotEmpty(value)) {
+            filePath = value;
         }
-        value=ComponentCreator.getProperties().getProperty("window.debug.rocksdb");
-        if(StringUtil.isNotEmpty(value)){
-            openRocksDBTest=Boolean.valueOf(value);
+        value = ComponentCreator.getProperties().getProperty("window.debug.rocksdb");
+        if (StringUtil.isNotEmpty(value)) {
+            openRocksDBTest = Boolean.valueOf(value);
         }
     }
 
-    public static DebugWriter getDebugWriter(String windowName){
-        DebugWriter debugWriter=debugWriterMap.get(windowName);
-        if(debugWriter!=null){
+    public static DebugWriter getDebugWriter(String windowName) {
+        DebugWriter debugWriter = debugWriterMap.get(windowName);
+        if (debugWriter != null) {
             return debugWriter;
         }
-        synchronized (DebugWriter.class){
-            debugWriter=new DebugWriter(windowName);
-            debugWriterMap.put(windowName,debugWriter);
+        synchronized (DebugWriter.class) {
+            debugWriter = new DebugWriter(windowName);
+            debugWriterMap.put(windowName, debugWriter);
         }
         return debugWriter;
     }
-    public void writeShuffleCalcultateReceveMessage(WindowInstance instance,List<IMessage> messages,String splitId) {
-        if(!openDebug){
+
+    public void writeShuffleCalcultateReceveMessage(WindowInstance instance, List<IMessage> messages, String splitId) {
+        if (!openDebug) {
             return;
         }
-        String logFilePath=filePath+"/window_calculate_message_receive/"+splitId+"/msg.txt";
-        List<String> msgs=new ArrayList<>();
-        for(IMessage message:messages){
-            JSONObject msg=new JSONObject();
-            msg.put("offset",message.getHeader().getOffset());
-            msg.put("queueid",message.getMessageBody().getString(message.getHeader().getQueueId()));
-            msg.put("windowInstaceId",instance.createWindowInstanceId());
+        String logFilePath = filePath + "/window_calculate_message_receive/" + splitId + "/msg.txt";
+        List<String> msgs = new ArrayList<>();
+        for (IMessage message : messages) {
+            JSONObject msg = new JSONObject();
+            msg.put("offset", message.getHeader().getOffset());
+            msg.put("queueid", message.getMessageBody().getString(message.getHeader().getQueueId()));
+            msg.put("windowInstaceId", instance.createWindowInstanceId());
             msgs.add(msg.toJSONString());
         }
-        FileUtil.write(logFilePath,msgs,true);
+        FileUtil.write(logFilePath, msgs, true);
     }
 
-
-    public synchronized void writeWindowCache(AbstractWindow window, List<IMessage> messages,String splitId){
-        if(!openDebug){
+    public synchronized void writeWindowCache(AbstractWindow window, List<IMessage> messages, String splitId) {
+        if (!openDebug) {
             return;
         }
-        String logFilePath=filePath+"/window_cache/"+splitId+"/msg.txt";
-        List<String> msgs=new ArrayList<>();
-        for(IMessage message:messages){
-            JSONObject jsonObject=new JSONObject();
+        String logFilePath = filePath + "/window_cache/" + splitId + "/msg.txt";
+        List<String> msgs = new ArrayList<>();
+        for (IMessage message : messages) {
+            JSONObject jsonObject = new JSONObject();
             jsonObject.put("currentTime", DateUtil.getCurrentTimeString());
-            Long eventTime=message.getMessageBody().getLong(window.getTimeFieldName());
-            if(eventTime!=null){
-                jsonObject.put("event_time",DateUtil.format(new Date(eventTime)));
+            Long eventTime = message.getMessageBody().getLong(window.getTimeFieldName());
+            if (eventTime != null) {
+                jsonObject.put("event_time", DateUtil.format(new Date(eventTime)));
             }
-            jsonObject.put("ori_queue_id",message.getHeader().getQueueId());
-            jsonObject.put("ori_offset",message.getHeader().getOffset());
+            jsonObject.put("ori_queue_id", message.getHeader().getQueueId());
+            jsonObject.put("ori_offset", message.getHeader().getOffset());
             msgs.add(jsonObject.toJSONString());
         }
-        FileUtil.write(logFilePath,msgs,true);
+        FileUtil.write(logFilePath, msgs, true);
     }
 
-    public synchronized void writeShuffleReceiveBeforeCache(AbstractWindow window, List<IMessage> messages,String splitId){
-        if(!openDebug){
+    public synchronized void writeShuffleReceiveBeforeCache(AbstractWindow window, List<IMessage> messages,
+        String splitId) {
+        if (!openDebug) {
             return;
         }
-        String logFilePath=filePath+"/window_receive_before_cache/"+splitId+"/msg.txt";
-        List<String> msgs=new ArrayList<>();
-        for(IMessage message:messages){
-            JSONObject jsonObject=new JSONObject();
+        String logFilePath = filePath + "/window_receive_before_cache/" + splitId + "/msg.txt";
+        List<String> msgs = new ArrayList<>();
+        for (IMessage message : messages) {
+            JSONObject jsonObject = new JSONObject();
             jsonObject.put("currentTime", DateUtil.getCurrentTimeString());
-            Long eventTime=message.getMessageBody().getLong(window.getTimeFieldName());
-            if(eventTime!=null){
-                jsonObject.put("event_time",DateUtil.format(new Date(eventTime)));
+            Long eventTime = message.getMessageBody().getLong(window.getTimeFieldName());
+            if (eventTime != null) {
+                jsonObject.put("event_time", DateUtil.format(new Date(eventTime)));
             }
-            jsonObject.put("ori_queue_id",message.getHeader().getQueueId());
-            jsonObject.put("ori_offset",message.getHeader().getOffset());
+            jsonObject.put("ori_queue_id", message.getHeader().getQueueId());
+            jsonObject.put("ori_offset", message.getHeader().getOffset());
             msgs.add(jsonObject.toJSONString());
         }
-        FileUtil.write(logFilePath,msgs,true);
+        FileUtil.write(logFilePath, msgs, true);
     }
 
-
-    public synchronized void writeShuffleReceive(AbstractWindow window, List<IMessage> messages, WindowInstance instance){
-        if(!openDebug){
+    public synchronized void writeShuffleReceive(AbstractWindow window, List<IMessage> messages,
+        WindowInstance instance) {
+        if (!openDebug) {
             return;
         }
-        String logFilePath=filePath+"/window_receive/"+instance.getSplitId()+"/msg.txt";
-        List<String> msgs=new ArrayList<>();
-        for(IMessage message:messages){
-            JSONObject jsonObject=new JSONObject();
+        String logFilePath = filePath + "/window_receive/" + instance.getSplitId() + "/msg.txt";
+        List<String> msgs = new ArrayList<>();
+        for (IMessage message : messages) {
+            JSONObject jsonObject = new JSONObject();
             //jsonObject.put("logTime",message.getMessageBody().getString("logTime"));
-            if(instance!=null){
-                jsonObject.put("start_time",instance.getStartTime());
-                jsonObject.put("end_time",instance.getEndTime());
-                jsonObject.put("fire_time",instance.getFireTime());
+            if (instance != null) {
+                jsonObject.put("start_time", instance.getStartTime());
+                jsonObject.put("end_time", instance.getEndTime());
+                jsonObject.put("fire_time", instance.getFireTime());
 
             }
             jsonObject.put("currentTime", DateUtil.getCurrentTimeString());
-            Long maxEventTime=window.getMaxEventTime(instance.getSplitId());
-            if(maxEventTime!=null){
-                jsonObject.put("max_event_time",DateUtil.format(new Date(maxEventTime)));
+            Long maxEventTime = window.getMaxEventTime(instance.getSplitId());
+            if (maxEventTime != null) {
+                jsonObject.put("max_event_time", DateUtil.format(new Date(maxEventTime)));
             }
 
-            Long eventTime=message.getMessageBody().getLong(window.getTimeFieldName());
-            if(eventTime!=null){
-                jsonObject.put("event_time",DateUtil.format(new Date(eventTime)));
+            Long eventTime = message.getMessageBody().getLong(window.getTimeFieldName());
+            if (eventTime != null) {
+                jsonObject.put("event_time", DateUtil.format(new Date(eventTime)));
             }
-            String lastUpdateTime=message.getMessageBody().getString("lastUpdateTime");
-            if(StringUtil.isNotEmpty(lastUpdateTime)){
-                jsonObject.put("lastUpdateTime",lastUpdateTime);
+            String lastUpdateTime = message.getMessageBody().getString("lastUpdateTime");
+            if (StringUtil.isNotEmpty(lastUpdateTime)) {
+                jsonObject.put("lastUpdateTime", lastUpdateTime);
             }
 
             String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
-            if(StringUtil.isNotEmpty(oriQueueId)){
-                jsonObject.put("ori_queue_id",oriQueueId);
-                jsonObject.put("ori_offset",message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET));
+            if (StringUtil.isNotEmpty(oriQueueId)) {
+                jsonObject.put("ori_queue_id", oriQueueId);
+                jsonObject.put("ori_offset", message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET));
             }
 
             msgs.add(jsonObject.toJSONString());
         }
-        FileUtil.write(logFilePath,msgs,true);
+        FileUtil.write(logFilePath, msgs, true);
     }
 
-    public void writeWindowCalculate(AbstractWindow window, List<WindowValue> messages,String splitId){
-        if(!openDebug){
+    public void writeWindowCalculate(AbstractWindow window, List<WindowValue> messages, String splitId) {
+        if (!openDebug) {
             return;
         }
-        String logFilePath=filePath+"/window_calculate/msg.txt";
-        List<String> msgs=new ArrayList<>();
-        for(WindowValue windowValue:messages){
-            JSONObject jsonObject=new JSONObject();
+        String logFilePath = filePath + "/window_calculate/msg.txt";
+        List<String> msgs = new ArrayList<>();
+        for (WindowValue windowValue : messages) {
+            JSONObject jsonObject = new JSONObject();
             jsonObject.put("msgKey", windowValue.getMsgKey());
-            jsonObject.put("partition",windowValue.getPartition());
-            jsonObject.put("groupby",windowValue.getGroupBy());
-            jsonObject.put("windowInstanceId",windowValue.getWindowInstanceId());
-            jsonObject.put("start_time",windowValue.getStartTime());
-            jsonObject.put("end_time",windowValue.getEndTime());
-           // jsonObject.put("orig_offset",windowValue.getOrigOffset());
-            jsonObject.put("result",windowValue.getComputedColumnResultByKey(countFileName).toString());
+            jsonObject.put("partition", windowValue.getPartition());
+            jsonObject.put("groupby", windowValue.getGroupBy());
+            jsonObject.put("windowInstanceId", windowValue.getWindowInstanceId());
+            jsonObject.put("start_time", windowValue.getStartTime());
+            jsonObject.put("end_time", windowValue.getEndTime());
+            // jsonObject.put("orig_offset",windowValue.getOrigOffset());
+            jsonObject.put("result", windowValue.getComputedColumnResultByKey(countFileName).toString());
             msgs.add(jsonObject.toJSONString());
         }
-        FileUtil.write(logFilePath,msgs,true);
+        FileUtil.write(logFilePath, msgs, true);
     }
 
-    public void writeWindowFire(AbstractWindow window, List<IMessage> messages,String splitId){
-        if(!openDebug){
+    public void writeWindowFire(AbstractWindow window, List<IMessage> messages, String splitId) {
+        if (!openDebug) {
             return;
         }
-        String logFilePath=filePath+"/window_fire/"+splitId+"/msg.txt";
-        List<String> msgs=new ArrayList<>();
-        for(IMessage msg:messages){
-            JSONObject jsonObject=new JSONObject();
-            jsonObject.put("windowInstanceId",msg.getMessageBody().getString("windowInstanceId"));
-            jsonObject.put("start_time",msg.getMessageBody().getString("start_time"));
-            jsonObject.put("end_time",msg.getMessageBody().getString("end_time"));
+        String logFilePath = filePath + "/window_fire/" + splitId + "/msg.txt";
+        List<String> msgs = new ArrayList<>();
+        for (IMessage msg : messages) {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("windowInstanceId", msg.getMessageBody().getString("windowInstanceId"));
+            jsonObject.put("start_time", msg.getMessageBody().getString("start_time"));
+            jsonObject.put("end_time", msg.getMessageBody().getString("end_time"));
             jsonObject.put("partitionNum", msg.getHeader().getOffset());
-            jsonObject.put("result",msg.getMessageBody().getLong("total"));
-            jsonObject.put("queueId",msg.getHeader().getQueueId());
-            jsonObject.put("msgKey",msg.getMessageBody().getString("msgKey"));
+            jsonObject.put("result", msg.getMessageBody().getLong("total"));
+            jsonObject.put("queueId", msg.getHeader().getQueueId());
+            jsonObject.put("msgKey", msg.getMessageBody().getString("msgKey"));
             msgs.add(jsonObject.toJSONString());
         }
-        FileUtil.write(logFilePath,msgs,true);
+        FileUtil.write(logFilePath, msgs, true);
     }
 
-
-    public synchronized void writeFireWindowInstance(WindowInstance windowInstance,Long eventTimeLastUpdateTime,Long maxEventTime,int fireReason){
-        if(!openDebug){
+    public synchronized void writeFireWindowInstance(WindowInstance windowInstance, Long eventTimeLastUpdateTime,
+        Long maxEventTime, int fireReason) {
+        if (!openDebug) {
             return;
         }
-        String logFilePath=filePath+"/window_receive/"+windowInstance.getSplitId()+"/msg.txt";
-        JSONObject fireMsg=new JSONObject();
-        fireMsg.put("current_time",DateUtil.getCurrentTimeString());
-        fireMsg.put("start_time",windowInstance.getStartTime());
-        fireMsg.put("end_time",windowInstance.getEndTime());
-        fireMsg.put("fire_time",windowInstance.getFireTime());
-        fireMsg.put("queueid",windowInstance.getSplitId());
-        fireMsg.put("fireReason",fireReason);
+        String logFilePath = filePath + "/window_receive/" + windowInstance.getSplitId() + "/msg.txt";
+        JSONObject fireMsg = new JSONObject();
+        fireMsg.put("current_time", DateUtil.getCurrentTimeString());
+        fireMsg.put("start_time", windowInstance.getStartTime());
+        fireMsg.put("end_time", windowInstance.getEndTime());
+        fireMsg.put("fire_time", windowInstance.getFireTime());
+        fireMsg.put("queueid", windowInstance.getSplitId());
+        fireMsg.put("fireReason", fireReason);
         fireMsg.put("lastUpdateTime", DateUtil.format(new Date(eventTimeLastUpdateTime)));
-        if(maxEventTime!=null){
+        if (maxEventTime != null) {
             fireMsg.put("maxEventTime", DateUtil.format(new Date(maxEventTime)));
         }
 
-        fireMsg.put("sign","abc*********************************************abc");
-        List<String> messages=new ArrayList<>();
+        fireMsg.put("sign", "abc*********************************************abc");
+        List<String> messages = new ArrayList<>();
         messages.add(fireMsg.toJSONString());
-        FileUtil.write(logFilePath,messages,true);
+        FileUtil.write(logFilePath, messages, true);
     }
 
     public boolean isOpenDebug() {
@@ -264,6 +266,5 @@ public class DebugWriter {
     public boolean isOpenRocksDBTest() {
         return openRocksDBTest;
     }
-
 
 }
