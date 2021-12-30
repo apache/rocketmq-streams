@@ -16,16 +16,16 @@
  */
 package org.apache.rocketmq.streams.configruation.model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 
 /**
  * Created by yuanxiaodong on 6/27/19.
  */
-public class Person extends BasedConfigurable {
+public class Person implements Serializable {
     private String name;
     private int age;
     private Boolean isMale;
@@ -34,9 +34,9 @@ public class Person extends BasedConfigurable {
 
     public static Person createPerson(String namespace) {
         Person person = new Person();
-        person.setNameSpace(namespace);
-        person.setType("person");
-        person.setConfigureName("Chris");
+//        person.setNameSpace(namespace);
+//        person.setType("person");
+//        person.setConfigureName("Chris");
         person.setName("Chris");
         List<String> addresses = new ArrayList<>();
         addresses.add("huilongguan");

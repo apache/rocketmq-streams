@@ -22,24 +22,33 @@ package org.apache.rocketmq.streams.client.transform.window;
  */
 public class Time {
     protected int value;
-    public Time(int value){
-        this.value=value;
+
+    public Time(int value) {
+        this.value = value;
     }
-    public static Time seconds(int second){
+
+    public static Time seconds(int second) {
 
         return new Time(second);
     }
-    public static Time minutes(int minutes){
-        return new Time(minutes*60);
+
+    public static Time minutes(int minutes) {
+        return new Time(minutes * 60);
     }
-    public static Time hours(int hours){
-        return new Time(60*60*hours);
+
+    public static Time hours(int hours) {
+        return new Time(60 * 60 * hours);
     }
-    public static Time days(int days){
-        return new Time(60*60*24*days);
+
+    public static Time days(int days) {
+        return new Time(60 * 60 * 24 * days);
     }
 
     public int getValue() {
         return value;
+    }
+
+    public long getLongValue() {
+        return Long.valueOf(value);
     }
 }

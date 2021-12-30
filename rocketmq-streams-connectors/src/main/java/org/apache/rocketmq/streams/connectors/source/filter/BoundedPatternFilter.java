@@ -27,19 +27,18 @@ import org.apache.rocketmq.streams.connectors.model.ReaderStatus;
 @Deprecated
 public class BoundedPatternFilter extends AbstractPatternFilter implements Serializable {
 
-
     static final Log logger = LogFactory.getLog(BoundedPatternFilter.class);
 
     @Override
     public boolean filter(String sourceName, String logicTableName, String tableName) {
 
         ReaderStatus readerStatus = ReaderStatus.queryReaderStatusByUK(sourceName, logicTableName + "_" + tableName);
-        if(readerStatus != null){
+        if (readerStatus != null) {
             logger.info(String.format("filter sourceName %s, logicTableName %s, suffix %s. ", sourceName, logicTableName, tableName));
             logger.info(String.format("query result %s", readerStatus.toString()));
             return true;
         }
-        if(next == null){
+        if (next == null) {
             return false;
         }
         return next.filter(sourceName, logicTableName, tableName);
@@ -50,6 +49,5 @@ public class BoundedPatternFilter extends AbstractPatternFilter implements Seria
         super.setNext(filter);
         return this;
     }
-
 
 }

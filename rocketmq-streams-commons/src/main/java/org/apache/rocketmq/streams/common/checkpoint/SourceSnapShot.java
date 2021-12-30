@@ -30,7 +30,7 @@ public class SourceSnapShot extends Entity implements Serializable {
     private static final long serialVersionUID = 4449170945607357658L;
     public final static MetaData snapshotTable = new MetaData();
 
-    static{
+    static {
         snapshotTable.setTableName("checkpoint_snapshot");
         snapshotTable.addMetaDataField("id", "long", false);
         snapshotTable.addMetaDataField("gmt_create", "DATE", false);
@@ -58,7 +58,6 @@ public class SourceSnapShot extends Entity implements Serializable {
         this.value = value;
     }
 
-
     @Override
     public String toString() {
         return "CheckPointSnapShot{" +
@@ -67,7 +66,7 @@ public class SourceSnapShot extends Entity implements Serializable {
             '}';
     }
 
-    public JSONObject toJson(){
+    public JSONObject toJson() {
         JSONObject object = new JSONObject();
         object.put("key", key);
         object.put("value", value);

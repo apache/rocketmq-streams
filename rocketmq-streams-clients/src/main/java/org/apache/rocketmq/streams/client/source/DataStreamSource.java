@@ -42,11 +42,11 @@ import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.channel.impl.memory.MemoryCache;
 import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.connectors.source.CycleDynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.DynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
+import org.apache.rocketmq.streams.mqtt.source.PahoSource;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
 public class DataStreamSource {
@@ -107,7 +107,7 @@ public class DataStreamSource {
         rocketMQSource.setJsonData(isJson);
         rocketMQSource.setNamesrvAddr(namesrvAddress);
         this.mainPipelineBuilder.setSource(rocketMQSource);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+        return new DataStream(this.mainPipelineBuilder, null);
     }
 
     public DataStream fromMultipleDB(String url, String userName, String password, String tablePattern) {
@@ -118,10 +118,11 @@ public class DataStreamSource {
         source.setBatchSize(10);
         source.setLogicTableName(tablePattern);
         this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, (ChainStage)null);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
 
-    public DataStream fromCycleSource(String url, String userName, String password, String tablePattern, CycleSchedule.Cycle cycle, int balanceSec) {
+    public DataStream fromCycleSource(String url, String userName, String password, String tablePattern,
+        CycleSchedule.Cycle cycle, int balanceSec) {
         CycleDynamicMultipleDBScanSource source = new CycleDynamicMultipleDBScanSource(cycle);
         source.setUrl(url);
         source.setUserName(userName);
@@ -131,14 +132,50 @@ public class DataStreamSource {
         source.setBalanceTimeSecond(balanceSec);
 
         this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, (ChainStage)null);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
 
     public DataStream fromCollection(JSONObject... elements) {
         CollectionSource source = new CollectionSource();
         source.addAll(elements);
         this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, (ChainStage)null);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+    }
+
+    public DataStream fromMqtt(String url, String clientId, String topic) {
+        PahoSource mqttSource = new PahoSource(url, clientId, topic);
+        mqttSource.setJsonData(true);
+        this.mainPipelineBuilder.setSource(mqttSource);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+    }
+
+    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password) {
+        PahoSource mqttSource = new PahoSource(url, clientId, topic, username, password);
+        mqttSource.setJsonData(true);
+        this.mainPipelineBuilder.setSource(mqttSource);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+    }
+
+    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password,
+        Boolean cleanSession, Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect) {
+        return fromMqtt(url, clientId, topic, username, password, cleanSession, connectionTimeout, aliveInterval, automaticReconnect, true);
+    }
+
+    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password,
+        Boolean cleanSession, Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect,
+        Boolean jsonData) {
+        PahoSource mqttSource = new PahoSource(url, clientId, topic, username, password, cleanSession, connectionTimeout, aliveInterval, automaticReconnect);
+        mqttSource.setJsonData(jsonData);
+        this.mainPipelineBuilder.setSource(mqttSource);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+    }
+
+    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password,
+        Boolean jsonData) {
+        PahoSource mqttSource = new PahoSource(url, clientId, topic, username, password);
+        mqttSource.setJsonData(jsonData);
+        this.mainPipelineBuilder.setSource(mqttSource);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
 
     public DataStream from(ISource<?> source) {

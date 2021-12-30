@@ -18,11 +18,6 @@ package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -31,7 +26,6 @@ import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -64,14 +58,16 @@ public class ReflectUtil {
             AUTOWIRED_CLASS = null;
         }
     }
+
     public static <T> T getDeclaredField(Class clazz, Object object, String fieldName) {
         try {
-            if (existMethodName(clazz, getGetMethodName(fieldName))) {
-                return (T)invokeGetMethod(fieldName, object);
+            Method method = getGetMethod(clazz, fieldName);
+            if (method != null) {
+                return (T) method.invoke(object);
             }
             Field field = clazz.getDeclaredField(fieldName);
             field.setAccessible(true);
-            return (T)field.get(object);
+            return (T) field.get(object);
         } catch (Exception e) {
             String msg = fieldName;
             if (object != null) {
@@ -80,8 +76,9 @@ public class ReflectUtil {
             throw new RuntimeException("get field value error " + msg, e);
         }
     }
+
     public static <T> T getDeclaredField(Object object, String fieldName) {
-        return getDeclaredField(object.getClass(),object,fieldName);
+        return getDeclaredField(object.getClass(), object, fieldName);
     }
 
     public static List<Field> getDeclaredFieldsContainsParentClass(Class c) {
@@ -120,7 +117,7 @@ public class ReflectUtil {
                     setBeanFieldValue(object, propertyName, value);
                 }
             }
-            return (T)object;
+            return (T) object;
         } catch (Exception e) {
             throw new RuntimeException("can not create object " + clazz.getName());
         }
@@ -128,6 +125,19 @@ public class ReflectUtil {
 
     public static Class forClass(String className) {
         try {
+            if ("int".equals(className)) {
+                return int.class;
+            } else if ("long".equals(className)) {
+                return long.class;
+            } else if ("short".equals(className)) {
+                return short.class;
+            } else if ("double".equals(className)) {
+                return double.class;
+            } else if ("float".equals(className)) {
+                return float.class;
+            } else if ("boolean".equals(className)) {
+                return boolean.class;
+            }
             Class clazz = Class.forName(className);
             return clazz;
         } catch (Exception e) {
@@ -137,7 +147,7 @@ public class ReflectUtil {
 
     public static <T> T forInstance(Class clazz) {
         try {
-            return (T)clazz.newInstance();
+            return (T) clazz.newInstance();
         } catch (Exception e) {
             throw new RuntimeException("create instance error " + clazz.getName(), e);
         }
@@ -245,24 +255,11 @@ public class ReflectUtil {
     }
 
     public static byte[] serialize(Object object) {
-        try (ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
-             ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteOutputStream)) {
-            objectOutputStream.writeObject(object);
-            return byteOutputStream.toByteArray();
-        } catch (IOException e) {
-            LOG.error("failed in serializing, object = " + Optional.ofNullable(object).orElse("null"), e);
-            return new byte[0];
-        }
+        return SerializeUtil.serializeByJava(object);
     }
 
     public static Object deserialize(byte[] array) {
-        try (ByteArrayInputStream byteInputStream = new ByteArrayInputStream(array);
-             ObjectInputStream objectInputStream = new ObjectInputStream(byteInputStream)) {
-            return objectInputStream.readObject();
-        } catch (Exception e) {
-            LOG.error("failed in deserialize, byte array = " + Optional.ofNullable(array).orElse(null), e);
-            return null;
-        }
+        return SerializeUtil.deserializeByJava(array);
     }
 
     public static void scanConfiguableFields(Object o, IFieldProcessor fieldProcessor) {
@@ -330,6 +327,8 @@ public class ReflectUtil {
     public static byte[] serializeObject2Byte(Object object) {
         List<byte[]> list = new ArrayList<>();
         AtomicInteger byteCount = new AtomicInteger(0);
+        AtomicInteger fieldIndex = new AtomicInteger(0);
+        AtomicInteger fieldCount = new AtomicInteger(0);
         ReflectUtil.scanFields(object, new IFieldProcessor() {
             @Override
             public void doProcess(Object o, Field field) {
@@ -358,9 +357,16 @@ public class ReflectUtil {
 
                 byte[] bytes = new byte[0];
                 try {
-                    bytes = dataType.toBytes(field.get(object), false);
+                    Object value = field.get(object);
+                    if (value == null) {
+
+                    }
+                    bytes = dataType.toBytes(value, false);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException("can not get field value " + field.getName(), e);
+                }
+                if (bytes == null) {
+                    bytes = new byte[0];
                 }
                 list.add(bytes);
                 byteCount.addAndGet(bytes.length);
@@ -383,31 +389,31 @@ public class ReflectUtil {
      * @param dataType
      * @param genericType
      */
-    private static void setDataTypeParadigmType(DataType dataType, String genericType, boolean isGenericType) {
+    public static void setDataTypeParadigmType(DataType dataType, String genericType, boolean isGenericType) {
         if (ListDataType.class.isInstance(dataType)) {
             String genericTypeStr = "java.util.List<java.lang.String>";
             if (genericType != null && ParameterizedType.class.isInstance(genericType)) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
             }
-            ((ListDataType)dataType).parseGenericParameter(genericTypeStr);
+            ((ListDataType) dataType).parseGenericParameter(genericTypeStr);
         } else if (SetDataType.class.isInstance(dataType)) {
             String genericTypeStr = "java.util.Set<java.lang.String>";
             if (genericType != null && isGenericType) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
             }
-            ((SetDataType)dataType).parseGenericParameter(genericTypeStr);
+            ((SetDataType) dataType).parseGenericParameter(genericTypeStr);
         } else if (MapDataType.class.isInstance(dataType)) {
             String genericTypeStr = "java.util.Map<java.lang.String,java.lang.String>";
             if (genericType != null && isGenericType) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
             }
-            ((MapDataType)dataType).parseGenericParameter(genericTypeStr);
+            ((MapDataType) dataType).parseGenericParameter(genericTypeStr);
         } else if (ArrayDataType.class.isInstance(dataType)) {
             String genericTypeStr = "java.lang.String[]";
             if (genericType != null && isGenericType) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
             }
-            ((ArrayDataType)dataType).parseGenericParameter(genericTypeStr);
+            ((ArrayDataType) dataType).parseGenericParameter(genericTypeStr);
         }
     }
 
@@ -494,8 +500,7 @@ public class ReflectUtil {
             Method method = getGetMethod(obj.getClass(), fieldName);
             return method.invoke(obj);
         } catch (Exception e) {
-            throw new RuntimeException(
-                "invokeGetMethod error， the fieldName is " + fieldName + "; the object is " + obj, e);
+            throw new RuntimeException("invokeGetMethod error， the fieldName is " + fieldName + "; the object is " + obj, e);
         }
     }
 
@@ -511,16 +516,11 @@ public class ReflectUtil {
     public static Object invoke(Object object, String methodName, Class[] classes, Object[] objects) {
         try {
             Class clazz = object.getClass();
-            Method method=clazz.getMethod(methodName, classes);
-            if(method==null){
-                method= clazz.getDeclaredMethod(methodName, classes);
-                method.setAccessible(true);
-            }
+            Method method = clazz.getMethod(methodName, classes);
 
             return method.invoke(object, objects);
         } catch (Exception e) {
-            throw new RuntimeException(
-                "invokeGetMinvokeethod error， the methodName is " + methodName + "; the object is " + object, e);
+            throw new RuntimeException("invokeGetMinvokeethod error， the methodName is " + methodName + "; the object is " + object, e);
         }
     }
 
@@ -532,66 +532,66 @@ public class ReflectUtil {
      * @param <T>       返回结果类型
      * @return 返回结果
      */
-    public static <T> T getBeanFieldOrJsonValue(Object bean, Class clazz, String fieldName) {
+    public static <T> T getBeanFieldOrJsonValue(Object bean, String fieldName) {
         String[] fieldNames = fieldName.split(SPLIT_SIGN);
         Object result = null;
         Object modelBean = bean;// ChannelMessage
         for (String name : fieldNames) {// messageBody.type
-            if(modelBean==null){
+            if (modelBean == null) {
                 return null;
             }
             if (JSONObject.class.isInstance(modelBean)) {
-                result = getJsonItemValue(modelBean, clazz, name);
+                result = getJsonItemValue(modelBean, name);
             } else if (JSONArray.class.isInstance(modelBean)) {
-                result = getJsonItemValue(modelBean, clazz, name);
+                result = getJsonItemValue(modelBean, name);
             } else if (Map.class.isInstance(modelBean)) {
-                result = ((Map)modelBean).get(name);
+                result = ((Map) modelBean).get(name);
             } else {
                 result = getDeclaredField(modelBean, name);// ChannelMessage.messageBody
             }
             modelBean = result;
         }
-        return (T)result;
+        return (T) result;
     }
 
-    private static <T> T getJsonItemValue(Object bean, Class clazz, String fieldName) {
+    private static <T> T getJsonItemValue(Object bean, String fieldName) {
         if (fieldName.indexOf("[") == -1 && JSONObject.class.isInstance(bean)) {
-            JSONObject jsonObject = (JSONObject)bean;
+            JSONObject jsonObject = (JSONObject) bean;
             Object value = jsonObject.get(fieldName);
-            return (T)value;
+            return (T) value;
         }
         if (fieldName.indexOf("[") != -1) {
             if (JSONObject.class.isInstance(bean)) {
-                JSONObject jsonObject = (JSONObject)bean;
+                JSONObject jsonObject = (JSONObject) bean;
                 int startIndex = fieldName.indexOf("[");
                 String word = fieldName.substring(0, startIndex);
                 JSONArray jsonArray = jsonObject.getJSONArray(word);
                 String lastStr = fieldName.substring(startIndex);
-                return getArrayIndexValue(jsonArray, clazz, lastStr);
+                return getArrayIndexValue(jsonArray, lastStr);
             } else if (JSONArray.class.isInstance(bean)) {
-                JSONArray jsonArray = (JSONArray)bean;
+                JSONArray jsonArray = (JSONArray) bean;
                 int startIndex = fieldName.indexOf("[");
                 String lastStr = fieldName.substring(startIndex);
-                return getArrayIndexValue(jsonArray, clazz, lastStr);
+                return getArrayIndexValue(jsonArray, lastStr);
             }
             return null;
         }
         return null;
     }
 
-    private static <T> T getArrayIndexValue(JSONArray jsonArray, Class clazz, String indexDescription) {
+    private static <T> T getArrayIndexValue(JSONArray jsonArray, String indexDescription) {
         int startIndex = indexDescription.indexOf("[");
         int endIndex = indexDescription.indexOf("]");
         while (startIndex < endIndex) {
             String indexStr = indexDescription.substring(startIndex + 1, endIndex);
             if (indexStr.equals("*")) {
-                return (T)jsonArray.toJSONString();
+                return (T) jsonArray.toJSONString();
             }
             int index = Integer.valueOf(indexStr);
             indexDescription = indexDescription.substring(endIndex + 1);
             startIndex = indexDescription.indexOf("[");
             if (startIndex == -1) {
-                return (T)jsonArray.getObject(index, clazz);
+                return (T) jsonArray.get(index);
             } else {
                 jsonArray = jsonArray.getJSONArray(index);
             }
@@ -608,8 +608,8 @@ public class ReflectUtil {
      * @param <T>       返回结果类型
      * @return 返回结果
      */
-    public static <T> T getBeanFieldOrJsonValue(Object bean, String fieldName) {
-        return getBeanFieldOrJsonValue(bean, String.class, fieldName);
+    public static <T> T getBeanFieldOrJsonValue(Object bean, Class clazz, String fieldName) {
+        return getBeanFieldOrJsonValue(bean, fieldName);
     }
 
     /**
@@ -628,13 +628,13 @@ public class ReflectUtil {
             result = getFieldValue(modelBean, name);
             modelBean = result;
         }
-        return (T)result;
+        return (T) result;
 
     }
 
     public static void setFieldValue(Object object, String fieldName, Object fieldValue) {
         try {
-            if(fieldValue==null){
+            if (fieldValue == null) {
                 return;
             }
             Class clazz = object.getClass();
@@ -688,10 +688,7 @@ public class ReflectUtil {
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException(
-                "setBeanFieldValue error， the modelFieldName is " + modelFieldName + "; the object is " + object
-                    + "; the fieldValue is " + fieldValue + ", the field value class is " + fieldValue.getClass()
-                    .getName(), e);
+            throw new RuntimeException("setBeanFieldValue error， the modelFieldName is " + modelFieldName + "; the object is " + object + "; the fieldValue is " + fieldValue + ", the field value class is " + fieldValue.getClass().getName(), e);
         }
     }
 
@@ -724,8 +721,7 @@ public class ReflectUtil {
                 continue;
             }
             int mod = field.getModifiers();
-            if (Modifier.isFinal(mod) || Modifier.isNative(mod) || Modifier.isStatic(mod) || Modifier.isStrict(mod)
-                || Modifier.isTransient(mod)) {
+            if (Modifier.isFinal(mod) || Modifier.isNative(mod) || Modifier.isStatic(mod) || Modifier.isStrict(mod) || Modifier.isTransient(mod)) {
                 continue;
             }
 
@@ -757,7 +753,7 @@ public class ReflectUtil {
             if (method == null) {
                 throw new RuntimeException("can not get " + fieldName + "'s value, the method is not exist");
             }
-            return (T)method.invoke(bean);
+            return (T) method.invoke(bean);
         } catch (Exception e) {
             throw new RuntimeException("can not get " + fieldName + "'s value", e);
         }
@@ -783,8 +779,7 @@ public class ReflectUtil {
             return method;
         } catch (Exception e) {
             LOG.error(aClass.getSimpleName() + "\r\n" + e.getMessage(), e);
-            throw new RuntimeException(
-                aClass.getSimpleName() + "\r\n" + e.getMessage() + " ,modelFieldName: " + modelFieldName, e);
+            throw new RuntimeException(aClass.getSimpleName() + "\r\n" + e.getMessage() + " ,modelFieldName: " + modelFieldName, e);
         }
     }
 
@@ -805,11 +800,13 @@ public class ReflectUtil {
             Method method = null;
             String methodName = getGetMethodName(fieldName);
             methodName = getIsMethodGetName(clazz, methodName, fieldName);
+            if (methodName == null) {
+                return null;
+            }
             method = clazz.getMethod(methodName);
             return method;
         } catch (Exception e) {
-            LOG.error(clazz.getName() + "\r\n" + e.getMessage() + " ,fieldName: " + fieldName + "\r\n" + e.getMessage(),
-                e);
+            LOG.error(clazz.getName() + "\r\n" + e.getMessage() + " ,fieldName: " + fieldName + "\r\n" + e.getMessage(), e);
             throw new RuntimeException(clazz.getName() + "\r\n" + e.getMessage() + " ,fieldName: " + fieldName, e);
         }
 
@@ -831,12 +828,18 @@ public class ReflectUtil {
     private static String getIsMethodGetName(Class clazz, String methodName, String fieldName) {
         if (!existMethodName(clazz, methodName)) {
             methodName = getIsMethodName(fieldName);
+        } else {
+            return methodName;
         }
         if (existMethodName(clazz, methodName)) {
             return methodName;
         }
+
         if (fieldName.startsWith("is")) {
-            return fieldName.replace("is", "get");
+            methodName = fieldName.replace("is", "get");
+        }
+        if (existMethodName(clazz, methodName)) {
+            return methodName;
         }
         return null;
     }
@@ -848,14 +851,29 @@ public class ReflectUtil {
      * @param methodName
      * @return
      */
-    private static Boolean existMethodName(Class clazz, String methodName) {
+    public static Boolean existMethodName(Class clazz, String methodName) {
+        Method method = getMethodByName(clazz, methodName);
+        if (method != null) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 判断一个类是否存在某个名字的方法
+     *
+     * @param clazz
+     * @param methodName
+     * @return
+     */
+    public static Method getMethodByName(Class clazz, String methodName) {
         Method[] methods = clazz.getMethods();
         for (Method method : methods) {
             if (method.getName().equals(methodName)) {
-                return true;
+                return method;
             }
         }
-        return false;
+        return null;
     }
 
     /**
@@ -902,13 +920,14 @@ public class ReflectUtil {
         return methodName;
     }
 
-    public static Object forInstance(Class clazz,Class[] classes, Object[] objects) {
+    public static Object forInstance(Class clazz, Class[] classes, Object[] objects) {
         try {
-            Constructor constructor= clazz.getConstructor(classes);
+            Constructor constructor = clazz.getConstructor(classes);
             return constructor.newInstance(objects);
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
     }
+
 }

@@ -20,11 +20,14 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.ContantsUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class ListDataType extends GenericParameterDataType<List> {
@@ -57,7 +60,11 @@ public class ListDataType extends GenericParameterDataType<List> {
                 if (object == null) {
                     continue;
                 }
-                String str = paradigmType.toDataJson(object);
+                DataType dataType = this.paradigmType;
+                if (dataType == null) {
+                    dataType = new StringDataType();
+                }
+                String str = dataType.toDataJson(object.toString());
                 if (str == null) {
                     continue;
                 }
@@ -80,12 +87,16 @@ public class ListDataType extends GenericParameterDataType<List> {
     @Override
     public String toDataJson(List value) {
         if (JSONArray.class.isInstance(value)) {
-            return ((JSONArray)value).toJSONString();
+            return ((JSONArray) value).toJSONString();
         }
         JSONArray jsonArray = new JSONArray();
         if (CollectionUtil.isNotEmpty(value)) {
             for (Object object : value) {
-                jsonArray.add(paradigmType.toDataJson(object));
+                if (object == null) {
+                    continue;
+                }
+                String data = createStringValue(this.paradigmType, object);
+                jsonArray.add(data);
             }
         }
         return jsonArray.toJSONString();
@@ -101,18 +112,20 @@ public class ListDataType extends GenericParameterDataType<List> {
         if (StringUtil.isEmpty(jsonValue)) {
             return null;
         }
+        DataType dataType = this.paradigmType;
         if (isQuickModel(jsonValue)) {
             jsonValue = createJsonValue(jsonValue);
+            if (dataType == null) {
+                dataType = new StringDataType();
+            }
         }
         JSONArray jsonArray = JSON.parseArray(jsonValue);
         List list = new ArrayList();
         for (int i = 0; i < jsonArray.size(); i++) {
             String json = jsonArray.getString(i);
-            Object result = json;
-            if (paradigmType != null) {
-                result = paradigmType.getData(json);
-            }
+            Object result = createObjectValue(dataType, json);
             list.add(result);
+
         }
         return list;
     }
@@ -144,7 +157,7 @@ public class ListDataType extends GenericParameterDataType<List> {
         if (StringUtil.isEmpty(jsonValue)) {
             return false;
         }
-        return !jsonValue.trim().startsWith("{") && !jsonValue.trim().startsWith("[") && paradigmType.matchClass(String.class);
+        return !jsonValue.trim().startsWith("{") && !jsonValue.trim().startsWith("[");
     }
 
     public static String getTypeName() {
@@ -170,7 +183,7 @@ public class ListDataType extends GenericParameterDataType<List> {
         if (value == null) {
             return null;
         }
-        return (List)value;
+        return (List) value;
     }
 
     @Override
@@ -187,7 +200,7 @@ public class ListDataType extends GenericParameterDataType<List> {
             Class clazz = createClass(className);
             DataType dataType = DataTypeUtil.getDataTypeFromClass(clazz);
             if (GenericParameterDataType.class.isInstance(dataType)) {
-                GenericParameterDataType tmp = (GenericParameterDataType)dataType;
+                GenericParameterDataType tmp = (GenericParameterDataType) dataType;
                 tmp.parseGenericParameter(subClassString);
             }
 
@@ -196,6 +209,63 @@ public class ListDataType extends GenericParameterDataType<List> {
             Class clazz = createClass(subClassString);
             this.paradigmType = DataTypeUtil.getDataTypeFromClass(clazz);
         }
+    }
+
+    @Override
+    public byte[] toBytes(List value, boolean isCompress) {
+        if (value == null) {
+            return null;
+        }
+        Iterator it = value.iterator();
+        List<byte[]> list = new ArrayList<>();
+        int len = 0;
+        while (it.hasNext()) {
+            Object o = it.next();
+            if (o == null) {
+                continue;
+            }
+            byte[] bytes = createByteValue(this.paradigmType, o);
+            list.add(bytes);
+            len = len + bytes.length;
+        }
+        byte[] bytes = new byte[len + 2];
+        byte[] lenBytes = createByteArrayFromNumber(value.size(), 2);
+        bytes[0] = lenBytes[0];
+        bytes[1] = lenBytes[1];
+        int i = 0;
+        for (byte[] bytes1 : list) {
+            for (byte b : bytes1) {
+                bytes[i + 2] = b;
+                i++;
+            }
+        }
+        return bytes;
+    }
+
+    @Override
+    public List byteToValue(byte[] bytes) {
+        return byteToValue(bytes, 0);
+    }
+
+    @Override
+    public List byteToValue(byte[] bytes, AtomicInteger offset) {
+        if (bytes == null) {
+            return null;
+        }
+        int len = createNumberValue(bytes, offset.get(), 2).intValue();
+        offset.addAndGet(2);
+        List set = new ArrayList();
+        for (int i = 0; i < len; i++) {
+            Object value = null;
+            if (this.paradigmType != null) {
+                value = paradigmType.byteToValue(bytes, offset);
+            } else {
+                value = SerializeUtil.deserialize(bytes, offset);
+            }
+            set.add(value);
+
+        }
+        return set;
     }
 
     @Override
@@ -209,11 +279,6 @@ public class ListDataType extends GenericParameterDataType<List> {
         List<String> list = listDataType.getData("[\"fdsdfds\",\"dfs\"]");
         list = listDataType.getData(listDataType.toDataStr(list));
         System.out.println(listDataType.toDataStr(list));
-        //        listDataType.parseGenericParameter(
-        //            "java.util.List M<java.lang.String>");//"java.util.List<java.util.Map<java.util.Map<java.lang.String,java
-        //        // .util.List<java.lang.String>>,java.util.List<java.util.Map<java.lang.String,"+Integer.class.getName()
-        //        // +">>>>");
-        //        System.out.println(listDataType.createGenericParameterStr());
     }
 
     public void setParadigmType(DataType paradigmType) {

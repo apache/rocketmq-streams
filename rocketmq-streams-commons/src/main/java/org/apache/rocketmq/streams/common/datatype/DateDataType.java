@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
@@ -85,13 +86,14 @@ public class DateDataType extends BaseDataType<Date> {
             return null;
         }
         if (Timestamp.class.isInstance(object)) {
-            return new Date(((Timestamp)object).getTime());
+            return new Date(((Timestamp) object).getTime());
         }
         if (object instanceof LocalDateTime) {
             LocalDateTime tempTime = (LocalDateTime) object;
             return Date.from(tempTime.atZone(ZoneId.systemDefault()).toInstant());
         }
-        return super.convert(object);
+        Date convert = (Date) super.convert(object);
+        return convert;
     }
 
     public static String getTypeName() {
@@ -138,6 +140,9 @@ public class DateDataType extends BaseDataType<Date> {
 
     @Override
     public byte[] toBytes(Date value, boolean isCompress) {
+        if (value == null) {
+            return null;
+        }
         return createByteArrayFromNumber(value.getTime(), 8);
     }
 
@@ -153,6 +158,12 @@ public class DateDataType extends BaseDataType<Date> {
     @Override
     public Date byteToValue(byte[] bytes, int offset) {
         byte[] bytesArray = NumberUtils.getSubByteFromIndex(bytes, offset, 8);
+        return byteToValue(bytesArray);
+    }
+
+    @Override public Date byteToValue(byte[] bytes, AtomicInteger offset) {
+        byte[] bytesArray = NumberUtils.getSubByteFromIndex(bytes, offset.get(), 8);
+        offset.set(offset.get() + bytesArray.length);
         return byteToValue(bytesArray);
     }
 }

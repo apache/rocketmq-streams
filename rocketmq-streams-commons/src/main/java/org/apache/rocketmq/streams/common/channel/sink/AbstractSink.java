@@ -55,9 +55,9 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     protected transient volatile Map<String, SourceState> sourceName2State = new HashMap<>();//保存完成刷新的queueid和offset
     protected volatile int autoFlushSize = 300;
     protected volatile int autoFlushTimeGap = 1000;
+
     public AbstractSink() {
         setType(TYPE);
-
     }
 
     @Override
@@ -66,6 +66,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         ((MessageCache<IMessage>) messageCache).setAutoFlushTimeGap(autoFlushTimeGap);
         ((MessageCache<IMessage>) messageCache).setAutoFlushSize(autoFlushSize);
         messageCache.openAutoFlush();
+        sourceName2State = new HashMap<>();
         return super.initConfigurable();
     }
 
@@ -125,9 +126,6 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         }
         return true;
     }
-
-
-
 
     @Override
     public boolean flush(Set<String> splitIds) {
@@ -253,21 +251,19 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
             IConfigurableIdentification configurable = (IConfigurableIdentification) checkPointMessage.getStreamOperator();
             pipelineName = configurable.getConfigureName();
         }
-        SourceState sourceState = this.sourceName2State.get(
-            CheckPointManager.createSourceName(checkPointMessage.getSource(), pipelineName));
+        SourceState sourceState = this.sourceName2State.get(CheckPointManager.createSourceName(checkPointMessage.getSource(), pipelineName));
         if (sourceState != null) {
             return sourceState.getQueueId2Offsets();
         }
         return new HashMap<>();
     }
 
-    public void setMessageCache(
-        IMessageCache<IMessage> messageCache) {
+    public void setMessageCache(IMessageCache<IMessage> messageCache) {
         this.messageCache = messageCache;
     }
 
     @Override
-    public void atomicSink(ISystemMessage message){
+    public void atomicSink(ISystemMessage message) {
 
     }
 

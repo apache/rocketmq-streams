@@ -243,7 +243,8 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
         int totalSize;//一共有多少条数据
 
         public FetchDataTask(String sql, long startIndex, long endIndex, CountDownLatch countDownLatch,
-            AtomicInteger finishedCount, IDBDriver resource, int i, IntValueKV intValueKV, AbstractIntelligenceCache cache, int totalSize) {
+            AtomicInteger finishedCount, IDBDriver resource, int i, IntValueKV intValueKV,
+            AbstractIntelligenceCache cache, int totalSize) {
             this.startIndex = startIndex;
             this.endIndex = endIndex;
             this.countDownLatch = countDownLatch;
@@ -275,7 +276,7 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
 
                     int size = rows.size();
                     int count = finishedCount.addAndGet(size);
-                    double progress = (double)count / (double)totalSize;
+                    double progress = (double) count / (double) totalSize;
                     progress = progress * 100;
                     System.out.println(cache.getClass().getSimpleName() + ", finished count is " + count + " the total count is " + totalSize + ", the progress is " + String.format("%.2f", progress) + "%");
                     if (size < batchSize) {

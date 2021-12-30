@@ -47,10 +47,9 @@ import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueI
 /**
  * an implementation of session window to save extra memory for different group by window instances
  *
- *  @author arthur
+ * @author arthur
  */
 public class SessionOperator extends WindowOperator {
-
 
     protected static final Log LOG = LogFactory.getLog(SessionOperator.class);
 
@@ -339,8 +338,6 @@ public class SessionOperator extends WindowOperator {
     protected WindowValue createWindowValue(String queueId, String groupBy, WindowInstance instance, IMessage message,
         String storeKey) {
         WindowValue value = new WindowValue();
-        value.setNameSpace(getNameSpace());
-        value.setConfigureName(getConfigureName());
         Pair<Date, Date> startEndPair = getSessionTime(message);
         String startTime = DateUtil.format(startEndPair.getLeft(), SESSION_DATETIME_PATTERN);
         String endTime = DateUtil.format(startEndPair.getRight(), SESSION_DATETIME_PATTERN);

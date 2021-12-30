@@ -66,8 +66,7 @@ public interface ConfigureFileKey {
      */
     String JDBC_COMPATIBILITY_RULEENGINE_TABLE_NAME = "ruleengine_configure";
     /**
-     * 如果需要兼容老规则引擎规则，且规则存储在ruleengine_configure中时，设置为true。如果老规则迁移到了dipper_configure,
-     * 这个值不需要设置或设置成false即可。兼容老的规则引擎，老规则引擎的namespace 是name_space需要通过这个配置告诉resource做适配。
+     * 如果需要兼容老规则引擎规则，且规则存储在ruleengine_configure中时，设置为true。如果老规则迁移到了dipper_configure, 这个值不需要设置或设置成false即可。兼容老的规则引擎，老规则引擎的namespace 是name_space需要通过这个配置告诉resource做适配。
      */
     String JDBC_COMPATIBILITY_OLD_RULEENGINE = "dipper.rds.compatibility.old.ruleengine";
     /**
@@ -144,7 +143,6 @@ public interface ConfigureFileKey {
     /**
      * shuffle相关配置，如果后面加上.namespace,则只对某个namespace生效，如window.shuffle.channel.type.namespace=rocketmq,相当于只对这个namespace配置
      */
-
     String WINDOW_SHUFFLE_CHANNEL_TYPE = "window.shuffle.channel.type";//window 做shuffle中转需要的消息队列类型
     //比如rocketmq，需要topic，tags和group,属性值和字段名保持一致即可。配置如下:window.shuffle.channel.topic=abdc    window.shuffle.channel.tag=fdd
 

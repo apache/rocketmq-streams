@@ -82,13 +82,14 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
     public AbstractStage() {
         setType(TYPE);
     }
-    protected transient AtomicLong TOTAL=new AtomicLong(0);
-    protected transient AtomicLong FILTER=new AtomicLong(0);
-    protected transient Long lastUpdateTime=null;
+
+    protected transient AtomicLong TOTAL = new AtomicLong(0);
+    protected transient AtomicLong FILTER = new AtomicLong(0);
+    protected transient Long lastUpdateTime = null;
+
     @Override
     public T doMessage(T t, AbstractContext context) {
         try {
-
             TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
         } catch (Exception e) {
             LOG.error("t.getMessageBody() parse error", e);
@@ -100,9 +101,9 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         Object result = handle.doMessage(t, context);
         //
         if (!context.isContinue() || result == null) {
-            return (T)context.breakExecute();
+            return (T) context.breakExecute();
         }
-        return (T)result;
+        return (T) result;
     }
 
     /**
@@ -189,7 +190,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      * 从配置文件加载日志指纹信息，如果存在做指纹优化
      */
     protected PreFingerprint loadLogFinger() {
-        ChainPipeline pipline = (ChainPipeline)getPipeline();
+        ChainPipeline pipline = (ChainPipeline) getPipeline();
         String filterName = getLabel();
         if (pipline.isTopology() == false) {
             List<AbstractStage> stages = pipline.getStages();
@@ -202,16 +203,15 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
             filterName = i + "";
         }
-        String stageIdentification= MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName);
-        if(this.filterFieldNames==null){
+        String stageIdentification = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName);
+        if (this.filterFieldNames == null) {
             this.filterFieldNames = ComponentCreator.getProperties().getProperty(stageIdentification);
-
         }
         if (this.filterFieldNames == null) {
             return null;
         }
-        PreFingerprint preFingerprint=createPreFinerprint(stageIdentification);
-        if(preFingerprint!=null){
+        PreFingerprint preFingerprint = createPreFinerprint(stageIdentification);
+        if (preFingerprint != null) {
             pipline.registPreFingerprint(preFingerprint);
         }
         return preFingerprint;
@@ -224,52 +224,52 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      */
 
     protected PreFingerprint createPreFinerprint(String stageIdentification) {
-        ChainPipeline pipline = (ChainPipeline)getPipeline();
-        String sourceLable=null;
-        String nextLable=null;
+        ChainPipeline pipline = (ChainPipeline) getPipeline();
+        String sourceLable = null;
+        String nextLable = null;
         if (pipline.isTopology()) {
             Map<String, AbstractStage> stageMap = pipline.createStageMap();
             AbstractStage currentStage = this;
             List<String> prewLables = currentStage.getPrevStageLabels();
             while (prewLables != null && prewLables.size() > 0) {
-                if(prewLables.size()>1){//union
-                    sourceLable=null;
-                    nextLable=null;
+                if (prewLables.size() > 1) {//union
+                    sourceLable = null;
+                    nextLable = null;
                     break;
                 }
                 String lable = prewLables.get(0);
-                AbstractStage stage = (AbstractStage)stageMap.get(lable);
+                AbstractStage stage = (AbstractStage) stageMap.get(lable);
 
                 if (stage != null) {
-                    if(stage.isAsyncNode()){//window (join,Statistics)
-                        sourceLable=null;
-                        nextLable=null;
+                    if (stage.isAsyncNode()) {//window (join,Statistics)
+                        sourceLable = null;
+                        nextLable = null;
                         break;
                     }
-                    nextLable=currentStage.getLabel();
+                    nextLable = currentStage.getLabel();
                     currentStage = stage;
-                    sourceLable=currentStage.getLabel();
-                    if(stage.getNextStageLabels()!=null&&stage.getNextStageLabels().size()>1){
+                    sourceLable = currentStage.getLabel();
+                    if (stage.getNextStageLabels() != null && stage.getNextStageLabels().size() > 1) {
                         break;
                     }
                 } else {
-                    sourceLable=pipline.getChannelName();
-                    nextLable=currentStage.getLabel();
+                    sourceLable = pipline.getChannelName();
+                    nextLable = currentStage.getLabel();
                     break;
                 }
                 prewLables = currentStage.getPrevStageLabels();
             }
-            if(prewLables==null||prewLables.size()==0){
-                sourceLable=pipline.getChannelName();
-                nextLable=currentStage.getLabel();
+            if (prewLables == null || prewLables.size() == 0) {
+                sourceLable = pipline.getChannelName();
+                nextLable = currentStage.getLabel();
             }
-            if(sourceLable==null||nextLable==null){
+            if (sourceLable == null || nextLable == null) {
                 return null;
             }
-            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,sourceLable,nextLable,-1,this, FingerprintCache.getInstance());
+            PreFingerprint preFingerprint = new PreFingerprint(this.filterFieldNames, stageIdentification, sourceLable, nextLable, -1, this, FingerprintCache.getInstance());
             return preFingerprint;
         } else {
-            PreFingerprint preFingerprint=new PreFingerprint(this.filterFieldNames,stageIdentification,"0","0",-1,this, FingerprintCache.getInstance());
+            PreFingerprint preFingerprint = new PreFingerprint(this.filterFieldNames, stageIdentification, "0", "0", -1, this, FingerprintCache.getInstance());
             return preFingerprint;
         }
     }

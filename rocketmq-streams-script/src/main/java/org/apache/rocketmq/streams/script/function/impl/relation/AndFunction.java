@@ -26,11 +26,11 @@ public class AndFunction {
 
     @FunctionMethod(value = "and", alias = "&", comment = "支持内嵌函数")
     public Boolean and(Boolean... values) {
-        if(values==null){
+        if (values == null) {
             return false;
         }
-        for(Boolean value:values){
-            if(value!=null&&value){
+        for (Boolean value : values) {
+            if (value != null && value) {
                 continue;
             }
             return false;
@@ -39,14 +39,13 @@ public class AndFunction {
 
     }
 
-
     @FunctionMethod(value = "or", alias = "|", comment = "支持内嵌函数")
     public Boolean or(Boolean... values) {
-        if(values==null){
+        if (values == null) {
             return false;
         }
-        for(Boolean value:values){
-            if(value!=null&&value){
+        for (Boolean value : values) {
+            if (value != null && value) {
                 return true;
             }
         }
@@ -55,12 +54,12 @@ public class AndFunction {
     }
 
     public static void main(String[] args) {
-        ScriptComponent scriptComponent=ScriptComponent.getInstance();
-        JSONObject msg=new JSONObject();
-        msg.put("name","chris");
-        msg.put("age",18);
+        ScriptComponent scriptComponent = ScriptComponent.getInstance();
+        JSONObject msg = new JSONObject();
+        msg.put("name", "chris");
+        msg.put("age", 18);
 
-        scriptComponent.getService().executeScript(msg,"x=or(equals(name,'chris'),>(age,19),!(equals(age,1))))");
+        scriptComponent.getService().executeScript(msg, "x=or(equals(name,'chris'),>(age,19),!(equals(age,1))))");
         System.out.println(msg);
     }
 }

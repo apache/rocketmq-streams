@@ -26,41 +26,39 @@ import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public class EventTimeManager {
-    private Map<String,SplitEventTimeManager> eventTimeManagerMap=new HashMap<>();
+    private Map<String, SplitEventTimeManager> eventTimeManagerMap = new HashMap<>();
     protected ISource source;
 
-    private Map<String, Pair<Long,Long>> eventTimeIncreasementMap = new ConcurrentHashMap<>();
+    private Map<String, Pair<Long, Long>> eventTimeIncreasementMap = new ConcurrentHashMap<>();
 
-
-    public void updateEventTime(IMessage message, AbstractWindow window){
-        String queueId=message.getHeader().getQueueId();
-        SplitEventTimeManager splitEventTimeManager=eventTimeManagerMap.get(queueId);
-        if(splitEventTimeManager==null){
-            synchronized (this){
-                splitEventTimeManager=eventTimeManagerMap.get(queueId);
-                if(splitEventTimeManager==null){
-                    splitEventTimeManager=new SplitEventTimeManager(source,queueId);
-                    eventTimeManagerMap.put(queueId,splitEventTimeManager);
+    public void updateEventTime(IMessage message, AbstractWindow window) {
+        String queueId = message.getHeader().getQueueId();
+        SplitEventTimeManager splitEventTimeManager = eventTimeManagerMap.get(queueId);
+        if (splitEventTimeManager == null) {
+            synchronized (this) {
+                splitEventTimeManager = eventTimeManagerMap.get(queueId);
+                if (splitEventTimeManager == null) {
+                    splitEventTimeManager = new SplitEventTimeManager(source, queueId);
+                    eventTimeManagerMap.put(queueId, splitEventTimeManager);
                 }
             }
         }
-        splitEventTimeManager.updateEventTime(message,window);
+        splitEventTimeManager.updateEventTime(message, window);
     }
 
     public Long getMaxEventTime(String queueId) {
         SplitEventTimeManager splitEventTimeManager = eventTimeManagerMap.get(queueId);
         if (splitEventTimeManager != null) {
             Long currentMaxEventTime = splitEventTimeManager.getMaxEventTime();
-            if(currentMaxEventTime==null){
+            if (currentMaxEventTime == null) {
                 return null;
             }
             if (eventTimeIncreasementMap.containsKey(queueId)) {
                 Long lastMaxEventTime = eventTimeIncreasementMap.get(queueId).getKey();
-                if (lastMaxEventTime!=null&&lastMaxEventTime.equals(currentMaxEventTime)) {
+                if (lastMaxEventTime != null && lastMaxEventTime.equals(currentMaxEventTime)) {
                     //increase event time as time flies to solve batch data processing issue
                     if (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight() > IWindow.SYS_DELAY_TIME) {
-                        Long newEventTime = lastMaxEventTime + (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight());
-                        return newEventTime;
+                        return lastMaxEventTime + (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight());
                     }
                 } else {
 
@@ -75,12 +73,12 @@ public class EventTimeManager {
     }
 
     public void setSource(ISource source) {
-        if(this.source!=null){
+        if (this.source != null) {
             return;
         }
-        synchronized (this){
+        synchronized (this) {
             this.source = source;
-            for(SplitEventTimeManager splitEventTimeManager:eventTimeManagerMap.values()){
+            for (SplitEventTimeManager splitEventTimeManager : eventTimeManagerMap.values()) {
                 splitEventTimeManager.setSource(source);
             }
         }

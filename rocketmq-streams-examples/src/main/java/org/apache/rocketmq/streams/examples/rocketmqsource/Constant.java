@@ -22,8 +22,6 @@ package org.apache.rocketmq.streams.examples.rocketmqsource;
 public class Constant {
     public static final String NAMESRV_ADDRESS = "127.0.0.1:9876";
     public static final String RMQ_TOPIC = "NormalTestTopic";
-    public static final String RMQ_TOPIC_OTHER = "NormalTestTopic1";
-    public static final String RMQ_CONSUMER_GROUP_NAME = "test-group-01";
-    public static final String RMQ_CONSUMER_GROUP_NAME_OTHER = "test-group-02";
+    public static final String RMQ_CONSUMER_GROUP_NAME = "test-group-02";
     public static final String TAGS = "*";
 }

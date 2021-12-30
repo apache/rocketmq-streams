@@ -17,8 +17,10 @@
 package org.apache.rocketmq.streams.dim.model;
 
 import com.alibaba.fastjson.JSONObject;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.ByteArrayMemoryTable;
+import org.apache.rocketmq.streams.common.cache.MappedByteBufferTable;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
@@ -43,6 +46,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.dim.index.DimIndex;
 import org.apache.rocketmq.streams.dim.index.IndexExecutor;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
+import org.apache.rocketmq.streams.filter.function.expression.Equals;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
@@ -60,7 +64,7 @@ public abstract class AbstractDim extends BasedConfigurable {
     /**
      * 同步数据的事件间隔，单位是分钟
      */
-    protected Long pollingTimeMintue = 60L;
+    protected Long pollingTimeMinute = 60L;
 
     /**
      * 支持多组索引，如果一个索引是组合索引，需要拼接成一个string，用;分割 建立索引后，会创建索引的数据结构，类似Map<String,List<RowId>，可以快速定位，无索引会全表扫描，不建议使用 如有两组索引：1.name 2. ip;address
@@ -68,6 +72,8 @@ public abstract class AbstractDim extends BasedConfigurable {
     protected List<String> indexs = new ArrayList<>();
 
     protected boolean isLarge = false;//if isLarge=true use MapperByteBufferTable 内存结构
+
+    protected String filePath;
     /**
      * 把表数据转化成二进制存储在CompressTable中
      */
@@ -102,8 +108,9 @@ public abstract class AbstractDim extends BasedConfigurable {
                 public void run() {
                     loadNameList();
                 }
-            }, pollingTimeMintue, pollingTimeMintue, TimeUnit.MINUTES);
+            }, pollingTimeMinute, pollingTimeMinute, TimeUnit.MINUTES);
         }
+
         return success;
     }
 
@@ -135,7 +142,6 @@ public abstract class AbstractDim extends BasedConfigurable {
         return dimIndex;
     }
 
- 
     /**
      * 软引用缓存，最大可能保存索引执行器，避免频繁创建，带来额外开销 同时会保护内存不被写爆，当内存不足时自动回收内存
      */
@@ -163,16 +169,17 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param msg           消息
      * @return 返回全部匹配的行
      */
-    public List<Map<String, Object>> matchExpression(String expressionStr, JSONObject msg, boolean needAll, String script) {
+    public List<Map<String, Object>> matchExpression(String expressionStr, JSONObject msg, boolean needAll,
+        String script) {
         IndexExecutor indexNamelistExecutor = cache.get(expressionStr);
         if (indexNamelistExecutor == null) {
-            indexNamelistExecutor = new IndexExecutor(expressionStr, getNameSpace(), this.indexs,dataCache.getCloumnName2DatatType().keySet());
+            indexNamelistExecutor = new IndexExecutor(expressionStr, getNameSpace(), this.indexs, dataCache.getCloumnName2DatatType().keySet());
             cache.put(expressionStr, indexNamelistExecutor);
         }
         if (indexNamelistExecutor.isSupport()) {
             return indexNamelistExecutor.match(msg, this, needAll, script);
         } else {
-            return matchExpressionByLoop(dataCache.rowIterator(),expressionStr, msg, needAll,script,columnNames);
+            return matchExpressionByLoop(dataCache.rowIterator(), expressionStr, msg, needAll, script, columnNames);
         }
     }
 
@@ -186,9 +193,10 @@ public abstract class AbstractDim extends BasedConfigurable {
      */
     protected List<Map<String, Object>> matchExpressionByLoop(String expressionStr, JSONObject msg, boolean needAll) {
         AbstractMemoryTable dataCache = this.dataCache;
-        List<Map<String, Object>> rows = matchExpressionByLoop(dataCache.rowIterator(), expressionStr, msg, needAll,null,columnNames);
+        List<Map<String, Object>> rows = matchExpressionByLoop(dataCache.rowIterator(), expressionStr, msg, needAll, null, columnNames);
         return rows;
     }
+
     /**
      * 全表扫描，做表达式匹配，返回全部匹配结果。join中有使用
      *
@@ -197,9 +205,11 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param needAll
      * @return
      */
-    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it, String expressionStr, JSONObject msg, boolean needAll){
-        return matchExpressionByLoop(it,expressionStr,msg,needAll,null,new HashSet<>());
+    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it,
+        String expressionStr, JSONObject msg, boolean needAll) {
+        return matchExpressionByLoop(it, expressionStr, msg, needAll, null, new HashSet<>());
     }
+
     /**
      * 全表扫描，做表达式匹配，返回全部匹配结果。join中有使用
      *
@@ -208,15 +218,16 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param needAll
      * @return
      */
-    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it, String expressionStr, JSONObject msg, boolean needAll, String script,Set<String> colunmNames) {
+    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it,
+        String expressionStr, JSONObject msg, boolean needAll, String script, Set<String> colunmNames) {
         List<Map<String, Object>> rows = new ArrayList<>();
         Rule ruleTemplete = ExpressionBuilder.createRule("tmp", "tmpRule", expressionStr);
         while (it.hasNext()) {
             Map<String, Object> oldRow = it.next();
-            Map<String, Object> newRow = isMatch(ruleTemplete,oldRow,msg,script,colunmNames);
-            if (newRow!=null) {
+            Map<String, Object> newRow = isMatch(ruleTemplete, oldRow, msg, script, colunmNames);
+            if (newRow != null) {
                 rows.add(newRow);
-                if (needAll == false) {
+                if (!needAll) {
                     return rows;
                 }
             }
@@ -226,6 +237,7 @@ public abstract class AbstractDim extends BasedConfigurable {
 
     /**
      * 和维表的一行数据进行匹配，如果维表中有函数，先执行函数
+     *
      * @param ruleTemplete
      * @param dimRow
      * @param msgRow
@@ -233,23 +245,25 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param colunmNames
      * @return
      */
-    public static Map<String, Object>  isMatch(Rule ruleTemplete ,Map<String, Object> dimRow, JSONObject msgRow,  String script,Set<String> colunmNames){
-        Map<String, Object> oldRow =dimRow;
-        Map<String, Object> newRow=executeScript(oldRow,script);
+    public static Map<String, Object> isMatch(Rule ruleTemplete, Map<String, Object> dimRow, JSONObject msgRow,
+        String script, Set<String> colunmNames) {
+        Map<String, Object> oldRow = dimRow;
+        Map<String, Object> newRow = executeScript(oldRow, script);
         if (ruleTemplete == null) {
             return newRow;
         }
         Rule rule = ruleTemplete.copy();
         Map<String, Expression> expressionMap = new HashMap<>();
-        String dimAsName=null;;
+        String dimAsName = null;
+        ;
         for (Expression expression : rule.getExpressionMap().values()) {
             expressionMap.put(expression.getConfigureName(), expression);
-            if (RelationExpression.class.isInstance(expression)) {
+            if (expression instanceof RelationExpression) {
                 continue;
             }
             Object object = expression.getValue();
             if (object != null && DataTypeUtil.isString(object.getClass())) {
-                String fieldName = (String)object;
+                String fieldName = (String) object;
                 Object value = newRow.get(fieldName);
                 if (value != null) {
                     Expression e = expression.copy();
@@ -257,13 +271,13 @@ public abstract class AbstractDim extends BasedConfigurable {
                     expressionMap.put(e.getConfigureName(), e);
                 }
             }
-            if(expression.getVarName().indexOf(".")!=-1){
-                String[] values=expression.getVarName().split("\\.");
-                if(values.length==2){
-                    String asName=values[0];
-                    String varName=values[1];
-                    if(colunmNames.contains(varName)){
-                        dimAsName=asName;
+            if (expression.getVarName().contains(".")) {
+                String[] values = expression.getVarName().split("\\.");
+                if (values.length == 2) {
+                    String asName = values[0];
+                    String varName = values[1];
+                    if (colunmNames.contains(varName)) {
+                        dimAsName = asName;
                     }
                 }
 
@@ -271,20 +285,95 @@ public abstract class AbstractDim extends BasedConfigurable {
         }
         rule.setExpressionMap(expressionMap);
         rule.initElements();
-        JSONObject copyMsg=msgRow;
-        if(StringUtil.isNotEmpty(dimAsName)){
-            copyMsg= new JSONObject(msgRow);
-            for(String key:newRow.keySet()){
-                copyMsg.put(dimAsName+"."+key,newRow.get(key));
+        JSONObject copyMsg = msgRow;
+        if (StringUtil.isNotEmpty(dimAsName)) {
+            copyMsg = new JSONObject(msgRow);
+            for (String key : newRow.keySet()) {
+                copyMsg.put(dimAsName + "." + key, newRow.get(key));
             }
         }
         boolean matched = rule.execute(copyMsg);
-        if(matched){
+        if (matched) {
             return newRow;
         }
         return null;
     }
 
+    public static interface IDimField {
+        boolean isDimField(Object fieldName);
+    }
+
+    /**
+     * 根据join条件设置索引
+     */
+    public void createIndexByJoinCondition(String expressionStr, IDimField dimField) {
+        List<Expression> expressions = new ArrayList<>();
+        List<RelationExpression> relationExpressions = new ArrayList<>();
+        Expression expression = ExpressionBuilder.createOptimizationExpression("tmp", "tmp", expressionStr, expressions, relationExpressions);
+
+        RelationExpression relationExpression = null;
+        if (expression instanceof RelationExpression) {
+            relationExpression = (RelationExpression) expression;
+            if (!"and".equals(relationExpression.getRelation())) {
+                return;
+            }
+        }
+
+        List<Expression> indexExpressions = new ArrayList<>();
+        List<Expression> otherExpressions = new ArrayList<>();
+        if (relationExpression != null) {
+            Map<String, Expression> map = new HashMap<>();
+            for (Expression tmp : expressions) {
+                map.put(tmp.getConfigureName(), tmp);
+            }
+            for (Expression tmp : relationExpressions) {
+                map.put(tmp.getConfigureName(), tmp);
+            }
+            List<String> expressionNames = relationExpression.getValue();
+            relationExpression.setValue(new ArrayList<>());
+            for (String expressionName : expressionNames) {
+                Expression subExpression = map.get(expressionName);
+                if (subExpression != null && !RelationExpression.class.isInstance(subExpression) && dimField.isDimField(subExpression.getValue())) {
+                    indexExpressions.add(subExpression);
+                } else {
+                    otherExpressions.add(subExpression);
+                    relationExpression.getValue().add(subExpression.getConfigureName());
+                }
+            }
+
+        } else {
+            indexExpressions.add(expression);
+        }
+
+        List<String> fieldNames = new ArrayList<>();
+
+        for (Expression expre : indexExpressions) {
+            if (expre instanceof RelationExpression) {
+                continue;
+            }
+            String indexName = expre.getValue().toString();
+            if (Equals.isEqualFunction(expre.getFunctionName()) && dimField.isDimField(expre.getValue())) {
+
+                fieldNames.add(indexName);
+
+            }
+        }
+
+        String[] indexFieldNameArray = new String[fieldNames.size()];
+        int i = 0;
+        for (String fieldName : fieldNames) {
+            indexFieldNameArray[i] = fieldName;
+            i++;
+        }
+        Arrays.sort(indexFieldNameArray);
+        String index = MapKeyUtil.createKey(indexFieldNameArray);
+        if (this.getIndexs().contains(index)) {
+            return;
+        }
+        if (indexFieldNameArray.length > 0) {
+            this.addIndex(indexFieldNameArray);
+        }
+    }
 
     protected static Map<String, Object> executeScript(Map<String, Object> oldRow, String script) {
         if (script == null) {
@@ -297,18 +386,24 @@ public abstract class AbstractDim extends BasedConfigurable {
         return msg;
     }
 
-
-
-    protected AbstractMemoryTable loadData(){
+    protected AbstractMemoryTable loadData() {
         AbstractMemoryTable memoryTable = null;
-        if(!isLarge){
+        if (!isLarge) {
             LOG.info(String.format("init ByteArrayMemoryTable."));
             memoryTable = new ByteArrayMemoryTable();
-        }else {
+            loadData2Memory(memoryTable);
+        } else {
             LOG.info(String.format("init MappedByteBufferTable."));
-            memoryTable = new ByteArrayMemoryTable();
+//            memoryTable = new MappedByteBufferTable();
+//            loadData2Memory(memoryTable);
+            Date date = new Date();
+            try {
+                memoryTable = MappedByteBufferTable.Creator.newCreator(filePath, date, pollingTimeMinute.intValue()).create(table -> loadData2Memory(table));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
-        loadData2Memory(memoryTable);
         return memoryTable;
     }
 
@@ -352,12 +447,12 @@ public abstract class AbstractDim extends BasedConfigurable {
         return index;
     }
 
-    public Long getPollingTimeMintue() {
-        return pollingTimeMintue;
+    public Long getPollingTimeMinute() {
+        return pollingTimeMinute;
     }
 
-    public void setPollingTimeMintue(Long pollingTimeMintue) {
-        this.pollingTimeMintue = pollingTimeMintue;
+    public void setPollingTimeMinute(Long pollingTimeMinute) {
+        this.pollingTimeMinute = pollingTimeMinute;
     }
 
     public List<String> getIndexs() {
@@ -382,5 +477,13 @@ public abstract class AbstractDim extends BasedConfigurable {
 
     public DimIndex getNameListIndex() {
         return nameListIndex;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 }

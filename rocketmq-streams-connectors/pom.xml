@@ -26,7 +26,7 @@
     </parent>
     <artifactId>rocketmq-streams-connectors</artifactId>
     <packaging>jar</packaging>
-    <name>ROCKETMQ STREAMS :: rocketmq-streams-connectors</name>
+    <name>ROCKETMQ STREAMS :: connectors</name>
 
     <dependencies>
         <dependency>

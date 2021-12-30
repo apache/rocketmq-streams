@@ -39,7 +39,7 @@ public class ConfigurableServiceFactory {
             }
             IConfigurableService configurableService = getConfigurableServiceType(type);
             if (configurableService instanceof AbstractSupportParentConfigureService) {
-                ((AbstractSupportParentConfigureService)configurableService).initMethod(properties1);
+                ((AbstractSupportParentConfigureService) configurableService).initMethod(properties1);
             }
             return configurableService;
         } catch (Exception e) {

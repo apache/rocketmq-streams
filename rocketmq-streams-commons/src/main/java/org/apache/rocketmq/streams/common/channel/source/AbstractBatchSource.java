@@ -92,6 +92,15 @@ public abstract class AbstractBatchSource extends AbstractSource {
         return doReceiveMessage(message, false);
     }
 
+    @Override
+    public JSONObject createJson(Object message) {
+        if (isJsonData && JSONObject.class.isInstance(message)) {
+            return (JSONObject) message;
+        }
+        return super.createJson(message);
+
+    }
+
     public AbstractContext doReceiveMessage(String message, boolean needFlush) {
         String queueId = getQueueId();
         String offset = this.offsetGenerator.incrementAndGet() + "";
@@ -139,7 +148,7 @@ public abstract class AbstractBatchSource extends AbstractSource {
      */
     @Override
     public AbstractContext doReceiveMessage(JSONObject message, boolean needSetCheckPoint, String queueId,
-                                            String offset) {
+        String offset) {
         Message msg = createMessage(message, queueId, offset, needSetCheckPoint);
         return executeMessage(msg);
     }

@@ -46,7 +46,7 @@ public abstract class AbstractWindowTest implements Serializable {
     protected String filePath;
 
     public AbstractWindowTest() {
-        String fileName = this.fileName + getSourceCount();
+        String fileName = this.fileName + getSourceCount() + ".txt";
         filePath = SingleSplitTest.class.getClassLoader().getResource(fileName).getFile();
     }
 
@@ -140,7 +140,7 @@ public abstract class AbstractWindowTest implements Serializable {
             .setFireMode(fireMode)
             .setMaxMsgGap(maxMsgGap)
             .waterMark(waterMark)
-            .setTimeField("logTime")
+            // .setTimeField("logTime")
             .count("total")
             .sum("OutFlow", "OutFlow")
             .sum("InFlow", "inflow")

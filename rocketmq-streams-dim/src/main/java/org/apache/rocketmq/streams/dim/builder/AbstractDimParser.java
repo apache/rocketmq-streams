@@ -24,21 +24,27 @@ import org.apache.rocketmq.streams.dim.model.AbstractDim;
 public abstract class AbstractDimParser implements IDimSQLParser {
     @Override
     public AbstractDim parseDim(String namespace, Properties properties, MetaData metaData) {
-        AbstractDim dim=createDim(properties,metaData);
+        AbstractDim dim = createDim(properties, metaData);
         String cacheTTLMs = properties.getProperty("cacheTTLMs");
         long pollingTime = 30;//默认更新时间是30分钟
-
 
         if (StringUtil.isNotEmpty(cacheTTLMs)) {
             pollingTime = (Long.valueOf(cacheTTLMs) / 1000 / 60);
         }
         dim.setNameSpace(namespace);
-        dim.setPollingTimeMintue(pollingTime);
+        dim.setPollingTimeMinute(pollingTime);
 
-        String isLarge=properties.getProperty("isLarge");
-        if(isLarge!=null){
-            dim.setLarge(Boolean.valueOf(isLarge));
+        String isLarge = properties.getProperty("isLarge");
+        if (isLarge == null || "false".equalsIgnoreCase(isLarge)) {
+            return dim;
         }
+        dim.setLarge(Boolean.valueOf(isLarge));
+        String filePath = properties.getProperty("filePath");
+//        String tableName = metaData.getTableName();
+        if (filePath == null) {
+            throw new RuntimeException("if large table is true, must set file path args");
+        }
+        dim.setFilePath(filePath);
         return dim;
     }
 

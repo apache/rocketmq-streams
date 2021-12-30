@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.window.fire;
+package org.apache.rocketmq.streams.examples.sink;
 
-import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
-public class WindowFireManager {
-    private AbstractWindow window;
-    /**
-     * splitId,max
-     */
-    protected transient ConcurrentHashMap<String,Long> maxEventTimes=new ConcurrentHashMap();//max event time procced by window
-    protected transient ConcurrentHashMap<String,Long> eventTimeLastUpdateTimes=new ConcurrentHashMap<>();
+public class MqttSinkExample {
+
+    public static void main(String[] args) {
+        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        source.fromFile("/Users/junjie.cheng/jobs/access.log", false)
+            .map(message -> message)
+            .toMqtt("tpc://localhost:1883", "test", "test")
+            .start();
+    }
+
 }
