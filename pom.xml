@@ -186,6 +186,9 @@
                         <exclude>**/*.txt</exclude>
                         <exclude>**/*.cs</exclude>
                         <exclude>**/*.xml</exclude>
+                        <exclude>**/*.sh</exclude>
+                        <exclude>**/*.out</exclude>
+                        <exclude>**/*.properties</exclude>
                         <exclude>docs/**/*</exclude>
                     </excludes>
                 </configuration>
