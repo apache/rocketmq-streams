@@ -173,15 +173,20 @@
                         <exclude>.gitignore</exclude>
                         <exclude>.travis.yml</exclude>
                         <exclude>.asf.yaml</exclude>
+                        <exclude>build_without_test.sh</exclude>
+                        <exclude>NOTICE</exclude>
+                        <exclude>LICENSE</exclude>
                         <exclude>README.md</exclude>
-                        <exclude>README-Chinese.md</exclude>
+                        <exclude>README-chinese.md</exclude>
                         <exclude>QUICKSTART.md</exclude>
+                        <exclude>quick_start.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
                         <exclude>**/*.txt</exclude>
                         <exclude>**/*.cs</exclude>
-                        <exclude>docs/**</exclude>
+                        <exclude>**/*.xml</exclude>
+                        <exclude>docs/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
