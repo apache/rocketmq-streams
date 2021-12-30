@@ -25,15 +25,15 @@ import org.apache.rocketmq.streams.common.context.IMessage;
  * 测试使用，输出就是把消息打印出来
  */
 public class OutputPrintChannel extends AbstractSink {
-    protected transient AtomicInteger count=new AtomicInteger(0);
+    protected transient AtomicInteger count = new AtomicInteger(0);
+
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
         for (IMessage msg : messages) {
             System.out.println(msg.getMessageValue());
             count.incrementAndGet();
         }
-
-        System.out.println("total fire msg is "+count.get());
+        //System.out.println("total fire msg is "+count.get()+" "+ DateUtil.getCurrentTimeString());
         return false;
     }
 

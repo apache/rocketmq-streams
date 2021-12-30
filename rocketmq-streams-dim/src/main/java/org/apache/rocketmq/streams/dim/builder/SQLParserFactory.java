@@ -22,13 +22,14 @@ public class SQLParserFactory {
 
     private static SQLParserFactory instance = new SQLParserFactory();
 
-    private SQLParserFactory(){}
+    private SQLParserFactory() {
+    }
 
-    public static SQLParserFactory getInstance(){
+    public static SQLParserFactory getInstance() {
         return instance;
     }
 
-    public IDimSQLParser create(String type){
+    public IDimSQLParser create(String type) {
         ServiceLoaderComponent serviceLoaderComponent = ServiceLoaderComponent.getInstance(IDimSQLParser.class);
         return (IDimSQLParser) serviceLoaderComponent.loadService(type);
     }

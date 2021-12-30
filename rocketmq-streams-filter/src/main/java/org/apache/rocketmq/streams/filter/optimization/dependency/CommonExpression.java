@@ -39,67 +39,70 @@ public class CommonExpression {
     protected boolean isRegex;//if regex return true else false
     protected String sourceVarName;//the var name in source
     protected Integer index;//set by HomologousCompute, is cache result bitset index
-    protected List<IScriptExpression> scriptExpressions=new ArrayList<>();
+    protected List<IScriptExpression> scriptExpressions = new ArrayList<>();
 
     protected IScriptExpression scriptExpression;
     protected Expression expression;
 
     public CommonExpression(IScriptExpression expression) {
-        if(!support(expression)){
+        if (!support(expression)) {
             return;
         }
-        this.scriptExpression=expression;
-        IScriptParamter varParameter=(IScriptParamter)expression.getScriptParamters().get(0);
-        IScriptParamter regexParameter=(IScriptParamter)expression.getScriptParamters().get(1);
-        String regex=IScriptOptimization.getParameterValue(regexParameter);
-        String varName=IScriptOptimization.getParameterValue(varParameter);
-        this.varName=varName;
-        this.value=regex;
-        this.isRegex=true;
+        this.scriptExpression = expression;
+        IScriptParamter varParameter = (IScriptParamter) expression.getScriptParamters().get(0);
+        IScriptParamter regexParameter = (IScriptParamter) expression.getScriptParamters().get(1);
+        String regex = IScriptOptimization.getParameterValue(regexParameter);
+        String varName = IScriptOptimization.getParameterValue(varParameter);
+        this.varName = varName;
+        this.value = regex;
+        this.isRegex = true;
 
     }
+
     public CommonExpression(Expression expression) {
-        if(!support(expression)){
+        if (!support(expression)) {
             return;
         }
-        this.expression=expression;
-        if(RegexFunction.isRegex(expression.getFunctionName())){
-            value=(String)expression.getValue();
-            varName=expression.getVarName();
-            isRegex=true;
+        this.expression = expression;
+        if (RegexFunction.isRegex(expression.getFunctionName())) {
+            value = (String) expression.getValue();
+            varName = expression.getVarName();
+            isRegex = true;
         }
-        if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
-            value=(String)expression.getValue();
-            varName=expression.getVarName();
-            isRegex=false;
+        if (LikeFunction.isLikeFunciton(expression.getFunctionName())) {
+            value = (String) expression.getValue();
+            varName = expression.getVarName();
+            isRegex = false;
         }
     }
 
-    public static boolean support(IScriptExpression expression){
-        if(GroupScriptExpression.class.isInstance(expression)){
+    public static boolean support(IScriptExpression expression) {
+        if (GroupScriptExpression.class.isInstance(expression)) {
             return false;
         }
-        if(expression.getFunctionName()==null){
+        if (expression.getFunctionName() == null) {
             return false;
         }
-        if(expression.getScriptParamters()==null||expression.getScriptParamters().size()!=2){
+        if (expression.getScriptParamters() == null || expression.getScriptParamters().size() != 2) {
             return false;
         }
-        if(org.apache.rocketmq.streams.script.function.impl.string.RegexFunction.isRegexFunction(expression.getFunctionName())){
+        if (org.apache.rocketmq.streams.script.function.impl.string.RegexFunction.isRegexFunction(expression.getFunctionName())) {
             return true;
         }
 
         return false;
     }
-    public static boolean support(Expression expression){
-        if(expression.getFunctionName()==null){
+
+    public static boolean support(Expression expression) {
+        if (expression.getFunctionName() == null) {
             return false;
         }
-        if(RegexFunction.isRegex(expression.getFunctionName())|| LikeFunction.isLikeFunciton(expression.getFunctionName())){
+        if (RegexFunction.isRegex(expression.getFunctionName()) || LikeFunction.isLikeFunciton(expression.getFunctionName())) {
             return true;
         }
         return false;
     }
+
     public String getVarName() {
         return varName;
     }
@@ -133,40 +136,40 @@ public class CommonExpression {
         this.scriptExpressions = scriptExpressions;
     }
 
-    public boolean  init() {
+    public boolean init() {
         Collections.sort(this.scriptExpressions, new Comparator<IScriptExpression>() {
             @Override public int compare(IScriptExpression o1, IScriptExpression o2) {
-                List<String> varNames1= o1.getDependentFields();
-                List<String> varNames2=o2.getDependentFields();
-                for(String varName:varNames1){
-                    if(o2.getNewFieldNames()!=null&&o2.getNewFieldNames().contains(varName)){
+                List<String> varNames1 = o1.getDependentFields();
+                List<String> varNames2 = o2.getDependentFields();
+                for (String varName : varNames1) {
+                    if (o2.getNewFieldNames() != null && o2.getNewFieldNames().contains(varName)) {
                         return 1;
                     }
                 }
-                for(String varName:varNames2){
-                    if(o1.getNewFieldNames()!=null&&o1.getNewFieldNames().contains(varName)){
+                for (String varName : varNames2) {
+                    if (o1.getNewFieldNames() != null && o1.getNewFieldNames().contains(varName)) {
                         return -1;
                     }
                 }
                 return 0;
             }
         });
-        ScriptDependent scriptDependent=new ScriptDependent(this.scriptExpressions);
-        Set<String> varNames=scriptDependent.traceaField(this.varName,new AtomicBoolean(false),new ArrayList<>());
-        if(CollectionUtil.isEmpty(varNames)){
-            this.sourceVarName=varName;
-        }else {
-            if(varNames.size()>1){
+        ScriptDependent scriptDependent = new ScriptDependent(this.scriptExpressions);
+        Set<String> varNames = scriptDependent.traceaField(this.varName, new AtomicBoolean(false), new ArrayList<>());
+        if (CollectionUtil.isEmpty(varNames)) {
+            this.sourceVarName = varName;
+        } else {
+            if (varNames.size() > 1) {
                 return false;
             }
-            this.sourceVarName=varNames.iterator().next();
+            this.sourceVarName = varNames.iterator().next();
 
         }
         return true;
     }
 
-    public void addPreviewScriptDependent(List<IScriptExpression> scriptExpressions){
-        if(scriptExpressions==null){
+    public void addPreviewScriptDependent(List<IScriptExpression> scriptExpressions) {
+        if (scriptExpressions == null) {
             return;
         }
 
@@ -182,16 +185,16 @@ public class CommonExpression {
         this.sourceVarName = sourceVarName;
     }
 
-    public void addHomologousVarToExpression(){
-        HomologousVar homologousVar=new HomologousVar();
+    public void addHomologousVarToExpression() {
+        HomologousVar homologousVar = new HomologousVar();
         homologousVar.setSourceVarName(this.sourceVarName);
         homologousVar.setIndex(index);
         homologousVar.setVarName(this.varName);
-        if(scriptExpression!=null&& ScriptExpression.class.isInstance(scriptExpression)){
-            ScriptExpression scriptExpressionImp=(ScriptExpression)scriptExpression;
+        if (scriptExpression != null && ScriptExpression.class.isInstance(scriptExpression)) {
+            ScriptExpression scriptExpressionImp = (ScriptExpression) scriptExpression;
             scriptExpressionImp.setHomologousVar(homologousVar);
         }
-        if(expression!=null){
+        if (expression != null) {
             expression.setHomologousVar(homologousVar);
         }
     }
@@ -203,6 +206,5 @@ public class CommonExpression {
     public void setIndex(Integer index) {
         this.index = index;
     }
-
 
 }

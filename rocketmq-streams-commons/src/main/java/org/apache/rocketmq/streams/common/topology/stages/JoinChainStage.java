@@ -31,12 +31,12 @@ import org.apache.rocketmq.streams.common.topology.model.Pipeline;
  */
 public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
 
-    protected String leftPiplineName;
-    protected String rightPiplineName;
-    protected String rigthDependentTableName;
+    protected String leftPipelineName;
+    protected String rightPipelineName;
+    protected String rightDependentTableName;
 
-    protected transient ChainPipeline leftPipline;
-    protected transient ChainPipeline rightPipline;
+    protected transient ChainPipeline leftPipeline;
+    protected transient ChainPipeline rightPipeline;
 
     protected transient IStageHandle handle = new IStageHandle() {
 
@@ -45,7 +45,7 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
             String lable = message.getHeader().getMsgRouteFromLable();
             String joinFlag = null;
             if (lable != null) {
-                if (lable.equals(rigthDependentTableName)) {
+                if (lable.equals(rightDependentTableName)) {
                     joinFlag = MessageHeader.JOIN_RIGHT;
                 } else {
                     joinFlag = MessageHeader.JOIN_LEFT;
@@ -56,9 +56,9 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
             }
             window.setFireReceiver(getReceiverAfterCurrentNode());
             if (MessageHeader.JOIN_LEFT.equals(joinFlag)) {
-                leftPipline.doMessage(message, context);
+                leftPipeline.doMessage(message, context);
             } else {
-                rightPipline.doMessage(message, context);
+                rightPipeline.doMessage(message, context);
             }
             //if(!MessageGloableTrace.existFinshBranch(message)){
             //    context.setBreak(true);
@@ -81,8 +81,8 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         super.doProcessAfterRefreshConfigurable(configurableService);
-        leftPipline = configurableService.queryConfigurable(Pipeline.TYPE, leftPiplineName);
-        rightPipline = configurableService.queryConfigurable(Pipeline.TYPE, rightPiplineName);
+        leftPipeline = configurableService.queryConfigurable(Pipeline.TYPE, leftPipelineName);
+        rightPipeline = configurableService.queryConfigurable(Pipeline.TYPE, rightPipelineName);
     }
 
     @Override
@@ -96,7 +96,7 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
 
     public void setWindow(IWindow window) {
         this.window = window;
-        if (IConfigurable.class.isInstance(window)) {
+        if (window instanceof IConfigurable) {
             setWindowName(window.getConfigureName());
             setLabel(window.getConfigureName());
         }
@@ -112,49 +112,49 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
         return super.entityName;
     }
 
-    public String getLeftPiplineName() {
-        return leftPiplineName;
+    public String getLeftPipelineName() {
+        return leftPipelineName;
     }
 
-    public void setLeftPiplineName(String leftPiplineName) {
-        this.leftPiplineName = leftPiplineName;
+    public void setLeftPipelineName(String leftPipelineName) {
+        this.leftPipelineName = leftPipelineName;
     }
 
-    public String getRightPiplineName() {
-        return rightPiplineName;
+    public String getRightPipelineName() {
+        return rightPipelineName;
     }
 
-    public void setRightPiplineName(String rightPiplineName) {
-        this.rightPiplineName = rightPiplineName;
+    public void setRightPipelineName(String rightPipelineName) {
+        this.rightPipelineName = rightPipelineName;
     }
 
-    public String getRigthDependentTableName() {
-        return rigthDependentTableName;
+    public String getRightDependentTableName() {
+        return rightDependentTableName;
     }
 
-    public void setRigthDependentTableName(String rigthDependentTableName) {
-        this.rigthDependentTableName = rigthDependentTableName;
+    public void setRightDependentTableName(String rightDependentTableName) {
+        this.rightDependentTableName = rightDependentTableName;
     }
 
-    public ChainPipeline getLeftPipline() {
-        return leftPipline;
+    public ChainPipeline getLeftPipeline() {
+        return leftPipeline;
     }
 
-    public void setLeftPipline(ChainPipeline leftPipline) {
-        if (leftPipline != null) {
-            this.leftPiplineName = leftPipline.getConfigureName();
+    public void setLeftPipeline(ChainPipeline leftPipeline) {
+        if (leftPipeline != null) {
+            this.leftPipelineName = leftPipeline.getConfigureName();
         }
-        this.leftPipline = leftPipline;
+        this.leftPipeline = leftPipeline;
     }
 
-    public ChainPipeline getRightPipline() {
-        return rightPipline;
+    public ChainPipeline getRightPipeline() {
+        return rightPipeline;
     }
 
-    public void setRightPipline(ChainPipeline rightPipline) {
-        if (rightPipline != null) {
-            this.rightPiplineName = rightPipline.getConfigureName();
+    public void setRightPipeline(ChainPipeline rightPipeline) {
+        if (rightPipeline != null) {
+            this.rightPipelineName = rightPipeline.getConfigureName();
         }
-        this.rightPipline = rightPipline;
+        this.rightPipeline = rightPipeline;
     }
 }

@@ -78,12 +78,10 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     protected int maxFetchLogGroupSize = 100;
     protected List<String> logFingerprintFields;//log fingerprint to filter msg quickly
 
-
-    protected String encoding=CHARSET;//字节编码方式
+    protected String encoding = CHARSET;//字节编码方式
     protected String fieldDelimiter;//如果是分割符分割，分割符
     protected MetaData metaData;//主要用于分割符拆分字段当场景
     protected List<String> headerFieldNames;
-
 
     /**
      * 数据源投递消息的算子，此算子用来接收source的数据，做处理
@@ -136,7 +134,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @return
      */
     public AbstractContext doReceiveMessage(JSONObject message, boolean needSetCheckPoint, String queueId,
-                                            String offset) {
+        String offset) {
         Message msg = createMessage(message, queueId, offset, needSetCheckPoint);
         AbstractContext context = executeMessage(msg);
         return context;
@@ -228,73 +226,75 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     }
 
-    public JSONObject create(byte[] msg,Map<String, ?> headProperties) {
+    public JSONObject create(byte[] msg, Map<String, ?> headProperties) {
         try {
             String data = new String(msg, getEncoding());
-            return create(data,headProperties);
+            return create(data, headProperties);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             throw new RuntimeException("msg encode error ");
         }
 
     }
-    public JSONObject create(String message,Map<String, ?> headProperties) {
-        JSONObject msg=create(message);
-        if(this.headerFieldNames!=null&&headProperties!=null){
-            for(String fieldName:this.headerFieldNames){
-                msg.put(fieldName,headProperties.get(fieldName));
+
+    public JSONObject create(String message, Map<String, ?> headProperties) {
+        JSONObject msg = create(message);
+        if (this.headerFieldNames != null && headProperties != null) {
+            for (String fieldName : this.headerFieldNames) {
+                msg.put(fieldName, headProperties.get(fieldName));
             }
         }
         return msg;
     }
+
     public JSONObject create(String message) {
-        if(isJsonData){
+        if (isJsonData) {
             return createJson(message);
         }
         //主要是sql场景
-        if(this.metaData!=null){
-            JSONObject msg=new JSONObject();
+        if (this.metaData != null) {
+            JSONObject msg = new JSONObject();
             //分割符
-            if(this.fieldDelimiter!=null){
-                String[] values=message.split(this.fieldDelimiter);
+            if (this.fieldDelimiter != null) {
+                String[] values = message.split(this.fieldDelimiter);
 
-                List<MetaDataField> fields=this.metaData.getMetaDataFields();
-                if(values.length!=this.metaData.getMetaDataFields().size()){
-                    throw new RuntimeException("expect table column's count equals data size ("+fields.size()+","+values.length+")");
+                List<MetaDataField> fields = this.metaData.getMetaDataFields();
+                if (values.length != this.metaData.getMetaDataFields().size()) {
+                    throw new RuntimeException("expect table column's count equals data size (" + fields.size() + "," + values.length + ")");
                 }
-                for(int i=0;i<values.length;i++){
-                    MetaDataField field =fields.get(i);
-                    String fildName=field.getFieldName();
-                    String valueStr=values[i];
-                    Object value=field.getDataType().getData(valueStr);
-                    msg.put(fildName,value);
+                for (int i = 0; i < values.length; i++) {
+                    MetaDataField field = fields.get(i);
+                    String fildName = field.getFieldName();
+                    String valueStr = values[i];
+                    Object value = field.getDataType().getData(valueStr);
+                    msg.put(fildName, value);
                 }
                 return msg;
-            }else {
+            } else {
                 //单字段场景
-                List<MetaDataField> metaDataFields=this.metaData.getMetaDataFields();
-                MetaDataField metaDataField=null;
-                for(MetaDataField field:metaDataFields){
-                    if(this.headerFieldNames==null){
-                        metaDataField=field;
+                List<MetaDataField> metaDataFields = this.metaData.getMetaDataFields();
+                MetaDataField metaDataField = null;
+                for (MetaDataField field : metaDataFields) {
+                    if (this.headerFieldNames == null) {
+                        metaDataField = field;
                         break;
                     }
-                    if(!this.headerFieldNames.contains(field.getFieldName())){
-                        metaDataField=field;
+                    if (!this.headerFieldNames.contains(field.getFieldName())) {
+                        metaDataField = field;
                         break;
                     }
                 }
-                if(metaDataField!=null){
-                    msg.put(metaDataField.getFieldName(),message);
+                if (metaDataField != null) {
+                    msg.put(metaDataField.getFieldName(), message);
                     return msg;
                 }
             }
-        }else {
+        } else {
             //sdk场景
-            if(this.fieldDelimiter!=null){
-                String[] values=message.split(this.fieldDelimiter);
-                List<String> columns=new ArrayList<>();
-                for(String value:values){
+            if (this.fieldDelimiter != null) {
+                String[] values = message.split(this.fieldDelimiter);
+                List<String> columns = new ArrayList<>();
+                for (String value : values) {
                     columns.add(value);
                 }
                 return createJson(columns);
@@ -311,7 +311,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @return
      */
     public AbstractContext executeMessage(Message channelMessage) {
-        if(BatchFinishMessage.isBatchFinishMessage(channelMessage)){
+        if (BatchFinishMessage.isBatchFinishMessage(channelMessage)) {
             /**
              * 可以通过真实信息发送，消息结束通知
              */
@@ -364,7 +364,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @return
      */
     @Deprecated
-    public boolean supportOffsetRest(){
+    public boolean supportOffsetRest() {
         return false;
     }
 
@@ -534,6 +534,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     /**
      * 每批次通过加小序号来区分offset的大小
+     *
      * @param offset
      * @param i
      * @return
@@ -643,7 +644,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     }
 
     @Override
-    public String createCheckPointName(){
+    public String createCheckPointName() {
 
         ISource source = this;
 
@@ -651,20 +652,19 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         String name = source.getConfigureName();
         String groupName = source.getGroupName();
 
-
-        if(StringUtil.isEmpty(namespace)){
+        if (StringUtil.isEmpty(namespace)) {
             namespace = "default_namespace";
         }
 
-        if(StringUtil.isEmpty(name)){
+        if (StringUtil.isEmpty(name)) {
             name = "default_name";
         }
 
-        if(StringUtil.isEmpty(groupName)){
+        if (StringUtil.isEmpty(groupName)) {
             groupName = "default_groupName";
         }
         String topic = source.getTopic();
-        if(topic == null || topic.trim().length() == 0){
+        if (topic == null || topic.trim().length() == 0) {
             topic = "default_topic";
         }
         return MapKeyUtil.createKey(namespace, groupName, topic, name);
@@ -672,12 +672,12 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     }
 
     @Override
-    public boolean isFinished(){
+    public boolean isFinished() {
         return false;
     }
 
     @Override
-    public void finish(){
+    public void finish() {
         checkPointManager.finish();
     }
 

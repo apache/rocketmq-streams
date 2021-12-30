@@ -35,7 +35,6 @@ public class FunctionContext<T extends IMessage>
         super(message);
     }
 
-
     @Override
     public AbstractContext copy() {
         IMessage message = this.message.deepCopy();

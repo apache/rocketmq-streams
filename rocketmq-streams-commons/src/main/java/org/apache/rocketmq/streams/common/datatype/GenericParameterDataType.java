@@ -16,11 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.datatype;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public abstract class GenericParameterDataType<T> extends BaseDataType<T> {
-
+    protected static final String DATATYPE_NAME = "datatypename";
+    protected static final String ELEMENT_VALUE = "element_value";
+    protected static final String ELEMENT_CLASS_NAME = "element_class_name";
     protected String genericParameterStr;
 
     public abstract void parseGenericParameter(String genericParameterString);
@@ -48,44 +55,80 @@ public abstract class GenericParameterDataType<T> extends BaseDataType<T> {
         return null;
     }
 
-    //    protected DataType parseParadigmType(String genericParameterType) {
-    //        if (genericParameterType == null) return null;
-    //        String typeString = genericParameterType.trim();
-    //        int index = typeString.indexOf("<");
-    //        String className = genericParameterType;
-    //        if (index > -1) {
-    //            className = typeString.substring(0, index).trim();
-    //            typeString = typeString.substring(index + 1, typeString.length() - 1).trim();
-    //            DataType dataType=parseParadigmType(typeString);
-    //        }else{
-    //            Class clazz  = Class.forName(className);
-    //            DataType dataType=createDataTypeFromClass(clazz);
-    //            return dataType;
-    //        }
-    //
-    //        Class clazz = null;
-    //        try {
-    //            clazz = Class.forName(className);
-    //            DataType dataType = createDateTypeForGenericParameter(clazz, typeString, false);
-    //            return dataType;
-    //        } catch (ClassNotFoundException e) {
-    //            e.printStackTrace();
-    //        }
-    //        return null;
-    //    }
-
     protected String createGenericParameterStr(DataType paradigmType) {
         if (paradigmType == null) {
             return null;
         }
         String subStr = null;
         if (paradigmType instanceof GenericParameterDataType) {
-            GenericParameterDataType genericParameterDataType = (GenericParameterDataType)paradigmType;
+            GenericParameterDataType genericParameterDataType = (GenericParameterDataType) paradigmType;
             subStr = genericParameterDataType.createGenericParameterStr();
         } else {
             subStr = paradigmType.getDataClass().getName();
         }
         return subStr;
+    }
+
+    protected Object createObjectValue(DataType paradigmType, String json) {
+        return createObjectValue(paradigmType, json, null);
+    }
+
+    protected Object createObjectValue(DataType paradigmType, String json, Set<String> className) {
+        Object result = json;
+        if (paradigmType == null) {
+            JSONObject jsonObject = JSON.parseObject(json);
+            String datatypeName = jsonObject.getString(DATATYPE_NAME);
+            String data = jsonObject.getString(ELEMENT_VALUE);
+            DataType dataType = DataTypeUtil.getDataType(datatypeName);
+            if (className != null) {
+                className.add(jsonObject.getString(ELEMENT_CLASS_NAME));
+            }
+            result = dataType.getData(data);
+        } else {
+            result = paradigmType.getData(json);
+        }
+        return result;
+    }
+
+    protected byte[] createByteValue(DataType paradigmType, Object o) {
+        byte[] bytes = null;
+        if (paradigmType != null) {
+            bytes = paradigmType.toBytes(o, false);
+        } else {
+            bytes = SerializeUtil.serialize(o);
+        }
+        return bytes;
+    }
+
+    protected Object createObjectValue(DataType paradigmType, byte[] bytes, AtomicInteger offset) {
+        Object value = null;
+        if (paradigmType != null) {
+            value = paradigmType.byteToValue(bytes, offset);
+        } else {
+            value = SerializeUtil.deserialize(bytes, offset);
+        }
+        return value;
+    }
+
+    protected String createStringValue(DataType paradigmType, Object object) {
+        return createStringValue(paradigmType, object, null);
+    }
+
+    protected String createStringValue(DataType paradigmType, Object object, Class arrayElementClass) {
+        String data = null;
+        if (paradigmType == null) {
+            JSONObject jsonObject = new JSONObject();
+            DataType dataType = DataTypeUtil.getDataTypeFromClass(object.getClass());
+            jsonObject.put(DATATYPE_NAME, dataType.getDataTypeName());
+            jsonObject.put(ELEMENT_VALUE, dataType.toDataJson(object));
+            if (arrayElementClass != null) {
+                jsonObject.put(ELEMENT_CLASS_NAME, arrayElementClass.getName());
+            }
+            data = jsonObject.toJSONString();
+        } else {
+            data = paradigmType.toDataJson(object);
+        }
+        return data;
     }
 
     /**

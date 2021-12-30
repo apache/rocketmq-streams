@@ -24,9 +24,9 @@ import org.junit.Test;
 public class ScriptOptimizationTest {
 
     @Test
-    public void testScriptOptimization(){
-        String scriptValue= FileUtil.loadFileContent("/Users/yuanxiaodong/Downloads/script.txt");
-        FunctionScript functionScript=new FunctionScript(scriptValue);
+    public void testScriptOptimization() {
+        String scriptValue = FileUtil.loadFileContent("/Users/yuanxiaodong/Downloads/script.txt");
+        FunctionScript functionScript = new FunctionScript(scriptValue);
         functionScript.init();
 
     }

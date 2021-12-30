@@ -148,6 +148,9 @@ public class LongDataType extends BaseDataType<Long> {
 
     @Override
     public byte[] toBytes(Long value, boolean isCompress) {
+        if(value==null){
+            return null;
+        }
         if (isCompress) {
             return numberToBytes((long)value);
         } else {

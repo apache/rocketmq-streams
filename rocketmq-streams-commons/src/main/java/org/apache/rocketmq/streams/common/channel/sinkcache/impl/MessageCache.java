@@ -45,7 +45,6 @@ public class MessageCache<R> implements IMessageCache<R> {
 
     protected ExecutorService autoFlushExecutorService;
 
-
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
         this.flushCallBack = flushCallBack;
     }
@@ -72,7 +71,7 @@ public class MessageCache<R> implements IMessageCache<R> {
             autoFlushTask = new DataSourceAutoFlushTask(true, this);
             autoFlushTask.setAutoFlushSize(this.autoFlushSize);
             autoFlushTask.setAutoFlushTimeGap(this.autoFlushTimeGap);
-            ScheduleTask scheduleTask=new ScheduleTask(autoFlushTask,autoFlushTask);
+            ScheduleTask scheduleTask = new ScheduleTask(autoFlushTask, autoFlushTask);
             scheduleTask.setExecutorService(this.autoFlushExecutorService);
             ScheduleManager.getInstance().regist(scheduleTask);
         }
@@ -86,15 +85,15 @@ public class MessageCache<R> implements IMessageCache<R> {
         }
     }
 
-    protected  void offerQueue(R msg) {
+    protected void offerQueue(R msg) {
         dataQueue.offer(msg);
 
     }
 
     protected List<R> getMessagesFromQueue(int size) {
         List<R> messages = new ArrayList<>();
-        int count=0;
-        while (count<size) {
+        int count = 0;
+        while (count < size) {
             R msg = this.dataQueue.poll();
             messages.add(msg);
             count++;
@@ -122,7 +121,7 @@ public class MessageCache<R> implements IMessageCache<R> {
             if (getMessageCount() == 0) {
                 return 0;
             }
-            int size=this.dataQueue.size();
+            int size = this.dataQueue.size();
             messageCount = new AtomicInteger(0);
             messages = getMessagesFromQueue(size);
             flushCallBack.flushMessage(messages);
@@ -135,7 +134,6 @@ public class MessageCache<R> implements IMessageCache<R> {
     public int flush(Set<String> splitIds) {
         return flush();
     }
-
 
     public int getAutoFlushSize() {
         return autoFlushSize;

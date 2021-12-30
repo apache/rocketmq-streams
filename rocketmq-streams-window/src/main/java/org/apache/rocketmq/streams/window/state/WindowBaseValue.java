@@ -21,11 +21,11 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.model.Entity;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
+import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 
-public class WindowBaseValue extends BasedConfigurable implements Serializable {
+public class WindowBaseValue extends Entity implements Serializable {
 
     private static final Log LOG = LogFactory.getLog(WindowBaseValue.class);
 
@@ -176,9 +176,8 @@ public class WindowBaseValue extends BasedConfigurable implements Serializable {
 
     @Override
     public WindowBaseValue clone() {
-        String json = this.toJson();
-        WindowBaseValue clonedValue = ReflectUtil.forInstance(this.getClass());
-        clonedValue.toObject(json);
+        byte[] bytes = SerializeUtil.serialize(this);
+        WindowBaseValue clonedValue = SerializeUtil.deserialize(bytes);
         return clonedValue;
     }
 

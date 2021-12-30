@@ -29,26 +29,26 @@ import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 
 public class WindowMaxValueManager implements IWindowMaxValueManager {
     protected AbstractWindow window;
-    protected Map<String,WindowMaxValueProcessor> windowMaxValueProcessorMap=new HashMap<>();
+    protected Map<String, WindowMaxValueProcessor> windowMaxValueProcessorMap = new HashMap<>();
     protected transient ExecutorService executorService;
     protected transient SQLCache sqlCache;
-    public WindowMaxValueManager(AbstractWindow window, SQLCache sqlCache){
-        this.window=window;
-        this.sqlCache=sqlCache;
-        this.executorService=new ThreadPoolExecutor(10, 10,
+
+    public WindowMaxValueManager(AbstractWindow window, SQLCache sqlCache) {
+        this.window = window;
+        this.sqlCache = sqlCache;
+        this.executorService = new ThreadPoolExecutor(10, 10,
             0L, TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<Runnable>());
     }
 
-
-    protected WindowMaxValueProcessor getOrCreate(String queueId){
-        WindowMaxValueProcessor windowMaxValueProcessor=windowMaxValueProcessorMap.get(queueId);
-        if(windowMaxValueProcessor==null){
-            synchronized (this){
-                windowMaxValueProcessor=windowMaxValueProcessorMap.get(queueId);
-                if(windowMaxValueProcessor==null){
-                    windowMaxValueProcessor=new WindowMaxValueProcessor(queueId,this.window,sqlCache);
-                    windowMaxValueProcessorMap.put(queueId,windowMaxValueProcessor);
+    protected WindowMaxValueProcessor getOrCreate(String queueId) {
+        WindowMaxValueProcessor windowMaxValueProcessor = windowMaxValueProcessorMap.get(queueId);
+        if (windowMaxValueProcessor == null) {
+            synchronized (this) {
+                windowMaxValueProcessor = windowMaxValueProcessorMap.get(queueId);
+                if (windowMaxValueProcessor == null) {
+                    windowMaxValueProcessor = new WindowMaxValueProcessor(queueId, this.window, sqlCache);
+                    windowMaxValueProcessorMap.put(queueId, windowMaxValueProcessor);
                 }
             }
         }
@@ -57,46 +57,20 @@ public class WindowMaxValueManager implements IWindowMaxValueManager {
 
     @Override
     public Long incrementAndGetSplitNumber(WindowInstance instance, String splitId) {
-       return getOrCreate(splitId).incrementAndGetSplitNumber(instance);
+        return getOrCreate(splitId).incrementAndGetSplitNumber(instance);
     }
 
     @Override public WindowMaxValue querySplitNum(WindowInstance instance, String splitId) {
-       return getOrCreate(splitId).querySplitNum(instance);
+        return getOrCreate(splitId).querySplitNum(instance);
     }
 
     @Override public void initMaxSplitNum(WindowInstance windowInstance, Long maxSplitNum) {
-        getOrCreate(windowInstance.getSplitId()).initMaxSplitNum(windowInstance,maxSplitNum);
+        getOrCreate(windowInstance.getSplitId()).initMaxSplitNum(windowInstance, maxSplitNum);
     }
-
-    //    @Override
-//    public void flush(String... queueIds){
-//       if(queueIds==null||queueIds.length==0){
-//           return;
-//       }
-//       if(queueIds.length==1){
-//           getOrCreate(queueIds[0]).flush();
-//           return;
-//       }
-//        CountDownLatch countDownLatch = new CountDownLatch(queueIds.length);
-//        for(String splitId:queueIds){
-//            executorService.execute(new Runnable() {
-//                @Override public void run() {
-//                    getOrCreate(splitId).flush();
-//                    countDownLatch.countDown();
-//                }
-//            });
-//
-//        }
-//        try {
-//            countDownLatch.await();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     @Override
     public void resetSplitNum(WindowInstance instance, String splitId) {
-       getOrCreate(splitId).resetSplitNum(instance);
+        getOrCreate(splitId).resetSplitNum(instance);
     }
 
     @Override
@@ -104,26 +78,25 @@ public class WindowMaxValueManager implements IWindowMaxValueManager {
         getOrCreate(splitId).deleteSplitNum(instance);
     }
 
-
-    @Override public Map<String, WindowMaxValue> saveMaxOffset(boolean isLong, String name,String shuffleId,Map<String, String> queueId2Offsets) {
-        return getOrCreate(shuffleId).saveMaxOffset(isLong,name,queueId2Offsets);
+    @Override public Map<String, WindowMaxValue> saveMaxOffset(boolean isLong, String name, String shuffleId,
+        Map<String, String> queueId2Offsets) {
+        return getOrCreate(shuffleId).saveMaxOffset(isLong, name, queueId2Offsets);
     }
 
-    @Override public Map<String, String> loadOffsets(String name,String shuffleId) {
+    @Override public Map<String, String> loadOffsets(String name, String shuffleId) {
         return getOrCreate(shuffleId).loadOffset(name);
     }
 
-    @Override public Map<String, WindowMaxValue> queryOffsets(String name, String shuffleId,Set<String> oriQueueIds) {
-        return getOrCreate(shuffleId).queryOffsets(name,oriQueueIds);
+    @Override public Map<String, WindowMaxValue> queryOffsets(String name, String shuffleId, Set<String> oriQueueIds) {
+        return getOrCreate(shuffleId).queryOffsets(name, oriQueueIds);
     }
 
     @Override
     public synchronized void removeKeyPrefixFromLocalCache(Set<String> queueIds) {
-        for(String queueId:queueIds){
+        for (String queueId : queueIds) {
             getOrCreate(queueId).removeKeyPrefixFromLocalCache();
         }
 
     }
-
 
 }

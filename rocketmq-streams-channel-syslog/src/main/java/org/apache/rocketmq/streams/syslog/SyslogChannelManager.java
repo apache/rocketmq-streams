@@ -39,8 +39,8 @@ public class SyslogChannelManager {
     public static void registeTCP(SyslogChannel syslogRouter) {
         if (!TCP_CHANNEL.getRouters().contains(syslogRouter)) {
             TCP_CHANNEL.getRouters().add(syslogRouter);
-            if(tcpPort==12345){
-                tcpPort=syslogRouter.getPort();
+            if (tcpPort == 12345) {
+                tcpPort = syslogRouter.getPort();
             }
         }
         if (tcpStart.get()) {//如果服务已经启动，再有新的channel注册，需要清空缓存，以便以新的channel能够被转发数据
@@ -50,8 +50,8 @@ public class SyslogChannelManager {
 
     public static void registeUDP(SyslogChannel syslogRouter) {
         if (!UDP_CHANNEL.getRouters().contains(syslogRouter)) {
-            if(udpPort==12345){
-                udpPort=syslogRouter.getPort();
+            if (udpPort == 12345) {
+                udpPort = syslogRouter.getPort();
             }
             UDP_CHANNEL.getRouters().add(syslogRouter);
         }

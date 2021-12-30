@@ -21,6 +21,7 @@ import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
+
 @Function
 @UDAFFunction("FIRST_VALUE")
 public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccumulator.FirstValue> {
@@ -28,7 +29,6 @@ public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccum
     public static class FirstValue<T> {
         public T value;
     }
-
 
     @Override
     public FirstValue createAccumulator() {
@@ -45,29 +45,29 @@ public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccum
         if (CollectionUtil.isEmpty(parameters) || parameters[0] == null) {
             return;
         }
-        if(accumulator.value!=null){
+        if (accumulator.value != null) {
             return;
         }
-        accumulator.value=parameters[0];
+        accumulator.value = parameters[0];
     }
 
     @Override
     public void merge(FirstValue accumulator, Iterable<FirstValue> its) {
-        if(accumulator.value!=null){
+        if (accumulator.value != null) {
             return;
         }
         Iterator<FirstValue> it = its.iterator();
         while (it.hasNext()) {
             FirstValue next = it.next();
-            if (next != null&&next.value!=null) {
-                accumulator.value=next.value;
+            if (next != null && next.value != null) {
+                accumulator.value = next.value;
                 return;
             }
         }
     }
 
     @Override
-    public void retract(FirstValue  accumulator, String... parameters) {
+    public void retract(FirstValue accumulator, String... parameters) {
         //TODO
     }
 

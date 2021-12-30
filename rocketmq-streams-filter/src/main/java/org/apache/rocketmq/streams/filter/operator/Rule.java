@@ -68,14 +68,12 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     private String expressionStr;//表达式
     protected transient Expression rootExpression;
 
-//    protected transient GroupExpressionManager groupExpressionManager;
     /**
      * 如果已经完成varmap和expressionmap的初始化,主要是用于兼容老版本规则数据，新规则可以忽略这个字段，值设置为true
      */
     private transient boolean isFinishVarAndExpression = false;
 
     public Rule() {
-//        groupExpressionManager = new GroupExpressionManager(this);
     }
 
     public Rule(String namespace, String name, String expression) {
@@ -118,7 +116,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         rule.setRuleStatus(ruleStatus);
         rule.setConfigurableService(configurableService);
         rule.setPrivateDatas(privateDatas);
-        rule.rootExpression=rootExpression;
+        rule.rootExpression = rootExpression;
         return rule;
     }
 
@@ -138,17 +136,17 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     }
 
     public void initElements() {
-        this.rootExpression=this.expressionMap.get(getExpressionName());
-        for(Expression expression:this.expressionMap.values()){
-            if(RelationExpression.class.isInstance(expression)){
-                RelationExpression relationExpression=(RelationExpression)expression;
+        this.rootExpression = this.expressionMap.get(getExpressionName());
+        for (Expression expression : this.expressionMap.values()) {
+            if (RelationExpression.class.isInstance(expression)) {
+                RelationExpression relationExpression = (RelationExpression) expression;
                 relationExpression.setExpressionMap(this.expressionMap);
-            }else {
-                Var var=createVar(expression.getVarName());
+            } else {
+                Var var = createVar(expression.getVarName());
                 expression.setVar(var);
             }
         }
-        for(Action action:this.actionMap.values()){
+        for (Action action : this.actionMap.values()) {
             action.setDataSourceMap(this.dataSourceMap);
             action.setMetaDataMap(this.metaDataMap);
         }
@@ -223,7 +221,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         if (!RelationExpression.class.isInstance(expression)) {
             return;
         }
-        RelationExpression relationExpression = (RelationExpression)expression;
+        RelationExpression relationExpression = (RelationExpression) expression;
         List<String> expressionNames = relationExpression.getValue();
         if (expressionNames != null) {
             for (String name : expressionNames) {
@@ -235,13 +233,9 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     protected void initMetaData(IConfigurableService configurableService) {
         Map<String, MetaData> metaDataMap = new HashMap<>();
         this.metaDataMap = configurableService.queryConfigurableMapByType(MetaData.TYPE);
-        //        MetaData metaData=metaDataMap.get(getMsgMetaDataName());
-        //        if(metaData!=null){
-        //            this.metaDataMap.put(getMsgMetaDataName(),metaData);
-        //        }
     }
 
-    protected Var createVar(String varName){
+    protected Var createVar(String varName) {
         ContextVar contextVar = new ContextVar();
         contextVar.setNameSpace(getNameSpace());
         contextVar.setConfigureName(varName);
@@ -270,20 +264,20 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     public void putConfigurableMap(IConfigurable configurable, String type) {
         if (Var.TYPE.equals(type)) {
-            varMap.put(configurable.getConfigureName(), (Var)configurable);
+            varMap.put(configurable.getConfigureName(), (Var) configurable);
         } else if (Expression.TYPE.equals(type)) {
-            expressionMap.put(configurable.getConfigureName(), (Expression)configurable);
+            expressionMap.put(configurable.getConfigureName(), (Expression) configurable);
         } else if (Action.TYPE.equals(type)) {
-            actionMap.put(configurable.getConfigureName(), (Action)configurable);
+            actionMap.put(configurable.getConfigureName(), (Action) configurable);
         } else if (MetaData.TYPE.equals(type)) {
-            metaDataMap.put(configurable.getConfigureName(), (MetaData)configurable);
+            metaDataMap.put(configurable.getConfigureName(), (MetaData) configurable);
         } else if (ISink.TYPE.equals(type)) {
-            dataSourceMap.put(configurable.getConfigureName(), (JDBCDriver)configurable);
+            dataSourceMap.put(configurable.getConfigureName(), (JDBCDriver) configurable);
         }
     }
 
     private <T extends IConfigurable> void insertOrUpdate(IConfigurableService ruleEngineConfigurableService,
-                                                          Collection<T> configurables) {
+        Collection<T> configurables) {
         if (configurables == null) {
             return;
         }
@@ -356,20 +350,19 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     @Override
     public Boolean doMessage(IMessage message, AbstractContext context) {
-        boolean isTrace= TraceUtil.hit(message.getHeader().getTraceId());
-        boolean isFireRule = processExpress( message,context,isTrace);
+        boolean isTrace = TraceUtil.hit(message.getHeader().getTraceId());
+        boolean isFireRule = processExpress(message, context, isTrace);
 
         return isFireRule;
-
 
     }
 
     public static final String FIRE_RULES = "fireRules";
 
     public boolean execute(JSONObject msg) {
-        Message message=new Message(msg);
-        AbstractContext context=new Context(message);
-        return doMessage(message,context);
+        Message message = new Message(msg);
+        AbstractContext context = new Context(message);
+        return doMessage(message, context);
     }
 
     private JSONArray createJsonArray(List<Rule> fireRules) {
@@ -439,9 +432,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     @Override
     public void addConfigurables(PipelineBuilder pipelineBuilder) {
-//        if (varMap.values() != null) {
-//            pipelineBuilder.addConfigurables(varMap.values());
-//        }
         if (expressionMap.values() != null) {
             pipelineBuilder.addConfigurables(expressionMap.values());
         }
@@ -464,7 +454,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         if (!RelationExpression.class.isInstance(root)) {
             return;
         }
-        groupByChildrenExpression((RelationExpression)root);
+        groupByChildrenExpression((RelationExpression) root);
     }
 
     /**
@@ -490,7 +480,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             //递归分组
             if (RelationExpression.class.isInstance(expression)) {
                 newExpressionNames.add(name);
-                RelationExpression relationExpression = (RelationExpression)expression;
+                RelationExpression relationExpression = (RelationExpression) expression;
                 groupByChildrenExpression(relationExpression);
                 continue;
             }
@@ -513,7 +503,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             if (groupExpression.size() < 2) {
                 newExpressionNames.addAll(groupExpression.getAllExpressionNames());
             } else {
-//                groupExpressionManager.addGroupExpression(groupExpression);
                 expressionMap.put(groupExpression.getConfigureName(), groupExpression);
                 newExpressionNames.add(groupExpression.getConfigureName());
             }
@@ -535,7 +524,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         while (it.hasNext()) {
             Expression expression = it.next();
             if (RelationExpression.class.isInstance(expression)) {
-                relationExpressions.add((RelationExpression)expression);
+                relationExpressions.add((RelationExpression) expression);
             } else {
                 expressions.add(expression);
             }
@@ -548,7 +537,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         for (Expression express : list) {
             expressionMap.put(express.getConfigureName(), express);
             if (RelationExpression.class.isInstance(express)) {
-                relationExpressions.add((RelationExpression)express);
+                relationExpressions.add((RelationExpression) express);
             } else {
                 expressions.add(express);
             }
@@ -571,15 +560,10 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
             Expression expression = this.rootExpression;
             if (expression == null) {
-               throw  new RuntimeException("need root expression");
+                throw new RuntimeException("need root expression");
             }
 
-            boolean match = expression.doMessage(message,context);
-//            if (isTrace&&!RelationExpression.class.isInstance(expression)) {
-//                TopologyFilterMonitor piplineExecutorMonitor = new TopologyFilterMonitor();
-//                piplineExecutorMonitor.addNotFireExpression(expression.toString(), expression.getDependentFields(rule.getExpressionMap()));
-//                context.setExpressionMonitor(piplineExecutorMonitor);
-//            }
+            boolean match = expression.doMessage(message, context);
             if (!match) {
                 return false;
             }
@@ -590,10 +574,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         }
         return true;
     }
-//
-//    public GroupExpressionManager getGroupExpressionManager() {
-//        return groupExpressionManager;
-//    }
 
     public Expression getRootExpression() {
         return rootExpression;

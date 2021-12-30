@@ -54,7 +54,12 @@ public class AverageAccumulator implements IAccumulator<Number, AverageAccum> {
             return;
         }
         try {
-            Number parameter = (Number)parameters[0];
+            Number parameter = null;
+            if (parameters[0] instanceof String) {
+                parameter = Double.valueOf((String) parameters[0]);
+            } else {
+                parameter = (Number) parameters[0];
+            }
             if (accumulator.value == null) {
                 accumulator.value = parameter;
                 accumulator.count = 1;
@@ -65,6 +70,7 @@ public class AverageAccumulator implements IAccumulator<Number, AverageAccum> {
             accumulator.count += 1;
             accumulator.value = NumberUtils.stripTrailingZeros(accumulator.sum.doubleValue() / accumulator.count);
         } catch (Exception e) {
+            System.out.println("The value is [" + parameters[0] + "]");
             throw e;
         }
     }

@@ -72,16 +72,17 @@ public class ByteArray {
         int index = startIndex + offset;
         return bytes[index];
     }
-    public void setByte(int offset,byte value){
+
+    public void setByte(int offset, byte value) {
         int index = startIndex + offset;
-        bytes[index]=value;
+        bytes[index] = value;
     }
 
     public int getSize() {
         return size;
     }
 
-    public void flush(MapAddress address) {
+    public void flush(KVAddress address) {
         if (address == null) {
             return;
         }

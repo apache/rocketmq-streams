@@ -53,9 +53,9 @@ public class DBOperator implements Operator {
             String routeLabel = message.getHeader().getMsgRouteFromLable();
             JoinState state = dealMessge(message, routeLabel);
             if ("left".equalsIgnoreCase(routeLabel)) {
-                joinLeftStates.add((JoinLeftState)state);
+                joinLeftStates.add((JoinLeftState) state);
             } else if ("right".equalsIgnoreCase(routeLabel)) {
-                joinRightStates.add((JoinRightState)state);
+                joinRightStates.add((JoinRightState) state);
             }
             //            joinStates.add(state);
         }
@@ -102,7 +102,7 @@ public class DBOperator implements Operator {
             new ArrayList<>();
 
         String messageKey = generateKey(message.getMessageBody(), routeLabel, leftJoinFieldNames, rightJoinFieldNames);
-        JSONObject messageBody = (JSONObject)message.getMessageBody().clone();
+        JSONObject messageBody = (JSONObject) message.getMessageBody().clone();
         messageBody.remove("WindowInstance");
         messageBody.remove("Window");
 
@@ -125,15 +125,15 @@ public class DBOperator implements Operator {
         return state;
     }
 
-    private  List<String> toJavaList(JSONArray jsonArray) {
+    private List<String> toJavaList(JSONArray jsonArray) {
         List<String> list = new ArrayList<String>(jsonArray.size());
 
         for (Object item : jsonArray) {
-            if(item==null){
+            if (item == null) {
                 list.add(null);
-            }else if(String.class.isInstance(item)) {
-                list.add((String)item);
-            }else {
+            } else if (String.class.isInstance(item)) {
+                list.add((String) item);
+            } else {
                 list.add(item.toString());
             }
 
@@ -151,7 +151,8 @@ public class DBOperator implements Operator {
      * @param rightJoinFieldNames
      * @return
      */
-    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames, List<String> rightJoinFieldNames) {
+    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames,
+        List<String> rightJoinFieldNames) {
         StringBuffer buffer = new StringBuffer();
         if ("left".equalsIgnoreCase(joinLabel)) {
             for (String field : leftJoinFieldNames) {
@@ -241,7 +242,8 @@ public class DBOperator implements Operator {
 
     }
 
-    public List<JSONObject> connectJoin(IMessage message, List<Map<String, Object>> rows, String joinType, String rightAsName) {
+    public List<JSONObject> connectJoin(IMessage message, List<Map<String, Object>> rows, String joinType,
+        String rightAsName) {
         List<JSONObject> result = new ArrayList<>();
         if (rows.size() <= 0) {
             return result;
@@ -268,15 +270,15 @@ public class DBOperator implements Operator {
             JSONObject messageBody = message.getMessageBody().getJSONObject("msg");
             for (Map<String, Object> raw : rows) {
                 //                addAsName(raw, rightAsName);
-                JSONObject object = (JSONObject)messageBody.clone();
+                JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(addAsName(raw, rightAsName));
                 result.add(object);
             }
         } else {
             JSONObject messageBody = message.getMessageBody().getJSONObject("msg");
-            messageBody = (JSONObject)addAsName(messageBody, rightAsName);
+            messageBody = (JSONObject) addAsName(messageBody, rightAsName);
             for (Map<String, Object> raw : rows) {
-                JSONObject object = (JSONObject)messageBody.clone();
+                JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(raw);
                 result.add(object);
             }
@@ -302,7 +304,7 @@ public class DBOperator implements Operator {
             if (rows != null && rows.size() > 0) {
                 for (Map<String, Object> raw : rows) {
                     //                    raw = addAsName(raw, rightAsName);
-                    JSONObject object = (JSONObject)messageBody.clone();
+                    JSONObject object = (JSONObject) messageBody.clone();
                     object.fluentPutAll(addAsName(raw, rightAsName));
                     result.add(object);
                 }
@@ -313,9 +315,9 @@ public class DBOperator implements Operator {
 
         } else {
             if (rows != null && rows.size() > 0) {
-                messageBody = (JSONObject)addAsName(messageBody, rightAsName);
+                messageBody = (JSONObject) addAsName(messageBody, rightAsName);
                 for (Map<String, Object> raw : rows) {
-                    JSONObject object = (JSONObject)messageBody.clone();
+                    JSONObject object = (JSONObject) messageBody.clone();
                     object.fluentPutAll(raw);
                     result.add(object);
                 }
@@ -338,7 +340,8 @@ public class DBOperator implements Operator {
         return mapList;
     }
 
-    public List<JSONObject> getJoinData(String tableName, String messageKey, String windowName, String windowNameSpace, String startTime, String endTime) {
+    public List<JSONObject> getJoinData(String tableName, String messageKey, String windowName, String windowNameSpace,
+        String startTime, String endTime) {
         Map<String, Object> paras = new HashMap<>();
         paras.put("messageKey", messageKey);
         paras.put("startTime", startTime);
@@ -382,7 +385,8 @@ public class DBOperator implements Operator {
      * @param sizeInterval
      * @param startTime
      */
-    public void cleanMessage(String windowNameSpace, String windowName, int retainWindowCount, int sizeInterval, String startTime) {
+    public void cleanMessage(String windowNameSpace, String windowName, int retainWindowCount, int sizeInterval,
+        String startTime) {
         Map<String, Object> params = new HashMap<>();
         String start = addTime(startTime, TimeUnit.MINUTES, -retainWindowCount * sizeInterval);
         params.put("startTime", start);

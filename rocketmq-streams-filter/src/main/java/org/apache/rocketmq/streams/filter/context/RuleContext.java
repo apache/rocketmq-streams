@@ -112,7 +112,7 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
                     RuleContext staticRuleContext = new RuleContext(DEFALUT_NAME_SPACE, contextConfigure);
                     ThreadFactory actionFactory = new ThreadFactoryBuilder().setNameFormat("RuleContext-Action-Poo-%d").build();
                     int threadSize = contextConfigure.getActionPoolSize();
-                    ExecutorService actionExecutor = new ThreadPoolExecutor(threadSize, threadSize,0L, TimeUnit.MILLISECONDS,
+                    ExecutorService actionExecutor = new ThreadPoolExecutor(threadSize, threadSize, 0L, TimeUnit.MILLISECONDS,
                         new LinkedBlockingQueue<>(1024), actionFactory, new ThreadPoolExecutor.AbortPolicy());
                     staticRuleContext.actionExecutor = actionExecutor;
                     staticRuleContext.functionService.scanePackage("org.apache.rocketmq.streams.filter.function");
@@ -225,7 +225,7 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
             if (fc == null) {
                 return null;
             }
-            return (ExpressionFunction)fc.getBean();
+            return (ExpressionFunction) fc.getBean();
         } catch (Exception e) {
             LOG.error("RuleContext getExpressionFunction error,name is: " + name, e);
             return null;

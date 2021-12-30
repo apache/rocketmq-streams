@@ -6,9 +6,9 @@
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/apache/rocketmq-streams.svg)](http://isitmaintained.com/project/apache/rocketmq-streams "Percentage of issues still open")
 [![Twitter Follow](https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social)](https://twitter.com/intent/follow?screen_name=ApacheRocketMQ)
 
-## [中文文档](./README-chinese.md)
-## [Quick Start](./quick_start.md)
+## [中文文档](./README-Chinese.md)
 
+## [Quick Start](./quick_start.md)
 
 ## Features
 
@@ -35,7 +35,7 @@ DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-Preview-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -97,7 +97,11 @@ DataStream implements a series of common stream calculation operators as follows
     + ```avg```: gets the average of the statistical values in the window.
     + ```sum```: gets the sum of the statistical values in the window.
     + ```reduce```: performs custom summary calculations in the window.
-+ ```join```: associates the two streams according to the conditions and merges them into a large stream for related calculations.
++ ```join```: associates the two streams or one stream and one physical table according to the conditions and merges them into a large stream for related calculations.
+    + ```dimJoin```  associate a stream with a physical table which can be a file or a db table, and all matching records are retained
+    + ```dimLeftJoin```  After a flow is associated with a physical table, all data of the flow is reserved and fields that do not match the physical table are left blank
+    + ```join```
+    + ```leftJoin```
 + ```union```: merges the two streams.
 + ```split```: splits a data stream into different data streams according to tags for downstream analysis and calculation.
 + ```with```: specifies related strategies during the calculation, including Checkpoint and state storage strategies, etc.
@@ -115,4 +119,5 @@ source
     .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
     .start();
 ```
+
 ——————————————

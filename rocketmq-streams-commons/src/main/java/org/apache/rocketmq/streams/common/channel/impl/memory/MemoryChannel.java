@@ -58,7 +58,7 @@ public class MemoryChannel extends AbstractChannel {
                     System.out.println("qps is " + qps + "。the count is " + count + ".the process time is " + second);
                 }
                 for (IMessage msg : messages) {
-                    ((AbstractUnreliableSource)source).doUnreliableReceiveMessage(msg.getMessageValue());
+                    ((AbstractUnreliableSource) source).doUnreliableReceiveMessage(msg.getMessageValue());
                 }
                 return true;
             }

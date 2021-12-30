@@ -26,11 +26,13 @@ import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 public class RuleExpression implements IScriptExpression {
     protected transient Rule rule;
-    public RuleExpression(Rule rule){
-        this.rule=rule;
+
+    public RuleExpression(Rule rule) {
+        this.rule = rule;
     }
+
     @Override public Object executeExpression(IMessage message, FunctionContext context) {
-        return rule.doMessage(message,context);
+        return rule.doMessage(message, context);
     }
 
     @Override public List<IScriptParamter> getScriptParamters() {

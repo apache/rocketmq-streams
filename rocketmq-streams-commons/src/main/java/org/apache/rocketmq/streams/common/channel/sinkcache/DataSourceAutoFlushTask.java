@@ -28,13 +28,12 @@ public class DataSourceAutoFlushTask implements Runnable, IScheduleCondition {
     private static final Log LOG = LogFactory.getLog(DataSourceAutoFlushTask.class);
 
     private volatile boolean isAutoFlush = false;
-    private volatile IMessageCache messageCache;
+    private final IMessageCache<?> messageCache;
     protected transient Long lastUpdateTime;
-    protected volatile int autoFlushSize=300;
-    protected volatile int autoFlushTimeGap=1000;
+    protected volatile int autoFlushSize = 300;
+    protected volatile int autoFlushTimeGap = 1000;
 
-    public DataSourceAutoFlushTask(boolean isAutoFlush,
-                                   IMessageCache messageCache) {
+    public DataSourceAutoFlushTask(boolean isAutoFlush, IMessageCache<?> messageCache) {
         this.isAutoFlush = isAutoFlush;
         this.messageCache = messageCache;
     }
@@ -77,10 +76,8 @@ public class DataSourceAutoFlushTask implements Runnable, IScheduleCondition {
         this.autoFlushTimeGap = autoFlushTimeGap;
     }
 
-    @Override public boolean canExecute() {
-        if (messageCache.getMessageCount() < autoFlushSize && (lastUpdateTime != null && (System.currentTimeMillis() - lastUpdateTime) < autoFlushTimeGap)) {
-            return false;
-        }
-        return true;
+    @Override
+    public boolean canExecute() {
+        return messageCache.getMessageCount() >= autoFlushSize || (lastUpdateTime == null || (System.currentTimeMillis() - lastUpdateTime) >= autoFlushTimeGap);
     }
 }
