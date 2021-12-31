@@ -50,39 +50,43 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 /**
  * create by udf
  */
-public class BlinkRuleV2Expression  {
+public class BlinkRuleV2Expression {
     protected String className;
     protected Map<String, List<BlinkRule>> tmpWhiteListOnline = new HashMap();
     protected Map<String, List<BlinkRule>> tmpWhiteListOb = new HashMap();
     protected String functionName;
-    public BlinkRuleV2Expression(){}
-    public BlinkRuleV2Expression(String fullClassName,String functionName){
-        this.className=fullClassName;
-        this.functionName=functionName;
+
+    public BlinkRuleV2Expression() {
+    }
+
+    public BlinkRuleV2Expression(String fullClassName, String functionName) {
+        this.className = fullClassName;
+        this.functionName = functionName;
         parserExpressions();
     }
 
-    private transient AtomicInteger COUNT=new AtomicInteger(0);
-    public RuleSetGroup getDependentFields(String[] varNames){
-        RuleSetGroup ruleSetGroup=new RuleSetGroup();
-        String modId=FunctionUtils.getConstant(varNames[0]);
-        String isOnline=FunctionUtils.getConstant(varNames[1]);
-        Map<String, List<BlinkRule>> current=tmpWhiteListOnline;
-        if("1".equals(isOnline)) {
+    private transient AtomicInteger COUNT = new AtomicInteger(0);
+
+    public RuleSetGroup getDependentFields(String[] varNames) {
+        RuleSetGroup ruleSetGroup = new RuleSetGroup();
+        String modId = FunctionUtils.getConstant(varNames[0]);
+        String isOnline = FunctionUtils.getConstant(varNames[1]);
+        Map<String, List<BlinkRule>> current = tmpWhiteListOnline;
+        if ("1".equals(isOnline)) {
             current = this.tmpWhiteListOb;
         }
-        String[] kv=new String[varNames.length-2];
-        for(int i=2;i<kv.length;i++){
-            kv[i-2]=FunctionUtils.getConstant(varNames[i]);
+        String[] kv = new String[varNames.length - 2];
+        for (int i = 2; i < kv.length; i++) {
+            kv[i - 2] = FunctionUtils.getConstant(varNames[i]);
         }
-        JSONObject msg=createMsg(kv);
-        List<BlinkRule> blinkRules=current.get(modId);
-        Set<String> dependentVarNames=new HashSet<>();
-        for(BlinkRule blinkRule:blinkRules){
-            List<Expression> when=blinkRule.createExpression(msg);
-            if(CollectionUtil.isNotEmpty(when)){
+        JSONObject msg = createMsg(kv);
+        List<BlinkRule> blinkRules = current.get(modId);
+        Set<String> dependentVarNames = new HashSet<>();
+        for (BlinkRule blinkRule : blinkRules) {
+            List<Expression> when = blinkRule.createExpression(msg);
+            if (CollectionUtil.isNotEmpty(when)) {
                 dependentVarNames.addAll(blinkRule.getAllVars());
-                RuleSet ruleSet=new RuleSet(when,blinkRule.getAllVars(),blinkRule.ruleId);
+                RuleSet ruleSet = new RuleSet(when, blinkRule.getAllVars(), blinkRule.ruleId);
                 ruleSetGroup.addRuleSet(ruleSet);
             }
 
@@ -90,62 +94,62 @@ public class BlinkRuleV2Expression  {
         return ruleSetGroup;
     }
 
-   public static class RuleSetGroup{
-        protected List<RuleSet> ruleSets=new ArrayList<>();
-        protected Set<String> varNames=new HashSet<>();
-        protected Map<String,Integer> varName2Count=new HashMap<>();
+    public static class RuleSetGroup {
+        protected List<RuleSet> ruleSets = new ArrayList<>();
+        protected Set<String> varNames = new HashSet<>();
+        protected Map<String, Integer> varName2Count = new HashMap<>();
 
-        public void addRuleSet(RuleSet ruleSet){
-            if(ruleSet==null||ruleSet.expressions==null){
+        public void addRuleSet(RuleSet ruleSet) {
+            if (ruleSet == null || ruleSet.expressions == null) {
                 return;
             }
             ruleSets.add(ruleSet);
             this.varNames.addAll(ruleSet.varNames);
-            for(String varName:ruleSet.varNames){
-                Integer count=varName2Count.get(varName);
-                if(count==null){
-                    count=0;
+            for (String varName : ruleSet.varNames) {
+                Integer count = varName2Count.get(varName);
+                if (count == null) {
+                    count = 0;
                 }
                 count++;
-                varName2Count.put(varName,count);
+                varName2Count.put(varName, count);
             }
 
         }
 
-       public List<RuleSet> getRuleSets() {
-           return ruleSets;
-       }
+        public List<RuleSet> getRuleSets() {
+            return ruleSets;
+        }
 
-       public Map<String,List<RuleSet>> optimizate(){
-            List<Map.Entry<String, Integer>> list=new ArrayList<>(varName2Count.entrySet());
+        public Map<String, List<RuleSet>> optimizate() {
+            List<Map.Entry<String, Integer>> list = new ArrayList<>(varName2Count.entrySet());
             Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
                 @Override public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
-                    return (o2.getValue()-o1.getValue());
+                    return (o2.getValue() - o1.getValue());
                 }
             });
-            int count=list.size();
-            List<String> varNames=new ArrayList<>();
-            for(int i=0;i<count;i++){
-                Map.Entry<String, Integer> entry=list.get(i);
-                String varName=entry.getKey();
+            int count = list.size();
+            List<String> varNames = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                Map.Entry<String, Integer> entry = list.get(i);
+                String varName = entry.getKey();
                 varNames.add(varName);
             }
-           Map<String,List<RuleSet>> stringListMap=new HashMap<>();
-           for(RuleSet ruleSet:this.ruleSets){
-               for(String varName:varNames){
-                   if(ruleSet.varNames.contains(varName)){
-                       List<RuleSet> ruleSetList=stringListMap.get(varName);
-                       if(ruleSetList==null){
-                           ruleSetList=new ArrayList<>();
-                           stringListMap.put(varName,ruleSetList);
-                       }
-                       ruleSetList.add(ruleSet);
-                       break;
-                   }
+            Map<String, List<RuleSet>> stringListMap = new HashMap<>();
+            for (RuleSet ruleSet : this.ruleSets) {
+                for (String varName : varNames) {
+                    if (ruleSet.varNames.contains(varName)) {
+                        List<RuleSet> ruleSetList = stringListMap.get(varName);
+                        if (ruleSetList == null) {
+                            ruleSetList = new ArrayList<>();
+                            stringListMap.put(varName, ruleSetList);
+                        }
+                        ruleSetList.add(ruleSet);
+                        break;
+                    }
 
-               }
-           }
-           return stringListMap;
+                }
+            }
+            return stringListMap;
         }
 
         public Set<String> getVarNames() {
@@ -153,22 +157,22 @@ public class BlinkRuleV2Expression  {
         }
     }
 
-    public static class RuleSet{
+    public static class RuleSet {
         protected List<Expression> expressions;
         protected Collection<String> varNames;
         protected int ruleId;
         protected Rule rule;
-        public RuleSet(List<Expression> expressions,Collection<String> varNames,int ruleId){
-            this.expressions=expressions;
-            this.varNames=varNames;
-            this.ruleId=ruleId;
-            this.rule=createRuleExpression();
+
+        public RuleSet(List<Expression> expressions, Collection<String> varNames, int ruleId) {
+            this.expressions = expressions;
+            this.varNames = varNames;
+            this.ruleId = ruleId;
+            this.rule = createRuleExpression();
             this.rule.optimize();
         }
 
-
-        public boolean execute(IMessage message, AbstractContext context){
-            boolean isMatch=rule.doMessage(message,context);
+        public boolean execute(IMessage message, AbstractContext context) {
+            boolean isMatch = rule.doMessage(message, context);
             return isMatch;
         }
 
@@ -180,29 +184,27 @@ public class BlinkRuleV2Expression  {
             return ruleId;
         }
 
-        public Rule createRuleExpression(){
-            RelationExpression relationExpression=new RelationExpression();
+        public Rule createRuleExpression() {
+            RelationExpression relationExpression = new RelationExpression();
             relationExpression.setValue(new ArrayList<String>());
             relationExpression.setRelation("and");
-            relationExpression.setConfigureName(NameCreator.createNewName("_blink_rule_v2","relation"));
-            for(Expression expression:expressions){
-                String name= NameCreator.createNewName("_blink_rule_v2",expression.getVarName());
+            relationExpression.setConfigureName(NameCreator.createNewName("_blink_rule_v2", "relation"));
+            for (Expression expression : expressions) {
+                String name = NameCreator.createNewName("_blink_rule_v2", expression.getVarName());
                 expression.setConfigureName(name);
                 expression.setNameSpace("tmp");
                 relationExpression.getValue().add(expression.getConfigureName());
             }
-            Rule rule= ExpressionBuilder.createRule("tmp","tmp",relationExpression,expressions);
+            Rule rule = ExpressionBuilder.createRule("tmp", "tmp", relationExpression, expressions);
             return rule;
         }
-
-
 
     }
 
     protected JSONObject createMsg(String[] kv) {
         JSONObject msg = null;
-        if ( kv.length % 2 == 0) {
-            msg=new JSONObject();
+        if (kv.length % 2 == 0) {
+            msg = new JSONObject();
             for (int i = 0; i < kv.length; i += 2) {
                 msg.put(FunctionUtils.getConstant(kv[i]), kv[i + 1]);
             }
@@ -210,52 +212,51 @@ public class BlinkRuleV2Expression  {
         return msg;
     }
 
-    public void parserExpressions(){
+    public void parserExpressions() {
         InputStream inputStream = ReflectUtil.forClass(className).getResourceAsStream("/data_4_sas_black_rule_v2.json");
-        List<String> rules= FileUtil.loadFileLine(inputStream);
-        String line =rules.get(0);
+        List<String> rules = FileUtil.loadFileLine(inputStream);
+        String line = rules.get(0);
         JSONArray allRules = JSON.parseArray(line);
         Iterator iterator = allRules.iterator();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             Object object = iterator.next();
             JSONObject rule_json = JSON.parseObject(object.toString());
             int status = rule_json.getInteger("status");
             int ruleId = rule_json.getInteger("id");
-            String  modelId = rule_json.getString("model_id");
+            String modelId = rule_json.getString("model_id");
             String ruleValue = rule_json.getString("content");
-            JSONObject ruleJson=JSONObject.parseObject(ruleValue);
-            BlinkRule blinkRule=new BlinkRule(ruleJson,ruleId);
+            JSONObject ruleJson = JSONObject.parseObject(ruleValue);
+            BlinkRule blinkRule = new BlinkRule(ruleJson, ruleId);
             if (status == 0) {
                 if (!tmpWhiteListOnline.containsKey(modelId)) {
                     tmpWhiteListOnline.put(modelId, new ArrayList());
                 }
 
-                ((List)tmpWhiteListOnline.get(modelId)).add(blinkRule);
+                ((List) tmpWhiteListOnline.get(modelId)).add(blinkRule);
             }
 
             if (!tmpWhiteListOb.containsKey(modelId)) {
                 tmpWhiteListOb.put(modelId, new ArrayList());
             }
-            ((List)tmpWhiteListOb.get(modelId)).add(blinkRule);
+            ((List) tmpWhiteListOb.get(modelId)).add(blinkRule);
         }
     }
 
     public static boolean isBlinkRuleV2Parser(IScriptExpression expression, IConfigurableService configurableService) {
-        if(configurableService==null){
+        if (configurableService == null) {
             return false;
         }
 
-        String functionName=expression.getFunctionName();
-        if(functionName==null){
+        String functionName = expression.getFunctionName();
+        if (functionName == null) {
             return false;
         }
 
-        String name=MapKeyUtil.createKey("com.lyra.xs.udf.ext.sas_black_rule_v2",functionName).toLowerCase();
+        String name = MapKeyUtil.createKey("com.lyra.xs.udf.ext.sas_black_rule_v2", functionName).toLowerCase();
 
+        UDFScript udfScript = configurableService.queryConfigurable(UDFScript.TYPE, name);
 
-        UDFScript udfScript=configurableService.queryConfigurable(UDFScript.TYPE,name);
-
-        if(udfScript!=null&&"com.lyra.xs.udf.ext.sas_black_rule_v2".equals(udfScript.getFullClassName())){
+        if (udfScript != null && "com.lyra.xs.udf.ext.sas_black_rule_v2".equals(udfScript.getFullClassName())) {
             return true;
         }
         return false;

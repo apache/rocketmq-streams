@@ -89,7 +89,7 @@ public class DBLeaseStorage implements ILeaseStorage {
             if (rows == null || rows.size() == 0) {
                 return null;
             }
-            Long value = (Long)rows.get(0).get("c");
+            Long value = (Long) rows.get(0).get("c");
             return value.intValue();
         } catch (Exception e) {
             throw new RuntimeException("execute sql error " + sql, e);
@@ -193,7 +193,7 @@ public class DBLeaseStorage implements ILeaseStorage {
         if (value == null) {
             return null;
         }
-        return (T)value;
+        return (T) value;
     }
 
     private Long getMapLongValue(String fieldName, Map<String, Object> map) {
@@ -202,10 +202,10 @@ public class DBLeaseStorage implements ILeaseStorage {
             return null;
         }
         if (value instanceof Long) {
-            return (Long)value;
+            return (Long) value;
         }
         if (value instanceof BigInteger) {
-            return ((BigInteger)value).longValue();
+            return ((BigInteger) value).longValue();
         }
         return null;
     }
@@ -216,10 +216,10 @@ public class DBLeaseStorage implements ILeaseStorage {
             return null;
         }
         if (value instanceof Date) {
-            return (Date)value;
+            return (Date) value;
         }
         if (value instanceof String) {
-            return DateUtil.parseTime(((String)value));
+            return DateUtil.parseTime(((String) value));
         }
         return null;
 

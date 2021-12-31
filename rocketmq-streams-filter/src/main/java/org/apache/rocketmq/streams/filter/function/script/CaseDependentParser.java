@@ -29,16 +29,16 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @AutoService(ICaseDependentParser.class)
 public class CaseDependentParser implements ICaseDependentParser {
     @Override public Set<String> getDependentFields(IScriptExpression scriptExpression) {
-        if(RuleExpression.class.isInstance(scriptExpression)){
-            return ((RuleExpression)scriptExpression).getRule().getDependentFields();
+        if (RuleExpression.class.isInstance(scriptExpression)) {
+            return ((RuleExpression) scriptExpression).getRule().getDependentFields();
         }
-        String expressionStr = FunctionUtils.getConstant(((IScriptParamter)scriptExpression.getScriptParamters().get(0)).getScriptParameterStr());
+        String expressionStr = FunctionUtils.getConstant(((IScriptParamter) scriptExpression.getScriptParamters().get(0)).getScriptParameterStr());
         Rule rule = ExpressionBuilder.createRule("tmp", "tmp", expressionStr);
         return rule.getDependentFields();
     }
 
     @Override public boolean isCaseFunction(IScriptExpression scriptExpression) {
-        if(RuleExpression.class.isInstance(scriptExpression)){
+        if (RuleExpression.class.isInstance(scriptExpression)) {
             return true;
         }
         return CaseFunction.isCaseFunction(scriptExpression.getFunctionName());

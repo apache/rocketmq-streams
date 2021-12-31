@@ -129,7 +129,7 @@ public class ESSinkOnlyChannel extends AbstractSink {
             IndexRequest indexRequest = new IndexRequest(esIndex);
             Object object = message.getMessageValue();
             if (object instanceof Map) {
-                indexRequest.source((Map<String, ?>)object);
+                indexRequest.source((Map<String, ?>) object);
             } else {
                 indexRequest.source(object.toString());
             }

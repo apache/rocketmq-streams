@@ -45,7 +45,7 @@ public class DimBuilder {
         }
         nameList.setSql(sql);
         nameList.setJdbcdriver(jdbcDriver);
-        nameList.setPollingTimeMintue(pollingTime);
+        nameList.setPollingTimeMinute(pollingTime);
         nameList.setUrl(url);
         nameList.setUserName(userName);
         nameList.setPassword(password);

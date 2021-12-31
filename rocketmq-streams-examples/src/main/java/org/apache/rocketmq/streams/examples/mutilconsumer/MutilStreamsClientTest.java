@@ -38,16 +38,14 @@ public class MutilStreamsClientTest {
     private static ExecutorService consumerPool = Executors.newCachedThreadPool();
     private static Random random = new Random();
 
-
     public static void main(String[] args) {
         //producer
         producerPool.submit(new Runnable() {
             @Override
             public void run() {
-                Producer.produceInLoop(RMQ_TOPIC, "data.txt");
+                Producer.produceInLoop("data.txt");
             }
         });
-
 
         //consumer
         for (int i = 0; i < 2; i++) {
@@ -68,27 +66,27 @@ public class MutilStreamsClientTest {
                 RMQ_CONSUMER_GROUP_NAME,
                 false,
                 NAMESRV_ADDRESS)
-                .filter((message) -> {
-                    try {
-                        JSONObject.parseObject((String) message);
-                    } catch (Throwable t) {
-                        // if can not convert to json, discard it.because all operator are base on json.
-                        return true;
-                    }
-                    return false;
-                })
-                //must convert message to json.
-                .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.seconds(10)))
-                .groupBy("ProjectName", "LogStore")
-                .sum("OutFlow", "OutFlow")
-                .sum("InFlow", "InFlow")
-                .count("total")
-                .waterMark(5)
-                .setLocalStorageOnly(true)
-                .toDataSteam()
-                .toPrint(1)
-                .with(WindowStrategy.highPerformance())
-                .start();
+            .filter((message) -> {
+                try {
+                    JSONObject.parseObject((String) message);
+                } catch (Throwable t) {
+                    // if can not convert to json, discard it.because all operator are base on json.
+                    return true;
+                }
+                return false;
+            })
+            //must convert message to json.
+            .map(message -> JSONObject.parseObject((String) message))
+            .window(TumblingWindow.of(Time.seconds(10)))
+            .groupBy("ProjectName", "LogStore")
+            .sum("OutFlow", "OutFlow")
+            .sum("InFlow", "InFlow")
+            .count("total")
+            .waterMark(5)
+            .setLocalStorageOnly(true)
+            .toDataSteam()
+            .toPrint(1)
+            .with(WindowStrategy.highPerformance())
+            .start();
     }
 }

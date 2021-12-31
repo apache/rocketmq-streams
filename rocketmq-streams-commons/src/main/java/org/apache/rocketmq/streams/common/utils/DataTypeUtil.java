@@ -18,7 +18,9 @@ package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -52,6 +54,7 @@ import org.apache.rocketmq.streams.common.datatype.LongDataType;
 import org.apache.rocketmq.streams.common.datatype.MapDataType;
 import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
 import org.apache.rocketmq.streams.common.datatype.NumberDataType;
+import org.apache.rocketmq.streams.common.datatype.SerializableDataType;
 import org.apache.rocketmq.streams.common.datatype.SetDataType;
 import org.apache.rocketmq.streams.common.datatype.ShortDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
@@ -89,25 +92,19 @@ public class DataTypeUtil {
         register(new ConfigurableDataType());
         register(new JsonableDataType());
         register(new JavaBeanDataType());
-        register(new NotSupportDataType());
+        register(new SerializableDataType());
         register(new DateTimeDataType());
+        register(new NotSupportDataType());
     }
 
     public static void register(DataType dataType) {
-        // 这里要始终确保NotSupportDataType位于最后，因为NotSupportDataType会匹配拦截所有的类型
-        //        if (dataType instanceof NotSupportDataType) {
-        //            dataTypes.add(dataType);
-        //        } else {
-        //            dataTypes.add(0, dataType);
-        //        }
-
         dataTypes.add(dataType);
         /*
           对于class是固定的直接放到map中，对于变化的放到dataTypes列表中，可以减少循环次数
          */
         baseTypeDataTypeMap.put(dataType.getDataTypeName(), dataType);
         if (dataType instanceof BaseDataType) {
-            BaseDataType baseDataType = (BaseDataType)dataType;
+            BaseDataType baseDataType = (BaseDataType) dataType;
             Class[] classes = baseDataType.getSupportClasses();
             if (classes != null) {
                 for (Class c : classes) {
@@ -162,7 +159,7 @@ public class DataTypeUtil {
                 dbType2DataTypeMap.put("ARRAY", dataType);
                 break;
             }
-            case "datetime" : {
+            case "datetime": {
                 dbType2DataTypeMap.put("DATETIME", dataType);
                 break;
             }
@@ -199,7 +196,8 @@ public class DataTypeUtil {
      * @return DataType
      */
     public static DataType getDataType(String dataTypeName) {
-        return baseTypeDataTypeMap.get(dataTypeName);
+        DataType dataType = baseTypeDataTypeMap.get(dataTypeName);
+        return dataType;
     }
 
     /**
@@ -243,7 +241,7 @@ public class DataTypeUtil {
     public static DataType createDataType(Class clazz, String genericParameter) {
         DataType dataType = getDataTypeFromClass(clazz);
         if (GenericParameterDataType.class.isInstance(dataType)) {
-            GenericParameterDataType genericParamterDataType = (GenericParameterDataType)dataType;
+            GenericParameterDataType genericParamterDataType = (GenericParameterDataType) dataType;
             genericParamterDataType.parseGenericParameter(genericParameter);
         }
         return dataType;
@@ -381,7 +379,7 @@ public class DataTypeUtil {
         if (type == null) {
             return null;
         }
-        String typeString = type.toString();
+        String typeString = type;
         if (typeString.startsWith("class ")) {
             typeString = null;
         }
@@ -467,6 +465,15 @@ public class DataTypeUtil {
         return clazz.isArray();
     }
 
+    public static boolean isJavaBean(DataType dataType) {
+        return JavaBeanDataType.class.isInstance(dataType);
+    }
+
+    public static boolean isJavaBean(Class clazz) {
+        JavaBeanDataType javaBeanDataType = new JavaBeanDataType();
+        return javaBeanDataType != null && javaBeanDataType.matchClass(clazz);
+    }
+
     public static boolean isList(Class clazz) {
         DataType dataType = getDataTypeFromClass(List.class);
         return dataType != null && dataType.matchClass(clazz);
@@ -475,11 +482,6 @@ public class DataTypeUtil {
     public static boolean isMap(Class clazz) {
         DataType dataType = getDataTypeFromClass(Map.class);
         return dataType != null && dataType.matchClass(clazz);
-    }
-
-    public static boolean isJavaBean(Class clazz) {
-        DataType dataType = getDataTypeFromClass(clazz);
-        return dataType instanceof JavaBeanDataType;
     }
 
     public static boolean isConfigurable(Class clazz) {
@@ -541,5 +543,50 @@ public class DataTypeUtil {
 
     public static boolean isString(DataType dataType) {
         return dataType instanceof StringDataType;
+    }
+
+    /**
+     * Gets the Datatype based on the fields of the class
+     *
+     * @param o
+     * @param field
+     * @return
+     */
+    public static DataType createDataTypeByField(Object o, Field field) {
+        Class clazz = field.getType();
+        Method method = null;
+        try {
+            method = ReflectUtil.getGetMethod(o.getClass(), field.getName());
+        } catch (Exception e) {
+            //todo nothing,if not has get/is method, use fieldDirectly
+        }
+
+        if (method != null) {
+            clazz = method.getReturnType();
+        }
+        DataType dataType = DataTypeUtil.getDataTypeFromClass(clazz);
+        String genericTypeStr = null;
+        if (field.getGenericType() != null) {
+            genericTypeStr = field.getGenericType().toString();
+        }
+        if (NotSupportDataType.class.isInstance(dataType)) {
+            Object object1 = ReflectUtil.getDeclaredField(o, field.getName());
+            if (object1 != null) {
+                //如果是接口类，则通过值获取类型
+                dataType = DataTypeUtil.getDataTypeFromClass(object1.getClass());
+                if (genericTypeStr != null) {
+                    int startIndex = genericTypeStr.indexOf("<");
+                    if (startIndex > -1) {
+                        genericTypeStr = dataType.getDataClass().getName() + genericTypeStr.substring(startIndex);
+                    }
+                }
+
+            }
+        }
+        if (NotSupportDataType.class.isInstance(dataType)) {
+            return null;
+        }
+        ReflectUtil.setDataTypeParadigmType(dataType, genericTypeStr, ParameterizedType.class.isInstance(field.getGenericType()));
+        return dataType;
     }
 }

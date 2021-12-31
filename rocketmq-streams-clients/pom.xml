@@ -38,6 +38,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-channel-mqtt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-channel-db</artifactId>
         </dependency>
         <dependency>

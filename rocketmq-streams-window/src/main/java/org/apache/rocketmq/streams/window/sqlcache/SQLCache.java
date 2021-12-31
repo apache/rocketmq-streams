@@ -34,9 +34,9 @@ import org.apache.rocketmq.streams.db.driver.JDBCDriver;
  */
 
 public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
-    protected Boolean isOpenCache=true;//if false，then execute sql when receive sql
-    protected Set<String> firedWindowInstances=new HashSet<>();//fired window instance ，if the owned sqls have not commit， can cancel the sqls
-    protected Map<String,Integer> windowInstance2Index=new HashMap<>();//set index to ISQLElement group by window instance
+    protected Boolean isOpenCache = true;//if false，then execute sql when receive sql
+    protected Set<String> firedWindowInstances = new HashSet<>();//fired window instance ，if the owned sqls have not commit， can cancel the sqls
+    protected Map<String, Integer> windowInstance2Index = new HashMap<>();//set index to ISQLElement group by window instance
 
     protected boolean isLocalOnly;
 

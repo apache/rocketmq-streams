@@ -31,7 +31,6 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
 
     static final Log logger = LogFactory.getLog(DataFormatPatternFilter.class);
 
-
     static final String yyyyMMddHHmmss = "yyyyMMddHHmmss";
     static final String yyyyMMdd = "yyyyMMdd";
     static final String yyyyMMddHH = "yyyyMMddHH";
@@ -41,12 +40,12 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
     SimpleDateFormat format3 = new SimpleDateFormat(yyyyMMddHHmmss);
 
     @Override
-    public boolean filter(String sourceName, String logicTableName,  String tableNameSuffix) {
+    public boolean filter(String sourceName, String logicTableName, String tableNameSuffix) {
 
         int len = tableNameSuffix.length();
         boolean isFilter = false;
 
-        switch (len){
+        switch (len) {
             case 8:
                 try {
                     format1.parse(tableNameSuffix);
@@ -76,12 +75,12 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
                 break;
         }
 
-        if(isFilter){
+        if (isFilter) {
             logger.info(String.format("filter sourceName %s, logicTableName %s, suffix %s", sourceName, logicTableName, tableNameSuffix));
             return true;
         }
-        if(next != null){
-            return next.filter(sourceName,logicTableName, tableNameSuffix);
+        if (next != null) {
+            return next.filter(sourceName, logicTableName, tableNameSuffix);
         }
         return false;
     }
@@ -96,7 +95,7 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
         return next;
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         DataFormatPatternFilter filter = new DataFormatPatternFilter();
 //        System.out.println(filter.filter("20200101"));
 //        System.out.println(filter.filter("2020010101"));

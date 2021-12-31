@@ -27,8 +27,8 @@ import org.apache.rocketmq.streams.dim.model.DBDim;
 
 @AutoService(IDimSQLParser.class)
 @ServiceName(value = DBDimSQLParser.TYPE, aliasName = "rds")
-public class DBDimSQLParser extends AbstractDimParser{
-    public static final String TYPE="db";
+public class DBDimSQLParser extends AbstractDimParser {
+    public static final String TYPE = "db";
 
     @Override protected AbstractDim createDim(Properties properties, MetaData metaData) {
         String tableName = properties.getProperty("tableName");
@@ -39,7 +39,7 @@ public class DBDimSQLParser extends AbstractDimParser{
         String url = properties.getProperty("url");
         String userName = properties.getProperty("userName");
         String password = properties.getProperty("password");
-        String idFieldName=properties.getProperty("idFieldName");
+        String idFieldName = properties.getProperty("idFieldName");
 
         DBDim dbNameList = new DBDim();
         dbNameList.setUrl(url);
@@ -48,9 +48,9 @@ public class DBDimSQLParser extends AbstractDimParser{
         dbNameList.setIdFieldName(idFieldName);
 
         String selectFields = createSelectFields(metaData);
-        String sql = "select " + selectFields + " from " + tableName ;
+        String sql = "select " + selectFields + " from " + tableName;
         if (tableName.trim().toLowerCase().startsWith("from")) {
-            sql = "select " + selectFields + " " + tableName ;
+            sql = "select " + selectFields + " " + tableName;
         }
 
         dbNameList.setSql(sql);
@@ -58,6 +58,7 @@ public class DBDimSQLParser extends AbstractDimParser{
 
         return dbNameList;
     }
+
     /**
      * 根据字段名，创建sql，最大加载10 w条数据，超过10w会被截断
      *
@@ -79,6 +80,5 @@ public class DBDimSQLParser extends AbstractDimParser{
         String fields = stringBuilder.toString();
         return fields;
     }
-
 
 }

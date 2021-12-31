@@ -36,135 +36,133 @@ import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class FilterTreeNode extends TreeNode<FilterChainStage> {
-   protected Rule rule;
-   protected Set<String> dependentFieldNames;
-   protected AbstractStage sourceStage;
-   protected AbstractStage nextStage;
+    protected Rule rule;
+    protected Set<String> dependentFieldNames;
+    protected AbstractStage sourceStage;
+    protected AbstractStage nextStage;
+
     public FilterTreeNode(ChainPipeline pipeline, FilterChainStage stage,
         TreeNode parent) {
         super(pipeline, stage, parent);
-        if(stage.getRules().size()>1){
-            throw new RuntimeException("can not optimizate mutil rule stages "+stage.getLabel());
+        if (stage.getRules().size() > 1) {
+            throw new RuntimeException("can not optimizate mutil rule stages " + stage.getLabel());
         }
-        rule=(Rule) stage.getRules().get(0);
-        dependentFieldNames=rule.getDependentFields();
+        rule = (Rule) stage.getRules().get(0);
+        dependentFieldNames = rule.getDependentFields();
     }
 
+    public PreFingerprint createPreFingerprint(FingerprintCache fingerprintCache) {
+        String filterStageIdentification = MapKeyUtil.createKey(rule.getNameSpace(), this.pipeline.getConfigureName(), rule.getConfigureName());
+        List<String> parents = this.getStage().getPrevStageLabels();
 
-    public PreFingerprint createPreFingerprint(FingerprintCache fingerprintCache){
-        String filterStageIdentification= MapKeyUtil.createKey(rule.getNameSpace(),this.pipeline.getConfigureName(),rule.getConfigureName());
-        List<String> parents=this.getStage().getPrevStageLabels();
-
-        if(parents==null||this.getParents()==null||this.getParents().size()==0){
-            boolean containsDimField= containsDimField(dependentFieldNames);
-            if(containsDimField){
+        if (parents == null || this.getParents() == null || this.getParents().size() == 0) {
+            boolean containsDimField = containsDimField(dependentFieldNames);
+            if (containsDimField) {
                 return null;
             }
-            PreFingerprint preFingerprint=new PreFingerprint(createFingerprint(dependentFieldNames),filterStageIdentification,pipeline.getChannelName(),this.stage.getLabel(),getExpressionCount(),stage,fingerprintCache);
+            PreFingerprint preFingerprint = new PreFingerprint(createFingerprint(dependentFieldNames), filterStageIdentification, pipeline.getChannelName(), this.stage.getLabel(), getExpressionCount(), stage, fingerprintCache);
             return preFingerprint;
         }
-        if(parents.size()>1){
+        if (parents.size() > 1) {
             throw new RuntimeException("can not support mutil parent for filter stage");
         }
-        TreeNode parent=this.getParents().get(0);
-        Set<String> denpendentFields=traceDepenentToSource(parent,this,this.dependentFieldNames);
-        boolean containsDimField= containsDimField(denpendentFields);
-        if(containsDimField){
+        TreeNode parent = this.getParents().get(0);
+        Set<String> denpendentFields = traceDepenentToSource(parent, this, this.dependentFieldNames);
+        boolean containsDimField = containsDimField(denpendentFields);
+        if (containsDimField) {
             return null;
         }
-        if(denpendentFields==null){
+        if (denpendentFields == null) {
             return null;
         }
-        PreFingerprint preFingerprint=new PreFingerprint(createFingerprint(denpendentFields),filterStageIdentification,sourceStage==null?null:sourceStage.getLabel(),nextStage.getLabel(),getExpressionCount(),stage,fingerprintCache);
+        PreFingerprint preFingerprint = new PreFingerprint(createFingerprint(denpendentFields), filterStageIdentification, sourceStage == null ? null : sourceStage.getLabel(), nextStage.getLabel(), getExpressionCount(), stage, fingerprintCache);
         return preFingerprint;
     }
 
     private boolean containsDimField(Set<String> fields) {
-        if(fields==null){
+        if (fields == null) {
             return false;
         }
-        for(String field:fields){
-            if(field.indexOf(".")!=-1){
+        for (String field : fields) {
+            if (field.indexOf(".") != -1) {
                 return true;
             }
         }
         return false;
     }
 
-    public Set<String> traceDepenentToSource(TreeNode parent,TreeNode current,Set<String> denpendentFields){
-        if(parent!=null){
-            sourceStage=parent.getStage();
-        }else {
-            sourceStage=null;
+    public Set<String> traceDepenentToSource(TreeNode parent, TreeNode current, Set<String> denpendentFields) {
+        if (parent != null) {
+            sourceStage = parent.getStage();
+        } else {
+            sourceStage = null;
         }
-        nextStage=current.getStage();
-        Set<String> newDependents=new HashSet<>();
-        boolean isStageBreak=false;
-        for(String varName:denpendentFields){
-            AtomicBoolean isBreak=new AtomicBoolean(false);
-            List<IScriptExpression> scriptExpressions=new ArrayList<>();
-            Set<String> set= parent.traceaField(varName,isBreak,scriptExpressions);
-            if(set!=null){
+        nextStage = current.getStage();
+        Set<String> newDependents = new HashSet<>();
+        boolean isStageBreak = false;
+        for (String varName : denpendentFields) {
+            AtomicBoolean isBreak = new AtomicBoolean(false);
+            List<IScriptExpression> scriptExpressions = new ArrayList<>();
+            Set<String> set = parent.traceaField(varName, isBreak, scriptExpressions);
+            if (set != null) {
                 newDependents.addAll(set);
             }
-            if(isBreak.get()){
-                isStageBreak=true;
+            if (isBreak.get()) {
+                isStageBreak = true;
             }
         }
-        if(isStageBreak){
+        if (isStageBreak) {
             return null;
         }
-        if(parent.getStage().getPrevStageLabels().size()>1){
+        if (parent.getStage().getPrevStageLabels().size() > 1) {
             return newDependents;
         }
-        List<TreeNode> treeNodes=parent.getParents();
-        List<String> parents=parent.getStage().getPrevStageLabels();
-        if(CollectionUtil.isEmpty(parents)||CollectionUtil.isEmpty(treeNodes)){
-            sourceStage=null;
-            nextStage=parent.getStage();
+        List<TreeNode> treeNodes = parent.getParents();
+        List<String> parents = parent.getStage().getPrevStageLabels();
+        if (CollectionUtil.isEmpty(parents) || CollectionUtil.isEmpty(treeNodes)) {
+            sourceStage = null;
+            nextStage = parent.getStage();
             return newDependents;
         }
-        if(parents.size()>1){
-            throw new RuntimeException("can not optimizate mutil rule stages "+stage.getLabel());
+        if (parents.size() > 1) {
+            throw new RuntimeException("can not optimizate mutil rule stages " + stage.getLabel());
         }
-        if(parent.getStage().getNextStageLabels().size()>1){
+        if (parent.getStage().getNextStageLabels().size() > 1) {
             return newDependents;
         }
-        this.nextStage=parent.getStage();
+        this.nextStage = parent.getStage();
 
-        return traceDepenentToSource(treeNodes.get(0),parent,newDependents);
+        return traceDepenentToSource(treeNodes.get(0), parent, newDependents);
     }
+
     @Override
-    public List<CommonExpression> traceDepenentToSource(){
+    public List<CommonExpression> traceDepenentToSource() {
         return traceDepenentToSource(rule);
     }
 
-
-
-
-    @Override public Set<String> traceaField(String varName,AtomicBoolean isBreak,List<IScriptExpression> scriptExpressions) {
-        Set<String> result=new HashSet<>();
+    @Override
+    public Set<String> traceaField(String varName, AtomicBoolean isBreak, List<IScriptExpression> scriptExpressions) {
+        Set<String> result = new HashSet<>();
         result.add(varName);
         return result;
     }
 
-    protected String createFingerprint(Set<String> fieldNames){
-        List<String> fieldNameList=new ArrayList<>(fieldNames);
+    protected String createFingerprint(Set<String> fieldNames) {
+        List<String> fieldNameList = new ArrayList<>(fieldNames);
         Collections.sort(fieldNameList);
-        return MapKeyUtil.createKey(",",fieldNameList);
+        return MapKeyUtil.createKey(",", fieldNameList);
     }
 
-
-    public int getExpressionCount(){
-       Collection<Expression> expressionSet= this.rule.getExpressionMap().values();
-       int count=0;
-       for(Expression expression:expressionSet ){
-           if(!RelationExpression.class.isInstance(expression)){
-               continue;
-           }
-           count++;
-       }
-       return count;
+    public int getExpressionCount() {
+        Collection<Expression> expressionSet = this.rule.getExpressionMap().values();
+        int count = 0;
+        for (Expression expression : expressionSet) {
+            if (!RelationExpression.class.isInstance(expression)) {
+                continue;
+            }
+            count++;
+        }
+        return count;
     }
 
 }

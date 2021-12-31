@@ -39,7 +39,7 @@ public class MysqlInsertIntoSqlTemplate implements ISqlTemplate {
 
     @Override
     public void initSqlTemplate() {
-        if(sqlPrefix != null){
+        if (sqlPrefix != null) {
             return;
         }
         sqlPrefix = SQLUtil.createInsertSegment(metaData, isContainsId);

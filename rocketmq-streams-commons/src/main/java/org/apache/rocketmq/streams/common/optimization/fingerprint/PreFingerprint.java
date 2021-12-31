@@ -40,27 +40,25 @@ public class PreFingerprint {
     protected transient String nextStageLable;//the source stage's next stage lable
     protected transient FingerprintCache fingerprintCache;
 
-    protected transient int expressionCount=-1;
+    protected transient int expressionCount = -1;
     protected transient FilterChainStage filterChainStage;
-    protected transient List<FilterChainStage> allPreviewFilterChainStage=new LinkedList<>();
+    protected transient List<FilterChainStage> allPreviewFilterChainStage = new LinkedList<>();
 
-
-
-    public PreFingerprint(String logFingerFieldNames,String filterStageIdentification,String sourceStageLable,String nextStageLable,int expressionCount,AbstractStage filterChainStage,FingerprintCache fingerprintCache){
-        this.logFingerFieldNames=logFingerFieldNames;
-        this.filterStageIdentification=filterStageIdentification;
-        this.sourceStageLable=sourceStageLable;
-        this.nextStageLable=nextStageLable;
-        this.expressionCount=expressionCount;
-        this.filterChainStage=(FilterChainStage) filterChainStage;
-        this.fingerprintCache=fingerprintCache;
+    public PreFingerprint(String logFingerFieldNames, String filterStageIdentification, String sourceStageLable,
+        String nextStageLable, int expressionCount, AbstractStage filterChainStage, FingerprintCache fingerprintCache) {
+        this.logFingerFieldNames = logFingerFieldNames;
+        this.filterStageIdentification = filterStageIdentification;
+        this.sourceStageLable = sourceStageLable;
+        this.nextStageLable = nextStageLable;
+        this.expressionCount = expressionCount;
+        this.filterChainStage = (FilterChainStage) filterChainStage;
+        this.fingerprintCache = fingerprintCache;
     }
 
-
-    public PreFingerprint(String logFingerFieldNames,String filterStageIdentification,String sourceStageLable,String nextStageLable,AbstractStage filterChainStage,FingerprintCache fingerprintCache){
-        this(logFingerFieldNames,filterStageIdentification,sourceStageLable,nextStageLable,-1,filterChainStage,fingerprintCache);
+    public PreFingerprint(String logFingerFieldNames, String filterStageIdentification, String sourceStageLable,
+        String nextStageLable, AbstractStage filterChainStage, FingerprintCache fingerprintCache) {
+        this(logFingerFieldNames, filterStageIdentification, sourceStageLable, nextStageLable, -1, filterChainStage, fingerprintCache);
     }
-
 
     /**
      * 通过日志指纹过滤，如果有过滤日志指纹字段，做过滤判断
@@ -70,9 +68,9 @@ public class PreFingerprint {
      */
     public boolean filterByLogFingerprint(IMessage message) {
         if (logFingerFieldNames != null) {
-            String msgKey = FingerprintCache.creatFingerpringKey(message,filterStageIdentification,logFingerFieldNames);
+            String msgKey = FingerprintCache.creatFingerpringKey(message, filterStageIdentification, logFingerFieldNames);
             if (msgKey != null) {
-                BitSetCache.BitSet bitSet = fingerprintCache.getLogFingerprint(filterStageIdentification,msgKey);
+                BitSetCache.BitSet bitSet = fingerprintCache.getLogFingerprint(filterStageIdentification, msgKey);
                 if (bitSet != null && bitSet.get(0)) {
                     return true;
                 } else {
@@ -83,7 +81,6 @@ public class PreFingerprint {
         return false;
     }
 
-
     /**
      * 设置过滤指纹
      *
@@ -92,13 +89,12 @@ public class PreFingerprint {
     public void addLogFingerprintToSource(IMessage message) {
 
         String msgKey = message.getHeader().getLogFingerprintValue();
-        if(msgKey!=null){
-            BitSetCache.BitSet bitSet =new BitSetCache.BitSet(1);
+        if (msgKey != null) {
+            BitSetCache.BitSet bitSet = new BitSetCache.BitSet(1);
             bitSet.set(0);
-            fingerprintCache.addLogFingerprint(filterStageIdentification,msgKey,bitSet);
+            fingerprintCache.addLogFingerprint(filterStageIdentification, msgKey, bitSet);
         }
     }
-
 
     public String getLogFingerFieldNames() {
         return logFingerFieldNames;
@@ -125,15 +121,16 @@ public class PreFingerprint {
     }
 
     public void setLogFingerFieldNames(Set<String> logFingerFieldNames) {
-        List<String> fingers=new ArrayList<>(logFingerFieldNames);
+        List<String> fingers = new ArrayList<>(logFingerFieldNames);
         Collections.sort(fingers);
-        this.logFingerFieldNames= MapKeyUtil.createKey(",",fingers);
+        this.logFingerFieldNames = MapKeyUtil.createKey(",", fingers);
     }
 
-    public void addPreviwFilterChainStage(List<FilterChainStage> filterChainStages){
+    public void addPreviwFilterChainStage(List<FilterChainStage> filterChainStages) {
         this.allPreviewFilterChainStage.addAll(filterChainStages);
     }
-    public void addPreviwFilterChainStage(FilterChainStage filterChainStage){
+
+    public void addPreviwFilterChainStage(FilterChainStage filterChainStage) {
         this.allPreviewFilterChainStage.add(filterChainStage);
     }
 

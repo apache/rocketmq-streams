@@ -26,49 +26,48 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 
 public class ScheduleManager {
-    protected List<ScheduleTask> scheduleTasks=new ArrayList<>();
-    protected AtomicBoolean isStart=new AtomicBoolean(false);
-    protected ScheduledExecutorService scheduledExecutorService= new ScheduledThreadPoolExecutor(5);
-    protected ExecutorService executorService= ThreadPoolFactory.createThreadPool(2,50);
-    private static ScheduleManager scheduleManager=new ScheduleManager();
-    public static ScheduleManager getInstance(){
+    protected List<ScheduleTask> scheduleTasks = new ArrayList<>();
+    protected AtomicBoolean isStart = new AtomicBoolean(false);
+    protected ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(5);
+    protected ExecutorService executorService = ThreadPoolFactory.createThreadPool(2, 50);
+    private static ScheduleManager scheduleManager = new ScheduleManager();
+
+    public static ScheduleManager getInstance() {
         return scheduleManager;
     }
 
-
-    public void regist(ScheduleTask scheduleTask){
+    public void regist(ScheduleTask scheduleTask) {
         start();
-        if(scheduleTask==null){
+        if (scheduleTask == null) {
             return;
         }
         scheduleTasks.add(scheduleTask);
     }
 
-
-    public void start(){
-        if(isStart.compareAndSet(false,true)){
+    public void start() {
+        if (isStart.compareAndSet(false, true)) {
             scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
                 @Override public void run() {
                     try {
-                        List<ScheduleTask> list=new ArrayList<>(scheduleTasks);
-                        for(ScheduleTask scheduleTask:list){
-                            if(scheduleTask!=null&&scheduleTask.canExecute()){
+                        List<ScheduleTask> list = new ArrayList<>(scheduleTasks);
+                        for (ScheduleTask scheduleTask : list) {
+                            if (scheduleTask != null && scheduleTask.canExecute()) {
                                 executeTask(scheduleTask);
                             }
                         }
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
 
                 }
-            },0,100, TimeUnit.MILLISECONDS);
+            }, 0, 100, TimeUnit.MILLISECONDS);
         }
     }
 
     protected void executeTask(ScheduleTask task) {
-        if(task.getExecutorService()!=null){
+        if (task.getExecutorService() != null) {
             task.getExecutorService().execute(task.getRunnable());
-        }else {
+        } else {
             executorService.execute(task.getRunnable());
         }
     }

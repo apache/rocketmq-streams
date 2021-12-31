@@ -28,21 +28,20 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class ItemFunction {
 
-
-    @FunctionMethod(value = "ITEM",alias = "get", comment = "获取集合的值")
+    @FunctionMethod(value = "ITEM", alias = "get", comment = "获取集合的值")
     public Object string2Map(IMessage message, FunctionContext context,
-        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName,String indexOrFieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName, String indexOrFieldName) {
         Object ori = message.getMessageBody().get(fieldName);
-        indexOrFieldName=FunctionUtils.getValueString(message,context,indexOrFieldName);
-        if (ori==null) {
+        indexOrFieldName = FunctionUtils.getValueString(message, context, indexOrFieldName);
+        if (ori == null) {
             return null;
         }
-        if(Map.class.isInstance(ori)){
-            Map map=(Map) ori;
+        if (Map.class.isInstance(ori)) {
+            Map map = (Map) ori;
             return map.get(indexOrFieldName);
-        }else if(List.class.isInstance(ori)){
-            Integer index= Integer.valueOf(indexOrFieldName);
-            List list=(List)ori;
+        } else if (List.class.isInstance(ori)) {
+            Integer index = Integer.valueOf(indexOrFieldName);
+            List list = (List) ori;
             return list.get(index);
         }
         return null;

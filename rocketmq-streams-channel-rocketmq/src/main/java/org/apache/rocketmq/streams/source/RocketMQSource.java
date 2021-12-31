@@ -77,13 +77,14 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
     protected Long pullIntervalMs;
 
-    protected String strategyName = STRATEGY_AVERAGE;
+    protected String strategyName;
 
     protected transient DefaultMQPushConsumer consumer;
     protected transient ConsumeFromWhere consumeFromWhere;//默认从哪里消费,不会被持久化。不设置默认从尾部消费
     protected transient String consumerOffset;//从哪里开始消费
 
-    public RocketMQSource() {}
+    public RocketMQSource() {
+    }
 
     public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr) {
         this(topic, tags, groupName, namesrvAddr, STRATEGY_AVERAGE);
@@ -130,7 +131,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
                 consumer.setAllocateMessageQueueStrategy(new AllocateMessageQueueByConfig());
             }
 
-            consumer.setPersistConsumerOffsetInterval((int)this.checkpointTime);
+            consumer.setPersistConsumerOffsetInterval((int) this.checkpointTime);
             consumer.setConsumeMessageBatchMaxSize(maxFetchLogGroupSize);
             consumer.setNamesrvAddr(this.namesrvAddr);
             if (consumeFromWhere != null) {
@@ -142,7 +143,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             Map<String, Boolean> isFirstDataForQueue = new HashMap<>();
             //consumer.setCommitOffsetWithPullRequestEnable(false);
             consumer.subscribe(topic, tags);
-            consumer.registerMessageListener((MessageListenerOrderly)(msgs, context) -> {
+            consumer.registerMessageListener((MessageListenerOrderly) (msgs, context) -> {
                 try {
                     int i = 0;
                     for (MessageExt msg : msgs) {
@@ -249,7 +250,8 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         }
     }
 
-    protected Map<MessageQueue, String> getMessageQueueAllocationResult(DefaultMQAdminExt defaultMQAdminExt, String groupName) {
+    protected Map<MessageQueue, String> getMessageQueueAllocationResult(DefaultMQAdminExt defaultMQAdminExt,
+        String groupName) {
         HashMap results = new HashMap();
 
         try {
@@ -257,13 +259,13 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             Iterator var5 = consumerConnection.getConnectionSet().iterator();
 
             while (var5.hasNext()) {
-                Connection connection = (Connection)var5.next();
+                Connection connection = (Connection) var5.next();
                 String clientId = connection.getClientId();
                 ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(groupName, clientId, false);
                 Iterator var9 = consumerRunningInfo.getMqTable().keySet().iterator();
 
                 while (var9.hasNext()) {
-                    MessageQueue messageQueue = (MessageQueue)var9.next();
+                    MessageQueue messageQueue = (MessageQueue) var9.next();
                     results.put(messageQueue, clientId.split("@")[1]);
                 }
             }
@@ -300,8 +302,8 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             }
 
             @Override
-            public void updateConsumeOffsetToBroker(MessageQueue mq, long offset, boolean isOneway)
-                throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+            public void updateConsumeOffsetToBroker(MessageQueue mq, long offset,
+                boolean isOneway) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
                 sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
                 if (DebugWriter.isOpenDebug()) {
                     ConcurrentMap<MessageQueue, AtomicLong> offsetTable = ReflectUtil.getDeclaredField(this, "offsetTable");
@@ -358,6 +360,14 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         destroyConsumer();
     }
 
+    public String getStrategyName() {
+        return strategyName;
+    }
+
+    public void setStrategyName(String strategyName) {
+        this.strategyName = strategyName;
+    }
+
     public String getTags() {
         return tags;
     }
@@ -400,17 +410,5 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
     public void setConsumerOffset(String consumerOffset) {
         this.consumerOffset = consumerOffset;
-    }
-
-    public String getStrategyName() {
-        return strategyName;
-    }
-
-    public void setStrategyName(String strategyName) {
-        this.strategyName = strategyName;
-    }
-
-    public void setConsumer(DefaultMQPushConsumer consumer) {
-        this.consumer = consumer;
     }
 }

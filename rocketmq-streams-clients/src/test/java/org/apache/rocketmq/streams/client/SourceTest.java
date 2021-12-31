@@ -16,18 +16,21 @@
  */
 package org.apache.rocketmq.streams.client;
 
+import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.functions.ForEachMessageFunction;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.junit.Test;
 
-public class SourceTest {
+public class SourceTest implements Serializable {
 
     @Test
-    public void testSource(){
-        FileSource source = new FileSource("/tmp/file.txt");
+    public void testSource() {
+        FileSource source = new FileSource("/tmp/aegis_proc_public.txt");
         source.setJsonData(true);
         source.init();
         source.start(new IStreamOperator() {
@@ -39,20 +42,71 @@ public class SourceTest {
         });
     }
 
-
     @Test
-    public void testImportMsgFromSource(){
-        DataStreamSource.create("tmp","tmp")
-            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG","chris_test","T_MSG_PROC",true,null)
-            .toFile("/tmp/aegis_proc.txt",true)
-        .start();
+    public void testoutputdata() {
+        AtomicLong count = new AtomicLong(0);
+        AtomicLong startTime = new AtomicLong(System.currentTimeMillis());
+        DataStreamSource.create("tmp", "tmp")
+            .fromFile("/tmp/aegis_proc_public.txt")
+            .toRocketmq("dipper_test_1", "dipper_group", "localhost:9876")
+            .forEachMessage(new ForEachMessageFunction() {
+                @Override public void foreach(IMessage message, AbstractContext context) {
+                    long c = count.incrementAndGet();
+                    long cost = (System.currentTimeMillis() - startTime.get()) / 1000;
+                    if (cost == 0) {
+                        cost = 1;
+                    }
+                    double qps = ((double) c) / ((double) cost);
+                    if (c % 1000 == 0) {
+                        System.out.println("qps is " + qps);
+                    }
+
+                }
+            })
+            .start();
     }
 
     @Test
-    public void testImportMsgFromNet(){
-        DataStreamSource.create("tmp","tmp")
-            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG","chris_test","T_MSG_NETSTAT",true,null)
-            .toFile("/tmp/aegis_net.txt",true)
+    public void testImportMsgFromFile() {
+        AtomicLong count = new AtomicLong(0);
+        AtomicLong startTime = new AtomicLong(System.currentTimeMillis());
+        DataStreamSource.create("tmp", "tmp")
+            .fromRocketmq("dipper_test_1", "dipper_group1", true, "localhost:9876")
+//           .window(TumblingWindow.of(Time.seconds(10)))
+//            .count("c")
+//            .groupBy("")
+//            .toDataSteam()
+            .forEachMessage(new ForEachMessageFunction() {
+                @Override public void foreach(IMessage message, AbstractContext context) {
+                    System.out.println(message.getMessageBody());
+                    long c = count.incrementAndGet();
+                    long cost = (System.currentTimeMillis() - startTime.get()) / 1000;
+                    if (cost == 0) {
+                        cost = 1;
+                    }
+                    double qps = ((double) c) / ((double) cost);
+                    if (c % 1000 == 0) {
+                        System.out.println("qps is " + qps);
+                    }
+
+                }
+            })
+            .start();
+    }
+
+    @Test
+    public void testImportMsgFromSource() {
+        DataStreamSource.create("tmp", "tmp")
+            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG", "chris_test", "T_MSG_PROC", true, null)
+            .toFile("/tmp/aegis_proc.txt", true)
+            .start();
+    }
+
+    @Test
+    public void testImportMsgFromNet() {
+        DataStreamSource.create("tmp", "tmp")
+            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG", "chris_test", "T_MSG_NETSTAT", true, null)
+            .toFile("/tmp/aegis_net.txt", true)
             .start();
     }
 }

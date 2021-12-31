@@ -107,6 +107,7 @@
         <module>rocketmq-streams-channel-syslog</module>
         <module>rocketmq-streams-channel-es</module>
         <module>rocketmq-streams-runner</module>
+        <module>rocketmq-streams-channel-mqtt</module>
     </modules>
 
     <properties>
@@ -135,7 +136,6 @@
         <disruptor.version>3.2.0</disruptor.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
         <rocketmq.version>4.5.2</rocketmq.version>
-        <!--        <rocketmq.version>4.8.1-SNAPSHOT</rocketmq.version>-->
         <hyperscan.version>5.4.0-2.0.0</hyperscan.version>
         <platform.version>3.5.2</platform.version>
         <gson.version>2.8.5</gson.version>
@@ -150,6 +150,7 @@
         <elasticsearch.version>7.4.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
+        <paho.version>1.2.2</paho.version>
     </properties>
 
 
@@ -172,14 +173,23 @@
                         <exclude>.gitignore</exclude>
                         <exclude>.travis.yml</exclude>
                         <exclude>.asf.yaml</exclude>
+                        <exclude>build_without_test.sh</exclude>
+                        <exclude>NOTICE</exclude>
+                        <exclude>LICENSE</exclude>
                         <exclude>README.md</exclude>
-                        <exclude>README-Chinese.md</exclude>
+                        <exclude>README-chinese.md</exclude>
                         <exclude>QUICKSTART.md</exclude>
+                        <exclude>quick_start.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
                         <exclude>**/*.txt</exclude>
                         <exclude>**/*.cs</exclude>
+                        <exclude>**/*.xml</exclude>
+                        <exclude>**/*.sh</exclude>
+                        <exclude>**/*.out</exclude>
+                        <exclude>**/*.properties</exclude>
+                        <exclude>docs/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -248,6 +258,11 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-channel-es</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-channel-mqtt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -588,6 +603,13 @@
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_2.12</artifactId>
                 <version>${kafka.version}</version>
+            </dependency>
+
+            <!--IOT dependency-->
+            <dependency>
+                <groupId>org.eclipse.paho</groupId>
+                <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+                <version>${paho.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

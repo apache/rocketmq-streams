@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.common.cache.compress;
 
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
-public class BigMapAddress extends MapAddress{
+public class BigMapAddress extends KVAddress {
 
     public BigMapAddress(int conflictIndex, int offset) {
         super(conflictIndex, offset);
@@ -50,24 +50,24 @@ public class BigMapAddress extends MapAddress{
             return;
         }
 
-        byte[] bytes=new byte[2];
-        bytes[0]=byteArray.getByte(4);
-        bytes[1]=NumberUtils.toByte(conflictValue&127)[0];
+        byte[] bytes = new byte[2];
+        bytes[0] = byteArray.getByte(4);
+        bytes[1] = NumberUtils.toByte(conflictValue & 127)[0];
         this.conflictIndex = NumberUtils.toInt(bytes);
         this.offset = byteArray.castInt(0, 3);
     }
 
     @Override
     public byte[] createBytes() {
-        byte[] values=new byte[5];
+        byte[] values = new byte[5];
         byte[] offsetBytes = NumberUtils.toByte(offset);
-        for(int i=0;i<3;i++){
-            values[i]=offsetBytes[i];
+        for (int i = 0; i < 3; i++) {
+            values[i] = offsetBytes[i];
         }
 
-        byte[] indexBytes=NumberUtils.toByte(conflictIndex);
-        values[3]=indexBytes[0];
-        byte fisrtByte =indexBytes[1];
+        byte[] indexBytes = NumberUtils.toByte(conflictIndex);
+        values[3] = indexBytes[0];
+        byte fisrtByte = indexBytes[1];
 
         int value = 0;
         if (isConflict) {
@@ -77,20 +77,20 @@ public class BigMapAddress extends MapAddress{
         }
 
         values[4] = (byte) (value & 0xff);
-        return  values;
+        return values;
     }
 
     @Override
     public byte[] createBytesIngoreFirstBit() {
-        byte[] values=new byte[5];
+        byte[] values = new byte[5];
         byte[] offsetBytes = NumberUtils.toByte(offset);
-        for(int i=0;i<3;i++){
-            values[i]=offsetBytes[i];
+        for (int i = 0; i < 3; i++) {
+            values[i] = offsetBytes[i];
         }
 
-        byte[] indexBytes=NumberUtils.toByte(conflictIndex);
-        values[3]=indexBytes[0];
-        values[4]=indexBytes[1];
+        byte[] indexBytes = NumberUtils.toByte(conflictIndex);
+        values[3] = indexBytes[0];
+        values[4] = indexBytes[1];
         return values;
     }
 }

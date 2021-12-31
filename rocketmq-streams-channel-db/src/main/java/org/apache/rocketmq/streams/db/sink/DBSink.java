@@ -53,18 +53,12 @@ public class DBSink extends AbstractSink {
     public static final String SQL_MODE_REPLACE = "replace";
     public static final String SQL_MODE_IGNORE = "ignore";
 
-    @ENVDependence
-    protected String jdbcDriver = AbstractComponent.DEFAULT_JDBC_DRIVER;
-    @ENVDependence
-    protected String url;
-    @ENVDependence
-    protected String userName;
-    @ENVDependence
-    protected String tableName; //指定要插入的数据表
-    @ENVDependence
-    protected String password;
-    @ENVDependence
-    protected String sqlMode;
+    @ENVDependence protected String jdbcDriver = AbstractComponent.DEFAULT_JDBC_DRIVER;
+    @ENVDependence protected String url;
+    @ENVDependence protected String userName;
+    @ENVDependence protected String tableName; //指定要插入的数据表
+    @ENVDependence protected String password;
+    @ENVDependence protected String sqlMode;
 
     protected MetaData metaData;//可以指定meta data，和insertSQL二选一
 
@@ -75,7 +69,6 @@ public class DBSink extends AbstractSink {
     protected transient IMessageCache<String> sqlCache;//cache sql, batch submit sql
 
     boolean isMultiple = false; //是否多表
-
 
     /**
      * db串多数是名字，可以取个名字前缀，如果值为空，默认为此类的name，name为空，默认为简单类名
@@ -119,8 +112,7 @@ public class DBSink extends AbstractSink {
         this.metaData = metaData;
     }
 
-    @Override
-    protected boolean initConfigurable() {
+    @Override protected boolean initConfigurable() {
         if (this.metaData == null) {
             try {
                 Class.forName("com.mysql.jdbc.Driver");
@@ -177,8 +169,7 @@ public class DBSink extends AbstractSink {
         return super.initConfigurable();
     }
 
-    @Override
-    protected boolean batchInsert(List<IMessage> messageList) {
+    @Override protected boolean batchInsert(List<IMessage> messageList) {
         JDBCDriver dbDataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
         try {
             if (messageList == null || messageList.size() == 0) {
@@ -212,8 +203,7 @@ public class DBSink extends AbstractSink {
         }
     }
 
-    @Override
-    public boolean checkpoint(Set<String> splitIds) {
+    @Override public boolean checkpoint(Set<String> splitIds) {
         if (sqlCache != null) {
             sqlCache.flush(splitIds);
         }
@@ -342,25 +332,25 @@ public class DBSink extends AbstractSink {
 
     /**
      * 获取逻辑表名, 默认 logicTableName _ suffix模式
+     *
      * @param realTableName
      * @return
      */
-    private final String subStrLogicTableName(String realTableName){
+    private final String subStrLogicTableName(String realTableName) {
         int len = realTableName.lastIndexOf("_");
         String logicTableName = realTableName.substring(0, len);
         return logicTableName;
     }
 
     /**
-     *
      * @param sourceTableName
      * @param targetTableName
      * @return
      */
-    private final String getCreateTableSqlFromOther(String sourceTableName, String targetTableName){
+    private final String getCreateTableSqlFromOther(String sourceTableName, String targetTableName) {
 
         String createTableSql = MetaDataUtils.getCreateTableSqlByTableName(url, userName, password, sourceTableName);
-        if(createTableSql == null){
+        if (createTableSql == null) {
             String errMsg = String.format("source table is not exist. multiple db sink must be dependency logic table meta for auto create sub table. logic table name is ", sourceTableName);
             logger.error(errMsg);
             throw new RuntimeException(errMsg);
@@ -373,9 +363,10 @@ public class DBSink extends AbstractSink {
 
     /**
      * 多sink场景
+     *
      * @param createTableSql
      */
-    private final void createTable(String createTableSql){
+    private final void createTable(String createTableSql) {
         ORMUtil.executeSQL(url, userName, password, createTableSql, null);
     }
 

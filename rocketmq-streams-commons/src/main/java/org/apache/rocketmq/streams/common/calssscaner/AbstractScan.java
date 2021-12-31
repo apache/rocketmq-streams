@@ -43,21 +43,21 @@ public abstract class AbstractScan {
 
     protected Set<String> scanDirs = new HashSet<>();
 
-    public void scanJarsFromDir(String dir,String packageName){
-        IsolationClassLoader classLoader= new IsolationClassLoader(dir);
-        File file=new File(dir);
-        if(file.exists()==false){
+    public void scanJarsFromDir(String dir, String packageName) {
+        IsolationClassLoader classLoader = new IsolationClassLoader(dir);
+        File file = new File(dir);
+        if (file.exists() == false) {
             return;
         }
-        if(file.isDirectory()==false){
+        if (file.isDirectory() == false) {
             return;
         }
-        File[] jars=file.listFiles();
-        for(File jar:jars){
-            if(!jar.getName().endsWith(".jar")){
+        File[] jars = file.listFiles();
+        for (File jar : jars) {
+            if (!jar.getName().endsWith(".jar")) {
                 continue;
             }
-            scanClassDir(jar,packageName,classLoader, null);
+            scanClassDir(jar, packageName, classLoader, null);
         }
     }
 
@@ -255,7 +255,7 @@ public abstract class AbstractScan {
 
     }
 
-    private String createPackageName(String dirName) {
+    protected String createPackageName(String dirName) {
         if (dirName.startsWith("/")) {
             String packageName = dirName.substring(1).replace("/", ".") + ".";
             return packageName;

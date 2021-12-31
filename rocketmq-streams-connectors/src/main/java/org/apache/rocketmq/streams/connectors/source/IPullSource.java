@@ -29,31 +29,32 @@ public interface IPullSource<T extends ISource> extends ISource<T> {
 
     /**
      * 拥有的分片格式
+     *
      * @return
      */
     Collection<ISplit> ownerSplits();
 
     /**
      * get all split for the source
+     *
      * @return
      */
     List<ISplit> fetchAllSplits();
 
-
     /**
      * get all split for the source
+     *
      * @return
      */
     Map<String, ISplit> getAllSplitMap();
-
 
     Long getPullIntervalMs();
 
     /**
      * get cusor from store
+     *
      * @return
      */
-   String loadSplitOffset(ISplit split);
-
+    String loadSplitOffset(ISplit split);
 
 }

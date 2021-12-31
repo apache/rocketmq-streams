@@ -45,7 +45,6 @@ import org.apache.rocketmq.streams.connectors.reader.ISplitReader;
 import org.apache.rocketmq.streams.connectors.reader.SplitCloseFuture;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
-
 public abstract class AbstractPullSource extends AbstractSource implements IPullSource<AbstractSource> {
 
     private static final Log logger = LogFactory.getLog(AbstractPullSource.class);
@@ -65,11 +64,11 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     @Override
     protected boolean startSource() {
         ServiceLoaderComponent serviceLoaderComponent = ServiceLoaderComponent.getInstance(ISourceBalance.class);
-        balance = (ISourceBalance)serviceLoaderComponent.getService().loadService(balanceName);
-        balance.setSourceIdentification(MapKeyUtil.createKey(getNameSpace(),getConfigureName()));
+        balance = (ISourceBalance) serviceLoaderComponent.getService().loadService(balanceName);
+        balance.setSourceIdentification(MapKeyUtil.createKey(getNameSpace(), getConfigureName()));
         balanceExecutor = new ScheduledThreadPoolExecutor(1, new BasicThreadFactory.Builder().namingPattern("balance-task-%d").daemon(true).build());
         List<ISplit> allSplits = fetchAllSplits();
-        SplitChanged splitChanged = balance.doBalance(allSplits,new ArrayList(ownerSplits.values()));
+        SplitChanged splitChanged = balance.doBalance(allSplits, new ArrayList(ownerSplits.values()));
         doSplitChanged(splitChanged);
         balanceExecutor.scheduleWithFixedDelay(new Runnable() {
             @Override
@@ -86,41 +85,40 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     @Override
     public Map<String, ISplit> getAllSplitMap() {
         List<ISplit> splits = fetchAllSplits();
-        if(splits == null){
+        if (splits == null) {
             return new HashMap<>();
         }
         Map<String, ISplit> splitMap = new HashMap<>();
-        for(ISplit split:splits){
-            splitMap.put(split.getQueueId(),split);
+        for (ISplit split : splits) {
+            splitMap.put(split.getQueueId(), split);
         }
         return splitMap;
     }
 
     protected void doSplitChanged(SplitChanged splitChanged) {
-        if(splitChanged == null){
+        if (splitChanged == null) {
             return;
         }
-        if(splitChanged.getSplitCount() == 0){
+        if (splitChanged.getSplitCount() == 0) {
             return;
         }
-        if(splitChanged.isNewSplit()){
+        if (splitChanged.isNewSplit()) {
             doSplitAddition(splitChanged.getChangedSplits());
-        }else {
+        } else {
             doSplitRelease(splitChanged.getChangedSplits());
         }
     }
 
-
     protected void doSplitAddition(List<ISplit> changedSplits) {
-        if(changedSplits == null){
+        if (changedSplits == null) {
             return;
         }
         Set<String> splitIds = new HashSet<>();
-        for(ISplit split:changedSplits){
+        for (ISplit split : changedSplits) {
             splitIds.add(split.getQueueId());
         }
         addNewSplit(splitIds);
-        for(ISplit split : changedSplits){
+        for (ISplit split : changedSplits) {
             ISplitReader reader = createSplitReader(split);
             reader.open(split);
             reader.seek(loadSplitOffset(split));
@@ -129,18 +127,19 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
             logger.info("start next");
             Thread thread = new Thread(new Runnable() {
                 long mLastCheckTime = System.currentTimeMillis();
+
                 @Override
                 public void run() {
                     logger.info("start running");
-                    while (reader.isInterrupt() == false){
-                        if(reader.next()){
+                    while (reader.isInterrupt() == false) {
+                        if (reader.next()) {
                             List<PullMessage> messages = reader.getMessage();
-                            if(messages != null){
-                                for(PullMessage pullMessage:messages){
+                            if (messages != null) {
+                                for (PullMessage pullMessage : messages) {
                                     String queueId = split.getQueueId();
                                     String offset = pullMessage.getOffsetStr();
                                     JSONObject msg = createJson(pullMessage.getMessage());
-                                    Message message = createMessage(msg, queueId, offset,false);
+                                    Message message = createMessage(msg, queueId, offset, false);
                                     message.getHeader().setOffsetIsLong(pullMessage.getMessageOffset().isLongOfMainOffset());
                                     executeMessage(message);
                                 }
@@ -168,7 +167,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
                     removeSplit(removeSplits);
                     balance.unlockSplit(split);
                     reader.close();
-                    synchronized (reader){
+                    synchronized (reader) {
                         reader.notifyAll();
                     }
 
@@ -184,7 +183,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     public String loadSplitOffset(ISplit split) {
         String offset = null;
         CheckPoint<String> checkPoint = checkPointManager.recover(this, split);
-        if(checkPoint != null){
+        if (checkPoint != null) {
             offset = JSON.parseObject(checkPoint.getData()).getString("offset");
         }
         return offset;
@@ -194,20 +193,20 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
 
     protected void doSplitRelease(List<ISplit> changedSplits) {
         boolean success = balance.getRemoveSplitLock();
-        if(!success){
+        if (!success) {
             return;
         }
         try {
             List<SplitCloseFuture> closeFutures = new ArrayList<>();
-            for(ISplit split : changedSplits){
+            for (ISplit split : changedSplits) {
                 ISplitReader reader = this.splitReaders.get(split.getQueueId());
-                if(reader == null){
+                if (reader == null) {
                     continue;
                 }
                 SplitCloseFuture future = reader.close();
                 closeFutures.add(future);
             }
-            for(SplitCloseFuture future : closeFutures){
+            for (SplitCloseFuture future : closeFutures) {
                 try {
                     future.get();
                     this.splitReaders.remove(future.getSplit().getQueueId());
@@ -219,7 +218,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
                 }
             }
 
-        }finally {
+        } finally {
             balance.unLockRemoveSplitLock();
         }
 
@@ -239,6 +238,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     public boolean supportOffsetRest() {
         return true;
     }
+
     @Override
     public Long getPullIntervalMs() {
         return pullIntervalMs;
@@ -263,6 +263,7 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     public void setPullIntervalMs(long pullIntervalMs) {
         this.pullIntervalMs = pullIntervalMs;
     }
+
     @Override
     public List<ISplit> ownerSplits() {
         return new ArrayList(ownerSplits.values());
