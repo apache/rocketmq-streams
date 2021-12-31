@@ -76,9 +76,8 @@ public class FunctionUtils {
         return isDouble(fieldName);
     }
 
-
     public static boolean isLong(String fieldName) {
-        if(StringUtil.isEmpty(fieldName)){
+        if (StringUtil.isEmpty(fieldName)) {
             return false;
         }
         boolean match = StringUtil.matchRegex(fieldName, LONG);
@@ -86,7 +85,7 @@ public class FunctionUtils {
     }
 
     public static boolean isDouble(String fieldName) {
-        if(StringUtil.isEmpty(fieldName)){
+        if (StringUtil.isEmpty(fieldName)) {
             return false;
         }
         boolean match = StringUtil.matchRegex(fieldName, DOUBLE);
@@ -94,7 +93,7 @@ public class FunctionUtils {
     }
 
     public static boolean isBoolean(String fieldName) {
-        if(StringUtil.isEmpty(fieldName)){
+        if (StringUtil.isEmpty(fieldName)) {
             return false;
         }
         String value = fieldName.toLowerCase();
@@ -120,7 +119,7 @@ public class FunctionUtils {
         if (StringUtil.isEmpty(fieldName)) {
             return fieldName;
         }
-       // fieldName = fieldName.trim();
+        // fieldName = fieldName.trim();
         if (fieldName.startsWith("'") && fieldName.endsWith("'")) {
             if (fieldName.equals("''")) {
                 return "";
@@ -144,10 +143,9 @@ public class FunctionUtils {
             return getDouble(fieldName);
         } else if (isBoolean(fieldName)) {
             return getBoolean(fieldName);
-        } else if("".equals(fieldName)){
+        } else if ("".equals(fieldName)) {
             return "";
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -163,16 +161,18 @@ public class FunctionUtils {
         Object value = message.getMessageBody().get(fieldName);
         return value;
     }
-    private static DateDataType dateDataType=new DateDataType();
+
+    private static DateDataType dateDataType = new DateDataType();
+
     public static String getValueString(IMessage message, AbstractContext context, String fieldName) {
         Object value = getValue(message, context, fieldName);
         if (value == null) {
             return null;
         }
         if (String.class.isInstance(value)) {
-            return (String)value;
+            return (String) value;
         }
-        if(dateDataType.matchClass(value.getClass())){
+        if (dateDataType.matchClass(value.getClass())) {
             return dateDataType.toDataJson(dateDataType.convert(value));
         }
         return value.toString();
@@ -257,6 +257,6 @@ public class FunctionUtils {
         System.out.println(tmp);
         System.out.println(doRecoverConstants(tmp, cache));
 
-        System.out.println(StringUtil.matchRegex("",LONG));
+        System.out.println(StringUtil.matchRegex("", LONG));
     }
 }

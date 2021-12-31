@@ -42,12 +42,12 @@ public class FieldFunction {
 
     @FunctionMethod(value = "json_field", alias = "get_json_field", comment = "获取字段值")
     public Object getJsonFieldValue(IMessage message, FunctionContext context,
-        @FunctionParamter(value = "string", comment = "字段的名称，不需要引号") String fieldName,String jsonField) {
-        JSONObject fieldValue=message.getMessageBody().getJSONObject(fieldName);
-        if(fieldValue==null){
+        @FunctionParamter(value = "string", comment = "字段的名称，不需要引号") String fieldName, String jsonField) {
+        JSONObject fieldValue = message.getMessageBody().getJSONObject(fieldName);
+        if (fieldValue == null) {
             return null;
         }
-        jsonField= FunctionUtils.getConstant(jsonField);
+        jsonField = FunctionUtils.getConstant(jsonField);
         return fieldValue.get(jsonField);
     }
 
@@ -77,6 +77,9 @@ public class FieldFunction {
         StringBuilder sb = new StringBuilder();
         for (String fieldName : fieldNames) {
             String value = FunctionUtils.getValueString(message, context, fieldName);
+            if (value == null) {
+                continue;
+            }
             sb.append(value);
         }
         return sb.toString();

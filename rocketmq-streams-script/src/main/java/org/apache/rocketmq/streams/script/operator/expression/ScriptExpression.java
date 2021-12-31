@@ -171,18 +171,19 @@ public class ScriptExpression implements IScriptExpression {
         return value;
     }
 
-    public Object executeFunctionConfigue(IMessage message, FunctionContext context, FunctionConfigure configure, Object[] ps) {
+    public Object executeFunctionConfigue(IMessage message, FunctionContext context, FunctionConfigure configure,
+        Object[] ps) {
         Object value = configure.execute(ps);
 
         if (configure.isUserDefinedUDTF()) {
-            List<Map<String, Object>> rows = (List<Map<String, Object>>)value;
+            List<Map<String, Object>> rows = (List<Map<String, Object>>) value;
             context.openSplitModel();
             boolean needFlush = message.getHeader().isNeedFlush();
             context.openSplitModel();
             for (int i = 0; i < rows.size(); i++) {
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.putAll(message.getMessageBody());
-                Map subJsonObject = (Map)rows.get(i);
+                Map subJsonObject = (Map) rows.get(i);
                 jsonObject.putAll(subJsonObject);
                 IMessage copyMessage = message.deepCopy();
                 copyMessage.setMessageBody(jsonObject);
@@ -236,7 +237,7 @@ public class ScriptExpression implements IScriptExpression {
      * @return
      */
     private Object[] createParameters(IMessage message, FunctionContext context, boolean needContext,
-                                      Object... firstParas) {
+        Object... firstParas) {
 
         Object[] paras;
         if (this.parameters == null) {
@@ -261,7 +262,7 @@ public class ScriptExpression implements IScriptExpression {
                     paras[i] = null;
                 }
                 if (String.class.isInstance(value)) {
-                    String str = (String)value;
+                    String str = (String) value;
                     Object object = FunctionUtils.getValue(message, context, str);
                     paras[i] = object;
                 } else {

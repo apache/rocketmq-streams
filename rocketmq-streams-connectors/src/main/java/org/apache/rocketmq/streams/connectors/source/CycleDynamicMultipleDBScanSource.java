@@ -53,12 +53,11 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
     CycleSchedule.Cycle cycle;
     transient AtomicInteger size = new AtomicInteger(0);
 
-
-    public CycleDynamicMultipleDBScanSource(){
+    public CycleDynamicMultipleDBScanSource() {
         super();
     }
 
-    public CycleDynamicMultipleDBScanSource(CycleSchedule.Cycle cycle){
+    public CycleDynamicMultipleDBScanSource(CycleSchedule.Cycle cycle) {
         super();
         this.cycle = cycle;
     }
@@ -72,19 +71,18 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
     }
 
     /**
-     *
      * @return
      */
     //todo
     @Override
     public synchronized List<ISplit> fetchAllSplits() {
 
-        if(this.filter == null){
+        if (this.filter == null) {
             filter = new CycleScheduleFilter(cycle.getAllPattern());
         }
 
         //如果还是当前周期, 已经完成全部分区的加载, 则不在加载
-        if(size.get() == cycle.getCycleCount()){
+        if (size.get() == cycle.getCycleCount()) {
             return splits;
         }
         String sourceName = createKey(this);
@@ -92,22 +90,22 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
 
         logger.info(String.format("load all logic table : %s", Arrays.toString(tableNames.toArray())));
         Iterator<String> it = tableNames.iterator();
-        while(it.hasNext()){
+        while (it.hasNext()) {
             String s = it.next();
             String suffix = s.replace(logicTableName + "_", "");
-            if(filter.filter(sourceName, logicTableName, suffix)){
+            if (filter.filter(sourceName, logicTableName, suffix)) {
                 logger.info(String.format("filter add %s", s));
                 CycleSplit split = new CycleSplit();
                 split.setLogicTableName(logicTableName);
                 split.setSuffix(suffix);
                 split.setCyclePeriod(cycle.getCycleDateStr());
                 String splitId = split.getQueueId();
-                if(initReaderMap.get(splitId) == null){
+                if (initReaderMap.get(splitId) == null) {
                     initReaderMap.put(splitId, false);
                     splits.add(split);
                     size.incrementAndGet();
                 }
-            }else{
+            } else {
                 logger.info(String.format("filter remove %s", s));
                 it.remove();
             }
@@ -140,22 +138,22 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
         splits.clear();
         splits = null;
     }
+
     @Override
     public boolean isFinished() {
         List<ReaderStatus> readerStatuses = ReaderStatus.queryReaderStatusListBySourceName(createKey(this));
-        if(readerStatuses == null){
+        if (readerStatuses == null) {
             return false;
         }
         return readerStatuses.size() == size.get();
     }
 
     @Override
-    protected ISplitReader createSplitReader(ISplit iSplit){
+    protected ISplitReader createSplitReader(ISplit iSplit) {
         return super.createSplitReader(iSplit);
     }
 
-
-    private void sendChangeTableNameMessage(){
+    private void sendChangeTableNameMessage() {
         logger.info(String.format("start send change table name message."));
         ChangeTableNameMessage changeTableNameMessage = new ChangeTableNameMessage();
         changeTableNameMessage.setScheduleCycle(cycle.getCycleDateStr());
@@ -170,11 +168,11 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
     public synchronized void boundedFinishedCallBack(ISplit iSplit) {
         this.initReaderMap.put(iSplit.getQueueId(), true);
         logger.info(String.format("current map is %s, key is %s. ", initReaderMap, iSplit.getQueueId()));
-        if(statusCheckerStart.compareAndSet(false, true)){
+        if (statusCheckerStart.compareAndSet(false, true)) {
             Thread thread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    while(!isFinished()){
+                    while (!isFinished()) {
                         ThreadUtil.sleep(3 * 1000);
                     }
                     logger.info(String.format("source will be closed."));
@@ -198,17 +196,17 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
     }
 
     @Override
-    public String createCheckPointName(){
+    public String createCheckPointName() {
         return super.createCheckPointName();
     }
 
-    public synchronized int getTotalReader(){
+    public synchronized int getTotalReader() {
         return size.get();
     }
 
-    public static String createKey(ISource iSource){
-        AbstractSource source = (AbstractSource)iSource;
-        CycleSchedule.Cycle cycle = ((CycleDynamicMultipleDBScanSource)iSource).getCycle();
+    public static String createKey(ISource iSource) {
+        AbstractSource source = (AbstractSource) iSource;
+        CycleSchedule.Cycle cycle = ((CycleDynamicMultipleDBScanSource) iSource).getCycle();
         return MapKeyUtil.createKey(source.getNameSpace(), source.getGroupName(), source.getConfigureName(), source.getTopic(), cycle.getCycleDateStr());
     }
 

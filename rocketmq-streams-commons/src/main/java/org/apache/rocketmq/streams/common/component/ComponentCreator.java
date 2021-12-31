@@ -101,8 +101,6 @@ public class ComponentCreator {
         return kvs;
     }
 
-
-
     public static void createMemoryProperties(Long pollingTime) {
         Properties properties = new Properties();
         properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.MEMORY_SERVICE_NAME);
@@ -125,8 +123,8 @@ public class ComponentCreator {
     private static Properties loadOtherProperty(Properties tmp, String... kvs) {
         Properties properties = new Properties();
         for (Entry<Object, Object> entry : tmp.entrySet()) {
-            String key = (String)entry.getKey();
-            String value = (String)entry.getValue();
+            String key = (String) entry.getKey();
+            String value = (String) entry.getValue();
             String realValue = value;
             if (value.contains("#{")) {
                 realValue = SQLUtil.parseIbatisSQL(tmp, value, true);
@@ -145,7 +143,6 @@ public class ComponentCreator {
             String key = kv.substring(0, startIndex);
             String value = kv.substring(startIndex + 1);
             properties.put(key, value);
-
         }
         return properties;
     }
@@ -158,15 +155,15 @@ public class ComponentCreator {
         String... kvs) {
         Properties properties = loadOtherProperty(ComponentCreator.properties, kvs);
         String[] kvArray = createKV(properties);
-        return (T)getComponentInner(namespace, componentType, isStart, kvArray);
+        return (T) getComponentInner(namespace, componentType, isStart, kvArray);
     }
 
     public static <T extends IComponent> T getComponent(String namespace, Class componentType) {
-        return (T)getComponent(namespace, componentType, true, createKV(properties));
+        return (T) getComponent(namespace, componentType, true, createKV(properties));
     }
 
     public static <T extends IComponent> T getComponentNotStart(String namespace, Class componentType) {
-        return (T)getComponentInner(namespace, componentType, false, createKV(properties));
+        return (T) getComponentInner(namespace, componentType, false, createKV(properties));
     }
 
     public static <T extends IComponent> T getComponentNotStart(String namespace, Class componentType, String... kvs) {
@@ -176,10 +173,11 @@ public class ComponentCreator {
     @Deprecated
     public static <T extends IComponent> T getComponentUsingPropertiesFile(String namespace, Class componentType,
         String propertiesPath) {
-        return (T)getComponentInner(namespace, componentType, true, propertiesPath);
+        return (T) getComponentInner(namespace, componentType, true, propertiesPath);
     }
 
-    private static IComponent getComponentInner(String namespace, Class<IComponent> componentType, boolean needStart, Object o) {
+    private static IComponent getComponentInner(String namespace, Class<IComponent> componentType, boolean needStart,
+        Object o) {
         String key = createKey(componentType, namespace, o);
         if (key2Component.containsKey(key) && key2Component.get(key) != null) {
             return key2Component.get(key);
@@ -211,10 +209,10 @@ public class ComponentCreator {
         if (o == null) {
             return key;
         } else if (o instanceof String) {
-            String propertiesPath = (String)o;
+            String propertiesPath = (String) o;
             return MapKeyUtil.createKey(key, propertiesPath);
         } else if (o.getClass().isArray()) {
-            String[] properties = (String[])o;
+            String[] properties = (String[]) o;
             String pk = MapKeyUtil.createKeyBySign("_", properties);
             String md5Pk = StringUtil.createMD5Str(pk);
             return MapKeyUtil.createKey(key, md5Pk);
@@ -232,7 +230,7 @@ public class ComponentCreator {
         if (o == null) {
             component.init();
         } else if (o instanceof String) {
-            String propertiesPath = (String)o;
+            String propertiesPath = (String) o;
             URL url = PropertiesUtils.class.getClassLoader().getResource(propertiesPath);
             if (url != null) {
                 component.initByClassPath(propertiesPath);
@@ -240,7 +238,7 @@ public class ComponentCreator {
                 component.initByFilePath(propertiesPath);
             }
         } else if (o.getClass().isArray()) {
-            component.initByPropertiesStr((String[])o);
+            component.initByPropertiesStr((String[]) o);
         }
         return;
     }

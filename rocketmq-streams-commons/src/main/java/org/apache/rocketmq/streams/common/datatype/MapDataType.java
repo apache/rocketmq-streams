@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.utils.ContantsUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
@@ -64,12 +65,15 @@ public class MapDataType extends GenericParameterDataType<Map> {
     @Override
     public String toDataJson(Map value) {
         JSONArray mapJson = new JSONArray();
-        for (Map.Entry entry : (Iterable<Map.Entry>)value.entrySet()) {
+        for (Map.Entry entry : (Iterable<Map.Entry>) value.entrySet()) {
             Object keyObject = entry.getKey();
             Object valueObject = entry.getValue();
+            if (keyObject == null || valueObject == null) {
+                continue;
+            }
             JSONObject itemJsonObject = new JSONObject();
-            itemJsonObject.put(MAP_KEY, keyParadigmType.toDataJson(keyObject));
-            itemJsonObject.put(MAP_VALUE, valueParadigmType.toDataJson(valueObject));
+            itemJsonObject.put(MAP_KEY, createStringValue(keyParadigmType, keyObject));
+            itemJsonObject.put(MAP_VALUE, createStringValue(valueParadigmType, valueObject));
             mapJson.add(itemJsonObject);
         }
         return mapJson.toJSONString();
@@ -80,8 +84,16 @@ public class MapDataType extends GenericParameterDataType<Map> {
         if (StringUtil.isEmpty(jsonValue)) {
             return null;
         }
+        DataType keyDataType = this.keyParadigmType;
+        DataType valueDataType = this.valueParadigmType;
         if (isQuickModel(jsonValue)) {
             jsonValue = createJsonValue(jsonValue);
+            if (keyDataType == null) {
+                keyDataType = new StringDataType();
+            }
+            if (valueDataType == null) {
+                valueDataType = new StringDataType();
+            }
         }
         Map map = new HashMap();
         JSONArray mapJson = JSON.parseArray(jsonValue);
@@ -91,13 +103,67 @@ public class MapDataType extends GenericParameterDataType<Map> {
             String valueJson = itemJson.getString(MAP_VALUE);
             Object key = keyJson;
             Object value = valueJson;
-            if (keyParadigmType != null) {
-                key = keyParadigmType.getData(keyJson);
-            }
-            if (valueParadigmType != null) {
-                value = valueParadigmType.getData(valueJson);
-            }
+            key = createObjectValue(keyDataType, keyJson);
+            value = createObjectValue(valueDataType, valueJson);
             map.put(key, value);
+        }
+        return map;
+    }
+
+    @Override
+    public byte[] toBytes(Map value, boolean isCompress) {
+        if (value == null) {
+            return null;
+        }
+        Iterator<Map.Entry> it = value.entrySet().iterator();
+        List<byte[]> list = new ArrayList<>();
+        int len = 0;
+        while (it.hasNext()) {
+            Map.Entry entry = it.next();
+            if (entry == null) {
+                continue;
+            }
+            byte[] keyBytes = createByteValue(keyParadigmType, entry.getKey());
+            len = len + keyBytes.length;
+            list.add(keyBytes);
+            byte[] valueBytes = createByteValue(valueParadigmType, entry.getValue());
+            list.add(valueBytes);
+            len = len + valueBytes.length;
+
+        }
+        byte[] bytes = new byte[len + 2];
+        byte[] lenBytes = createByteArrayFromNumber(value.size(), 2);
+        bytes[0] = lenBytes[0];
+        bytes[1] = lenBytes[1];
+        int i = 0;
+        for (byte[] bytes1 : list) {
+            for (byte b : bytes1) {
+                bytes[i + 2] = b;
+                i++;
+            }
+        }
+        return bytes;
+    }
+
+    @Override
+    public Map byteToValue(byte[] bytes) {
+        return byteToValue(bytes, 0);
+    }
+
+    @Override
+    public Map byteToValue(byte[] bytes, AtomicInteger offset) {
+        if (bytes == null) {
+            return null;
+        }
+        int len = createNumberValue(bytes, offset.get(), 2).intValue();
+        offset.addAndGet(2);
+        Map map = new HashMap();
+        for (int i = 0; i < len; i++) {
+
+            Object key = createObjectValue(keyParadigmType, bytes, offset);
+            Object value = createObjectValue(valueParadigmType, bytes, offset);
+            map.put(key, value);
+
         }
         return map;
     }
@@ -145,8 +211,7 @@ public class MapDataType extends GenericParameterDataType<Map> {
         if (StringUtil.isEmpty(jsonValue)) {
             return false;
         }
-        if (!jsonValue.trim().startsWith("{") && !jsonValue.trim().startsWith("[") && keyParadigmType
-            .matchClass(String.class) && valueParadigmType.matchClass(String.class)) {
+        if (!jsonValue.trim().startsWith("{") && !jsonValue.trim().startsWith("[")) {
             return true;
         }
         return false;
@@ -167,7 +232,7 @@ public class MapDataType extends GenericParameterDataType<Map> {
             return;
         }
         genericParameterString = genericParameterString.trim();
-        int index = Map.class.getName().length() + 1;
+        int index = genericParameterString.indexOf("<") + 1;
         String subClassString = genericParameterString.substring(index, genericParameterString.length() - 1);
         String[] kv = new String[2];
         if (subClassString.contains("<")) {
@@ -194,11 +259,19 @@ public class MapDataType extends GenericParameterDataType<Map> {
             if (key == null || value == null) {
                 continue;
             }
-            String keyJson = keyParadigmType.toDataJson(key);
+            DataType keyDataType = this.keyParadigmType;
+            if (keyDataType == null) {
+                keyDataType = new StringDataType();
+            }
+            String keyJson = keyDataType.toDataJson(key.toString());
             if (keyJson.contains(",") || keyJson.indexOf(":") != 1) {
                 keyJson = "'" + keyJson + "'";
             }
-            String valuejson = valueParadigmType.toDataJson(value);
+            DataType valueDataType = this.keyParadigmType;
+            if (valueDataType == null) {
+                valueDataType = new StringDataType();
+            }
+            String valuejson = valueDataType.toDataJson(value.toString());
             if (valuejson.contains(",") || valuejson.indexOf(":") != 1) {
                 valuejson = "'" + valuejson + "'";
             }
@@ -245,7 +318,7 @@ public class MapDataType extends GenericParameterDataType<Map> {
         String className = genericParameterString.substring(0, index);
         Class clazz = createClass(className);
         GenericParameterDataType genericParamterDataType =
-            (GenericParameterDataType)DataTypeUtil.getDataTypeFromClass(clazz);
+            (GenericParameterDataType) DataTypeUtil.getDataTypeFromClass(clazz);
         genericParamterDataType.parseGenericParameter(genericParameterString);
         return genericParamterDataType;
     }

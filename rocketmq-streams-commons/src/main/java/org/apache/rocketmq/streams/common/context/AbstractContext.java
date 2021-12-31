@@ -64,7 +64,6 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
 
     protected volatile IMonitor monitor = null;
 
-
     protected FilterResultCache quickFilterResult;
 
     protected Map<String, BitSetCache.BitSet> homologousResult;
@@ -95,8 +94,8 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.setSplitMessages(subContext.getSplitMessages());
         this.monitor = subContext.monitor;
         this.isBreak = subContext.isBreak;
-        this.quickFilterResult=subContext.quickFilterResult;
-        this.homologousResult=subContext.homologousResult;
+        this.quickFilterResult = subContext.quickFilterResult;
+        this.homologousResult = subContext.homologousResult;
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
@@ -108,36 +107,37 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.setSplitMessages(this.getSplitMessages());
         subContext.monitor = this.monitor;
         subContext.isBreak = isBreak;
-        subContext.quickFilterResult=quickFilterResult;
-        subContext.homologousResult=homologousResult;
+        subContext.quickFilterResult = quickFilterResult;
+        subContext.homologousResult = homologousResult;
         return subContext;
     }
 
     /**
      * match from cache , if not exist cache return null
+     *
      * @param expression
      * @return
      */
-    public Boolean matchFromCache(IMessage message,Object expression){
-        if(quickFilterResult!=null){
-            return quickFilterResult.isMatch(message,expression);
+    public Boolean matchFromCache(IMessage message, Object expression) {
+        if (quickFilterResult != null) {
+            return quickFilterResult.isMatch(message, expression);
         }
         return null;
     }
 
-    public Boolean matchFromHomologousCache(IMessage message,HomologousVar var){
-        if(var==null){
+    public Boolean matchFromHomologousCache(IMessage message, HomologousVar var) {
+        if (var == null) {
             return null;
         }
-        if(this.homologousResult==null){
+        if (this.homologousResult == null) {
             return null;
         }
 
-        BitSetCache.BitSet bitSet=this.homologousResult.get(var.getHomologousVarKey());
-        if(bitSet==null){
+        BitSetCache.BitSet bitSet = this.homologousResult.get(var.getHomologousVarKey());
+        if (bitSet == null) {
             return null;
         }
-        boolean result= bitSet.get(var.getIndex());
+        boolean result = bitSet.get(var.getIndex());
         return result;
     }
 
@@ -194,7 +194,6 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     public void setFilterCache(String expressionStr, String varValue, boolean result) {
         this.put(MapKeyUtil.createKey(FILTER_CACHE_PREPIX, expressionStr, varValue), result);
     }
-
 
     /**
      * 获取基于字段缓存的某些值
@@ -262,8 +261,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         //long start=System.currentTimeMillis();
         try {
             executeScript(scriptExpressions.get(0), channelMessage, context, nextIndex, scriptExpressions);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -395,7 +393,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         }
         context.setSplitMessages(messages);
         context.monitor = this.monitor;
-        context.homologousResult=homologousResult;
+        context.homologousResult = homologousResult;
     }
 
     public IMonitor getMonitor() {

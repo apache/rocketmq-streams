@@ -118,7 +118,7 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         String json = configurable.toJson();
         Entity entity = null;
         if (Entity.class.isInstance(configurable)) {
-            entity = (Entity)configurable;
+            entity = (Entity) configurable;
         } else {
             entity = new Entity();
         }
@@ -152,7 +152,7 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
     }
 
     public <T extends IConfigurableService> T getConfigurableService() {
-        return (T)configurableService;
+        return (T) configurableService;
     }
 
     public void setConfigurableService(IConfigurableService configurableService) {
@@ -166,11 +166,11 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
 
     @Override
     public <T> T getPrivateData(String key) {
-        return (T)this.privateDatas.get(key);
+        return (T) this.privateDatas.get(key);
     }
 
     public <T> T removePrivateData(String key) {
-        return (T)this.privateDatas.remove(key);
+        return (T) this.privateDatas.remove(key);
     }
 
     @Override

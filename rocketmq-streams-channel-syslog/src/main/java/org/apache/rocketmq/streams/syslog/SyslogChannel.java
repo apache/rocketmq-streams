@@ -55,7 +55,8 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
 
     private transient org.graylog2.syslog4j.SyslogIF syslog;
 
-    public SyslogChannel() {}
+    public SyslogChannel() {
+    }
 
     public SyslogChannel(String... ipList) {
         if (ipList != null) {
@@ -88,10 +89,10 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
                         if (tmp != null) {
                             level = tmp;
                         }
-                        String encode= AbstractSource.CHARSET;
-                        if(AbstractSource.class.isInstance(source)){
-                            AbstractSource abstractSource=(AbstractSource)source;
-                            encode=abstractSource.getEncoding();
+                        String encode = AbstractSource.CHARSET;
+                        if (AbstractSource.class.isInstance(source)) {
+                            AbstractSource abstractSource = (AbstractSource) source;
+                            encode = abstractSource.getEncoding();
                         }
                         message = URLDecoder.decode(msg.getMessageValue().toString(), encode);
                         syslog.getConfig().setLocalName(IPUtil.getLocalIP());
@@ -131,9 +132,9 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
             SyslogChannelManager.registeUDP(this);
         }
         try {
-            if(ipListStr!=null){
-                String[] values=ipListStr.split(";");
-                for(String value:values){
+            if (ipListStr != null) {
+                String[] values = ipListStr.split(";");
+                for (String value : values) {
                     ipList.add(value);
                 }
             }
@@ -151,7 +152,7 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
     }
 
     public AbstractContext doReceiveMessage(JSONObject message) {
-        return ((AbstractUnreliableSource)source).doReceiveMessage(message);
+        return ((AbstractUnreliableSource) source).doReceiveMessage(message);
     }
 
     @Override
@@ -246,7 +247,7 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
             return true;
         }
         if (object instanceof SyslogChannel) {
-            SyslogChannel other = (SyslogChannel)object;
+            SyslogChannel other = (SyslogChannel) object;
             if (!this.protol.equals(other.protol)) {
                 return false;
             }
@@ -259,7 +260,7 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
             Collections.sort(other.ipList);
             Collections.sort(this.ipList);
             String origin = StringUtils.join(this.ipList.toArray(), ",");
-            String another = StringUtils.join(((SyslogChannel)object).ipList.toArray(), ",");
+            String another = StringUtils.join(((SyslogChannel) object).ipList.toArray(), ",");
             return origin.equals(another);
         } else {
             return false;

@@ -16,11 +16,11 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.memory;
 
-import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
+import org.apache.rocketmq.streams.common.channel.source.AbstractBatchSource;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 
-public class MemorySource extends AbstractUnreliableSource implements IAfterConfigurableRefreshListener {
+public class MemorySource extends AbstractBatchSource implements IAfterConfigurableRefreshListener {
 
     protected String cacheName;
     protected transient MemoryCache memoryCache;
@@ -31,7 +31,6 @@ public class MemorySource extends AbstractUnreliableSource implements IAfterConf
 
     @Override
     protected boolean initConfigurable() {
-        this.enableAsyncReceive = false;
         return super.initConfigurable();
     }
 
@@ -45,7 +44,7 @@ public class MemorySource extends AbstractUnreliableSource implements IAfterConf
                     while (true) {
                         Object message = memoryCache.queue.poll();
                         while (message != null) {
-                            doUnreliableReceiveMessage(message);
+                            doReceiveMessage(createJson(message));
                             message = memoryCache.queue.poll();
                         }
                         sendCheckpoint(getQueueId());

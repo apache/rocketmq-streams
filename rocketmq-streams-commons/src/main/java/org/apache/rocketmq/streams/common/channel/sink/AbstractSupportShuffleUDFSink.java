@@ -20,17 +20,17 @@ import java.util.List;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
-public abstract class AbstractSupportShuffleUDFSink extends AbstractSupportShuffleSink{
+public abstract class AbstractSupportShuffleUDFSink extends AbstractSupportShuffleSink {
 
     @Override protected boolean batchInsert(List<IMessage> messages) {
-        AbstractSupportShuffleUDFSink sink=this;
+        AbstractSupportShuffleUDFSink sink = this;
         return AbstractUDFSink.batchInsert(messages, new AbstractUDFSink() {
             @Override protected void sendMessage2Store(List<IMessage> messageList) {
                 sink.sendMessage2Store(messageList);
             }
 
             @Override protected void sendMessage2Store(ISplit split, List<IMessage> messageList) {
-                sink.sendMessage2Store(split,messageList);
+                sink.sendMessage2Store(split, messageList);
             }
         });
     }
@@ -43,7 +43,8 @@ public abstract class AbstractSupportShuffleUDFSink extends AbstractSupportShuff
         }
         return splits.size();
     }
+
     protected abstract void sendMessage2Store(List<IMessage> messageList);
 
-    protected abstract void sendMessage2Store(ISplit split,List<IMessage> messageList);
+    protected abstract void sendMessage2Store(ISplit split, List<IMessage> messageList);
 }

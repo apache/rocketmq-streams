@@ -41,9 +41,7 @@ public class ScheduledStreamBuilder {
 
     ScheduledTask task;
 
-
-
-    public ScheduledStreamBuilder(int interval, TimeUnit timeUnit){
+    public ScheduledStreamBuilder(int interval, TimeUnit timeUnit) {
         this.interval = interval;
         this.timeUnit = timeUnit;
         balanceExecutor = new ScheduledThreadPoolExecutor(1, new BasicThreadFactory.Builder().namingPattern("cycle-builder-task-%d").daemon(true).build());
@@ -53,12 +51,12 @@ public class ScheduledStreamBuilder {
         this.task = task;
     }
 
-    public void start(){
+    public void start() {
         balanceExecutor.scheduleAtFixedRate(task, 0, interval, timeUnit);
 
-        while(true){
+        while (true) {
             Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-            for(Thread th : threadSet){
+            for (Thread th : threadSet) {
                 logger.error(String.format("CycleStreamBuilder size %d, name is %s, stack is %s. ", threadSet.size(), th.getName(), Arrays.toString(th.getStackTrace())));
             }
 

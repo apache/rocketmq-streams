@@ -27,10 +27,11 @@ public class SplitCloseFuture implements Future<Boolean> {
     protected ISplitReader reader;
     protected ISplit split;
 
-    public SplitCloseFuture(ISplitReader reader, ISplit split){
+    public SplitCloseFuture(ISplitReader reader, ISplit split) {
         this.reader = reader;
         this.split = split;
     }
+
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return false;
@@ -48,7 +49,7 @@ public class SplitCloseFuture implements Future<Boolean> {
 
     @Override
     public Boolean get() throws InterruptedException, ExecutionException {
-        synchronized (reader){
+        synchronized (reader) {
             reader.wait();
         }
         return reader.isClose();
@@ -56,16 +57,16 @@ public class SplitCloseFuture implements Future<Boolean> {
 
     @Override
     public Boolean get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        synchronized (reader){
+        synchronized (reader) {
             long time = timeout;
-            if(unit == TimeUnit.SECONDS){
+            if (unit == TimeUnit.SECONDS) {
                 time = time * 1000;
-            }else if(unit == TimeUnit.MINUTES){
+            } else if (unit == TimeUnit.MINUTES) {
                 time = time * 1000 * 60;
-            }else if(unit== TimeUnit.HOURS){
+            } else if (unit == TimeUnit.HOURS) {
                 time = time * 1000 * 60 * 60;
-            }else {
-                throw new RuntimeException("can not support this timeout, expect less hour "+timeout+" the unit is "+unit);
+            } else {
+                throw new RuntimeException("can not support this timeout, expect less hour " + timeout + " the unit is " + unit);
             }
             reader.wait(time);
         }

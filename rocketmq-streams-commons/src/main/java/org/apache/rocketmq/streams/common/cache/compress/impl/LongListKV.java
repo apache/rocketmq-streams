@@ -17,36 +17,44 @@
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
 import java.util.List;
-import org.apache.rocketmq.streams.common.cache.compress.AdditionStore;
 import org.apache.rocketmq.streams.common.cache.compress.ByteArray;
-import org.apache.rocketmq.streams.common.cache.compress.MapAddress;
+import org.apache.rocketmq.streams.common.cache.compress.ByteStore;
+import org.apache.rocketmq.streams.common.cache.compress.KVAddress;
+import org.apache.rocketmq.streams.common.utils.AESUtil;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
 public class LongListKV extends AbstractListKV<Long> {
 
-    protected AdditionStore values = new AdditionStore(12);
-
-    public LongListKV(int capacity, int elementSize) {
-        super(capacity, elementSize);
-    }
+    protected ByteStore values = new ByteStore(12);
 
     public LongListKV(int capacity) {
         super(capacity);
     }
 
     public static void main(String[] args) {
-        LongListKV intListKV=new LongListKV(1000000);
-        List<Long> values=null;
-        intListKV.add("name",1L);
-        intListKV.add("name",2L);
-        intListKV.add("name",3L);
-        intListKV.add("name",4L);
-        intListKV.add("age",1L);
-        intListKV.add("age",2L);
-        values=intListKV.get("age");
-        for(long value:values){
+        LongListKV intListKV = new LongListKV(10);
+        List<Long> values = null;
+//        byte[] nameBytes = "name".getBytes();
+        byte[] nameHashCodeBytes = NumberUtils.toByte(calHashCode("name"));
+        byte[] ageHashCodeBytes = NumberUtils.toByte(calHashCode("age"));
+        byte[] md5 = AESUtil.stringToMD5("name");
+        intListKV.add("name", 1L);
+        intListKV.add("name", 2L);
+        intListKV.add("name", 3L);
+        intListKV.add("name", 4L);
+        intListKV.add("age", 1L);
+        intListKV.add("age", 2L);
+        values = intListKV.get("name");
+        for (long value : values) {
             System.out.println(value);
         }
+    }
+
+    private static int calHashCode(String key) {
+        int hashCode = key.hashCode();
+        int value = hashCode ^ (hashCode >>> 16);
+        value = String.valueOf(value).hashCode();
+        return value;
     }
 
     @Override protected byte[] convertByte(Long value) {
@@ -57,35 +65,36 @@ public class LongListKV extends AbstractListKV<Long> {
         return 8;
     }
 
-    @Override protected AdditionStore getValues() {
+    @Override protected ByteStore getValues() {
         return values;
     }
 
     /**
      * 获取最后一个元素
+     *
      * @param key
      * @param values
      * @return
      */
     @Override
-    protected ByteArray getLastElement(String key,List<Long> values,ListValueAddress addresses ){
+    protected ByteArray getLastElement(String key, List<Long> values, ListValueAddress addresses) {
         ByteArray byteArray = super.getInner(key);
         if (byteArray == null) {
             return null;
         }
-        if(addresses!=null){
+        if (addresses != null) {
             addresses.setHeader(byteArray);
         }
-        MapAddress nextAddress= new MapAddress(byteArray);
-        ByteArray nextAddressAndValue =null;
-        while (!nextAddress.isEmpty()){
-            if(addresses!=null){
+        KVAddress nextAddress = new KVAddress(byteArray);
+        ByteArray nextAddressAndValue = null;
+        while (!nextAddress.isEmpty()) {
+            if (addresses != null) {
                 addresses.addAddress(nextAddress);
             }
             nextAddressAndValue = this.values.getValue(nextAddress);
-            long value=nextAddressAndValue.subByteArray(0,8).castLong(0,8);
-            ByteArray address=nextAddressAndValue.subByteArray(8,4);
-            nextAddress=new MapAddress(address);
+            long value = nextAddressAndValue.subByteArray(0, 8).castLong(0, 8);
+            ByteArray address = nextAddressAndValue.subByteArray(8, 5);
+            nextAddress = new KVAddress(address);
             values.add(value);
         }
         return nextAddressAndValue;

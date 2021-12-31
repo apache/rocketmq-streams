@@ -42,10 +42,8 @@ import org.graylog2.syslog4j.server.impl.net.tcp.TCPNetSyslogServerConfigIF;
 
 public class SyslogServer extends AbstractUnreliableSource {
     private static final Log LOG = LogFactory.getLog(SyslogServer.class);
-    @ENVDependence
-    private String serverHost = IPUtil.getLocalAddress();
-    @ENVDependence
-    private String serverPort;
+    @ENVDependence private String serverHost = IPUtil.getLocalAddress();
+    @ENVDependence private String serverPort;
     private String protocol;
     private Integer ctimeout = DEFAULT_TIMEOUT;
 
@@ -63,8 +61,7 @@ public class SyslogServer extends AbstractUnreliableSource {
      */
     private transient List<SyslogChannel> routers = new ArrayList<>();
 
-    @Override
-    protected boolean initConfigurable() {
+    @Override protected boolean initConfigurable() {
 
         if (SyslogChannelManager.TCP.equals(protocol)) {
             if (ctimeout == null) {
@@ -79,7 +76,7 @@ public class SyslogServer extends AbstractUnreliableSource {
 
         if (ctimeout != null) {
             if (var3 instanceof TCPNetSyslogServerConfigIF) {
-                ((TCPNetSyslogServerConfigIF)var3).setTimeout(ctimeout);
+                ((TCPNetSyslogServerConfigIF) var3).setTimeout(ctimeout);
             }
         }
         SyslogServerSessionEventHandlerIF var5 = new SyslogServerEventHandler();
@@ -88,11 +85,9 @@ public class SyslogServer extends AbstractUnreliableSource {
         return true;
     }
 
-    @Override
-    public boolean startSource() {
+    @Override public boolean startSource() {
         setReceiver(new IStreamOperator() {
-            @Override
-            public Object doMessage(IMessage message, AbstractContext context) {
+            @Override public Object doMessage(IMessage message, AbstractContext context) {
                 String hostAddress = message.getMessageBody().getString("_hostAddress");
                 List<SyslogChannel> syslogChannels = cache.get(hostAddress);
                 LOG.info("receive syslog msg, ip is  " + hostAddress + " msg is " + message.getMessageBody());
@@ -129,8 +124,7 @@ public class SyslogServer extends AbstractUnreliableSource {
 
     private static final String PREFIX = "dipper.upgrade.channel.syslog.envkey";
 
-    @Override
-    public void destroy() {
+    @Override public void destroy() {
         isFinished = true;
         if (syslogServer != null) {
             try {
@@ -192,21 +186,18 @@ public class SyslogServer extends AbstractUnreliableSource {
 
         }
 
-        @Override
-        public void initialize(SyslogServerIF var1) {
+        @Override public void initialize(SyslogServerIF var1) {
         }
 
-        @Override
-        public Object sessionOpened(SyslogServerIF var1, SocketAddress var2) {
+        @Override public Object sessionOpened(SyslogServerIF var1, SocketAddress var2) {
             return null;
         }
 
-        @Override
-        public void event(Object var1, SyslogServerIF var2, SocketAddress var3, SyslogServerEventIF var4) {
+        @Override public void event(Object var1, SyslogServerIF var2, SocketAddress var3, SyslogServerEventIF var4) {
             JSONObject msg = new JSONObject();
             String hostAddress = null;
             if (InetSocketAddress.class.isInstance(var3)) {
-                InetSocketAddress address = (InetSocketAddress)var3;
+                InetSocketAddress address = (InetSocketAddress) var3;
                 hostAddress = address.getAddress().getHostAddress();
             } else {
                 String ipTmp = var3.toString().replace("/", "");
@@ -255,16 +246,13 @@ public class SyslogServer extends AbstractUnreliableSource {
 
         }
 
-        @Override
-        public void exception(Object var1, SyslogServerIF var2, SocketAddress var3, Exception var4) {
+        @Override public void exception(Object var1, SyslogServerIF var2, SocketAddress var3, Exception var4) {
         }
 
-        @Override
-        public void sessionClosed(Object var1, SyslogServerIF var2, SocketAddress var3, boolean var4) {
+        @Override public void sessionClosed(Object var1, SyslogServerIF var2, SocketAddress var3, boolean var4) {
         }
 
-        @Override
-        public void destroy(SyslogServerIF var1) {
+        @Override public void destroy(SyslogServerIF var1) {
         }
     }
 

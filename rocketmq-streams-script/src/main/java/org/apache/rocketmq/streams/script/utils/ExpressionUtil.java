@@ -23,32 +23,32 @@ import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 public class ExpressionUtil {
 
-    public static boolean expressionEquals(IScriptExpression ori,IScriptExpression dest){
-        if(!ori.getFunctionName().equals(dest.getFunctionName())){
+    public static boolean expressionEquals(IScriptExpression ori, IScriptExpression dest) {
+        if (!ori.getFunctionName().equals(dest.getFunctionName())) {
             return false;
         }
-        List<IScriptParamter> oriScriptParamters= ori.getScriptParamters();
-        List<IScriptParamter> destScriptParameters=dest.getScriptParamters();
-        if(oriScriptParamters==null&&destScriptParameters!=null){
+        List<IScriptParamter> oriScriptParamters = ori.getScriptParamters();
+        List<IScriptParamter> destScriptParameters = dest.getScriptParamters();
+        if (oriScriptParamters == null && destScriptParameters != null) {
             return false;
         }
-        if(oriScriptParamters!=null&&destScriptParameters==null){
+        if (oriScriptParamters != null && destScriptParameters == null) {
             return false;
         }
-        if(oriScriptParamters==null&&destScriptParameters==null){
+        if (oriScriptParamters == null && destScriptParameters == null) {
             return true;
         }
-        if(oriScriptParamters.size()!=destScriptParameters.size()){
+        if (oriScriptParamters.size() != destScriptParameters.size()) {
             return false;
         }
 
-        for(int i=0;i<oriScriptParamters.size();i++){
-            IScriptParamter oriParameter=oriScriptParamters.get(i);
-            IScriptParamter destParameter=destScriptParameters.get(i);
-            if(!oriParameter.getClass().getName().equals(destParameter.getClass().getName())){
+        for (int i = 0; i < oriScriptParamters.size(); i++) {
+            IScriptParamter oriParameter = oriScriptParamters.get(i);
+            IScriptParamter destParameter = destScriptParameters.get(i);
+            if (!oriParameter.getClass().getName().equals(destParameter.getClass().getName())) {
                 return false;
             }
-            if(!oriParameter.getScriptParameterStr().equals(destParameter.getScriptParameterStr())){
+            if (!oriParameter.getScriptParameterStr().equals(destParameter.getScriptParameterStr())) {
                 return false;
             }
         }
@@ -56,10 +56,10 @@ public class ExpressionUtil {
     }
 
     public static void main(String[] args) {
-        FunctionScript functionScript=new FunctionScript("a=sum(b);");
+        FunctionScript functionScript = new FunctionScript("a=sum(b);");
         functionScript.init();
-        FunctionScript functionScript1=new FunctionScript("x=sum(b);");
+        FunctionScript functionScript1 = new FunctionScript("x=sum(b);");
         functionScript1.init();
-        System.out.println(expressionEquals(functionScript.getScriptExpressions().get(0),functionScript1.getScriptExpressions().get(0)));
+        System.out.println(expressionEquals(functionScript.getScriptExpressions().get(0), functionScript1.getScriptExpressions().get(0)));
     }
 }

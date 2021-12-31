@@ -18,63 +18,62 @@ package org.apache.rocketmq.streams.client.windows;
 
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.transform.DataStream;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.junit.Test;
 
 public class SingleSplitTest extends AbstractWindowTest {
 
-    protected DataStream createSourceDataStream(){
-        String dir="/tmp/rockstmq-streams-1";
-
-
-
-//        FileUtil.deleteFile(dir);
-//        ComponentCreator.getProperties().setProperty("window.debug","true");
-//        ComponentCreator.getProperties().setProperty("window.debug.dir",dir);
-//        ComponentCreator.getProperties().setProperty("window.debug.countFileName","total");
-//
-//
+    protected DataStream createSourceDataStream() {
         return StreamBuilder.dataStream("namespace", "name1")
-            .fromFile(filePath,true);
+            .fromFile(filePath, true);
     }
 
+    @Test
+    public void testFile() {
+        StreamBuilder.dataStream("namespace", "name1")
+            .fromFile(filePath, false)
+            .map(new MapFunction<String, String>() {
 
-    protected int getSourceCount(){
+                @Override public String map(String message) throws Exception {
+                    System.out.println(message);
+                    return message;
+                }
+            })
+            .toPrint().start();
+    }
+
+    protected int getSourceCount() {
         return 88121;
     }
 
     /**
-     *  validate the window result  meet expectations
+     * validate the window result  meet expectations
      */
     @Test
-    public void testWindowResult(){
+    public void testWindowResult() {
         super.testWindowResult(getSourceCount());
     }
 
     /**
-     *
      * @throws InterruptedException
      */
     @Test
     public void testFireMode0() throws InterruptedException {
-
-        super.executeWindowStream(false,5, IWindow.DEFAULTFIRE_MODE,0,20l);
+        // ComponentCreator.getProperties().setProperty("window.fire.isTest","true");
+        ComponentCreator.getProperties().setProperty("dipper.configurable.polling.time", "-1");
+        super.executeWindowStream(true, 5, IWindow.DEFAULTFIRE_MODE, 0, 200l);
     }
-
-
 
     @Test
     public void testFireMode1() throws InterruptedException {
-        super.executeWindowStream(false,5,IWindow.MULTI_WINDOW_INSTANCE_MODE,0,20l);
+        super.executeWindowStream(false, 5, IWindow.MULTI_WINDOW_INSTANCE_MODE, 0, 20l);
     }
-
-
 
     @Test
     public void testMutilWindow() {
         super.testMutilWindow(false);
     }
-
-
 
 }

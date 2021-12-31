@@ -39,6 +39,4 @@ public class InnerVar extends Var {
         return false;
     }
 
-
-
 }

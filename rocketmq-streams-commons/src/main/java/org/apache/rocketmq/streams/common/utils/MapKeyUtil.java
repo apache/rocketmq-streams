@@ -17,11 +17,8 @@
 package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSONObject;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 public class MapKeyUtil {
 

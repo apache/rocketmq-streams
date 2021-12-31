@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
@@ -95,6 +96,11 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
      */
     protected transient Long firstReceiveTime = null;
 
+    /**
+     * 是否包含key by节点
+     */
+    protected transient boolean isContainsKeyBy = false;
+
     public void start() {
         Map<String, Boolean> hasStart = new HashMap<>();
         while (true) {
@@ -114,19 +120,30 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
         }
     }
 
+    protected transient Boolean isOpenOptimization = true;
+
     @Override
     public AbstractContext doMessage(IMessage message, AbstractContext context) {
         if (CollectionUtil.isEmpty(this.pipelines)) {
             return context;
         }
-        if (this.homologousOptimization == null) {
+
+        if (this.homologousOptimization == null && isOpenOptimization) {
             synchronized (this) {
                 if (this.homologousOptimization == null) {
-                    Iterable<IHomologousOptimization> iterable = ServiceLoader.load(IHomologousOptimization.class);
-                    Iterator<IHomologousOptimization> it = iterable.iterator();
-                    if (it.hasNext()) {
-                        this.homologousOptimization = it.next();
-                        this.homologousOptimization.optimizate(this.pipelines, this.homologousExpressionCaseSize, this.preFingerprintCaseSize);
+                    String isOpenOptimizationStr = ComponentCreator.getProperties().getProperty("homologous.optimization.switch");
+                    boolean isOpenOptimization = true;
+                    if (StringUtil.isNotEmpty(isOpenOptimizationStr)) {
+                        isOpenOptimization = Boolean.valueOf(isOpenOptimizationStr);
+                    }
+                    this.isOpenOptimization = isOpenOptimization;
+                    if (isOpenOptimization) {
+                        Iterable<IHomologousOptimization> iterable = ServiceLoader.load(IHomologousOptimization.class);
+                        Iterator<IHomologousOptimization> it = iterable.iterator();
+                        if (it.hasNext()) {
+                            this.homologousOptimization = it.next();
+                            this.homologousOptimization.optimizate(this.pipelines, this.homologousExpressionCaseSize, this.preFingerprintCaseSize);
+                        }
                     }
                 }
             }
@@ -136,7 +153,7 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
          */
         double qps = calculateQPS();
         if (StringUtil.isEmpty(logFingerprint)) {
-            if (COUNT.get() % 1000 == 0) {
+            if (COUNT.get() % 10000 == 0) {
                 System.out.println(getConfigureName() + " qps is " + qps + "。the count is " + COUNT.get());
             }
         }
@@ -156,7 +173,7 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
         if (bitSet == null && StringUtil.isNotEmpty(this.logFingerprint)) {
             bitSet = new BitSetCache.BitSet(this.pipelines.size());
             isHitCache = false;
-            if (this.parallelTasks > 0) {
+            if (!isContainsKeyBy && this.pipelines.size() > 1) {
                 countDownLatch = new CountDownLatch(pipelines.size());
             }
         }
@@ -176,15 +193,15 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
             newContext.setHomologousResult(context.getHomologousResult());
             newContext.setQuickFilterResult(context.getQuickFilterResult());
             HomologousTask homologousTask = new HomologousTask(copyMessage, newContext, pipeline, bitSet, index, msgKey);
-            if (countDownLatch != null && this.executorService != null) {
-                homologousTask.setCountDownLatch(countDownLatch);
+            if (this.executorService != null) {
+                if (countDownLatch != null) {
+                    homologousTask.setCountDownLatch(countDownLatch);
+                }
                 executorService.execute(homologousTask);
             } else {
                 homologousTask.run();
             }
-
             index++;
-
         }
 
         if (countDownLatch != null) {
@@ -329,7 +346,7 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
         if (second == 0) {
             second = 1;
         }
-        return (double)(COUNT.incrementAndGet() / second);
+        return (double) (COUNT.incrementAndGet() / second);
     }
 
     /**
@@ -340,7 +357,7 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
     protected void printQPSWithFingerprint(double qps) {
         FingerprintMetric fingerprintMetric = this.homologousRulesCache.getOrCreateMetric(getOrCreateFingerNameSpace());
         double rate = fingerprintMetric.getHitCacheRate();
-        double fireRate = (double)FIRE_RULE_COUNT.get() / (double)COUNT.get();
+        double fireRate = (double) FIRE_RULE_COUNT.get() / (double) COUNT.get();
         if (COUNT.get() % 1000 == 0) {
             System.out.println(
                 "qps is " + qps + ",the count is " + COUNT.get() + " the cache hit  rate " + rate
@@ -373,7 +390,8 @@ public class StreamsTask extends BasedConfigurable implements IStreamOperator<IM
         protected String msgKey;
         protected CountDownLatch countDownLatch;
 
-        public HomologousTask(IMessage message, AbstractContext context, ChainPipeline pipeline, BitSetCache.BitSet bitSet, int index, String msgKey) {
+        public HomologousTask(IMessage message, AbstractContext context, ChainPipeline pipeline,
+            BitSetCache.BitSet bitSet, int index, String msgKey) {
             this.message = message;
             this.context = context;
             this.pipeline = pipeline;

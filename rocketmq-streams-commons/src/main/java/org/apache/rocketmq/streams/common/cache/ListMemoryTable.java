@@ -28,13 +28,10 @@ import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 public class ListMemoryTable extends AbstractMemoryTable {
 
     /**
-
-    /**
+     * /**
      * 表的全部数据，一行是一个byte[][]
      */
     protected List<byte[][]> rows = new ArrayList<>();
-
-
 
     /**
      * 保存row到list
@@ -43,9 +40,9 @@ public class ListMemoryTable extends AbstractMemoryTable {
      * @return
      */
     @Override
-    protected Integer saveRowByte(byte[][] values, int byteSize) {
+    protected Long saveRowByte(byte[][] values, int byteSize) {
         this.rows.add(values);
-        return rows.size() - 1;
+        return Long.valueOf(rows.size() - 1);
     }
 
     /**
@@ -55,8 +52,8 @@ public class ListMemoryTable extends AbstractMemoryTable {
      * @return
      */
     @Override
-    protected byte[][] loadRowByte(Integer index) {
-        return this.rows.get(index);
+    protected byte[][] loadRowByte(Long index) {
+        return this.rows.get(index.intValue());
     }
 
     /**
@@ -68,7 +65,7 @@ public class ListMemoryTable extends AbstractMemoryTable {
     public Iterator<RowElement> newIterator() {
         return new Iterator<RowElement>() {
 
-            protected int rowIndex = 0;
+            protected long rowIndex = 0;
 
             @Override
             public boolean hasNext() {
@@ -77,8 +74,8 @@ public class ListMemoryTable extends AbstractMemoryTable {
 
             @Override
             public RowElement next() {
-                Map<String, Object> row =getRow(rowIndex);
-                return new RowElement(row,rowIndex++);
+                Map<String, Object> row = getRow(rowIndex);
+                return new RowElement(row, rowIndex++);
             }
         };
     }

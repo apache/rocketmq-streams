@@ -236,7 +236,7 @@ public class FileConfigureService extends AbstractConfigurableService {
     protected String configure2String(IConfigurable configure) {
         Entity entity = null;
         if (configure instanceof Entity) {
-            entity = (Entity)configure;
+            entity = (Entity) configure;
         } else {
             entity = new Entity();
         }

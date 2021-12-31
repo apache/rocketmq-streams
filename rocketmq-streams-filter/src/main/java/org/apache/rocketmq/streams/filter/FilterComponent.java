@@ -101,7 +101,7 @@ public class FilterComponent extends AbstractComponent<IRuleEngineService> imple
     }
 
     @Override public List<Rule> executeRule(IMessage message, AbstractContext context, List<Rule> rules) {
-        return ruleEngineService.executeRule(message,context,rules);
+        return ruleEngineService.executeRule(message, context, rules);
     }
 
     @Override
