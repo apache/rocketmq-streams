@@ -43,7 +43,7 @@ public class MutilStreamsClientTest {
         producerPool.submit(new Runnable() {
             @Override
             public void run() {
-                Producer.produceInLoop("data.txt");
+                Producer.produceInLoop(RMQ_TOPIC, "data.txt");
             }
         });
 
