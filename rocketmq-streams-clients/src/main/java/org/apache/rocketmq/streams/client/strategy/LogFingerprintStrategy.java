@@ -28,11 +28,13 @@ public class LogFingerprintStrategy implements Strategy {
     private LogFingerprintStrategy() {
         properties = new Properties();
     }
+
     private LogFingerprintStrategy(String... fieldNames) {
         properties = new Properties();
-        this.logFingerprintFields=fieldNames;
-        properties.put("logFingerprintFields",logFingerprintFields);
+        this.logFingerprintFields = fieldNames;
+        properties.put("logFingerprintFields", logFingerprintFields);
     }
+
     private LogFingerprintStrategy(String url, String username, String password) {
         properties = new Properties();
         properties.put(AbstractComponent.JDBC_DRIVER, AbstractComponent.DEFAULT_JDBC_DRIVER);
@@ -41,10 +43,10 @@ public class LogFingerprintStrategy implements Strategy {
         properties.put(AbstractComponent.JDBC_PASSWORD, password);
         properties.put(AbstractComponent.JDBC_TABLE_NAME, AbstractComponent.DEFAULT_JDBC_TABLE_NAME);
     }
-    
-    public static Strategy  configLogFingerprint(String... fieldNames){
+
+    public static Strategy configLogFingerprint(String... fieldNames) {
         return new LogFingerprintStrategy(fieldNames);
-        
+
     }
 
     @Override public Properties getStrategyProperties() {

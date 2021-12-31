@@ -42,7 +42,7 @@ public class NameListFunction {
 
     @FunctionMethod(value = "innerJoin", alias = "inner_join")
     public JSONArray innerJoin(IMessage message, FunctionContext context, String namespace, String nameListName,
-                               String expressionStr, String alias, String script, String... fieldNames) {
+        String expressionStr, String alias, String script, String... fieldNames) {
         JSONArray rows = getRows(message, context, namespace, nameListName, expressionStr, alias, script, fieldNames);
         if (rows == null || rows.size() == 0) {
             context.breakExecute();
@@ -53,7 +53,7 @@ public class NameListFunction {
 
     @FunctionMethod(value = "leftJoin", alias = "left_join")
     public JSONArray leftJoin(IMessage message, FunctionContext context, String namespace, String nameListName,
-                              String expressionStr, String alias, String script, String... fieldNames) {
+        String expressionStr, String alias, String script, String... fieldNames) {
         JSONArray rows = getRows(message, context, namespace, nameListName, expressionStr, alias, script, fieldNames);
         if (rows == null || rows.size() == 0) {
             return null;
@@ -63,7 +63,7 @@ public class NameListFunction {
 
     @FunctionMethod(value = "mark_rows", alias = "namelist_rows")
     public String namelist(IMessage message, FunctionContext context, String namespace, String nameListName,
-                           String expressionStr, String... fieldNames) {
+        String expressionStr, String... fieldNames) {
         JSONArray rows = getRows(message, context, namespace, nameListName, expressionStr, null, null, fieldNames);
         if (rows == null || rows.size() == 0) {
             return null;
@@ -73,7 +73,7 @@ public class NameListFunction {
 
     @FunctionMethod(value = "mark", alias = "namelist")
     public String namelist(IMessage message, FunctionContext context, String namespace, String nameListName,
-                           String expressionStr, String fieldName) {
+        String expressionStr, String fieldName) {
         String tmp = fieldName;
         nameListName = FunctionUtils.getValueString(message, context, nameListName);
         namespace = FunctionUtils.getValueString(message, context, namespace);
@@ -97,7 +97,7 @@ public class NameListFunction {
 
     @FunctionMethod(value = "mark", alias = "namelist")
     public String namelist(IMessage message, FunctionContext context, String namespace, String nameListName,
-                           String expressionStr, String fieldNames, String joinMark) {
+        String expressionStr, String fieldNames, String joinMark) {
         nameListName = FunctionUtils.getValueString(message, context, nameListName);
         namespace = FunctionUtils.getValueString(message, context, namespace);
         expressionStr = FunctionUtils.getValueString(message, context, expressionStr);
@@ -131,7 +131,7 @@ public class NameListFunction {
 
     @FunctionMethod(value = "in_namelist", alias = "in_namelist")
     public Boolean inNameList(IMessage message, FunctionContext context, String namespace, String nameListName,
-                              String expressionStr) {
+        String expressionStr) {
         nameListComponent = ComponentCreator.getComponent(namespace, DimComponent.class);
         Map<String, Object> row =
             nameListComponent.getService().match(nameListName, expressionStr, message.getMessageBody());
@@ -152,7 +152,8 @@ public class NameListFunction {
      * @param fieldNames    需要返回的字段名
      * @return
      */
-    protected JSONArray getRows(IMessage message, FunctionContext context, String namespace, String nameListName, String expressionStr, String alias, String script, String... fieldNames) {
+    protected JSONArray getRows(IMessage message, FunctionContext context, String namespace, String nameListName,
+        String expressionStr, String alias, String script, String... fieldNames) {
         nameListName = FunctionUtils.getValueString(message, context, nameListName);
         namespace = FunctionUtils.getValueString(message, context, namespace);
         expressionStr = FunctionUtils.getValueString(message, context, expressionStr);
@@ -170,7 +171,7 @@ public class NameListFunction {
         for (Map<String, Object> row : rows) {
             JSONObject jsonObject = new JSONObject();
             if (fieldNames == null || fieldNames.length == 0) {
-                if (alias == null) {
+                if (StringUtil.isEmpty(FunctionUtils.getConstant(alias))) {
                     jsonObject.putAll(row);
                 } else {
                     Iterator<Entry<String, Object>> it = row.entrySet().iterator();

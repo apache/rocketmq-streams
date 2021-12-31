@@ -55,7 +55,7 @@ public class ESSinkBuilder extends AbstractSupportShuffleChannelBuilder {
     protected JSONObject createFormatProperty(Properties properties) {
         JSONObject formatProperties = new JSONObject();
         for (Object object : properties.keySet()) {
-            String key = (String)object;
+            String key = (String) object;
             if ("type".equals(key)) {
                 continue;
             }
@@ -65,6 +65,11 @@ public class ESSinkBuilder extends AbstractSupportShuffleChannelBuilder {
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndexType", "typeName");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "host", "endPoint");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "thread.max.count");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndexType", "typename");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndex", "esindex");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndexType", "esindextype");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "host", "endpoint");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");
         return formatProperties;
     }
 

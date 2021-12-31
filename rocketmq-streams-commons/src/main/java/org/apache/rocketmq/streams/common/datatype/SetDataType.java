@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.ContantsUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
@@ -59,7 +60,14 @@ public class SetDataType extends GenericParameterDataType<Set> {
         boolean isFirst = true;
         if (CollectionUtil.isNotEmpty(value)) {
             for (Object object : value) {
-                String str = paradigmType.toDataJson(object);
+                if (object == null) {
+                    continue;
+                }
+                DataType dataType = this.paradigmType;
+                if (dataType == null) {
+                    dataType = new StringDataType();
+                }
+                String str = dataType.toDataJson(object.toString());
                 if (isFirst) {
                     isFirst = false;
                 } else {
@@ -79,12 +87,16 @@ public class SetDataType extends GenericParameterDataType<Set> {
     @Override
     public String toDataJson(Set value) {
         if (JSONArray.class.isInstance(value)) {
-            return ((JSONArray)value).toJSONString();
+            return ((JSONArray) value).toJSONString();
         }
         JSONArray jsonArray = new JSONArray();
         if (CollectionUtil.isNotEmpty(value)) {
             for (Object object : value) {
-                jsonArray.add(paradigmType.toDataJson(object));
+                if (object == null) {
+                    continue;
+                }
+                String data = createStringValue(this.paradigmType, object);
+                jsonArray.add(data);
             }
         }
         return jsonArray.toJSONString();
@@ -100,17 +112,18 @@ public class SetDataType extends GenericParameterDataType<Set> {
         if (StringUtil.isEmpty(jsonValue)) {
             return null;
         }
+        DataType dataType = this.paradigmType;
         if (isQuickModel(jsonValue)) {
             jsonValue = createJsonValue(jsonValue);
+            if (dataType == null) {
+                dataType = new StringDataType();
+            }
         }
         JSONArray jsonArray = JSON.parseArray(jsonValue);
         Set list = new HashSet();
         for (int i = 0; i < jsonArray.size(); i++) {
             String json = jsonArray.getString(i);
-            Object result = json;
-            if (paradigmType != null) {
-                result = paradigmType.getData(json);
-            }
+            Object result = createObjectValue(dataType, json);
             list.add(result);
         }
         return list;
@@ -126,7 +139,11 @@ public class SetDataType extends GenericParameterDataType<Set> {
         int len = 0;
         while (it.hasNext()) {
             Object o = it.next();
-            byte[] bytes = paradigmType.toBytes(o, isCompress);
+            if (o == null) {
+                continue;
+            }
+            byte[] bytes = createByteValue(this.paradigmType, o);
+
             list.add(bytes);
             len = len + bytes.length;
         }
@@ -150,17 +167,17 @@ public class SetDataType extends GenericParameterDataType<Set> {
     }
 
     @Override
-    public Set byteToValue(byte[] bytes, int offset) {
+    public Set byteToValue(byte[] bytes, AtomicInteger offset) {
         if (bytes == null) {
             return null;
         }
-        int len = createNumberValue(bytes, offset, 2).intValue();
+        int len = createNumberValue(bytes, offset.get(), 2).intValue();
+        offset.addAndGet(2);
         Set set = new HashSet();
-        int index = 2;
         for (int i = 0; i < len; i++) {
-            Object value = paradigmType.byteToValue(bytes, offset + index);
+            Object value = createObjectValue(paradigmType, bytes, offset);
             set.add(value);
-            index += paradigmType.toBytes(value, false).length;
+
         }
         return set;
     }
@@ -192,8 +209,7 @@ public class SetDataType extends GenericParameterDataType<Set> {
         if (StringUtil.isEmpty(jsonValue)) {
             return false;
         }
-        if (jsonValue.trim().startsWith("{") == false && jsonValue.trim().startsWith("[") == false && paradigmType
-            .matchClass(String.class)) {
+        if (jsonValue.trim().startsWith("{") == false && jsonValue.trim().startsWith("[") == false) {
             return true;
         }
         return false;
@@ -222,7 +238,7 @@ public class SetDataType extends GenericParameterDataType<Set> {
         if (value == null) {
             return null;
         }
-        return (List)value;
+        return (List) value;
     }
 
     @Override
@@ -239,7 +255,7 @@ public class SetDataType extends GenericParameterDataType<Set> {
             Class clazz = createClass(className);
             DataType dataType = DataTypeUtil.getDataTypeFromClass(clazz);
             if (GenericParameterDataType.class.isInstance(dataType)) {
-                GenericParameterDataType tmp = (GenericParameterDataType)dataType;
+                GenericParameterDataType tmp = (GenericParameterDataType) dataType;
                 tmp.parseGenericParameter(subClassString);
             }
 

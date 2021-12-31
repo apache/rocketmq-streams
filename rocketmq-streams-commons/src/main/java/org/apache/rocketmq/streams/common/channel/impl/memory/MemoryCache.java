@@ -27,7 +27,7 @@ import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 public class MemoryCache extends BasedConfigurable {
     public static String TYPE = "memoryCache";
     protected List<String> cache = new ArrayList<>();
-    protected transient ConcurrentLinkedQueue<String> queue;
+    protected transient ConcurrentLinkedQueue queue;
 
     public <T> MemoryCache(T[] array) {
         this();
@@ -69,11 +69,11 @@ public class MemoryCache extends BasedConfigurable {
         return queue;
     }
 
-    public void addMessage(String msg) {
+    public void addMessage(Object msg) {
         queue.offer(msg);
     }
 
     public void addMessage(JSONObject msg) {
-        addMessage(msg.toJSONString());
+        addMessage(msg);
     }
 }

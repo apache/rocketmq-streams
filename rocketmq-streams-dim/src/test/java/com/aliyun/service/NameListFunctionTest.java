@@ -19,11 +19,22 @@ package com.aliyun.service;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.streams.common.cache.compress.KVAddress;
+import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.junit.Test;
 
 public class NameListFunctionTest {
+
+    @Test
+    public void testInterge() {
+        KVAddress mapAddress = new KVAddress(128, 0);
+        byte[] bytes = mapAddress.createBytesIngoreFirstBit();
+        long rowIndex = NumberUtils.toLong(bytes);
+        KVAddress mapAddress1 = KVAddress.createMapAddressFromLongValue(rowIndex);
+        System.out.println(rowIndex);
+    }
 
     @Test
     public void testNameList() {

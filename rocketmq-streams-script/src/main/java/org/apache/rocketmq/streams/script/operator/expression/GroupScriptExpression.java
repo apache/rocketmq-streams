@@ -50,11 +50,11 @@ public class GroupScriptExpression implements IScriptExpression {
 
     private static final String TAB = FunctionParser.TAB;
 
-
     protected List<IScriptExpression> beforeExpressions;
     protected List<IScriptExpression> afterExpressions;
 
     private transient ICaseDependentParser caseDependentParser;
+
     @Override
     public Object getScriptParamter(IMessage message, FunctionContext context) {
         return this.executeExpression(message, context);
@@ -67,53 +67,51 @@ public class GroupScriptExpression implements IScriptExpression {
 
     @Override
     public Object executeExpression(IMessage channelMessage, FunctionContext context) {
-        if(beforeExpressions!=null){
-            for(IScriptExpression scriptExpression:beforeExpressions){
-                scriptExpression.executeExpression(channelMessage,context);
+        if (beforeExpressions != null) {
+            for (IScriptExpression scriptExpression : beforeExpressions) {
+                scriptExpression.executeExpression(channelMessage, context);
             }
         }
 
-
-        Boolean result = (Boolean)ifExpresssion.executeExpression(channelMessage, context);
+        Boolean result = (Boolean) ifExpresssion.executeExpression(channelMessage, context);
         Object value = null;
         if (result) {
             if (thenExpresssions != null) {
                 for (IScriptExpression scriptExpression : thenExpresssions) {
-                     scriptExpression.executeExpression(channelMessage, context);
+                    scriptExpression.executeExpression(channelMessage, context);
                 }
             }
-           return executeAfterExpression(channelMessage,context);
+            return executeAfterExpression(channelMessage, context);
         }
         if (elseIfExpressions != null && elseIfExpressions.size() > 0) {
             for (int i = elseIfExpressions.size() - 1; i >= 0; i--) {
                 GroupScriptExpression expression = elseIfExpressions.get(i);
-                boolean success = (Boolean)expression.ifExpresssion.executeExpression(channelMessage, context);
+                boolean success = (Boolean) expression.ifExpresssion.executeExpression(channelMessage, context);
                 if (success) {
                     if (expression.thenExpresssions != null) {
                         for (IScriptExpression scriptExpression : expression.thenExpresssions) {
                             value = scriptExpression.executeExpression(channelMessage, context);
                         }
                     }
-                    return executeAfterExpression(channelMessage,context);
+                    return executeAfterExpression(channelMessage, context);
                 }
             }
         }
 
-
         if (elseExpressions != null) {
             for (IScriptExpression scriptExpression : elseExpressions) {
-                 scriptExpression.executeExpression(channelMessage, context);
-                 return executeAfterExpression(channelMessage,context);
+                scriptExpression.executeExpression(channelMessage, context);
+                return executeAfterExpression(channelMessage, context);
             }
         }
         return null;
     }
 
-    protected Object executeAfterExpression(IMessage channelMessage, FunctionContext context){
-        Object object=null;
-        if(afterExpressions!=null){
-            for(IScriptExpression scriptExpression:afterExpressions){
-              object=  scriptExpression.executeExpression(channelMessage,context);
+    protected Object executeAfterExpression(IMessage channelMessage, FunctionContext context) {
+        Object object = null;
+        if (afterExpressions != null) {
+            for (IScriptExpression scriptExpression : afterExpressions) {
+                object = scriptExpression.executeExpression(channelMessage, context);
             }
         }
         return object;
@@ -207,13 +205,13 @@ public class GroupScriptExpression implements IScriptExpression {
         if (elseIfExpressions != null) {
             parameters.addAll(elseIfExpressions);
         }
-        ICaseDependentParser caseDependentParser=loadCaseDependentParser();
+        ICaseDependentParser caseDependentParser = loadCaseDependentParser();
         if (parameters != null && parameters.size() > 0) {
             for (IScriptExpression scriptExpression : parameters) {
-                List<String> names =null;
-                if(caseDependentParser!=null&&caseDependentParser.isCaseFunction(scriptExpression)){
-                    names=new ArrayList<>(caseDependentParser.getDependentFields(scriptExpression));
-                }else {
+                List<String> names = null;
+                if (caseDependentParser != null && caseDependentParser.isCaseFunction(scriptExpression)) {
+                    names = new ArrayList<>(caseDependentParser.getDependentFields(scriptExpression));
+                } else {
                     names = scriptExpression.getDependentFields();
                 }
                 if (names != null) {
@@ -244,26 +242,25 @@ public class GroupScriptExpression implements IScriptExpression {
         return set;
     }
 
-    protected ICaseDependentParser loadCaseDependentParser(){
-        if(this.caseDependentParser!=null){
+    protected ICaseDependentParser loadCaseDependentParser() {
+        if (this.caseDependentParser != null) {
             return this.caseDependentParser;
         }
-        synchronized (this){
-            if(caseDependentParser!=null){
+        synchronized (this) {
+            if (caseDependentParser != null) {
                 return this.caseDependentParser;
             }
-            ServiceLoaderComponent caseServiceLoader=ServiceLoaderComponent.getInstance(ICaseDependentParser.class);
+            ServiceLoaderComponent caseServiceLoader = ServiceLoaderComponent.getInstance(ICaseDependentParser.class);
 
-            List<ICaseDependentParser> caseDependentParsers=caseServiceLoader.loadService();
-            ICaseDependentParser caseDependentParser=null;
-            if(caseDependentParsers!=null&&caseDependentParsers.size()>0){
-                caseDependentParser=caseDependentParsers.get(0);
+            List<ICaseDependentParser> caseDependentParsers = caseServiceLoader.loadService();
+            ICaseDependentParser caseDependentParser = null;
+            if (caseDependentParsers != null && caseDependentParsers.size() > 0) {
+                caseDependentParser = caseDependentParsers.get(0);
             }
             return caseDependentParser;
         }
 
     }
-
 
     public void setIfExpresssion(IScriptExpression ifExpresssion) {
         this.ifExpresssion = ifExpresssion;
@@ -327,15 +324,15 @@ public class GroupScriptExpression implements IScriptExpression {
         return thenExpresssions;
     }
 
-    public Map<? extends String,? extends List<String>> getBeforeDependents() {
-        Map<String,List<String>> map=new HashMap<>();
-        if(CollectionUtil.isEmpty(beforeExpressions)){
+    public Map<? extends String, ? extends List<String>> getBeforeDependents() {
+        Map<String, List<String>> map = new HashMap<>();
+        if (CollectionUtil.isEmpty(beforeExpressions)) {
             return map;
         }
 
-        for(IScriptExpression scriptExpression:beforeExpressions){
-            if(CollectionUtil.isNotEmpty(scriptExpression.getNewFieldNames())){
-                map.put(scriptExpression.getNewFieldNames().iterator().next(),scriptExpression.getDependentFields());
+        for (IScriptExpression scriptExpression : beforeExpressions) {
+            if (CollectionUtil.isNotEmpty(scriptExpression.getNewFieldNames())) {
+                map.put(scriptExpression.getNewFieldNames().iterator().next(), scriptExpression.getDependentFields());
             }
         }
         return map;

@@ -45,7 +45,7 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         if (CollectionUtil.isEmpty(values)) {
             return null;
         }
-        String sql=ORMUtil.createBatchReplacetSQL(new ArrayList<>(values.values()));
+        String sql = ORMUtil.createBatchReplacetSQL(new ArrayList<>(values.values()));
         return sql;
     }
 
@@ -130,7 +130,7 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         }
         Map<String, String> recordMap = new HashMap<>(keys.size());
         List<String> dbKeyList = new ArrayList<>(keys.size());
-        List<Pair<String,String>> variableAndValue = new ArrayList<>(keys.size());
+        List<Pair<String, String>> variableAndValue = new ArrayList<>(keys.size());
         for (String key : keys) {
             String md5Value = StringUtil.createMD5Str(key);
             dbKeyList.add(md5Value);
@@ -138,7 +138,7 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
             variableAndValue.add(Pair.of("msg_key", md5Value + "%"));
         }
         List<T> values = ORMUtil.queryForList("select * from " + ORMUtil.getTableName(clazz) +
-            " where "+SQLUtil.createLikeSql(variableAndValue), new HashMap<>(4), clazz);
+            " where " + SQLUtil.createLikeSql(variableAndValue), new HashMap<>(4), clazz);
         Map<String, List<T>> resultMap = new HashMap<>(keys.size());
         for (T value : values) {
             String dbKeyWithoutSuffix = value.getMsgKey().substring(0, 24);
@@ -160,7 +160,8 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
     }
 
     @Override
-    public WindowBaseValueIterator<T> loadWindowInstanceSplitData(String localStorePrefix, String queueId, String windowInstanceId, String keyPrex, Class<T> clazz) {
+    public WindowBaseValueIterator<T> loadWindowInstanceSplitData(String localStorePrefix, String queueId,
+        String windowInstanceId, String keyPrex, Class<T> clazz) {
 
         //search max partition number in case of inserting fresh data [min,max)
         long maxPartitionIndex = getPartitionNum(windowInstanceId, clazz, true) + 1;
@@ -197,17 +198,14 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
     public void delete(String windowInstanceId, String queueId, Class<T> clazz) {
 
         ORMUtil.executeSQL(
-            deleteSQL(windowInstanceId,queueId,clazz),
+            deleteSQL(windowInstanceId, queueId, clazz),
             new HashMap<>(4));
     }
-
 
     @Override public String deleteSQL(String windowInstanceId, String queueId, Class<T> clazz) {
         String sql = "delete from " + ORMUtil.getTableName(clazz) + " where window_instance_id = '" + StringUtil.createMD5Str(windowInstanceId) + "'";
         return sql;
     }
-
-
 
     public static class DBIterator<T extends WindowBaseValue> extends WindowBaseValueIterator<T> {
         private LinkedList<T> container = new LinkedList<>();
@@ -219,7 +217,8 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
 
         String sql;
 
-        public DBIterator(String queueId, String windowInstanceId, String keyPrex, Class<T> clazz, long maxPartitionIndex) {
+        public DBIterator(String queueId, String windowInstanceId, String keyPrex, Class<T> clazz,
+            long maxPartitionIndex) {
             String windowInstancePartitionId = StringUtil.createMD5Str(windowInstanceId);
 
             if (StringUtil.isEmpty(keyPrex)) {

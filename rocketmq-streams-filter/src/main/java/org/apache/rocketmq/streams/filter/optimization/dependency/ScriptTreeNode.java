@@ -37,55 +37,57 @@ import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
 public class ScriptTreeNode extends TreeNode<ScriptChainStage> {
     protected transient ScriptDependent scriptDependent;
+
     public ScriptTreeNode(ChainPipeline pipeline, ScriptChainStage stage,
         TreeNode parent) {
         super(pipeline, stage, parent);
-        FunctionScript functionScript=(FunctionScript)stage.getScript();
-        scriptDependent=new ScriptDependent(functionScript);
+        FunctionScript functionScript = (FunctionScript) stage.getScript();
+        scriptDependent = new ScriptDependent(functionScript);
     }
 
-    @Override public Set<String> traceaField(String varName, AtomicBoolean isBreak, List<IScriptExpression> depenentScripts) {
-        return scriptDependent.traceaField(varName,isBreak,depenentScripts);
+    @Override
+    public Set<String> traceaField(String varName, AtomicBoolean isBreak, List<IScriptExpression> depenentScripts) {
+        return scriptDependent.traceaField(varName, isBreak, depenentScripts);
     }
 
     @Override public List<CommonExpression> traceDepenentToSource() {
-        FunctionScript functionScript=(FunctionScript)stage.getScript();
-        List<IScriptExpression> scriptExpressions=functionScript.getScriptExpressions();
-        List<CommonExpression> commonExpressions=new ArrayList<>();
-        for(IScriptExpression scriptExpression:scriptExpressions){
-            if(CommonExpression.support(scriptExpression)){
-                CommonExpression commonExpression=  new CommonExpression(scriptExpression);
-                traceDepenentToSource(this,commonExpression,commonExpression.getVarName());
+        FunctionScript functionScript = (FunctionScript) stage.getScript();
+        List<IScriptExpression> scriptExpressions = functionScript.getScriptExpressions();
+        List<CommonExpression> commonExpressions = new ArrayList<>();
+        for (IScriptExpression scriptExpression : scriptExpressions) {
+            if (CommonExpression.support(scriptExpression)) {
+                CommonExpression commonExpression = new CommonExpression(scriptExpression);
+                traceDepenentToSource(this, commonExpression, commonExpression.getVarName());
                 commonExpressions.add(commonExpression);
-            }else if(GroupScriptExpression.class.isInstance(scriptExpression)){
-                GroupScriptExpression groupScriptExpression=(GroupScriptExpression)scriptExpression;
-                List<CommonExpression> commonExpressionList=traceIfExpression(groupScriptExpression.getIfExpresssion());
-                if(commonExpressionList!=null){
+            } else if (GroupScriptExpression.class.isInstance(scriptExpression)) {
+                GroupScriptExpression groupScriptExpression = (GroupScriptExpression) scriptExpression;
+                List<CommonExpression> commonExpressionList = traceIfExpression(groupScriptExpression.getIfExpresssion());
+                if (commonExpressionList != null) {
                     commonExpressions.addAll(commonExpressionList);
                 }
-                if(groupScriptExpression.getElseIfExpressions()!=null){
-                    for(GroupScriptExpression subGroup:groupScriptExpression.getElseIfExpressions()){
-                        commonExpressionList=traceIfExpression(subGroup.getIfExpresssion());
-                        if(commonExpressionList!=null){
+                if (groupScriptExpression.getElseIfExpressions() != null) {
+                    for (GroupScriptExpression subGroup : groupScriptExpression.getElseIfExpressions()) {
+                        commonExpressionList = traceIfExpression(subGroup.getIfExpresssion());
+                        if (commonExpressionList != null) {
                             commonExpressions.addAll(commonExpressionList);
                         }
                     }
                 }
-            }else if(AbstractWhenExpression.class.isInstance(scriptExpression)){
-                AbstractWhenExpression abstractWhenExpression=(AbstractWhenExpression)scriptExpression;
-                List<IScriptExpression> scriptExpressionList=abstractWhenExpression.getIfExpressions();
-                for(IScriptExpression ifExpression:scriptExpressionList){
-                    List<CommonExpression> commonExpressionList=traceIfExpression(ifExpression);
-                    if(commonExpressionList!=null){
+            } else if (AbstractWhenExpression.class.isInstance(scriptExpression)) {
+                AbstractWhenExpression abstractWhenExpression = (AbstractWhenExpression) scriptExpression;
+                List<IScriptExpression> scriptExpressionList = abstractWhenExpression.getIfExpressions();
+                for (IScriptExpression ifExpression : scriptExpressionList) {
+                    List<CommonExpression> commonExpressionList = traceIfExpression(ifExpression);
+                    if (commonExpressionList != null) {
                         commonExpressions.addAll(commonExpressionList);
                     }
                 }
-            }else if(scriptExpression instanceof ScriptOptimization.BlinkRuleV2Exprssion){
-                ScriptOptimization.BlinkRuleV2Exprssion blinkRuleV2Exprssion=(ScriptOptimization.BlinkRuleV2Exprssion)scriptExpression;
-                List<Expression> expressions=blinkRuleV2Exprssion.getExpressions();
-                for(Expression expression:expressions){
-                    List<CommonExpression> commonExpressionList=this.traceDepenentToSource(expression);
-                    if(commonExpressionList!=null){
+            } else if (scriptExpression instanceof ScriptOptimization.BlinkRuleV2Exprssion) {
+                ScriptOptimization.BlinkRuleV2Exprssion blinkRuleV2Exprssion = (ScriptOptimization.BlinkRuleV2Exprssion) scriptExpression;
+                List<Expression> expressions = blinkRuleV2Exprssion.getExpressions();
+                for (Expression expression : expressions) {
+                    List<CommonExpression> commonExpressionList = this.traceDepenentToSource(expression);
+                    if (commonExpressionList != null) {
                         commonExpressions.addAll(commonExpressionList);
                     }
                 }
@@ -96,14 +98,17 @@ public class ScriptTreeNode extends TreeNode<ScriptChainStage> {
 
     protected List<CommonExpression> traceIfExpression(IScriptExpression expresssion) {
 
-        if(expresssion.getFunctionName()!=null&&CaseFunction.isCaseFunction(expresssion.getFunctionName())){
-            IScriptParamter scriptParamter=(IScriptParamter)expresssion.getScriptParamters().get(0);
-            String expressionStr= IScriptOptimization.getParameterValue(scriptParamter);
-            Rule rule= ExpressionBuilder.createRule("tmp","tmp",expressionStr);
+        if (expresssion.getFunctionName() != null && CaseFunction.isCaseFunction(expresssion.getFunctionName())) {
+            IScriptParamter scriptParamter = (IScriptParamter) expresssion.getScriptParamters().get(0);
+            String expressionStr = IScriptOptimization.getParameterValue(scriptParamter);
+            if (expressionStr == null) {
+                return null;
+            }
+            Rule rule = ExpressionBuilder.createRule("tmp", "tmp", expressionStr);
             return traceDepenentToSource(rule);
         }
-        if(RuleExpression.class.isInstance(expresssion)){
-            RuleExpression ruleExpression=(RuleExpression)expresssion;
+        if (RuleExpression.class.isInstance(expresssion)) {
+            RuleExpression ruleExpression = (RuleExpression) expresssion;
             return traceDepenentToSource(ruleExpression.getRule());
         }
         return null;

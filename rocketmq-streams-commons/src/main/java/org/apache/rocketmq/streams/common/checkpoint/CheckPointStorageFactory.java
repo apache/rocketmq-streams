@@ -35,11 +35,11 @@ public class CheckPointStorageFactory {
     private ServiceLoader<ICheckPointStorage> loader;
 
     private CheckPointStorageFactory() {
-        URLClassLoader classLoader = (URLClassLoader)Thread.currentThread().getContextClassLoader();
+        URLClassLoader classLoader = (URLClassLoader) Thread.currentThread().getContextClassLoader();
         URL[] urls = classLoader.getURLs();
-        for(URL u : urls){
+        for (URL u : urls) {
             String s = u.toString();
-            if(s.contains("rocketmq-streams")){
+            if (s.contains("rocketmq-streams")) {
                 logger.debug(String.format("list class : %s", s));
             }
         }
@@ -57,24 +57,24 @@ public class CheckPointStorageFactory {
         return instance;
     }
 
-    public ICheckPointStorage getStorage(String name){
+    public ICheckPointStorage getStorage(String name) {
 
         Iterator<ICheckPointStorage> it = loader.iterator();
         ICheckPointStorage storage = null;
 
         ICheckPointStorage defaultStorage = null;
-        while(it.hasNext()){
+        while (it.hasNext()) {
             ICheckPointStorage local = it.next();
-            if(local.getStorageName().equalsIgnoreCase(name)){
+            if (local.getStorageName().equalsIgnoreCase(name)) {
                 return local;
             }
-            if(local.getStorageName().equalsIgnoreCase(DEFAULT_CHECKPOINT_TYPE_NAME)){
+            if (local.getStorageName().equalsIgnoreCase(DEFAULT_CHECKPOINT_TYPE_NAME)) {
                 defaultStorage = local;
             }
         }
 
-        if(storage == null){
-           // logger.error(String.format("checkpoint storage name config error, name is %s. use default checkpoint type db.", name));
+        if (storage == null) {
+            // logger.error(String.format("checkpoint storage name config error, name is %s. use default checkpoint type db.", name));
             return defaultStorage;
         }
         return null;

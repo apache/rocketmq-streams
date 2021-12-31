@@ -60,9 +60,7 @@ public class FileSource extends AbstractBatchSource {
         super.initConfigurable();
         File file = getFile(filePath);
         if (file.exists() && file.isDirectory()) {
-            executorService = new ThreadPoolExecutor(maxThread, maxThread,
-                0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<Runnable>(1000));
+            executorService = new ThreadPoolExecutor(maxThread, maxThread, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(1000));
         }
         return true;
     }
@@ -80,7 +78,6 @@ public class FileSource extends AbstractBatchSource {
             }
         }
         return file;
-
 
     }
 
@@ -118,11 +115,11 @@ public class FileSource extends AbstractBatchSource {
     protected LinkedBlockingQueue<FileIterator> createIteratorList() {
         LinkedBlockingQueue<FileIterator> iterators = new LinkedBlockingQueue<>(1000);
         File file = getFile(filePath);
-        if (file.exists() == false) {
+        if (!file.exists()) {
             return null;
         }
         try {
-            if (file.isDirectory() == false) {
+            if (!file.isDirectory()) {
                 iterators.put(new FileIterator(file));
                 return iterators;
             }
@@ -143,7 +140,7 @@ public class FileSource extends AbstractBatchSource {
     public static class FileIterator implements Iterator<String> {
         protected File file;
         private String line;
-        protected int index=0;
+        protected int index = 0;
         protected BufferedReader reader = null;
 
         public FileIterator(File file) throws FileNotFoundException {
@@ -213,7 +210,6 @@ public class FileSource extends AbstractBatchSource {
                 executeMessage((Message) BatchFinishMessage.create());
                 fileIterator.close();
                 countDownLatch.countDown();
-                ;
             }
 
         }

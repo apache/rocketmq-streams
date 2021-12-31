@@ -26,11 +26,12 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
-import org.apache.rocketmq.streams.common.cache.compress.impl.IntListKV;
+import org.apache.rocketmq.streams.common.cache.compress.KVAddress;
+import org.apache.rocketmq.streams.common.cache.compress.impl.MapAddressListKV;
 import org.apache.rocketmq.streams.common.datatype.IntDataType;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
-public class DimIndex{
+public class DimIndex {
 
     private static final Log LOG = LogFactory.getLog(DimIndex.class);
 
@@ -39,15 +40,10 @@ public class DimIndex{
      */
     protected List<String> indexs = new ArrayList<>();
 
-//    /**
-//     * 如果是唯一索引，用压缩值存储 每个索引一行
-//     */
-//    protected Map<String, IntValueKV> uniqueIndex;
-
     /**
      * 如果是非唯一索引，用这个结构存储 每个索引一行，后面的map：key：索引值；value：row id 列表，rowid用字节表示
      */
-    protected Map<String, IntListKV> mutilIndex = new HashMap<>();
+    protected Map<String, MapAddressListKV> mutilIndex = new HashMap<>();
 
     public DimIndex(List<String> indexs) {
         this.indexs = formatIndexs(indexs);
@@ -92,12 +88,12 @@ public class DimIndex{
      * @param indexValue 索引值，如chris
      * @return
      */
-    public List<Integer> getRowIds(String indexName, String indexValue) {
-        IntListKV indexs = this.mutilIndex.get(indexName);
+    public List<Long> getRowIds(String indexName, String indexValue) {
+        MapAddressListKV indexs = this.mutilIndex.get(indexName);
         if (indexs == null) {
             return null;
         }
-        return indexs.get(indexValue);
+        return indexs.getLongValue(indexValue);
     }
 
     /**
@@ -111,8 +107,12 @@ public class DimIndex{
         int i = 0;
         while (it.hasNext()) {
             AbstractMemoryTable.RowElement row = it.next();
-            addRowIndex(row.getRow(),row.getRowIndex(),tableCompress.getRowCount());
-            if((i % 10000) == 0){
+            long rowIndex = row.getRowIndex();
+//            KVAddress mapAddress = new KVAddress(new ByteArray(NumberUtils.toByte(rowIndex)));
+            KVAddress mapAddress = KVAddress.createMapAddressFromLongValue(rowIndex);
+            addRowIndex(row.getRow(), mapAddress, tableCompress.getRowCount());
+//            addRowIndex(row.getRow(),row.getRowIndex(),tableCompress.getRowCount());
+            if ((i % 100000) == 0) {
                 LOG.info("dim build continue...." + i);
             }
             i++;
@@ -122,25 +122,25 @@ public class DimIndex{
             .getByteCount());
     }
 
-
     /**
      * 如果想直接增加索引，可以用这个方法
+     *
      * @param row
      * @param rowIndex
      * @param rowSize
      */
-    public void addRowIndex(Map<String,Object> row,int rowIndex,int rowSize){
+    public void addRowIndex(Map<String, Object> row, KVAddress rowIndex, int rowSize) {
         Map<String, String> cacheValues = createRow(row);
         if (indexs == null || indexs.size() == 0) {
             return;
         }
         for (String indexName : indexs) {
-            IntListKV name2RowIndexs = this.mutilIndex.get(indexName);
+            MapAddressListKV name2RowIndexs = this.mutilIndex.get(indexName);
             if (name2RowIndexs == null) {
                 synchronized (this) {
                     name2RowIndexs = this.mutilIndex.get(indexName);
                     if (name2RowIndexs == null) {
-                        name2RowIndexs = new IntListKV(rowSize);
+                        name2RowIndexs = new MapAddressListKV(rowSize);
                         this.mutilIndex.put(indexName, name2RowIndexs);
                     }
                 }
@@ -149,12 +149,9 @@ public class DimIndex{
             String[] nameIndexs = indexName.split(";");
             Arrays.sort(nameIndexs);
             String indexValue = createIndexValue(cacheValues, nameIndexs);
-            name2RowIndexs.add(indexValue,rowIndex);
+            name2RowIndexs.add(indexValue, rowIndex);
         }
     }
-
-
-
 
     /**
      * 对于组合索引，把各个字段的值取出来
@@ -195,7 +192,6 @@ public class DimIndex{
     }
 
     public static IntDataType INTDATATYPE = new IntDataType();
-
 
     public List<String> getIndexs() {
         return indexs;

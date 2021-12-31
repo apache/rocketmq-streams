@@ -37,9 +37,7 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
 
     @Override
     public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
-
-        RocketMQSource rocketMQSource = (RocketMQSource) ConfigurableUtil.create(RocketMQSource.class.getName(), namespace, name, createFormatProperty(properties), null);
-        return rocketMQSource;
+        return (RocketMQSource) ConfigurableUtil.create(RocketMQSource.class.getName(), namespace, name, createFormatProperty(properties), null);
     }
 
     protected JSONObject createFormatProperty(Properties properties) {
@@ -58,6 +56,14 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "offsetTime", "offsetTime");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "namesrvAddr", "namesrvAddr");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "producerGroup");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "consumerGroup");
+
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "pullIntervalMs", "pullintervalms");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "offsetTime", "offsettime");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "namesrvAddr", "namesrvaddr");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "producergroup");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "consumergroup");
         if (properties.getProperty("group") != null) {
             String group = properties.getProperty("group");
             if (group.startsWith("GID_")) {
@@ -67,10 +73,8 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
             }
         }
 
-
         return formatProperties;
     }
-
 
     @Override
     public String getType() {
@@ -79,8 +83,7 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
 
     @Override
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
-        RocketMQSink rocketMQSink = (RocketMQSink) ConfigurableUtil.create(RocketMQSink.class.getName(), namespace, name, createFormatProperty(properties), null);
-        return rocketMQSink;
+        return (RocketMQSink) ConfigurableUtil.create(RocketMQSink.class.getName(), namespace, name, createFormatProperty(properties), null);
     }
 
     @Override

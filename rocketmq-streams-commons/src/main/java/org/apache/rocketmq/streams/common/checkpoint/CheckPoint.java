@@ -42,7 +42,6 @@ public class CheckPoint<T> extends Entity {
         this.queueId = queueId;
     }
 
-
     public String getSourceNamespace() {
         return sourceNamespace;
     }
@@ -91,12 +90,12 @@ public class CheckPoint<T> extends Entity {
         this.topic = topic;
     }
 
-    public SourceSnapShot toSnapShot(){
+    public SourceSnapShot toSnapShot() {
         SourceSnapShot snapShot = new SourceSnapShot();
         snapShot.setGmtCreate(gmtCreate);
         snapShot.setGmtModified(gmtModified);
         snapShot.setKey(CheckPointManager.createCheckPointKey(sourceName, queueId));
-        if(content == null){
+        if (content == null) {
             content = new JSONObject();
         }
         content.put("offset", data);
@@ -106,9 +105,9 @@ public class CheckPoint<T> extends Entity {
 
     }
 
-    public CheckPoint fromSnapShot(SourceSnapShot sourceSnapShot){
+    public CheckPoint fromSnapShot(SourceSnapShot sourceSnapShot) {
 
-        if(sourceSnapShot == null){
+        if (sourceSnapShot == null) {
             return null;
         }
 

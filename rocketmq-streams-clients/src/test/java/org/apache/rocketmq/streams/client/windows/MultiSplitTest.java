@@ -32,9 +32,8 @@ public class MultiSplitTest extends SingleSplitTest {
     protected DataStream createSourceDataStream() {
 
         return StreamBuilder.dataStream("namespace", "name1")
-                .fromRocketmq(topic, "window_test", true, null);
+            .fromRocketmq(topic, "window_test", true, null);
     }
-
 
     protected int getSourceCount() {
         return 10;
@@ -54,15 +53,13 @@ public class MultiSplitTest extends SingleSplitTest {
     @Test
     public void testFireMode0() throws InterruptedException {
 
-        super.executeWindowStream(false, 5, IWindow.DEFAULTFIRE_MODE, 0, 20l);
+        super.executeWindowStream(true, 5, IWindow.DEFAULTFIRE_MODE, 0, 20l);
     }
-
 
     @Test
     public void testFireMode1() throws InterruptedException {
         super.executeWindowStream(false, 5, IWindow.MULTI_WINDOW_INSTANCE_MODE, 0, 20l);
     }
-
 
     @Test
     public void testMutilWindow() {
@@ -82,13 +79,10 @@ public class MultiSplitTest extends SingleSplitTest {
         }).start();
     }
 
-
     @Test
     public void testInsertWindowMsg() {
         StreamBuilder.dataStream("namespace", "name1")
-                .fromFile(filePath, true).toRocketmq(topic, group, nameServerAddress).start();
+            .fromFile(filePath, true).toRocketmq(topic, group, nameServerAddress).start();
     }
-
-
 
 }

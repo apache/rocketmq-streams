@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.cache.compress.impl.LongValueKV;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -60,9 +61,8 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     private transient List<String> duplicateFields;
     private transient int duplicateCacheExpirationTime;
 
-    private transient int homologousRulesCaseSize = 2000000;
-    private transient int homologousExpressionCaseSize = 2000000;
-    private transient int preFingerprintCaseSize = 2000000;
+    private transient int homologousExpressionCacheSize = 2000000;
+    private transient int preFingerprintCacheSize = 2000000;
     private transient IHomologousOptimization homologousOptimization; //对pipeline执行预编译的优化
 
     /**
@@ -121,26 +121,56 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 //主要监控channel的启动
                 pipelineMonitorForChannel = IMonitor.createMonitor(this);
             }
-            if (this.homologousOptimization == null) {
+            String isOpenOptimizationStr = ComponentCreator.getProperties().getProperty("homologous.optimization.switch");
+            boolean isOpenOptimization = true;
+            if (StringUtil.isNotEmpty(isOpenOptimizationStr)) {
+                isOpenOptimization = Boolean.valueOf(isOpenOptimizationStr);
+            }
+            if (this.homologousOptimization == null && isOpenOptimization) {
                 Iterable<IHomologousOptimization> iterable = ServiceLoader.load(IHomologousOptimization.class);
                 Iterator<IHomologousOptimization> it = iterable.iterator();
+                String homologousExpressionCacheSizeStr = ComponentCreator.getProperties().getProperty("homologous.expression.cache.size");
+                if (StringUtil.isNotEmpty(homologousExpressionCacheSizeStr)) {
+                    this.homologousExpressionCacheSize = Integer.valueOf(homologousExpressionCacheSizeStr);
+                }
+                String preFingerprintCacheSizeStr = ComponentCreator.getProperties().getProperty("homologous.pre.fingerprint.cache.size");
+                if (StringUtil.isNotEmpty(preFingerprintCacheSizeStr)) {
+                    this.preFingerprintCacheSize = Integer.valueOf(preFingerprintCacheSizeStr);
+                }
                 if (it.hasNext()) {
                     this.homologousOptimization = it.next();
-                    this.homologousOptimization.optimizate(Lists.newArrayList(this), this.homologousExpressionCaseSize, this.preFingerprintCaseSize);
+                    this.homologousOptimization.optimizate(Lists.newArrayList(this), this.homologousExpressionCacheSize, this.preFingerprintCacheSize);
                 }
             }
 
             try {
-                source.start((IStreamOperator<T, T>)(message, context) -> {
+                AtomicLong COUNT = new AtomicLong(0);
+                Long startTime = System.currentTimeMillis();
+                Boolean isPrintPipelineQPS = ComponentCreator.getPropertyBooleanValue("pipeline.qps.print");
+                source.start((IStreamOperator<T, T>) (message, context) -> {
                     //每条消息一个，监控整个链路
                     IMonitor pipelineMonitorForStage = context.startMonitor(monitorName);
                     pipelineMonitorForStage.setType(IMonitor.TYPE_DATAPROCESS);
                     message.getHeader().setPiplineName(this.getConfigureName());
                     //在正式执行逻辑之前， 基于同源的优化策略先进行计算
-                    this.homologousOptimization.calculate(message, context);
+                    if (this.homologousOptimization != null) {
+                        this.homologousOptimization.calculate(message, context);
+                    }
                     //然后再执行正式逻辑，测试正式逻辑遇到表达是计算，会先从头部信息上去找，如果找到就直接返回，如果没有才进行正式的计算
                     T t = receiver.doMessage(message, context);
                     pipelineMonitorForStage.endMonitor();
+                    if (isPrintPipelineQPS) {
+                        long count = COUNT.incrementAndGet();
+                        long gap = (System.currentTimeMillis() - startTime) / 1000;
+                        if (gap == 0) {
+                            gap = 1;
+                        }
+                        if (count % 1000 == 0) {
+                            double qps = (double) count / (double) gap;
+                            System.out.println("qps is " + qps + ",the count is " + COUNT.get());
+                        }
+                    }
+
                     MonitorCommander.getInstance().finishMonitor(pipelineMonitorForStage.getName(), pipelineMonitorForStage);
                     return t;
                 });
@@ -216,8 +246,8 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         return isTopology(this.channelNextStageLabel);
     }
 
-    public void doNextStages(AbstractContext context, String msgPrewSourceName, String currentLable, List<String> nextStageLabel,
-        String prewSQLNodeName) {
+    public void doNextStages(AbstractContext context, String msgPrewSourceName, String currentLable,
+        List<String> nextStageLabel, String prewSQLNodeName) {
 
         if (!isTopology(nextStageLabel)) {
             return;
@@ -231,7 +261,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             if (size > 1) {
                 copyContext = context.copy();
             }
-            T msg = (T)copyContext.getMessage();
+            T msg = (T) copyContext.getMessage();
             AbstractStage oriStage = stageMap.get(lable);
             if (oriStage == null) {
                 if (stages != null && stages.size() > 0) {
@@ -277,8 +307,8 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                 }
                 continue;
             } else {
-                if (ChainStage.class.isInstance(stage)) {
-                    ChainStage chainStage = (ChainStage)stage;
+                if (stage instanceof ChainStage) {
+                    ChainStage chainStage = (ChainStage) stage;
                     String msgSourceName = chainStage.getMsgSourceName();
                     if (StringUtil.isNotEmpty(msgSourceName)) {
                         msgPrewSourceName = msgSourceName;
@@ -398,8 +428,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
                     this.setInitSuccess(false);
                     return;
                 }
-                IAfterConfigurableRefreshListener afterConfigurableRefreshListener =
-                    (IAfterConfigurableRefreshListener)stage;
+                IAfterConfigurableRefreshListener afterConfigurableRefreshListener = (IAfterConfigurableRefreshListener) stage;
 
                 afterConfigurableRefreshListener.doProcessAfterRefreshConfigurable(configurableService);
 
@@ -413,7 +442,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         }
 
         if (source instanceof AbstractConfigurable) {
-            AbstractConfigurable abstractConfigurable = (AbstractConfigurable)source;
+            AbstractConfigurable abstractConfigurable = (AbstractConfigurable) source;
             if (!abstractConfigurable.isInitSuccess() && this.isInitSuccess()) {
                 this.setInitSuccess(false);
                 return;

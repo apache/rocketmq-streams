@@ -34,7 +34,7 @@ public class RocketMQSourceExample3 {
      * 1、make sure your rocketmq server has been started.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
 
         try {
             Thread.sleep(1000 * 3);
@@ -49,30 +49,29 @@ public class RocketMQSourceExample3 {
                 RMQ_CONSUMER_GROUP_NAME,
                 false,
                 NAMESRV_ADDRESS)
-                .forEach((message) -> {
-                    System.out.println("forEach: " + message);
-                })
-                .map(message -> message)
-                .filter((value) -> {
-                    String messageValue = (String) value;
-                    return messageValue.contains("InFlow");
-                })
-                .flatMap((message) -> {
-                    JSONObject jsonObject = JSONObject.parseObject((String) message);
-                    Set<Map.Entry<String, Object>> entries = jsonObject.entrySet();
+            .forEach((message) -> {
+                System.out.println("forEach: " + message);
+            })
+            .map(message -> message)
+            .filter((value) -> {
+                String messageValue = (String) value;
+                return messageValue.contains("InFlow");
+            })
+            .flatMap((message) -> {
+                JSONObject jsonObject = JSONObject.parseObject((String) message);
+                Set<Map.Entry<String, Object>> entries = jsonObject.entrySet();
 
-                    List<String> result = new ArrayList<>();
+                List<String> result = new ArrayList<>();
 
-                    for (Map.Entry<String, Object> entry : entries) {
-                        String str = entry.getKey() + ":" + entry.getValue();
-                        result.add(str);
-                    }
-                    return result;
-                })
-                .toPrint(1)
-                .start();
+                for (Map.Entry<String, Object> entry : entries) {
+                    String str = entry.getKey() + ":" + entry.getValue();
+                    result.add(str);
+                }
+                return result;
+            })
+            .toPrint(1)
+            .start();
 
     }
-
 
 }

@@ -27,37 +27,37 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 import org.apache.rocketmq.streams.state.backend.IStateBackend;
 
-public abstract class AbstractState<K,V> implements IState<K,V>{
+public abstract class AbstractState<K, V> implements IState<K, V> {
     protected String namespace;//ex，in rocksdb is prefix
     protected IStateBackend stateBackend; //state storage impl ex rocksdb
     protected String backendName;//choose stateBackend
-    protected AtomicBoolean hasLoadStateBackend=new AtomicBoolean(false);
+    protected AtomicBoolean hasLoadStateBackend = new AtomicBoolean(false);
 
-    public AbstractState(String namespace,String backendName){
-        this.namespace=namespace;
-        this.backendName=backendName;
+    public AbstractState(String namespace, String backendName) {
+        this.namespace = namespace;
+        this.backendName = backendName;
     }
 
     @Override public boolean isEmpty() {
-        return size()==0;
+        return size() == 0;
     }
 
     @Override public boolean containsKey(K key) {
-        return get(key)!=null;
+        return get(key) != null;
     }
 
     @Override public V get(K key) {
-        List<K> keys=new ArrayList<>();
-        Map<K,V> result=get(keys);
-        if(result==null){
+        List<K> keys = new ArrayList<>();
+        Map<K, V> result = get(keys);
+        if (result == null) {
             return null;
         }
         return result.values().iterator().next();
     }
 
     @Override public V put(K key, V value) {
-        Map<K,V> map=new HashMap<>();
-        map.put(key,value);
+        Map<K, V> map = new HashMap<>();
+        map.put(key, value);
         putAll(map);
         return value;
     }
@@ -67,15 +67,15 @@ public abstract class AbstractState<K,V> implements IState<K,V>{
     }
 
     @Override public Map<K, V> get(List<K> key) {
-        return getOrLoadStateBackend().get(this.namespace,key);
+        return getOrLoadStateBackend().get(this.namespace, key);
     }
 
     @Override public V remove(K key) {
-        return (V)getOrLoadStateBackend().remove(this.namespace,key);
+        return (V) getOrLoadStateBackend().remove(this.namespace, key);
     }
 
     @Override public void putAll(Map<? extends K, ? extends V> m) {
-        getOrLoadStateBackend().putAll(this.namespace,m);
+        getOrLoadStateBackend().putAll(this.namespace, m);
     }
 
     @Override public void clear() {
@@ -83,7 +83,7 @@ public abstract class AbstractState<K,V> implements IState<K,V>{
     }
 
     @Override public Iterator<K> keyIterator() {
-        return  getOrLoadStateBackend().keyIterator(this.namespace);
+        return getOrLoadStateBackend().keyIterator(this.namespace);
     }
 
     @Override public Iterator<Map.Entry<K, V>> entryIterator() {
@@ -91,21 +91,21 @@ public abstract class AbstractState<K,V> implements IState<K,V>{
     }
 
     @Override public void removeKeys(Collection<String> keys) {
-        getOrLoadStateBackend().removeKeys(this.namespace,keys);
+        getOrLoadStateBackend().removeKeys(this.namespace, keys);
     }
 
     @Override public void scanEntity(IEntryProcessor<K, V> processor) {
-        getOrLoadStateBackend().scanEntity(this.namespace,processor);
+        getOrLoadStateBackend().scanEntity(this.namespace, processor);
     }
 
     @Override public V putIfAbsent(K key, V value) {
-        return  (V)getOrLoadStateBackend().putIfAbsent(this.namespace,key,value);
+        return (V) getOrLoadStateBackend().putIfAbsent(this.namespace, key, value);
     }
 
-    protected IStateBackend getOrLoadStateBackend(){
-        if(hasLoadStateBackend.compareAndSet(false,true)){
-            ServiceLoaderComponent serviceLoaderComponent=ServiceLoaderComponent.getInstance(IStateBackend.class);
-            this.stateBackend= (IStateBackend) serviceLoaderComponent.getService().loadService(backendName);
+    protected IStateBackend getOrLoadStateBackend() {
+        if (hasLoadStateBackend.compareAndSet(false, true)) {
+            ServiceLoaderComponent serviceLoaderComponent = ServiceLoaderComponent.getInstance(IStateBackend.class);
+            this.stateBackend = (IStateBackend) serviceLoaderComponent.getService().loadService(backendName);
         }
         return this.stateBackend;
     }

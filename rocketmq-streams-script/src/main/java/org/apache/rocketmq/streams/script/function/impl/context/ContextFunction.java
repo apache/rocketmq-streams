@@ -33,7 +33,7 @@ public class ContextFunction {
         return true;
     }
 
-    @FunctionMethod(value = "copy_msg",alias = "orig_msg")
+    @FunctionMethod(value = "copy_msg", alias = "orig_msg")
     public JSONObject joinInnerMessage(IMessage message, FunctionContext context) {
         return message.getMessageBody();
     }

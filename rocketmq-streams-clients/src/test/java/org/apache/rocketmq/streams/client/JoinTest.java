@@ -34,7 +34,7 @@ public class JoinTest implements Serializable {
 
                 @Override
                 public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
+                    if (value.getString("ProjectName") != null && value.getString("LogStore") != null) {
                         return true;
                     }
                     return false;
@@ -47,7 +47,7 @@ public class JoinTest implements Serializable {
 
                 @Override
                 public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
+                    if (value.getString("ProjectName") != null && value.getString("LogStore") != null) {
                         return true;
                     }
                     return false;
@@ -64,17 +64,13 @@ public class JoinTest implements Serializable {
 
     @Test
     public void testDim() {
-        DataStreamAction stream = (StreamBuilder.dataStream("namespace", "name")
-            .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
-            .filter(new FilterFunction<JSONObject>() {
-
-                @Override
-                public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
-                        return true;
-                    }
-                    return false;
+        DataStream stream = (StreamBuilder.dataStream("namespace", "name")
+            .fromFile("/Users/junjie.cheng/workspace/rocketmq-streams-apache/rocketmq-streams-clients/src/test/resources/window_msg_10.txt")
+            .filter((FilterFunction<JSONObject>) value -> {
+                if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
+                    return true;
                 }
+                return false;
             }))
             .join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5)
             .setCondition("(name,==,name)")
@@ -82,7 +78,6 @@ public class JoinTest implements Serializable {
             .selectFields("name", "age", "address")
             .toPrint();
         stream.start();
-        ;
 
     }
 }

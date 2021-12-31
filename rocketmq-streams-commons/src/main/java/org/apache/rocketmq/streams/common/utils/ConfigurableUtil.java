@@ -54,9 +54,9 @@ public class ConfigurableUtil {
         }
     }
 
-    public static IConfigurable create(String className, String namespace, String name, JSONObject property, JSONObject mock) {
-        IConfigurable configurable =
-            ConfigurableUtil.create(namespace, name, property, className);
+    public static IConfigurable create(String className, String namespace, String name, JSONObject property,
+        JSONObject mock) {
+        IConfigurable configurable = ConfigurableUtil.create(namespace, name, property, className);
         if (mock != null) {
             addMockData(mock, property);
         }
@@ -68,9 +68,9 @@ public class ConfigurableUtil {
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
             String fieldName = entry.getKey();
-            String value = (String)property.get(fieldName);
+            String value = (String) property.get(fieldName);
             if (StringUtil.isNotEmpty(value)) {
-                String actualValue = (String)entry.getValue();
+                String actualValue = (String) entry.getValue();
                 ComponentCreator.getProperties().put(value, actualValue);
             }
         }
@@ -87,8 +87,8 @@ public class ConfigurableUtil {
             return false;
         }
         if (AbstractConfigurable.class.isInstance(configurable1) && AbstractConfigurable.class.isInstance(configurable2)) {
-            AbstractConfigurable abstractConfigurable1 = (AbstractConfigurable)configurable1;
-            AbstractConfigurable abstractConfigurable2 = (AbstractConfigurable)configurable2;
+            AbstractConfigurable abstractConfigurable1 = (AbstractConfigurable) configurable1;
+            AbstractConfigurable abstractConfigurable2 = (AbstractConfigurable) configurable2;
             if (abstractConfigurable1.getUpdateFlag() == abstractConfigurable2.getUpdateFlag()) {
                 return true;
             } else {
@@ -132,19 +132,18 @@ public class ConfigurableUtil {
         configurable.toObject(configurable.toJson());
     }
 
-    public static <T extends BasedConfigurable> T create(String namespace, String name,
-                                                         String className) {
+    public static <T extends BasedConfigurable> T create(String namespace, String name, String className) {
         IConfigurable configurable = ReflectUtil.forInstance(className);
         configurable.setNameSpace(namespace);
         configurable.setConfigureName(name);
-        return (T)configurable;
+        return (T) configurable;
     }
 
     public static <T extends BasedConfigurable> T create(String namespace, String name, JSONObject message,
-                                                         String className) {
+        String className) {
         IConfigurable configurable = create(namespace, name, className);
         initProperty(configurable, message);
-        return (T)configurable;
+        return (T) configurable;
     }
 
     public static void initProperty(IConfigurable configurable, JSONObject message) {
@@ -158,12 +157,12 @@ public class ConfigurableUtil {
 
     public static void setProperty2Configurable(Object configurable, String filedName, JSONObject message) {
         Object field = message.get(filedName);
-        if (field==null) {
+        if (field == null) {
             return;
         }
-        Object fieldValue=field;
-        if(String.class.isInstance(field)){
-            String fieldJsonStr=(String)field;
+        Object fieldValue = field;
+        if (String.class.isInstance(field)) {
+            String fieldJsonStr = (String) field;
             DataType dataType = DataTypeUtil.createFieldDataType(configurable, filedName);
             fieldValue = dataType.getData(fieldJsonStr);
         }
@@ -213,44 +212,4 @@ public class ConfigurableUtil {
         return metaData;
     }
 
-    //@SuppressWarnings("rawtypes")
-    //public static void batchInsertConfigurable(List<JSONObject> messages, IConfigurable configurable,
-    //    IConfigurableService configureService) {
-    //    if (IDataOperator.class.isInstance(configurable)) {
-    //        IDataOperator dataSource = (IDataOperator) configurable;
-    //        dataSource.batchSave(messages);
-    //    }  else {
-    //        throw new RuntimeException("can not support insert " + configurable.toJson());
-    //    }
-    //}
-    //
-    //public static void insertConfigurable(JSONObject message, IConfigurable configurable,
-    //    IConfigurableService configureService) {
-    //    List<JSONObject> messages = new ArrayList<>();
-    //    messages.add(message);
-    //    batchInsertConfigurable(messages, configurable, configureService);
-    //}
-
-    //@SuppressWarnings("rawtypes")
-    //public static void batchInsertConfigurableWithFlush(List<JSONObject> messages, IConfigurable configurable,
-    //    IConfigurableService configureService) {
-    //    IDataOperator dataSource = null;
-    //    if (IDataOperator.class.isInstance(configurable)) {
-    //        dataSource = (IDataOperator) configurable;
-    //    } else if (IConvertDataSource.class.isInstance(configurable)) {
-    //        IConvertDataSource convertDataSource = (IConvertDataSource) configurable;
-    //        dataSource = convertDataSource.convert();
-    //    } else if (IConvertAdapter.class.isInstance(configurable)) {
-    //        IConvertAdapter convertAdapter = (IConvertAdapter) configurable;
-    //
-    //        dataSource = adapter.getDataSource();
-    //    } else {
-    //        throw new RuntimeException("can not support insert " + configurable.toJson());
-    //    }
-    //    dataSource.openAutoFlush();
-    //    for (int i = 0; i < messages.size(); i++) {
-    //        dataSource.batchAdd(messages.get(i));
-    //    }
-    //
-    //}
 }

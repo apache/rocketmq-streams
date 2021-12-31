@@ -26,62 +26,64 @@ public class ScheduleTask {
     protected ExecutorService executorService;
     protected Long lastExecuteTime;
     protected IScheduleCondition scheduleCondition;
-    protected AtomicBoolean isExecuting=new AtomicBoolean(false);
+    protected AtomicBoolean isExecuting = new AtomicBoolean(false);
 
-
-    public ScheduleTask(int initialDelaySecond,int delaySecond,Runnable runnable){
-        this.initialDelaySecond=initialDelaySecond;
-        this.delaySecond=delaySecond;
-        this.runnable=runnable;
-        if(initialDelaySecond==0){
-            lastExecuteTime=0L;
-        }else {
-            lastExecuteTime=System.currentTimeMillis();
+    public ScheduleTask(int initialDelaySecond, int delaySecond, Runnable runnable) {
+        this.initialDelaySecond = initialDelaySecond;
+        this.delaySecond = delaySecond;
+        this.runnable = runnable;
+        if (initialDelaySecond == 0) {
+            lastExecuteTime = 0L;
+        } else {
+            lastExecuteTime = System.currentTimeMillis();
         }
-        Runnable runnableProxy=new Runnable() {
-            @Override public void run() {
+        Runnable runnableProxy = new Runnable() {
+            @Override
+            public void run() {
                 runnable.run();
-                lastExecuteTime=System.currentTimeMillis();
+                lastExecuteTime = System.currentTimeMillis();
                 isExecuting.set(false);
             }
         };
-        this.runnable=runnableProxy;
-    }
-    public ScheduleTask(IScheduleCondition scheduleCondition,Runnable runnable){
-        this.scheduleCondition=scheduleCondition;
-        Runnable runnableProxy=new Runnable() {
-            @Override public void run() {
-                runnable.run();
-                lastExecuteTime=System.currentTimeMillis();
-                isExecuting.set(false);
-            }
-        };
-        this.runnable=runnableProxy;
+        this.runnable = runnableProxy;
     }
 
-    public boolean canExecute(){
-        if(!isExecuting.compareAndSet(false,true)){
+    public ScheduleTask(IScheduleCondition scheduleCondition, Runnable runnable) {
+        this.scheduleCondition = scheduleCondition;
+        Runnable runnableProxy = new Runnable() {
+            @Override
+            public void run() {
+                runnable.run();
+                lastExecuteTime = System.currentTimeMillis();
+                isExecuting.set(false);
+            }
+        };
+        this.runnable = runnableProxy;
+    }
+
+    public boolean canExecute() {
+        if (!isExecuting.compareAndSet(false, true)) {
             return false;
         }
-        if(this.scheduleCondition!=null){
-            boolean canExecute= (this.scheduleCondition.canExecute());
-            if(!canExecute){
-                isExecuting.compareAndSet(true,false);
+        if (this.scheduleCondition != null) {
+            boolean canExecute = (this.scheduleCondition.canExecute());
+            if (!canExecute) {
+                isExecuting.compareAndSet(true, false);
             }
             return canExecute;
         }
-        if(initialDelaySecond==0){
-            initialDelaySecond=-1;
+        if (initialDelaySecond == 0) {
+            initialDelaySecond = -1;
             return true;
         }
-        if(initialDelaySecond>0&&(System.currentTimeMillis()-lastExecuteTime>initialDelaySecond)){
-            initialDelaySecond=-1;
+        if (initialDelaySecond > 0 && (System.currentTimeMillis() - lastExecuteTime > initialDelaySecond)) {
+            initialDelaySecond = -1;
             return true;
         }
-        if(System.currentTimeMillis()-lastExecuteTime>delaySecond){
+        if (System.currentTimeMillis() - lastExecuteTime > delaySecond) {
             return true;
         }
-        isExecuting.compareAndSet(true,false);
+        isExecuting.compareAndSet(true, false);
         return false;
     }
 

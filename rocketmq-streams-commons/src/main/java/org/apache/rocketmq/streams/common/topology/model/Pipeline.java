@@ -62,10 +62,9 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
     protected String msgSourceName;//主要用于在join，union场景，标记上游节点用
 
     /**
-     * KEY: source stage lable
-     * value: key:next stage lable: value :PreFingerprint
+     * KEY: source stage lable value: key:next stage lable: value :PreFingerprint
      */
-    protected transient Map<String, Map<String, PreFingerprint>> preFingerprintExecutor=new HashMap<>();
+    protected transient Map<String, Map<String, PreFingerprint>> preFingerprintExecutor = new HashMap<>();
 
     public Pipeline() {
         setType(TYPE);
@@ -116,24 +115,24 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
 
     /**
      * regist pre filter Fingerprint
+     *
      * @param preFingerprint
      */
-    protected void registPreFingerprint(PreFingerprint preFingerprint){
-        if(preFingerprint==null){
+    protected void registPreFingerprint(PreFingerprint preFingerprint) {
+        if (preFingerprint == null) {
             return;
         }
-        Map<String,PreFingerprint> preFingerprintMap=this.preFingerprintExecutor.get(preFingerprint.getSourceStageLable());
-        if(preFingerprintMap==null){
-            preFingerprintMap=new HashMap<>();
-            this.preFingerprintExecutor.put(preFingerprint.getSourceStageLable(),preFingerprintMap);
+        Map<String, PreFingerprint> preFingerprintMap = this.preFingerprintExecutor.get(preFingerprint.getSourceStageLable());
+        if (preFingerprintMap == null) {
+            preFingerprintMap = new HashMap<>();
+            this.preFingerprintExecutor.put(preFingerprint.getSourceStageLable(), preFingerprintMap);
         }
-        preFingerprintMap.put(preFingerprint.getNextStageLable(),preFingerprint);
+        preFingerprintMap.put(preFingerprint.getNextStageLable(), preFingerprint);
     }
 
-
-    protected PreFingerprint getPreFingerprint(String currentLable,String nextLable){
-        Map<String,PreFingerprint> preFingerprintMap=this.preFingerprintExecutor.get(currentLable);
-        if(preFingerprintMap==null){
+    protected PreFingerprint getPreFingerprint(String currentLable, String nextLable) {
+        Map<String, PreFingerprint> preFingerprintMap = this.preFingerprintExecutor.get(currentLable);
+        if (preFingerprintMap == null) {
             return null;
         }
         return preFingerprintMap.get(nextLable);
@@ -150,16 +149,15 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
         if (t.getHeader().isSystemMessage()) {
             ISystemMessage systemMessage = t.getSystemMessage();
             if (systemMessage instanceof CheckPointMessage) {
-                stage.checkpoint(t, context, (CheckPointMessage)systemMessage);
+                stage.checkpoint(t, context, (CheckPointMessage) systemMessage);
             } else if (systemMessage instanceof NewSplitMessage) {
-                stage.addNewSplit(t, context, (NewSplitMessage)systemMessage);
+                stage.addNewSplit(t, context, (NewSplitMessage) systemMessage);
             } else if (systemMessage instanceof RemoveSplitMessage) {
-                stage.removeSplit(t, context, (RemoveSplitMessage)systemMessage);
+                stage.removeSplit(t, context, (RemoveSplitMessage) systemMessage);
             } else if (systemMessage instanceof BatchFinishMessage) {
-                stage.batchMessageFinish(t, context, (BatchFinishMessage)systemMessage);
-            }
-            else {
-                if(systemMessage==null){
+                stage.batchMessageFinish(t, context, (BatchFinishMessage) systemMessage);
+            } else {
+                if (systemMessage == null) {
                     return true;
                 }
                 throw new RuntimeException("can not support this system message " + systemMessage.getClass().getName());

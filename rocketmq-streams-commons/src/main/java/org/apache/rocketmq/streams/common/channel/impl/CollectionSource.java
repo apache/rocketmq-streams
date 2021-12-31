@@ -27,7 +27,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 
 /**
- *
  * @description for test checkpoint
  */
 public class CollectionSource extends AbstractSource implements Serializable {
@@ -49,16 +48,16 @@ public class CollectionSource extends AbstractSource implements Serializable {
 
     transient volatile long currentOffset;
 
-    public CollectionSource(){
-
+    public CollectionSource() {
+        elements = new ArrayList<>();
     }
 
-    private final boolean isInterrupted(){
+    private final boolean isInterrupted() {
         return currentOffset == maxOffset;
     }
 
-    private synchronized JSONObject consume(){
-        while(queue.isEmpty()){
+    private synchronized JSONObject consume() {
+        while (queue.isEmpty()) {
             try {
                 logger.info("queue is empty, sleep 50ms.");
                 Thread.sleep(1000);
@@ -75,34 +74,34 @@ public class CollectionSource extends AbstractSource implements Serializable {
         return queue.poll();
     }
 
-    public CollectionSource addAll(JSONObject... elements){
+    public CollectionSource addAll(JSONObject... elements) {
         maxOffset = elements.length;
-        if(this.elements == null){
+        if (this.elements == null) {
             this.elements = new ArrayList<>();
         }
-        for(JSONObject e : elements){
+        for (JSONObject e : elements) {
             this.elements.add(e.toJSONString());
         }
         return this;
     }
 
     @Override
-    public boolean initConfigurable(){
+    public boolean initConfigurable() {
         elements.forEach(e -> queue.offer(JSONObject.parseObject(e)));
         return super.initConfigurable();
     }
 
     @Override
     protected boolean startSource() {
-        new Thread(new Runnable(){
+        new Thread(new Runnable() {
 
             @Override
             public void run() {
-                while(isInterrupted() == false){
+                while (isInterrupted() == false) {
                     JSONObject message = consume();
                     boolean isCheckPoint = false;
                     long cur = System.currentTimeMillis();
-                    if(cur - lastCheckpointTime > checkpointIntervalMs){
+                    if (cur - lastCheckpointTime > checkpointIntervalMs) {
                         System.out.println("start checkping....");
                         isCheckPoint = true;
                         lastCheckpointTime = cur;
