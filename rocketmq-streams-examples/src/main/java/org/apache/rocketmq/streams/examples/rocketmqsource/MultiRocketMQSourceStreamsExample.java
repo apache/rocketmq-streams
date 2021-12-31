@@ -95,9 +95,8 @@ public class MultiRocketMQSourceStreamsExample {
                 true,
                 NAMESRV_ADDRESS);
 
-        left.join(right)
-                .setJoinType(JoinStream.JoinType.LEFT_JOIN)
-                .setCondition("(InFlow,==,InFlow)")
+        left.leftJoin(right)
+                .on("(InFlow,==,InFlow)")
                 .window(Time.minutes(1))
                 .toDataSteam()
                 .map(message -> {
