@@ -29,12 +29,67 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.client.transform.window.SessionWindow;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.common.functions.ForEachFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class WindowTest implements Serializable {
+
+    @Test
+    public void testWindow() {
+        StreamBuilder.dataStream("namespace", "name")
+            .fromFile("/Users/duheng/project/opensource/sls_100.txt", false)
+            .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
+            .window(TumblingWindow.of(Time.seconds(5)))
+            .groupBy("ProjectName", "LogStore")
+            .setLocalStorageOnly(true)
+            .count("total")
+            .sum("OutFlow", "OutFlow")
+            .sum("InFlow", "InFlow")
+            .toDataSteam()
+            .forEach(new ForEachFunction<JSONObject>() {
+                protected int sum = 0;
+
+                @Override
+                public void foreach(JSONObject o) {
+                    int total = o.getInteger("total");
+                    sum = sum + total;
+                    o.put("sum(total)", sum);
+                }
+            }).toPrint().start();
+
+    }
+
+    //    @Test
+    //    public void testWindowFromMetaq() throws InterruptedException {
+    //        String topic = "TOPIC_DIPPER_SYSTEM_MSG_4";
+    //        StreamBuilder.dataStream("namespace", "name")
+    //            .fromFile("/Users/yuanxiaodong/chris/sls_100.txt", true)
+    //            .toRocketmq(topic)
+    //            .asyncStart();
+    //
+    //        StreamBuilder.dataStream("namespace", "name1")
+    //            .fromRocketmq(topic, "chris", true)
+    //            .window(TumblingWindow.of(Time.seconds(5)))
+    //            .groupby("ProjectName", "LogStore")
+    //            .setLocalStorageOnly(true)
+    //            .count("total")
+    //            .sum("OutFlow", "OutFlow")
+    //            .sum("InFlow", "inflow")
+    //            .toDataSteam()
+    //            .forEach(new ForEachFunction<JSONObject>() {
+    //                protected int sum = 0;
+    //
+    //                @Override
+    //                public void foreach(JSONObject o) {
+    //                    int total = o.getInteger("total");
+    //                    sum = sum + total;
+    //                    o.put("sum(total)", sum);
+    //                }
+    //            }).toPrint().start();
+    //    }
 
     @Test
     public void testSession() {
@@ -197,7 +252,7 @@ public class WindowTest implements Serializable {
             .setLocalStorageOnly(true)
             .count_distinct("page", "uv")
             .count_distinct_large("page", "uv_large")
-            .count_distinct_2("page","uv_2")
+            .count_distinct_2("page", "uv_2")
             .toDataSteam()
             .toFile(resultFile.getAbsolutePath()).start(true);
 

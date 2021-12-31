@@ -26,11 +26,8 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class CaseFunction {
 
-
-
-
-    public static boolean isCaseFunction(String functionName){
-        if("if".equals(functionName)||"case".equals(functionName)||"!".equals(functionName)||"!if".equals(functionName)){
+    public static boolean isCaseFunction(String functionName) {
+        if ("if".equals(functionName) || "case".equals(functionName) || "!".equals(functionName) || "!if".equals(functionName)) {
             return true;
         }
         return false;
@@ -60,7 +57,7 @@ public class CaseFunction {
         if (value.startsWith("(") && value.endsWith(")")) {
             String expression = value;
             Boolean result = ExpressionBuilder.executeExecute(System.currentTimeMillis() + "", expression,
-               message,context);
+                message, context);
             //message.getHeader().getRegex2Value().put(value,result);
             return result;
         }
@@ -71,7 +68,5 @@ public class CaseFunction {
     public Boolean notma(IMessage message, FunctionContext context, String value) {
         return !match(message, context, value);
     }
-
-
 
 }

@@ -24,31 +24,31 @@ import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.junit.Test;
 
 public class ShuffleOverWindowTest {
-    protected String filePath="/tmp/over.txt";
+    protected String filePath = "/tmp/over.txt";
 
     @Test
-    public void testShuffleWindow(){
+    public void testShuffleWindow() {
         StreamBuilder.dataStream("namespace", "name1")
-            .fromFile(filePath,true)
-            .topN("rowNum",10000,"city")
-            .addOrderByFieldName("name",true)
-            .addOrderByFieldName("age",false)
+            .fromFile(filePath, true)
+            .topN("rowNum", 10000, "city")
+            .addOrderByFieldName("name", true)
+            .addOrderByFieldName("age", false)
             .toDataSteam()
             .toPrint()
             .start();
     }
 
     @Test
-    public void testCreateData(){
-        List<String> list=new ArrayList<>();
-        for(int i=0;i<20;i++){
-            JSONObject msg=new JSONObject();
-            msg.put("city","beijing");
-            msg.put("name","chris"+i%10);
-            msg.put("age",i);
+    public void testCreateData() {
+        List<String> list = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            JSONObject msg = new JSONObject();
+            msg.put("city", "beijing");
+            msg.put("name", "chris" + i % 10);
+            msg.put("age", i);
             list.add(msg.toJSONString());
             System.out.println(msg);
         }
-        FileUtil.write(filePath,list);
+        FileUtil.write(filePath, list);
     }
 }

@@ -36,9 +36,9 @@ public class BatchFinishMessage implements ISystemMessage {
     }
 
     public static boolean isBatchFinishMessage(IMessage message) {
-        try {
+        if (message.getMessageValue() instanceof JSONObject) {
             return message.getMessageBody().getBooleanValue(PRIMARY_KEY);
-        } catch (Throwable t) {
+        } else {
             return false;
         }
     }

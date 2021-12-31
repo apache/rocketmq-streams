@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -45,6 +44,8 @@ import org.apache.rocketmq.streams.window.state.impl.JoinRightState;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 
+import static org.apache.rocketmq.streams.window.shuffle.ShuffleChannel.SHUFFLE_OFFSET;
+
 public class JoinWindow extends AbstractShuffleWindow {
 
     public static final String JOIN_KEY = "JOIN_KEY";
@@ -63,14 +64,11 @@ public class JoinWindow extends AbstractShuffleWindow {
     protected String expression;//条件表达式。在存在非等值比较时使用
     protected transient DBOperator joinOperator = new DBOperator();
 
-
-
     //    @Override
     //    protected void addPropertyToMessage(IMessage oriMessage, JSONObject oriJson){
     //        oriJson.put("AbstractWindow", this);
     //
     //    }
-
 
     @Override
     protected int fireWindowInstance(WindowInstance instance, String shuffleId, Map<String, String> queueId2Offsets) {
@@ -80,22 +78,17 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     @Override
     public void clearCache(String queueId) {
-        getStorage().clearCache(shuffleChannel.getChannelQueue(queueId),getWindowBaseValueClass());
+        getStorage().clearCache(shuffleChannel.getChannelQueue(queueId), getWindowBaseValueClass());
         ShufflePartitionManager.getInstance().clearSplit(queueId);
     }
 
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
-        Map<String, WindowBaseValue> joinLeftStates = new HashMap<>();
-        Map<String, WindowBaseValue> joinRightStates = new HashMap<>();
-//        for (IMessage msg : messages) {
-//
-//        }
-
 
         for (IMessage msg : messages) {
-            MessageHeader header = JSONObject.parseObject(msg.getMessageBody().
-                getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
+            Map<String, WindowBaseValue> joinLeftStates = new HashMap<>();
+            Map<String, WindowBaseValue> joinRightStates = new HashMap<>();
+            MessageHeader header = JSONObject.parseObject(msg.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
             msg.setHeader(header);
             String routeLabel = header.getMsgRouteFromLable();
             String storeKey = createStoreKey(msg, routeLabel, instance);
@@ -112,9 +105,7 @@ public class JoinWindow extends AbstractShuffleWindow {
                 storage.multiPut(joinRightStates);
             }
 
-            header = msg.getHeader();
-            routeLabel = header.getMsgRouteFromLable();
-            //            Map<String,WindowBaseValue> joinMessages = new HashMap<>();
+            routeLabel = msg.getHeader().getMsgRouteFromLable();
             String storeKeyPrefix = "";
             Iterator<WindowBaseValue> iterator = null;
             if (LABEL_LEFT.equalsIgnoreCase(routeLabel)) {
@@ -125,7 +116,6 @@ public class JoinWindow extends AbstractShuffleWindow {
                 iterator = getMessageIterator(queueId, instance, msg, storeKeyPrefix, JoinLeftState.class);
             }
 
-            //            Iterator<WindowBaseValue> iterator = getMessageIterator(queueId, instance, msg, storeKeyPrefix, JoinState.class);
             List<WindowBaseValue> tmpMessages = new ArrayList<>();
             int count = 0;
             while (iterator.hasNext()) {
@@ -142,12 +132,12 @@ public class JoinWindow extends AbstractShuffleWindow {
                 }
             }
             sendMessage(msg, tmpMessages);
-
         }
+
     }
 
-    private Iterator<WindowBaseValue> getMessageIterator(String queueId, WindowInstance instance,
-                                                         IMessage msg, String keyPrefix, Class<? extends WindowBaseValue> clazz) {
+    private Iterator<WindowBaseValue> getMessageIterator(String queueId, WindowInstance instance, IMessage msg,
+        String keyPrefix, Class<? extends WindowBaseValue> clazz) {
 
         List<WindowInstance> instances = new ArrayList<>();
         for (Map.Entry<String, WindowInstance> entry : this.windowInstanceMap.entrySet()) {
@@ -157,9 +147,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
         Iterator<WindowInstance> windowInstanceIter = instances.iterator();
         return new Iterator<WindowBaseValue>() {
-            protected volatile boolean hasNext = true;
-            protected AtomicBoolean hasInit = new AtomicBoolean(false);
-            protected Iterator<WindowBaseValue> iterator = null;
+            private Iterator<WindowBaseValue> iterator = null;
 
             @Override
             public boolean hasNext() {
@@ -168,10 +156,7 @@ public class JoinWindow extends AbstractShuffleWindow {
                 }
                 if (windowInstanceIter.hasNext()) {
                     WindowInstance instance = windowInstanceIter.next();
-                    iterator = storage.loadWindowInstanceSplitData(null, null,
-                        instance.createWindowInstanceId(),
-                        keyPrefix,
-                        clazz);
+                    iterator = storage.loadWindowInstanceSplitData(null, null, instance.createWindowInstanceId(), keyPrefix, clazz);
                     if (iterator != null && iterator.hasNext()) {
                         return true;
                     }
@@ -187,7 +172,8 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     }
 
-    private Iterator<WindowBaseValue> getIterator(String queueId, String keyPrefix, WindowInstance instance, Class<? extends WindowBaseValue> clazz) {
+    private Iterator<WindowBaseValue> getIterator(String queueId, String keyPrefix, WindowInstance instance,
+        Class<? extends WindowBaseValue> clazz) {
 
         List<WindowInstance> instances = new ArrayList<>();
         for (Map.Entry<String, WindowInstance> entry : this.windowInstanceMap.entrySet()) {
@@ -195,9 +181,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
         Iterator<WindowInstance> windowInstanceIter = instances.iterator();
         return new Iterator<WindowBaseValue>() {
-            protected volatile boolean hasNext = true;
-            protected AtomicBoolean hasInit = new AtomicBoolean(false);
-            protected Iterator<WindowBaseValue> iterator = null;
+            private Iterator<WindowBaseValue> iterator = null;
 
             @Override
             public boolean hasNext() {
@@ -227,10 +211,11 @@ public class JoinWindow extends AbstractShuffleWindow {
     public List<JSONObject> connectJoin(IMessage message, List<Map<String, Object>> rows, String joinType,
         String rightAsName) {
         List<JSONObject> result = new ArrayList<>();
-        if (rows.size() <= 0) {
-            return result;
-        }
+
         if ("inner".equalsIgnoreCase(joinType)) {
+            if (rows.size() <= 0) {
+                return result;
+            }
             result = connectInnerJoin(message, rows, rightAsName);
         } else if ("left".equalsIgnoreCase(joinType)) {
             result = connectLeftJoin(message, rows, rightAsName);
@@ -247,8 +232,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         int index = 1;
         if (LABEL_LEFT.equalsIgnoreCase(routeLabel) && rows.size() > 0) {
             for (Map<String, Object> raw : rows) {
-                //                addAsName(raw, rightAsName);
-                JSONObject object = (JSONObject)messageBody.clone();
+                JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(addAsName(raw, rightAsName));
                 object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
                 index++;
@@ -258,29 +242,15 @@ public class JoinWindow extends AbstractShuffleWindow {
             JSONObject object = (JSONObject) messageBody.clone();
             object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
             result.add(object);
-        } else {
+        } else if (LABEL_RIGHT.equalsIgnoreCase(routeLabel) && rows.size() > 0) {
             messageBody = addAsName(messageBody, rightAsName);
             for (Map<String, Object> raw : rows) {
-                JSONObject object = (JSONObject)messageBody.clone();
+                JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(raw);
                 object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
                 index++;
                 result.add(object);
             }
-        }
-
-
-
-        if (rows != null && rows.size() > 0) {
-            for (Map<String,Object> raw : rows) {
-                JSONObject object = (JSONObject) messageBody.clone();
-                object.fluentPutAll(raw);
-                result.add(object);
-            }
-            return result;
-        }
-        if (LABEL_LEFT.equalsIgnoreCase(routeLabel)) {
-            result.add(messageBody);
         }
         return result;
     }
@@ -300,8 +270,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         if (LABEL_LEFT.equalsIgnoreCase(routeLabel)) {
             JSONObject messageBody = message.getMessageBody();
             for (Map<String, Object> raw : rows) {
-                //                addAsName(raw, rightAsName);
-                JSONObject object = (JSONObject)messageBody.clone();
+                JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(addAsName(raw, rightAsName));
                 object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
                 index++;
@@ -311,7 +280,7 @@ public class JoinWindow extends AbstractShuffleWindow {
             JSONObject messageBody = message.getMessageBody();
             messageBody = addAsName(messageBody, rightAsName);
             for (Map<String, Object> raw : rows) {
-                JSONObject object = (JSONObject)messageBody.clone();
+                JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(raw);
                 object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
                 index++;
@@ -379,7 +348,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         String messageId = this.getNameSpace() + "_" + this.getConfigureName() + "_" + queueId + "_" + offset;
 
         String messageKey = generateKey(message.getMessageBody(), routeLabel, this.leftJoinFieldNames, this.rightJoinFieldNames);
-        JSONObject messageBody = (JSONObject)message.getMessageBody().clone();
+        JSONObject messageBody = (JSONObject) message.getMessageBody().clone();
         messageBody.remove("WindowInstance");
         messageBody.remove("AbstractWindow");
         messageBody.remove(WindowCache.ORIGIN_MESSAGE_HEADER);
@@ -420,7 +389,8 @@ public class JoinWindow extends AbstractShuffleWindow {
      * @param rightJoinFieldNames
      * @return
      */
-    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames, List<String> rightJoinFieldNames) {
+    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames,
+        List<String> rightJoinFieldNames) {
         StringBuffer buffer = new StringBuffer();
         if ("left".equalsIgnoreCase(joinLabel)) {
             for (String field : leftJoinFieldNames) {
@@ -453,15 +423,13 @@ public class JoinWindow extends AbstractShuffleWindow {
         return JoinState.class;
     }
 
-
     /**
      * window触发后的清理工作
+     *
      * @param windowInstance
      */
     @Override
     public synchronized void clearFireWindowInstance(WindowInstance windowInstance) {
-//        String partitionNum=(getOrderBypPrefix()+ windowInstance.getSplitId());
-
         List<WindowInstance> removeInstances = new ArrayList<>();
 
         Date clearTime = DateUtil.addSecond(DateUtil.parse(windowInstance.getStartTime()), -sizeInterval * (retainWindowCount - 1) * 60);
@@ -479,14 +447,12 @@ public class JoinWindow extends AbstractShuffleWindow {
 
             windowMaxValueManager.deleteSplitNum(instance, instance.getSplitId());
             ShufflePartitionManager.getInstance().clearWindowInstance(instance.createWindowInstanceId());
-            storage.delete(instance.createWindowInstanceId(),null,WindowBaseValue.class,sqlCache);
-            if(!isLocalStorageOnly){
-                WindowInstance.clearInstance(instance,sqlCache);
-                joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(),
-                    this.getSizeInterval(), windowInstance.getStartTime());
+            storage.delete(instance.createWindowInstanceId(), null, WindowBaseValue.class, sqlCache);
+            if (!isLocalStorageOnly) {
+                WindowInstance.clearInstance(instance, sqlCache);
+                joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(), this.getSizeInterval(), windowInstance.getStartTime());
             }
         }
-
 
     }
 
@@ -498,12 +464,14 @@ public class JoinWindow extends AbstractShuffleWindow {
     private List<Map<String, Object>> converToMapFromList(List<WindowBaseValue> rows) {
         List<Map<String, Object>> joinMessages = new ArrayList<>();
         for (WindowBaseValue value : rows) {
-            JSONObject obj = Message.parseObject(((JoinState)value).getMessageBody());
-            joinMessages.add((Map<String, Object>)obj);
+            JSONObject obj = Message.parseObject(((JoinState) value).getMessageBody());
+            joinMessages.add((Map<String, Object>) obj);
         }
         return joinMessages;
     }
-    protected transient AtomicInteger count=new AtomicInteger(0);
+
+    protected transient AtomicInteger count = new AtomicInteger(0);
+
     /**
      * 把触发的数据，发送到下一个节点
      *
@@ -512,19 +480,20 @@ public class JoinWindow extends AbstractShuffleWindow {
      */
     protected void sendMessage(JSONObject message, boolean needFlush) {
         Message nextMessage = new Message(message);
+        cleanMessage(nextMessage);
         if (needFlush) {
             nextMessage.getHeader().setNeedFlush(true);
         }
         AbstractContext context = new Context(nextMessage);
-        boolean isWindowTest= ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
-        if(isWindowTest){
-            System.out.println(getConfigureName()+" result send count is "+count.incrementAndGet());
+        boolean isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+        if (isWindowTest) {
+            System.out.println(getConfigureName() + " result send count is " + count.incrementAndGet());
         }
         this.getFireReceiver().doMessage(nextMessage, context);
     }
 
     protected void sendMessage(IMessage msg, List<WindowBaseValue> messages) {
-        if (messages == null || messages.size() == 0) {
+        if ("inner".equalsIgnoreCase(joinType) && (messages == null || messages.size() == 0)) {
             return;
         }
         List<JSONObject> connectMsgs;
@@ -544,6 +513,22 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
     }
 
+    protected void cleanMessage(Message msg) {
+        JSONObject messageBody = msg.getMessageBody();
+        messageBody.remove("WindowInstance");
+        messageBody.remove("AbstractWindow");
+        messageBody.remove(WindowCache.ORIGIN_MESSAGE_HEADER);
+        messageBody.remove("MessageHeader");
+        messageBody.remove(SHUFFLE_OFFSET);
+        messageBody.remove("HIT_WINDOW_INSTANCE_ID");
+        messageBody.remove(TraceUtil.TRACE_ID_FLAG);
+        messageBody.remove(WindowCache.ORIGIN_QUEUE_ID);
+        messageBody.remove(WindowCache.SHUFFLE_KEY);
+        messageBody.remove(WindowCache.ORIGIN_MESSAGE_TRACE_ID);
+        messageBody.remove(WindowCache.ORIGIN_OFFSET);
+        messageBody.remove(WindowCache.ORIGIN_QUEUE_IS_LONG);
+    }
+
     @Override
     public void removeInstanceFromMap(WindowInstance windowInstance) {
         String begin = DateUtil.getBeforeMinutesTime(windowInstance.getStartTime(), (this.retainWindowCount - 1) * this.sizeInterval);
@@ -555,25 +540,27 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
     }
 
-    @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
-        Long leftMaxSplitNum=storage.getMaxSplitNum(instance,JoinLeftState.class);
-        Long rigthMaxSplitNum=storage.getMaxSplitNum(instance,JoinRightState.class);
-        if(leftMaxSplitNum==null){
+    @Override
+    protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
+        Long leftMaxSplitNum = storage.getMaxSplitNum(instance, JoinLeftState.class);
+        Long rigthMaxSplitNum = storage.getMaxSplitNum(instance, JoinRightState.class);
+        if (leftMaxSplitNum == null) {
             return rigthMaxSplitNum;
         }
-        if(rigthMaxSplitNum==null){
+        if (rigthMaxSplitNum == null) {
             return leftMaxSplitNum;
         }
-        if(leftMaxSplitNum>=rigthMaxSplitNum){
+        if (leftMaxSplitNum >= rigthMaxSplitNum) {
             return leftMaxSplitNum;
         }
-        if(leftMaxSplitNum<rigthMaxSplitNum){
+        if (leftMaxSplitNum < rigthMaxSplitNum) {
             return rigthMaxSplitNum;
         }
         return null;
     }
 
-    @Override public boolean supportBatchMsgFinish() {
+    @Override
+    public boolean supportBatchMsgFinish() {
         return false;
     }
 

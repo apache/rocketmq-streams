@@ -85,30 +85,11 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         setGmtModified(DateUtil.getCurrentTime());
     }
 
-    @Override
-    protected void getJsonObject(JSONObject jsonObject) {
-        super.getJsonObject(jsonObject);
-        String result = jsonObject.getString("aggColumnResult");
-        setAggColumnResult(result);
-    }
-
-    @Override
-    protected void setJsonObject(JSONObject jsonObject) {
-        super.setJsonObject(jsonObject);
-        if (aggColumnResult == null) {
-            return;
-        }
-        jsonObject.put("aggColumnResult", getAggColumnResult());
-
-    }
-
     public WindowValue(WindowValue theValue) {
         this.startTime = theValue.getStartTime();
         this.endTime = theValue.getEndTime();
         this.fireTime = theValue.getFireTime();
         this.groupBy = theValue.getGroupBy();
-        setNameSpace(theValue.getNameSpace());
-        setConfigureName(theValue.getConfigureName());
     }
 
     /**
@@ -155,7 +136,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
      */
     public void setAggColumnResult(String jsonArrayStr) {
         jsonArrayStr = decodeSQLContent(jsonArrayStr);
-        if(jsonArrayStr==null){
+        if (jsonArrayStr == null) {
             return;
         }
         JSONArray functionResultJson = JSONArray.parseArray(jsonArrayStr);
@@ -186,14 +167,14 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         this.computedColumnResult = Message.parseObject(computedColumnResult);
     }
 
-    public void putComputedColumnResult(Map<String,Object> msg) {
+    public void putComputedColumnResult(Map<String, Object> msg) {
         this.computedColumnResult.putAll(msg);
     }
 
     public String getComputedColumnResult() {
         JSONObject object = null;
         if (JSONObject.class.isInstance(computedColumnResult)) {
-            object = (JSONObject)computedColumnResult;
+            object = (JSONObject) computedColumnResult;
         } else {
             object = new JSONObject(computedColumnResult);
         }
@@ -222,17 +203,19 @@ public class WindowValue extends WindowBaseValue implements Serializable {
     public Object getComputedColumnResultByKey(String fieldName) {
         return computedColumnResult.get(fieldName);
     }
+
     public Object getAggColumnResultByKey(String fieldName) {
         return aggColumnResult.get(fieldName);
     }
 
-    public void putAggColumnResult(String functionName,Object value) {
-        aggColumnResult.put(functionName,value);
+    public void putAggColumnResult(String functionName, Object value) {
+        aggColumnResult.put(functionName, value);
     }
 
     public void removeAggColumnResult(String functionName) {
         aggColumnResult.remove(functionName);
     }
+
     public Map<String, Object> getcomputedResult() {
         return this.computedColumnResult;
     }
@@ -259,7 +242,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                 this.maxOffset.put(queueId, offset);
             } else {
                 //如果比最大的offset 小或等于，则直接丢弃掉消息
-                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data "+maxOffsetOfQueue+" "+message.getHeader().getOffset());
+                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data " + maxOffsetOfQueue + " " + message.getHeader().getOffset());
                 return false;
             }
         }
@@ -268,7 +251,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
             if (window.getReduceSerializeValue() != null) {
                 JSONObject accumulator = null;
                 if (computedColumnResult != null && JSONObject.class.isInstance(computedColumnResult)) {
-                    accumulator = (JSONObject)computedColumnResult;
+                    accumulator = (JSONObject) computedColumnResult;
                 }
 
                 JSONObject result = window.getReducer().reduce(accumulator, message.getMessageBody());
@@ -294,7 +277,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                 String executorName = operator.getColumn();
                 IStreamOperator<IMessage, List<IMessage>> executor = operator.getExecutor();
                 if (executor instanceof AggregationScript) {
-                    AggregationScript originAccScript = (AggregationScript)executor;
+                    AggregationScript originAccScript = (AggregationScript) executor;
                     AggregationScript windowAccScript = originAccScript.clone();
                     Object accumulator = null;
                     if (aggColumnResult.containsKey(executorName)) {
@@ -312,7 +295,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                     windowAccScript.doMessage(message, context);
                 } else if (executor instanceof FunctionScript) {
                     FunctionContext context = new FunctionContext(message);
-                    ((FunctionScript)executor).doMessage(message, context);
+                    ((FunctionScript) executor).doMessage(message, context);
                 }
             }
             //
@@ -406,7 +389,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                 String column = info.getColumn();
                 IStreamOperator<IMessage, List<IMessage>> engine = info.getExecutor();
                 if (engine instanceof AggregationScript) {
-                    AggregationScript origin = (AggregationScript)engine;
+                    AggregationScript origin = (AggregationScript) engine;
                     AggregationScript operator = origin.clone();
                     if (needMergeComputation) {
                         message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,
@@ -425,7 +408,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                         needMergeComputation = true;
                     }
                 } else if (engine instanceof FunctionScript) {
-                    FunctionScript theScript = (FunctionScript)engine;
+                    FunctionScript theScript = (FunctionScript) engine;
                     String[] parameters = theScript.getDependentParameters();
                     for (String parameter : parameters) {
                         if (!message.getMessageBody().containsKey(parameter) && lastWindowValue.computedColumnResult
@@ -489,8 +472,6 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         clonedValue.setEndTime(endTime);
         clonedValue.setStartTime(startTime);
         clonedValue.setFireTime(fireTime);
-        clonedValue.setConfigureName(getConfigureName());
-        clonedValue.setNameSpace(getNameSpace());
         clonedValue.setMsgKey(msgKey);
         clonedValue.setAggColumnMap(aggColumnResult);
         clonedValue.setMaxOffset(getMaxOffset());
@@ -502,8 +483,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         clonedValue.setAggColumnResult(getAggColumnResult());
         clonedValue.setComputedColumnResult(getComputedColumnResult());
         clonedValue.setUpdateVersion(getUpdateVersion());
-        clonedValue.setVersion(getVersion());
-        clonedValue.setUpdateFlag(getUpdateFlag());
+
         return clonedValue;
     }
 
@@ -525,7 +505,7 @@ public class WindowValue extends WindowBaseValue implements Serializable {
 
     protected String decodeSQLContent(String sqlContent) {
         try {
-            if(StringUtil.isEmpty(sqlContent)){
+            if (StringUtil.isEmpty(sqlContent)) {
                 return null;
             }
             return new String(Base64Utils.decode(sqlContent), "UTF-8");

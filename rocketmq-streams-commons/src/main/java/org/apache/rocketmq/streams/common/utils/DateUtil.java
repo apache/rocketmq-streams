@@ -133,7 +133,7 @@ public final class DateUtil {
         if (timeDiff < 0) {
             timeDiff = -timeDiff;
         }
-        return (int)(timeDiff / DAY_MILLISECONDS);
+        return (int) (timeDiff / DAY_MILLISECONDS);
     }
 
     public static long dateDiff(Date d1, Date d2) {
@@ -442,7 +442,7 @@ public final class DateUtil {
 
     public static List<Date> getWindowBeginTime(long eventTime, long slideInterval, long sizeInterval) {
         if (eventTime > Long.MIN_VALUE) {
-            List<Date> hitList = new ArrayList<>((int)(sizeInterval / slideInterval));
+            List<Date> hitList = new ArrayList<>((int) (sizeInterval / slideInterval));
             long lastStart = getWindowStartWithOffset(eventTime, 0, slideInterval);
             for (long start = lastStart; start > eventTime - sizeInterval; start -= slideInterval) {
                 hitList.add(new Date(start));

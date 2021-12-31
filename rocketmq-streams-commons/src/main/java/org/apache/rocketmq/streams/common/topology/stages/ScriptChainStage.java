@@ -43,7 +43,7 @@ public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChain
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
-            IStreamOperator<IMessage, List<IMessage>> receiver = (IStreamOperator)script;
+            IStreamOperator<IMessage, List<IMessage>> receiver = (IStreamOperator) script;
             List<IMessage> messages = receiver.doMessage(message, context);
             TraceUtil.debug(message.getHeader().getTraceId(), "ScriptChainStage", script.getValue(),
                 message.getMessageBody().toJSONString());

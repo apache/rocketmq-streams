@@ -18,19 +18,27 @@ package org.apache.rocketmq.streams.common.cache.compress;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
 /**
  * 压缩表，行数据以byte[][]存放
  */
 public abstract class AbstractMemoryTable {
+
+    private static final Log logger = LogFactory.getLog(AbstractMemoryTable.class);
 
     /**
      * 列名和位置，根据列名生成一个位置
@@ -55,53 +63,82 @@ public abstract class AbstractMemoryTable {
     /**
      * 总字节数
      */
-    protected AtomicInteger byteCount = new AtomicInteger(0);
+    protected AtomicLong byteCount = new AtomicLong(0);
     protected AtomicInteger rowCount = new AtomicInteger(0);
-    public static  class RowElement{
+
+    //需要压缩的列名
+    Set<String> compressFieldNames = new HashSet<>(1);
+
+    public Set<String> getCompressFieldNames() {
+        return compressFieldNames;
+    }
+
+    public void setCompressFieldNames(Set<String> compressFieldNames) {
+        this.compressFieldNames = compressFieldNames;
+    }
+
+    static long compressCount = 0;
+    transient long compressCompareCount = 0;
+    transient long compressByteLength = 0;
+    transient long deCompressByteLength = 0;
+
+    public static class RowElement {
         protected Map<String, Object> row;
-        protected int rowIndex;
-        public RowElement(Map<String, Object> row,int rowIndex){
-            this.row=row;
-            this.rowIndex=rowIndex;
+        protected Long rowIndex;
+
+        public RowElement(Map<String, Object> row, Long rowIndex) {
+            this.row = row;
+            this.rowIndex = rowIndex;
         }
 
         public Map<String, Object> getRow() {
             return row;
         }
 
-        public int getRowIndex() {
+        public long getRowIndex() {
             return rowIndex;
         }
+
+        @Override
+        public String toString() {
+            return "RowElement{" +
+                "row=" + row +
+                ", rowIndex=" + rowIndex +
+                '}';
+        }
     }
+
     /**
      * 创建迭代器，可以循环获取全部数据，一行数据是Map<String, Object>
      *
      * @return
      */
-    public abstract Iterator<RowElement> newIterator() ;
+    public abstract Iterator<RowElement> newIterator();
 
+    public Iterator<Map<String, Object>> rowIterator() {
+        return new Iterator<Map<String, Object>>() {
+            Iterator<RowElement> it = newIterator();
 
-
-    public Iterator<Map<String,Object>> rowIterator(){
-        return new Iterator<Map<String,Object>>(){
-            Iterator<RowElement> it=newIterator();
-            @Override public boolean hasNext() {
+            @Override
+            public boolean hasNext() {
                 return it.hasNext();
             }
 
-            @Override public Map<String, Object> next() {
-                RowElement rowElement=it.next();
+            @Override
+            public Map<String, Object> next() {
+                RowElement rowElement = it.next();
                 return rowElement.getRow();
             }
         };
     }
+
     /**
      * 保存row到list
      *
      * @param values
      * @return
      */
-    protected abstract Integer saveRowByte(byte[][] values, int byteSize);
+    protected abstract Long saveRowByte(byte[][] values, int byteSize);
 
     /**
      * 从list中加载行
@@ -109,9 +146,7 @@ public abstract class AbstractMemoryTable {
      * @param index
      * @return
      */
-    protected abstract byte[][] loadRowByte(Integer index) ;
-
-
+    protected abstract byte[][] loadRowByte(Long index);
 
     /**
      * 增加一行数据，会进行序列化成二进制数组存储。数字类型会有较好的压缩效果，字符串未做压缩
@@ -119,7 +154,7 @@ public abstract class AbstractMemoryTable {
      * @param row
      * @return
      */
-    public Integer addRow(Map<String, Object> row) {
+    public Long addRow(Map<String, Object> row) {
         CountHolder countHolder = new CountHolder();
         byte[][] values = row2Byte(row, countHolder);
         byteCount.addAndGet(countHolder.count);
@@ -130,17 +165,16 @@ public abstract class AbstractMemoryTable {
     /**
      * 获取一行数据，会反序列化为Map<String, Object>
      *
-     * @param index 行号， List<byte[][]> 的下标
+     * @param index
      * @return
      */
-    public Map<String, Object> getRow(Integer index) {
+    public Map<String, Object> getRow(Long index) {
         byte[][] bytes = loadRowByte(index);
         if (bytes == null) {
             return null;
         }
         return byte2Row(bytes);
     }
-
 
     /**
      * 把一个row行转换成byte[][]数组
@@ -169,27 +203,40 @@ public abstract class AbstractMemoryTable {
         Iterator<Map.Entry<String, Object>> it = row.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
+            String fieldName = entry.getKey();
             int index = getColumnIndex(entry.getKey());
             byte[] byteValue = createBytes(entry.getKey(), entry.getValue());
+            int byteLength = 0;
             if (byteValue == null) {
                 list.add(new byte[0]);
                 //                byteRows[value]=new byte[0];
             } else {
-                list.add(byteValue);
-                //                byteRows[value]=byteValue;
+                //todo compress string type
+                if (compressFieldNames.contains(fieldName)) {
+                    byte[] compressValue = NumberUtils.zlibCompress(byteValue);
+                    list.add(compressValue);
+                    byteLength = compressValue.length;
+                    if (byteLength >= byteValue.length) {
+                        compressCompareCount++;
+                        deCompressByteLength = deCompressByteLength + compressValue.length - byteValue.length;
+                    }
+                    compressByteLength = compressByteLength + byteValue.length - compressValue.length;
+                } else {
+                    list.add(byteValue);
+                    byteLength = byteValue.length;
+                }
             }
             if (countHolder != null) {
-                int length = 0;
-                if (byteValue != null) {
-                    length = byteValue.length;
-                }
-                countHolder.count = countHolder.count + length;
+                countHolder.count = countHolder.count + byteLength;
             }
         }
         byte[][] byteRows = new byte[list.size()][];
         for (int i = 0; i < list.size(); i++) {
             byte[] temp = list.get(i);
             byteRows[i] = temp;
+        }
+        if ((compressCount++) % 100000 == 0) {
+            logger.info(this.hashCode() + " builder compress table continue..." + (compressCount - 1) + ", compressCompareCount is " + compressCompareCount + ", compressByteLength is " + compressByteLength + ", deCompressByteLength is " + deCompressByteLength);
         }
         return byteRows;
     }
@@ -205,11 +252,23 @@ public abstract class AbstractMemoryTable {
         for (int i = 0; i < bytes.length; i++) {
             byte[] columnValue = bytes[i];
             String columnName = index2ColumnName.get(i);
+            boolean isCompress = compressFieldNames.contains(columnName);
             DataType dataType = cloumnName2DatatType.get(columnName);
             Object object = null;
-            if (dataType != null) {
+
+            if (isCompress) {
+                byte[] decompressValue = null;
+                try {
+                    decompressValue = NumberUtils.zlibInfCompress(columnValue);
+                    object = dataType.byteToValue(decompressValue);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    logger.error(e);
+                }
+            } else {
                 object = dataType.byteToValue(columnValue);
             }
+
             row.put(columnName, object);
         }
         return row;
@@ -256,8 +315,6 @@ public abstract class AbstractMemoryTable {
         return columnIndex;
     }
 
-
-
     public Map<String, Integer> getCloumnName2Index() {
         return cloumnName2Index;
     }
@@ -282,11 +339,12 @@ public abstract class AbstractMemoryTable {
         this.cloumnName2DatatType = cloumnName2DatatType;
     }
 
-    public int getByteCount() {
+    public long getByteCount() {
         return byteCount.get();
     }
 
     public int getRowCount() {
         return rowCount.get();
     }
+
 }

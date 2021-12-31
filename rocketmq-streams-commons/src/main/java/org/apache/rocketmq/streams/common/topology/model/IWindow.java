@@ -22,7 +22,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAfterCurrentNode;
+import org.apache.rocketmq.streams.common.topology.SectionPipeline;
 
 /**
  * Window Definition 处理数据并输出
@@ -30,10 +30,9 @@ import org.apache.rocketmq.streams.common.topology.ChainStage.PiplineRecieverAft
 public interface IWindow
     extends IStreamOperator<IMessage, AbstractContext<IMessage>>, IConfigurable {
 
-    int DEFAULTFIRE_MODE=0;// fire time=endtime+watermark
-    int MULTI_WINDOW_INSTANCE_MODE=1;//  fire at window size interval， until event time >endtime+watermark, every window result is independent
-    int INCREMENT_FIRE_MODE=2;//  fire at window size interval， until event time >endtime+watermark, every window result is based preview window result
-
+    int DEFAULTFIRE_MODE = 0;// fire time=endtime+watermark
+    int MULTI_WINDOW_INSTANCE_MODE = 1;//  fire at window size interval， until event time >endtime+watermark, every window result is independent
+    int INCREMENT_FIRE_MODE = 2;//  fire at window size interval， until event time >endtime+watermark, every window result is based preview window result
 
     /**
      * split char between function
@@ -48,7 +47,6 @@ public interface IWindow
      * the default window slide, 1 minute
      */
     Integer DEFAULT_WINDOW_SLIDE = 1;
-
 
     Integer DEFAULT_WINDOW_SESSION_TIMEOUT = 10;
 
@@ -94,7 +92,7 @@ public interface IWindow
      *
      * @param receiver
      */
-    void setFireReceiver(PiplineRecieverAfterCurrentNode receiver);
+    void setFireReceiver(SectionPipeline receiver);
 
     /**
      * 是否是同步操作，目前只有over 特殊场景会是true
@@ -107,7 +105,7 @@ public interface IWindow
 
     void windowInit();
 
-    interface IWindowCheckpoint extends ISink<org.apache.rocketmq.streams.common.channel.sink.AbstractSink>{
+    interface IWindowCheckpoint extends ISink<org.apache.rocketmq.streams.common.channel.sink.AbstractSink> {
         void finishBatchMsg(BatchFinishMessage batchFinishMessage);
     }
 }

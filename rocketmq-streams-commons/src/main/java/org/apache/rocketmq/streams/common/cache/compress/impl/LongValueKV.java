@@ -25,7 +25,7 @@ public class LongValueKV extends CacheKV<Long> {
     private final ByteArrayValueKV byteArrayValueKV;
 
     public LongValueKV(int capacity) {
-        super(capacity, 8);
+        super(capacity, true);
         byteArrayValueKV = new ByteArrayValueKV(capacity, 8);
     }
 

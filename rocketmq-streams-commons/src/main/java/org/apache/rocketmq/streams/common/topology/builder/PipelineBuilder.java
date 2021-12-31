@@ -41,7 +41,7 @@ public class PipelineBuilder implements Serializable {
     /**
      * 最终产出的pipeline
      */
-    protected ChainPipeline pipeline = new ChainPipeline();
+    protected ChainPipeline<?> pipeline = new ChainPipeline<>();
 
     /**
      * 保存pipeline构建过程中产生的configurable对象
@@ -67,7 +67,7 @@ public class PipelineBuilder implements Serializable {
     /**
      * 如果需要制作拓扑结构，则保存当前构建的stage
      */
-    protected ChainStage currentChainStage;
+    protected ChainStage<?> currentChainStage;
 
     /**
      * 在sql tree中，存储当前节点父节点的table name，主要用于双流join场景，用于判断是否是右流join
@@ -93,7 +93,7 @@ public class PipelineBuilder implements Serializable {
      *
      * @param source 数据源
      */
-    public void setSource(ISource source) {
+    public void setSource(ISource<?> source) {
         source.createStageChain(this);
         source.addConfigurables(this);
         this.pipeline.setSource(source);
@@ -105,27 +105,25 @@ public class PipelineBuilder implements Serializable {
      * @param stageBuilder
      * @return
      */
-    public ChainStage createStage(IStageBuilder<ChainStage> stageBuilder) {
-        ChainStage chainStage = stageBuilder.createStageChain(this);
+    public ChainStage<?> createStage(IStageBuilder<ChainStage> stageBuilder) {
+        ChainStage<?> chainStage = stageBuilder.createStageChain(this);
         stageBuilder.addConfigurables(this);// 这句一定要在addChainStage前，会默认赋值namespace和name
         if (StringUtil.isEmpty(chainStage.getLabel())) {
             chainStage.setLabel(createConfigurableName(chainStage.getType()));
         }
         this.pipeline.addChainStage(chainStage);
-
         return chainStage;
     }
 
     public List<String> createSQL() {
         List<String> sqls = new ArrayList<>();
         for (IConfigurable configurable : configurables) {
-            AbstractConfigurable abstractConfigurable = (AbstractConfigurable)configurable;
             sqls.add(AbstractConfigurable.createSQL(configurable));
         }
         return sqls;
     }
 
-    public ChainPipeline build(IConfigurableService configurableService) {
+    public ChainPipeline<?> build(IConfigurableService configurableService) {
         List<IConfigurable> configurableList = configurables;
         pipeline.setChannelMetaData(channelMetaData);
         if (configurableList != null) {
@@ -134,8 +132,7 @@ public class PipelineBuilder implements Serializable {
             }
         }
         configurableService.refreshConfigurable(pipelineNameSpace);
-        ChainPipeline pipline = configurableService.queryConfigurable(Pipeline.TYPE, pipelineName);
-        return pipline;
+        return configurableService.queryConfigurable(Pipeline.TYPE, pipelineName);
     }
 
     public List<IConfigurable> getAllConfigurables() {
@@ -150,8 +147,8 @@ public class PipelineBuilder implements Serializable {
      * @param sink
      * @return
      */
-    public ChainStage createStage(ISink sink) {
-        OutputChainStage outputChainStage = new OutputChainStage();
+    public ChainStage<?> createStage(ISink<?> sink) {
+        OutputChainStage<?> outputChainStage = new OutputChainStage();
         sink.addConfigurables(this);
         outputChainStage.setSink(sink);
         if (StringUtil.isEmpty(sink.getConfigureName())) {
@@ -167,11 +164,11 @@ public class PipelineBuilder implements Serializable {
      * @param sink
      * @return
      */
-    public OutputChainStage addOutput(ISink sink) {
+    public OutputChainStage<?> addOutput(ISink<?> sink) {
         if (isBreak) {
             return null;
         }
-        OutputChainStage outputChainStage = new OutputChainStage();
+        OutputChainStage<?> outputChainStage = new OutputChainStage<>();
         sink.addConfigurables(this);
         outputChainStage.setSink(sink);
         pipeline.addChainStage(outputChainStage);
@@ -195,11 +192,11 @@ public class PipelineBuilder implements Serializable {
      *
      * @param stageChainBuilder
      */
-    public ChainStage addChainStage(IStageBuilder<ChainStage> stageChainBuilder) {
+    public ChainStage<?> addChainStage(IStageBuilder<ChainStage> stageChainBuilder) {
         if (isBreak) {
             return null;
         }
-        ChainStage chainStage = stageChainBuilder.createStageChain(this);
+        ChainStage<?> chainStage = stageChainBuilder.createStageChain(this);
         stageChainBuilder.addConfigurables(this);// 这句一定要在addChainStage前，会默认赋值namespace和name
         pipeline.addChainStage(chainStage);
         return chainStage;
@@ -255,7 +252,7 @@ public class PipelineBuilder implements Serializable {
      *
      * @param nextStages
      */
-    public void setTopologyStages(ChainStage currentChainStage, List<ChainStage> nextStages) {
+    public void setTopologyStages(ChainStage<?> currentChainStage, List<ChainStage> nextStages) {
         if (isBreak) {
             return;
         }
@@ -263,7 +260,7 @@ public class PipelineBuilder implements Serializable {
             return;
         }
         List<String> lableNames = new ArrayList<>();
-        for (ChainStage stage : nextStages) {
+        for (ChainStage<?> stage : nextStages) {
             lableNames.add(stage.getLabel());
         }
 
@@ -271,7 +268,7 @@ public class PipelineBuilder implements Serializable {
             this.pipeline.setChannelNextStageLabel(lableNames);
         } else {
             currentChainStage.setNextStageLabels(lableNames);
-            for (ChainStage stage : nextStages) {
+            for (ChainStage<?> stage : nextStages) {
                 stage.getPrevStageLabels().add(currentChainStage.getLabel());
             }
         }
@@ -282,7 +279,7 @@ public class PipelineBuilder implements Serializable {
      *
      * @param nextStage
      */
-    public void setTopologyStages(ChainStage currentChainStage, ChainStage nextStage) {
+    public void setTopologyStages(ChainStage<?> currentChainStage, ChainStage<?> nextStage) {
         if (isBreak) {
             return;
         }
@@ -299,11 +296,11 @@ public class PipelineBuilder implements Serializable {
         return pipelineName;
     }
 
-    public ChainPipeline getPipeline() {
+    public ChainPipeline<?> getPipeline() {
         return pipeline;
     }
 
-    public void setHorizontalStages(ChainStage stage) {
+    public void setHorizontalStages(ChainStage<?> stage) {
         if (isBreak) {
             return;
         }
@@ -325,8 +322,8 @@ public class PipelineBuilder implements Serializable {
             return;
         }
         List<String> lableNames = new ArrayList<>();
-        Map<String, ChainStage> lableName2Stage = new HashMap();
-        for (ChainStage stage : stages) {
+        Map<String, ChainStage<?>> lableName2Stage = new HashMap();
+        for (ChainStage<?> stage : stages) {
             lableNames.add(stage.getLabel());
             lableName2Stage.put(stage.getLabel(), stage);
         }
@@ -334,13 +331,13 @@ public class PipelineBuilder implements Serializable {
         if (currentChainStage == null) {
             this.pipeline.setChannelNextStageLabel(lableNames);
             for (String lableName : lableNames) {
-                ChainStage chainStage = lableName2Stage.get(lableName);
+                ChainStage<?> chainStage = lableName2Stage.get(lableName);
                 chainStage.getPrevStageLabels().add(this.pipeline.getChannelName());
             }
         } else {
             currentChainStage.setNextStageLabels(lableNames);
             for (String lableName : lableNames) {
-                ChainStage chainStage = lableName2Stage.get(lableName);
+                ChainStage<?> chainStage = lableName2Stage.get(lableName);
                 List<String> prewLables = chainStage.getPrevStageLabels();
                 if (!prewLables.contains(this.currentChainStage.getLabel())) {
                     chainStage.getPrevStageLabels().add(this.currentChainStage.getLabel());
@@ -350,11 +347,11 @@ public class PipelineBuilder implements Serializable {
         }
     }
 
-    public void setCurrentChainStage(ChainStage currentChainStage) {
+    public void setCurrentChainStage(ChainStage<?> currentChainStage) {
         this.currentChainStage = currentChainStage;
     }
 
-    public ChainStage getCurrentChainStage() {
+    public ChainStage<?> getCurrentChainStage() {
         return currentChainStage;
     }
 

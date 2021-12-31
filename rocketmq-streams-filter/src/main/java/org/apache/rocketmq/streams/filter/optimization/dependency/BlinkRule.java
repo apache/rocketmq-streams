@@ -34,10 +34,10 @@ public class BlinkRule {
      * key: varName
      * value: expression str list
      */
-    protected Map<String, List<Expression>> var2ExpressionList=new HashMap<>();
+    protected Map<String, List<Expression>> var2ExpressionList = new HashMap<>();
 
     public BlinkRule(JSONObject ruleJson, int ruleId) {
-        this.ruleId=ruleId;
+        this.ruleId = ruleId;
         Iterator iterator = ruleJson.keySet().iterator();
         while (iterator.hasNext()) {
             String varName = (String) iterator.next();
@@ -45,8 +45,8 @@ public class BlinkRule {
             Expression expression = null;
             if (ruleValue.startsWith("$") && ruleValue.endsWith("$")) {
                 String regex = ruleValue.substring(1, ruleValue.length() - 1);
-                regex=regex.replace("'","\'");
-                expression = createExpression(varName,"regex",regex);
+                regex = regex.replace("'", "\'");
+                expression = createExpression(varName, "regex", regex);
                 addExpression(expression);
             } else if (ruleValue.startsWith("[") && ruleValue.endsWith("]")) {
                 long start;
@@ -58,13 +58,13 @@ public class BlinkRule {
                     start = 1L;
                     end = 0L;
                 }
-                Expression  expressionLeft = createExpression(varName,">=",start);
-                Expression expressionRigth = createExpression(varName,",<=,",end);
+                Expression expressionLeft = createExpression(varName, ">=", start);
+                Expression expressionRigth = createExpression(varName, ",<=,", end);
                 addExpression(expressionLeft);
                 addExpression(expressionRigth);
 
             } else {
-                expression = createExpression(varName,"=",ruleValue);
+                expression = createExpression(varName, "=", ruleValue);
                 addExpression(expression);
             }
 
@@ -72,7 +72,7 @@ public class BlinkRule {
     }
 
     protected void addExpression(Expression expression) {
-        String varName=expression.getVarName();
+        String varName = expression.getVarName();
         List<Expression> expressions = var2ExpressionList.get(varName);
         if (expressions == null) {
             expressions = new ArrayList<>();
@@ -81,32 +81,34 @@ public class BlinkRule {
         expressions.add(expression);
     }
 
-    public Expression createExpression(String  varName,String functionName,Object value){
+    public Expression createExpression(String varName, String functionName, Object value) {
         Expression expression = new Expression();
         expression.setFunctionName(functionName);
         expression.setVarName(varName);
         expression.setValue(value);
         return expression;
     }
-    public List<Expression> createExpression(JSONObject msg){
-        List<Expression> expressions=new ArrayList<>();
-        for(String var:var2ExpressionList.keySet()){
-            if(!msg.containsKey(var)){
+
+    public List<Expression> createExpression(JSONObject msg) {
+        List<Expression> expressions = new ArrayList<>();
+        for (String var : var2ExpressionList.keySet()) {
+            if (!msg.containsKey(var)) {
                 return null;
             }
-            List<Expression> expressionList=createExpression(var);
-            if(expressionList!=null){
+            List<Expression> expressionList = createExpression(var);
+            if (expressionList != null) {
                 expressions.addAll(expressionList);
             }
 
         }
-        if(expressions.size()==0){
+        if (expressions.size() == 0) {
             return null;
         }
         return expressions;
     }
-    public List<Expression> createExpression(String varName){
-       return this.var2ExpressionList.get(varName);
+
+    public List<Expression> createExpression(String varName) {
+        return this.var2ExpressionList.get(varName);
 
     }
 

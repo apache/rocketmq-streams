@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.expression.Equals;
@@ -58,11 +59,21 @@ public class JoinStream {
      * @param pipelineBuilders
      * @param currentChainStage
      */
-    public JoinStream(JoinWindow joinWindow, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
+    public JoinStream(JoinWindow joinWindow, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
+        ChainStage<?> currentChainStage) {
         this.pipelineBuilder = pipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.joinWindow = joinWindow;
+    }
+
+    public JoinStream(JoinWindow joinWindow, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
+        ChainStage<?> currentChainStage, JoinType joinType) {
+        this.pipelineBuilder = pipelineBuilder;
+        this.otherPipelineBuilders = pipelineBuilders;
+        this.currentChainStage = currentChainStage;
+        this.joinWindow = joinWindow;
+        this.joinType = joinType;
     }
 
     /**
@@ -72,16 +83,43 @@ public class JoinStream {
      * @param pipelineBuilders
      * @param currentChainStage
      */
-    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
+    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
+        ChainStage<?> currentChainStage) {
+        this.dim = dim;
+        this.pipelineBuilder = pipelineBuilder;
+        this.otherPipelineBuilders = pipelineBuilders;
+        this.currentChainStage = currentChainStage;
+        this.isDimJoin = true;
+    }
+
+    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
+        ChainStage<?> currentChainStage, Boolean isDimJoin) {
+        this.dim = dim;
+        this.pipelineBuilder = pipelineBuilder;
+        this.otherPipelineBuilders = pipelineBuilders;
+        this.currentChainStage = currentChainStage;
+        this.isDimJoin = isDimJoin;
+    }
+
+    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
+        ChainStage<?> currentChainStage, Boolean isDimJoin, JoinType joinType) {
         this.pipelineBuilder = pipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.dim = dim;
+        this.isDimJoin = isDimJoin;
+        this.joinType = joinType;
     }
 
+    /**
+     * 设置join的类型， 推荐直接使用DataStream中的特定join来实现
+     *
+     * @param joinType
+     * @return
+     */
+    @Deprecated
     public JoinStream setJoinType(JoinType joinType) {
         this.joinType = joinType;
-
         return this;
     }
 
@@ -105,12 +143,19 @@ public class JoinStream {
     }
 
     /**
-     * 增加条件,用表达式形式表达(leftFieldName,function,rightFieldName)&&({name,==,otherName}||(age,==,age)) 后续再增加结构化的方法
+     * 增加条件,用表达式形式表达(leftFieldName,function,rightFieldName)&&({name,==,otherName}||(age,==,age)) 后续再增加结构化的方法 。 后续该方法将下线，推荐使用on
      *
      * @param onCondition (leftFieldName,function,rightFieldName)&&({name,==,otherName}||(age,==,age))
      * @return
      */
+
+    @Deprecated
     public JoinStream setCondition(String onCondition) {
+        this.onCondition = onCondition;
+        return this;
+    }
+
+    public JoinStream on(String onCondition) {
         this.onCondition = onCondition;
         return this;
     }
@@ -128,15 +173,23 @@ public class JoinStream {
      * 维度表join的场景
      */
     protected DataStream doDimJoin() {
+        if (StringUtil.isNotEmpty(this.onCondition)) {
+            this.dim.createIndexByJoinCondition(this.onCondition, new AbstractDim.IDimField() {
+                @Override
+                public boolean isDimField(Object fieldName) {
+                    return true;
+                }
+            });
+        }
         String script = null;
         if (JoinType.INNER_JOIN == joinType) {
             String data = createName("inner_join");
-            script = data + "=inner_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "'," + null + ",''," + null + ");splitArray('" + data + "');";
+            script = data + "=inner_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "', '' ,''," + ");splitArray('" + data + "');rm(" + data + ");";
         } else if ((JoinType.LEFT_JOIN == joinType)) {
             String data = createName("left_join");
-            script = data + "=left_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "'," + null + ",'" + null + "'," + null + ");if(!null(" + data + ")){splitArray('" + data + "');};";
+            script = data + "=left_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "', '' ,''," + ");if(!null(" + data + ")){splitArray('" + data + "');};rm(" + data + ");";
         }
-        ChainStage stage = this.pipelineBuilder.createStage(new ScriptOperator(script));
+        ChainStage<?> stage = this.pipelineBuilder.createStage(new ScriptOperator(script));
         this.pipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(pipelineBuilder, otherPipelineBuilders, stage);
     }
@@ -188,7 +241,7 @@ public class JoinStream {
         List<RelationExpression> relationExpressions = new ArrayList<>();
         ExpressionBuilder.createOptimizationExpression("tmp", "tmp", onCondition, expressions, relationExpressions);
         Map<String, String> left2Right = new HashMap<>();
-        for (Expression expression : expressions) {
+        for (Expression<?> expression : expressions) {
             String varName = expression.getVarName();
             String valueName = expression.getValue().toString();
             if (!Equals.isEqualFunction(expression.getFunctionName())) {

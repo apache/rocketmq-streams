@@ -26,31 +26,32 @@ import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 public class PipelineTree {
 
     protected ChainPipeline pipeline;
-    protected   Map<String, AbstractStage> stageMap;
-    public PipelineTree(ChainPipeline pipeline){
-        this.pipeline=pipeline;
-        stageMap=pipeline.getStageMap();
+    protected Map<String, AbstractStage> stageMap;
+
+    public PipelineTree(ChainPipeline pipeline) {
+        this.pipeline = pipeline;
+        stageMap = pipeline.getStageMap();
     }
 
-    protected class Context{
+    protected class Context {
 
     }
 
-    public void registePreFingerprint(Context context,TreeNode parent,List<String> nextLabels){
-        TreeNode current=null;
-       if(nextLabels!=null){
-           for(String nextLable:nextLabels){
-               AbstractStage stage=stageMap.get(nextLable);
-               if(stage instanceof ScriptChainStage){
-                   current=new ScriptTreeNode(pipeline,(ScriptChainStage) stage,parent);
-               }else if(stage instanceof FilterChainStage){
-                   current=new FilterTreeNode(pipeline,(FilterChainStage)stage,parent);
-               }else {
-                   continue;
-               }
-               registePreFingerprint(context,current,current.getStage().getNextStageLabels());
-           }
-       }
+    public void registePreFingerprint(Context context, TreeNode parent, List<String> nextLabels) {
+        TreeNode current = null;
+        if (nextLabels != null) {
+            for (String nextLable : nextLabels) {
+                AbstractStage stage = stageMap.get(nextLable);
+                if (stage instanceof ScriptChainStage) {
+                    current = new ScriptTreeNode(pipeline, (ScriptChainStage) stage, parent);
+                } else if (stage instanceof FilterChainStage) {
+                    current = new FilterTreeNode(pipeline, (FilterChainStage) stage, parent);
+                } else {
+                    continue;
+                }
+                registePreFingerprint(context, current, current.getStage().getNextStageLabels());
+            }
+        }
     }
 
 }

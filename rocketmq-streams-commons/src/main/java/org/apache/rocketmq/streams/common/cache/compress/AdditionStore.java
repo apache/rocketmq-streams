@@ -57,7 +57,6 @@ public class AdditionStore {
      */
     protected int blockSize = CONFLICT_UNIT_SIZE;
 
-
     public AdditionStore(int elementSize, int blockSize) {
         this.elementSize = elementSize;
         if (elementSize > 0) {
@@ -72,55 +71,56 @@ public class AdditionStore {
         this(elementSize, CONFLICT_UNIT_SIZE);
     }
 
-    public class DataElement{
+    public class DataElement {
         protected byte[] bytes;
-        protected MapAddress mapAddress;
-        public DataElement(byte[] bytes,MapAddress mapAddress){
-            this.bytes=bytes;
-            this.mapAddress=mapAddress;
+        protected KVAddress mapAddress;
+
+        public DataElement(byte[] bytes, KVAddress mapAddress) {
+            this.bytes = bytes;
+            this.mapAddress = mapAddress;
         }
 
         public byte[] getBytes() {
             return bytes;
         }
 
-        public MapAddress getMapAddress() {
+        public KVAddress getMapAddress() {
             return mapAddress;
         }
     }
 
-    public Iterator<DataElement> iterator(){
-        return new Iterator<DataElement>(){
-            int index=0;
-            int offset=0;
+    public Iterator<DataElement> iterator() {
+        return new Iterator<DataElement>() {
+            int index = 0;
+            int offset = 0;
+
             @Override public boolean hasNext() {
-                if(index<conflictIndex){
+                if (index < conflictIndex) {
                     return true;
                 }
-                if(offset<conflictOffset){
+                if (offset < conflictOffset) {
                     return true;
                 }
                 return false;
             }
 
             @Override public DataElement next() {
-                MapAddress address=new MapAddress(index,offset);
-                ByteArray byteArray=getValue(address);
-                if(byteArray==null&&hasNext()){
+                KVAddress address = new KVAddress(index, offset);
+                ByteArray byteArray = getValue(address);
+                if (byteArray == null && hasNext()) {
                     this.index++;
-                    this.offset=0;
+                    this.offset = 0;
                     return next();
                 }
-                byte[] bytes= byteArray.getByteArray();
-                offset=offset+bytes.length+2;
-                if(offset>blockSize||(isVarLen==false&&offset+elementSize>blockSize)){
+                byte[] bytes = byteArray.getByteArray();
+                offset = offset + bytes.length + 2;
+                if (offset > blockSize || (isVarLen == false && offset + elementSize > blockSize)) {
                     this.index++;
-                    this.offset=0;
+                    this.offset = 0;
                 }
-                return new DataElement(bytes,address);
+                return new DataElement(bytes, address);
             }
         };
-
 
     }
 
@@ -129,7 +129,7 @@ public class AdditionStore {
      *
      * @param value
      */
-    public MapAddress add2Store(byte[] value) {
+    public KVAddress add2Store(byte[] value) {
         if (conflictIndex == -1 || values.size() <= conflictIndex) {
             byte[] bytes = new byte[blockSize];
             values.add(bytes);
@@ -147,14 +147,14 @@ public class AdditionStore {
             values.add(bytes);
             conflictOffset = 0;
             conflictIndex++;
-            if(conflictIndex>127){
-                throw new RuntimeException("exceed cache size "+conflictIndex);
+            if (conflictIndex > 127) {
+                throw new RuntimeException("exceed cache size " + conflictIndex);
             }
         }
 
         byte[] bytes = values.get(conflictIndex);
 
-        MapAddress address = new MapAddress(conflictIndex, conflictOffset);
+        KVAddress address = new KVAddress(conflictIndex, conflictOffset);
         if (isVarLen) {
             int size = value.length;
             bytes[conflictOffset] = (byte) (size & 0xff);
@@ -179,7 +179,7 @@ public class AdditionStore {
      * @param mapAddress
      * @return
      */
-    public ByteArray getValue(MapAddress mapAddress) {
+    public ByteArray getValue(KVAddress mapAddress) {
         byte[] bytes = values.get(mapAddress.conflictIndex);
         if (bytes == null) {
             return null;
@@ -187,20 +187,20 @@ public class AdditionStore {
         if (!isVarLen) {
             return new ByteArray(bytes, mapAddress.offset, elementSize);
         } else {
-            if(mapAddress.offset+2>bytes.length){
+            if (mapAddress.offset + 2 > bytes.length) {
                 return null;
             }
             int len = new ByteArray(bytes, mapAddress.offset, 2).castInt(0, 2);
-            if(len==0){
+            if (len == 0) {
                 return null;
             }
             return new ByteArray(bytes, mapAddress.offset + 2, len);
         }
     }
 
-    public int byteSize(){
-        long byteSize=this.blockSize*this.conflictIndex+this.blockSize;
-        return (int)(byteSize)/1024/1024;
+    public int byteSize() {
+        long byteSize = this.blockSize * this.conflictIndex + this.blockSize;
+        return (int) (byteSize) / 1024 / 1024;
     }
 
     public int getConflictIndex() {

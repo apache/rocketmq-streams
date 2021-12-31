@@ -28,20 +28,20 @@ public class CollectionSink extends AbstractSink {
 
     List<Object> data;
 
-    public CollectionSink(){
+    public CollectionSink() {
         data = new ArrayList<>();
     }
 
-    public CollectionSink(List<Object> data){
+    public CollectionSink(List<Object> data) {
         this.data = data;
     }
 
     @Override
     protected synchronized boolean batchInsert(List<IMessage> messages) {
-        for(IMessage msg : messages){
-            if(msg.isJsonMessage()){
+        for (IMessage msg : messages) {
+            if (msg.isJsonMessage()) {
                 data.add(msg.getMessageBody().toJSONString());
-            }else{
+            } else {
                 data.add(msg.getMessageValue());
             }
         }
@@ -49,7 +49,7 @@ public class CollectionSink extends AbstractSink {
         return false;
     }
 
-    public List<Object> getData(){
+    public List<Object> getData() {
         return data;
     }
 }

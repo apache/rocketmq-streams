@@ -32,12 +32,13 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 
 public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> {
     protected ConcurrentHashMap<String, MessageCache<IMessage>> queueMessageCaches = new ConcurrentHashMap();
-    protected transient Boolean isOpenAutoFlush=true;
+    protected transient Boolean isOpenAutoFlush = true;
     protected transient ExecutorService executorService;
+
     public AbstractMultiSplitMessageCache(
         IMessageFlushCallBack<R> flushCallBack) {
         super(null);
-        this.executorService=new ThreadPoolExecutor(10, 10,
+        this.executorService = new ThreadPoolExecutor(10, 10,
             0L, TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<Runnable>());
         this.flushCallBack = new MessageFlushCallBack(flushCallBack);
@@ -46,20 +47,26 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
     @Override
     public int addCache(R msg) {
         String queueId = createSplitId(msg);
-        MessageCache messageCache =queueMessageCaches.get(queueId);
-        if(messageCache==null){
-            messageCache=new MessageCache(flushCallBack);
-            messageCache.setAutoFlushSize(this.autoFlushSize);
-            messageCache.setAutoFlushTimeGap(this.autoFlushTimeGap);
-            messageCache.setBatchSize(batchSize);
-            if(this.isOpenAutoFlush){
-                messageCache.openAutoFlush();
+        MessageCache messageCache = queueMessageCaches.get(queueId);
+        if (messageCache == null) {
+            synchronized (this) {
+                messageCache = queueMessageCaches.get(queueId);
+                if (messageCache == null) {
+                    messageCache = new MessageCache(flushCallBack);
+                    messageCache.setAutoFlushSize(this.autoFlushSize);
+                    messageCache.setAutoFlushTimeGap(this.autoFlushTimeGap);
+                    messageCache.setBatchSize(batchSize);
+                    if (this.isOpenAutoFlush) {
+                        messageCache.openAutoFlush();
+                    }
+                    messageCache.setAutoFlushExecutorService(this.autoFlushExecutorService);
+                    MessageCache existMessageCache = queueMessageCaches.putIfAbsent(queueId, messageCache);
+                    if (existMessageCache != null) {
+                        messageCache = existMessageCache;
+                    }
+                }
             }
-            messageCache.setAutoFlushExecutorService(this.autoFlushExecutorService);
-            MessageCache existMessageCache = queueMessageCaches.putIfAbsent(queueId, messageCache);
-            if (existMessageCache != null) {
-                messageCache = existMessageCache;
-            }
+
         }
         messageCache.addCache(msg);
         int size = messageCount.incrementAndGet();
@@ -83,29 +90,29 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
 
     @Override
     public int flush(Set<String> splitIds) {
-        AtomicInteger size=new AtomicInteger(0);
-        if(queueMessageCaches==null||queueMessageCaches.size()==0){
+        AtomicInteger size = new AtomicInteger(0);
+        if (queueMessageCaches == null || queueMessageCaches.size() == 0) {
             return 0;
         }
-        if(splitIds==null||splitIds.size()==0){
+        if (splitIds == null || splitIds.size() == 0) {
             return 0;
         }
-        if(splitIds.size()==1){
-            IMessageCache cache=  queueMessageCaches.get(splitIds.iterator().next());
-            if(cache==null){
+        if (splitIds.size() == 1) {
+            IMessageCache cache = queueMessageCaches.get(splitIds.iterator().next());
+            if (cache == null) {
                 return 0;
             }
-            int count=cache.flush();
+            int count = cache.flush();
             size.addAndGet(count);
             return size.get();
         }
         CountDownLatch countDownLatch = new CountDownLatch(splitIds.size());
-        for(String splitId:splitIds){
+        for (String splitId : splitIds) {
             executorService.execute(new Runnable() {
                 @Override public void run() {
-                    IMessageCache cache=  queueMessageCaches.get(splitId);
-                    if(cache!=null){
-                        int count=cache.flush();
+                    IMessageCache cache = queueMessageCaches.get(splitId);
+                    if (cache != null) {
+                        int count = cache.flush();
                         size.addAndGet(count);
 
                     }
@@ -143,12 +150,12 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
             cache.setAutoFlushTimeGap(this.autoFlushTimeGap);
             cache.openAutoFlush();
         }
-        this.isOpenAutoFlush=true;
+        this.isOpenAutoFlush = true;
     }
 
     @Override
     public void closeAutoFlush() {
-        this.isOpenAutoFlush=false;
+        this.isOpenAutoFlush = false;
         for (IMessageCache cache : this.queueMessageCaches.values()) {
             cache.closeAutoFlush();
         }

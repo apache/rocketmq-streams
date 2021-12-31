@@ -58,7 +58,7 @@ public class UnionTest implements Serializable {
 
     @Test
     public void testDim() {
-        DataStreamAction stream = (StreamBuilder.dataStream("namespace", "name")
+        DataStream stream = (StreamBuilder.dataStream("namespace", "name")
             .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
             .filter(new FilterFunction<JSONObject>() {
 

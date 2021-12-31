@@ -58,20 +58,21 @@ public class LeaseBalanceImpl extends AbstractBalance {
     public LeaseBalanceImpl() {
 
     }
+
     @Override
     protected List<ISplit> fetchWorkingSplits(List<ISplit> allSplits) {
-        List<LeaseInfo> leaseInfos = leaseComponent.getService().queryLockedInstanceByNamePrefix(SPLIT_LOCK_PREFIX + this.sourceIdentification,null);
+        List<LeaseInfo> leaseInfos = leaseComponent.getService().queryLockedInstanceByNamePrefix(SPLIT_LOCK_PREFIX + this.sourceIdentification, null);
         logger.info(String.format("lease SPLIT_LOCK_PREFIX is %s, sourceIdentification is %s. ", SPLIT_LOCK_PREFIX, sourceIdentification));
-        if(leaseInfos == null){
+        if (leaseInfos == null) {
             return new ArrayList<>();
         }
 
         Map<String, ISplit> allSplitMap = new HashMap<>();
-        for(ISplit split:allSplits){
-            allSplitMap.put(split.getQueueId(),split);
+        for (ISplit split : allSplits) {
+            allSplitMap.put(split.getQueueId(), split);
         }
         List<ISplit> splits = new ArrayList<>();
-        for(LeaseInfo leaseInfo:leaseInfos){
+        for (LeaseInfo leaseInfo : leaseInfos) {
             String leaseName = leaseInfo.getLeaseName();
             String splitId = MapKeyUtil.getLast(leaseName);
             splits.add(allSplitMap.get(splitId));
@@ -82,12 +83,12 @@ public class LeaseBalanceImpl extends AbstractBalance {
 
     @Override
     protected List<SourceInstance> fetchSourceInstances() {
-        List<LeaseInfo> leaseInfos = leaseComponent.getService().queryLockedInstanceByNamePrefix(SOURCE_LOCK_PREFIX + sourceIdentification,null);
-        if(leaseInfos == null){
+        List<LeaseInfo> leaseInfos = leaseComponent.getService().queryLockedInstanceByNamePrefix(SOURCE_LOCK_PREFIX + sourceIdentification, null);
+        if (leaseInfos == null) {
             return new ArrayList<>();
         }
         List<SourceInstance> sourceInstances = new ArrayList<>();
-        for(LeaseInfo leaseInfo:leaseInfos){
+        for (LeaseInfo leaseInfo : leaseInfos) {
             String leaseName = leaseInfo.getLeaseName();
             sourceInstances.add(new SourceInstance(leaseName));
         }
@@ -134,10 +135,9 @@ public class LeaseBalanceImpl extends AbstractBalance {
         this.sourceIdentification = sourceIdentification;
     }
 
-
-    protected boolean holdLock(String name,String lockName){
+    protected boolean holdLock(String name, String lockName) {
         ILeaseService leaseService = leaseComponent.getService();
-        boolean success = leaseService.holdLock(name,lockName,lockTimeSecond);
+        boolean success = leaseService.holdLock(name, lockName, lockTimeSecond);
         return success;
     }
 

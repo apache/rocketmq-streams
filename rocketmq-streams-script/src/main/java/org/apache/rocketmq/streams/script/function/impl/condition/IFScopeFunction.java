@@ -29,7 +29,6 @@ public class IFScopeFunction {
 
     }
 
-
     @FunctionMethod(value = "end_if", alias = "end_if_true_false", comment = "标识case when end")
     public void endIf(IMessage message, FunctionContext context) {
 

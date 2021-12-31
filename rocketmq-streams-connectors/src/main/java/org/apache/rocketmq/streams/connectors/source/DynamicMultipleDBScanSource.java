@@ -54,7 +54,7 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
     //todo
     transient PatternFilter filter;
 
-    public DynamicMultipleDBScanSource(){
+    public DynamicMultipleDBScanSource() {
         splits = new ArrayList<>();
     }
 
@@ -63,7 +63,6 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
         setTopic(logicTableName);
         return super.initConfigurable();
     }
-
 
     @Override
     protected boolean isNotDataSplit(String queueId) {
@@ -90,7 +89,7 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
     @Override
     public List<ISplit> fetchAllSplits() {
 
-        if(filter == null){
+        if (filter == null) {
             filter = new DataFormatPatternFilter();
         }
 
@@ -100,15 +99,15 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
 
         logger.info(String.format("load all logic table : %s", Arrays.toString(tableNames.toArray())));
 
-        for(String s : tableNames){
+        for (String s : tableNames) {
             String suffix = s.replace(logicTableName + "_", "");
-            if(filter.filter(null, logicTableName, suffix)){
+            if (filter.filter(null, logicTableName, suffix)) {
                 logger.info(String.format("filter add %s", s));
                 DynamicMultipleDBSplit split = new DynamicMultipleDBSplit();
                 split.setLogicTableName(logicTableName);
                 split.setSuffix(suffix);
                 splits.add(split);
-            }else{
+            } else {
                 logger.info(String.format("filter remove %s", s));
             }
 

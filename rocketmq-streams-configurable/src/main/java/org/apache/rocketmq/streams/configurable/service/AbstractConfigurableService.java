@@ -177,7 +177,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
     }
 
     private void destroyOldConfigurable(IConfigurable oldConfigurable) {
-        if (AbstractConfigurable.class.isInstance(oldConfigurable)) {
+        if (oldConfigurable instanceof AbstractConfigurable) {
             ((AbstractConfigurable) oldConfigurable).destroy();
         }
         String key = getConfigureKey(oldConfigurable.getNameSpace(), oldConfigurable.getType(),
@@ -186,7 +186,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
     }
 
     protected void initConfigurable(IConfigurable configurable) {
-        if (AbstractConfigurable.class.isInstance(configurable)) {
+        if (configurable instanceof AbstractConfigurable) {
             AbstractConfigurable abstractConfigurable = (AbstractConfigurable) configurable;
             abstractConfigurable.setConfigurableService(this);
         }

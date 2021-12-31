@@ -33,32 +33,31 @@ public class OverWindowStream {
     protected Set<PipelineBuilder> otherPipelineBuilders;
     protected ChainStage<?> currentChainStage;
 
-    public OverWindowStream(ShuffleOverWindow window, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
+    public OverWindowStream(ShuffleOverWindow window, PipelineBuilder pipelineBuilder,
+        Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
         this.pipelineBuilder = pipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.window = window;
     }
 
-
-    public OverWindowStream setRowNumName(String name){
+    public OverWindowStream setRowNumName(String name) {
         window.setRowNumerName(name);
         return this;
     }
 
-    public OverWindowStream addOrderByFieldName(String fieldName,boolean isAsc){
-        if(window.getOrderFieldNames()==null){
+    public OverWindowStream addOrderByFieldName(String fieldName, boolean isAsc) {
+        if (window.getOrderFieldNames() == null) {
             window.setOrderFieldNames(new ArrayList<>());
         }
-        window.getOrderFieldNames().add(fieldName+";"+(isAsc?"true":"false"));
+        window.getOrderFieldNames().add(fieldName + ";" + (isAsc ? "true" : "false"));
         return this;
     }
 
-    public OverWindowStream setTopN(int topN){
+    public OverWindowStream setTopN(int topN) {
         window.setTopN(topN);
         return this;
     }
-
 
     /**
      * 以哪几个字段做分组，支持多个字段
@@ -78,6 +77,5 @@ public class OverWindowStream {
     public DataStream toDataSteam() {
         return new DataStream(pipelineBuilder, otherPipelineBuilders, currentChainStage);
     }
-
 
 }

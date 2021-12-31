@@ -25,8 +25,8 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
-import org.apache.rocketmq.streams.window.source.WindowFireSource;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
+import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 
 public abstract class AbstractShuffleWindow extends AbstractWindow {
 
@@ -40,10 +40,10 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
         return super.initConfigurable();
     }
 
-
-    @Override public void windowInit() {
+    @Override
+    public void windowInit() {
         if (hasCreated.compareAndSet(false, true)) {
-            this.windowFireSource = new WindowFireSource(this);
+            this.windowFireSource = new WindowTrigger(this);
             this.windowFireSource.init();
             this.windowFireSource.start(getFireReceiver());
             this.shuffleChannel = new ShuffleChannel(this);
@@ -53,7 +53,8 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
         }
     }
 
-    @Override public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
+    @Override
+    public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
         shuffleChannel.startChannel();
         return super.doMessage(message, context);
     }
@@ -73,14 +74,15 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
      * @param messages
      * @param instance
      */
-    public abstract void  shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
+    public abstract void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
 
-     /**
+    /**
      * 触发window
      *
      * @param instance
      */
-    protected abstract int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset);
+    protected abstract int fireWindowInstance(WindowInstance instance, String queueId,
+        Map<String, String> queueId2Offset);
 
     public abstract void clearCache(String queueId);
 }

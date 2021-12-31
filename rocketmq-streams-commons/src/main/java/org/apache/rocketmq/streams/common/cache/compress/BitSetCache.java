@@ -30,45 +30,49 @@ public class BitSetCache {
         private byte[] bytes;
         protected int byteSetSize;
         protected int bitSetSize;
+
         public BitSet(int bitSetSize) {
-            this.byteSetSize=bitSetSize/8+(bitSetSize%8==0?0:1);
-            this.bitSetSize=bitSetSize;
+            this.byteSetSize = bitSetSize / 8 + (bitSetSize % 8 == 0 ? 0 : 1);
+            this.bitSetSize = bitSetSize;
             bytes = new byte[byteSetSize];
         }
 
         public BitSet(byte[] bytes) {
             this.bytes = bytes;
-            this.byteSetSize=bytes.length;
-            this.bitSetSize=this.byteSetSize*8;
+            this.byteSetSize = bytes.length;
+            this.bitSetSize = this.byteSetSize * 8;
         }
+
         public void set(int index) {
-            set(index,true);
+            set(index, true);
         }
+
         public void setFalse(int index) {
-            set(index,false);
+            set(index, false);
         }
-        protected void set(int index,boolean isTrueValue) {
-            if (index > bitSetSize-1) {
-                throw new RuntimeException("the index exceed max index, max index is " + (bitSetSize-1)  + ", real is " + index);
+
+        protected void set(int index, boolean isTrueValue) {
+            if (index > bitSetSize - 1) {
+                throw new RuntimeException("the index exceed max index, max index is " + (bitSetSize - 1) + ", real is " + index);
             }
             int bitIndex = index % 8;
 
-            int byteIndex = index/8;
+            int byteIndex = index / 8;
 //            if(byteIndex>0){
 //                byteIndex= index / 8+(bitIndex==0?0:1)-1;
 //            }
 
             try {
                 byte byteElement = bytes[byteIndex];
-                if(isTrueValue){
+                if (isTrueValue) {
                     byteElement = (byte) (byteElement | (1 << bitIndex));
-                }else {
-                   byteElement  = (byte)(byteElement & (~(0x1 << bitIndex)));
+                } else {
+                    byteElement = (byte) (byteElement & (~(0x1 << bitIndex)));
                 }
 
                 bytes[byteIndex] = byteElement;
-            }catch (Exception e){
-             e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
         }
@@ -78,11 +82,11 @@ public class BitSetCache {
         }
 
         public boolean get(int index) {
-            if (index > bitSetSize-1) {
-                throw new RuntimeException("the index exceed max index, max index is " + (bitSetSize-1) + ", real is " + index);
+            if (index > bitSetSize - 1) {
+                throw new RuntimeException("the index exceed max index, max index is " + (bitSetSize - 1) + ", real is " + index);
             }
             int bitIndex = index % 8;
-            int byteIndex = index/8;
+            int byteIndex = index / 8;
 //            if(byteIndex>0){
 //                byteIndex= index / 8+(bitIndex==0?0:1)-1;
 //            }
@@ -108,21 +112,23 @@ public class BitSetCache {
     }
 
     public BitSet createBitSet() {
-        if(bitSetSize==0){
+        if (bitSetSize == 0) {
             throw new RuntimeException("can not support this method");
         }
         return new BitSet(bitSetSize);
     }
-    public BitSetCache( int capacity) {
+
+    public BitSetCache(int capacity) {
         cache = new ByteArrayValueKV(capacity);
         this.capacity = capacity;
     }
+
     public BitSetCache(int bitSetSize, int capacity) {
-        this.byteSetSize = bitSetSize / 8 + (bitSetSize % 8==0?0:1);
+        this.byteSetSize = bitSetSize / 8 + (bitSetSize % 8 == 0 ? 0 : 1);
         this.bitSetSize = bitSetSize;
         cache = new ByteArrayValueKV(capacity);
         this.capacity = capacity;
-        cache=new ByteArrayValueKV(capacity,bitSetSize);
+        cache = new ByteArrayValueKV(capacity, bitSetSize);
     }
 
     public void put(String key, BitSet bitSet) {
@@ -133,7 +139,7 @@ public class BitSetCache {
         BitSet bitSet = new BitSet(200);
         bitSet.set(1);
         System.out.println(bitSet.get(0));
-        for(int i=0;i<200;i++){
+        for (int i = 0; i < 200; i++) {
             System.out.println(bitSet.get(i));
         }
 
@@ -149,7 +155,7 @@ public class BitSetCache {
 
     }
 
-    public long size(){
+    public long size() {
         return this.cache.getSize();
     }
 

@@ -88,24 +88,24 @@ public class ReaderStatus extends Entity {
             '}';
     }
 
-    public static ReaderStatus queryReaderStatusByUK(String sourceName, String readerName){
+    public static ReaderStatus queryReaderStatusByUK(String sourceName, String readerName) {
         String sql = String.format(queryReaderStatusByUK, sourceName, readerName);
         ReaderStatus readerStatus = ORMUtil.queryForObject(sql, null, ReaderStatus.class);
         return readerStatus;
     }
 
-    public static List<ReaderStatus> queryReaderStatusListBySourceName(String sourceName){
+    public static List<ReaderStatus> queryReaderStatusListBySourceName(String sourceName) {
         String sql = String.format(queryReaderStatusList, sourceName);
         List<ReaderStatus> readerStatusList = ORMUtil.queryForList(sql, null, ReaderStatus.class);
         return readerStatusList;
     }
 
-    public static void clearReaderStatus(String sourceName, String readerName){
+    public static void clearReaderStatus(String sourceName, String readerName) {
         String sql = String.format(clearReaderStatus, sourceName, readerName);
         ORMUtil.executeSQL(sql, null);
     }
 
-    public static ReaderStatus create(String sourceName, String readerName, int isFinished, int totalReader){
+    public static ReaderStatus create(String sourceName, String readerName, int isFinished, int totalReader) {
 
         ReaderStatus readerStatus = new ReaderStatus();
         readerStatus.setSourceName(sourceName);

@@ -18,27 +18,23 @@ package org.apache.rocketmq.streams.common.cache.compress.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.streams.common.cache.compress.AdditionStore;
 import org.apache.rocketmq.streams.common.cache.compress.ByteArray;
+import org.apache.rocketmq.streams.common.cache.compress.ByteStore;
 import org.apache.rocketmq.streams.common.cache.compress.CacheKV;
-import org.apache.rocketmq.streams.common.cache.compress.MapAddress;
+import org.apache.rocketmq.streams.common.cache.compress.KVAddress;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 
 public abstract class AbstractListKV<T> extends CacheKV<List<T>> {
 
-    public AbstractListKV(int capacity, int elementSize) {
-        super(capacity, elementSize);
-    }
-
     public AbstractListKV(int capacity) {
-        super(capacity);
+        super(capacity, true);
     }
 
     @Override
     public List<T> get(String key) {
-        List<T> values=new ArrayList<>();
-        ByteArray byteArray=getLastElement(key,values);
-        if(byteArray==null){
+        List<T> values = new ArrayList<>();
+        ByteArray byteArray = getLastElement(key, values);
+        if (byteArray == null) {
             return null;
         }
         return values;
@@ -46,81 +42,85 @@ public abstract class AbstractListKV<T> extends CacheKV<List<T>> {
 
     /**
      * 增加一个元素
+     *
      * @param key
      * @param value
      * @return
      */
-    public synchronized List<T> add(String key,T value){
-        List<T> values=new ArrayList<>();
-        ByteArray last=getLastElement(key,values);
-        add(key,value,last);
+    public synchronized List<T> add(String key, T value) {
+        List<T> values = new ArrayList<>();
+        ByteArray last = getLastElement(key, values);
+        add(key, value, last);
         values.add(value);
         return values;
     }
-
 
     protected abstract byte[] convertByte(T value);
 
     protected abstract int getElementSize();
 
-    protected abstract AdditionStore getValues();
+    protected abstract ByteStore getValues();
 
     /**
      * 获取最后一个元素
+     *
      * @param key
      * @param values
      * @return
      */
-    protected ByteArray getLastElement(String key,List<T> values){
-        return getLastElement(key,values,null);
+    protected ByteArray getLastElement(String key, List<T> values) {
+        return getLastElement(key, values, null);
     }
+
     /**
      * 获取最后一个元素
+     *
      * @param key
      * @param values
      * @return
      */
-    protected abstract ByteArray getLastElement(String key,List<T> values,ListValueAddress addresses );
+    protected abstract ByteArray getLastElement(String key, List<T> values, ListValueAddress addresses);
 
-
-    protected void add(String key,T value, ByteArray last){
-        if(key==null||value==null){
+    protected void add(String key, T value, ByteArray last) {
+        if (key == null || value == null) {
             return;
         }
         /**
          * 当前元素是第一个元素，插入到父类的conflict字段
          */
-        if(last==null){
-            byte[] element=createElement(convertByte(value));
-            MapAddress address=this.getValues().add2Store(element);
-            byte[] addressByte=address.createBytes();
-            super.putInner(key, NumberUtils.toInt(addressByte), true);
+        if (last == null) {
+            byte[] element = createElement(convertByte(value));
+            KVAddress address = this.getValues().add2Store(element);
+            byte[] addressByte = address.createBytes();
+            super.putInner(key, new ByteArray(addressByte), true);
             return;
         }
-        byte[] element=createElement(convertByte(value));
-        MapAddress address=this.getValues().add2Store(element);
-        byte[] nextAddress=address.createBytes();
-        for(int i=0;i<nextAddress.length;i++){
-            last.setByte(i+getElementSize(),nextAddress[i]);
+        byte[] element = createElement(convertByte(value));
+        KVAddress address = this.getValues().add2Store(element);
+        byte[] nextAddress = address.createBytes();
+        for (int i = 0; i < nextAddress.length; i++) {
+            last.setByte(i + getElementSize(), nextAddress[i]);
         }
     }
 
+    private static byte[] ZERO_BYTE = NumberUtils.toByte(0, 5);
 
-    private static byte[] ZERO_BYTE=NumberUtils.toByte(0);
     /**
      * 创建一个元素，包含两部分：int值，int
+     *
      * @return
      */
     protected byte[] createElement(byte[] intValueByte) {
-        byte[] element=new byte[4+getElementSize()];
-        for(int j=0;j<getElementSize();j++){
-            element[j]=intValueByte[j];
+        byte[] element = new byte[5 + getElementSize()];
+        for (int j = 0; j < getElementSize(); j++) {
+            element[j] = intValueByte[j];
         }
-        for(int j=0;j<4;j++){
-            element[j+getElementSize()]=ZERO_BYTE[j];
+        for (int j = 0; j < 5; j++) {
+            element[j + getElementSize()] = ZERO_BYTE[j];
         }
         return element;
     }
+
     @Override
     public void put(String key, List<T> values) {
         throw new RuntimeException("can not use this method, please use add method");
@@ -138,19 +138,19 @@ public abstract class AbstractListKV<T> extends CacheKV<List<T>> {
 
     @Override
     public int calMemory() {
-        return super.calMemory() + ((this.getValues().getConflictIndex() + 1) * this.getValues().getBlockSize()/1024/1024);
+        long value = ((this.getValues().getConflictIndex() + 1) * (this.getValues().getBlockSize() / 1024 / 1024));
+        return super.calMemory() + (int) value;
     }
 
-
-    class ListValueAddress{
+    class ListValueAddress {
         protected ByteArray header;
-        protected List<MapAddress> addresses=new ArrayList<>();
+        protected List<KVAddress> addresses = new ArrayList<>();
 
         public void setHeader(ByteArray header) {
             this.header = header;
         }
 
-        public void addAddress(MapAddress address){
+        public void addAddress(KVAddress address) {
             addresses.add(address);
         }
     }
