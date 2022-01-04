@@ -190,6 +190,7 @@
                         <exclude>**/*.out</exclude>
                         <exclude>**/*.properties</exclude>
                         <exclude>docs/**/*</exclude>
+                        <exclude>**/*.sql</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -495,12 +496,6 @@
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-jdbc</artifactId>
                 <version>${spring.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>${mysql-connector.version}</version>
             </dependency>
 
             <dependency>

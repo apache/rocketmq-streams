@@ -244,8 +244,7 @@ public class SQLUtil {
         return createInsertSql(metaData, fieldName2Value, null);
     }
 
-    public static String createInsertSql(MetaData metaData, Map<String, Object> fieldName2Value,
-        Boolean containsIdField) {
+    public static String createInsertSql(MetaData metaData, Map<String, Object> fieldName2Value, Boolean containsIdField) {
 
         StringBuilder sql = new StringBuilder(INSERT + " " + metaData.getTableName() + "(");
         StringBuilder fieldSql = new StringBuilder();
@@ -256,10 +255,10 @@ public class SQLUtil {
             createInsertValuesSQL(metaData, fieldName2Value, fieldSql, valueSql, containsIdField);
         }
 
-        sql.append(fieldSql.toString());
+        sql.append(fieldSql);
         sql.append(")");
         sql.append(" values");
-        sql.append(valueSql.toString());
+        sql.append(valueSql);
         return sql.toString();
     }
 

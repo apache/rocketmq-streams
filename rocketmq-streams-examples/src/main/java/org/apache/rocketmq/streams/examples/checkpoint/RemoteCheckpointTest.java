@@ -38,7 +38,7 @@ import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_T
 
 public class RemoteCheckpointTest {
     //replace with your mysql url, database name can be anyone else.
-    private static final String URL = "jdbc:mysql://localhost:3306/rocketmq_streams";
+    private static final String URL = "jdbc:mysql://localhost:3306/rocketmq_streams?characterEncoding=utf8&useSSL=false";
     // user name of mysql
     private static final String USER_NAME = "";
     //password of mysql
@@ -75,9 +75,9 @@ public class RemoteCheckpointTest {
                         JSONObject.parseObject((String) message);
                     } catch (Throwable t) {
                         // if can not convert to json, discard it.because all operator are base on json.
-                        return true;
+                        return false;
                     }
-                    return false;
+                    return true;
                 })
                 //must convert message to json.
                 .map(message -> JSONObject.parseObject((String) message))
