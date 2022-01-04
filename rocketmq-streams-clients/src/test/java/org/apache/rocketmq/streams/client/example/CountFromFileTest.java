@@ -51,16 +51,4 @@ public class CountFromFileTest {
             .start();
     }
 
-    //    @Test
-    //    public void testSessionCountFromFile(){
-    //        StreamBuilder.dataStream("tmp","tmp")
-    //            // Filepath can be either a classpath file or an absolute path file address
-    //            //filepath can set window_msg_10 or window_msg_100 window_msg_1000 or window_msg_10000
-    //            .fromFile("window_msg_88121.txt",true)
-    //            .window(SessionWindow.of(Time.seconds(5)))
-    //            .count("count_result")
-    //            .toDataSteam()
-    //            .toPrint()
-    //            .start();;
-    //    }
 }

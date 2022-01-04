@@ -17,7 +17,7 @@
  *
  */
 
-package org.apache.rocketmq.streams.examples.rocketmqsource;
+package org.apache.rocketmq.streams.examples.aggregate;
 
 public class Constant {
     public static final String NAMESRV_ADDRESS = "127.0.0.1:9876";

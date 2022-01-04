@@ -17,7 +17,7 @@
  *
  */
 
-package org.apache.rocketmq.streams.examples.pageclick;
+package org.apache.rocketmq.streams.examples.aggregate;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.StreamBuilder;
@@ -25,10 +25,8 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
-import org.apache.rocketmq.streams.examples.rocketmqsource.ProducerFromFile;
 
-
-public class UsersDimension {
+public class UsersDimensionExample {
     private static final String topic = "pageClick";
     private static final String namesrv = "127.0.0.1:9876";
 

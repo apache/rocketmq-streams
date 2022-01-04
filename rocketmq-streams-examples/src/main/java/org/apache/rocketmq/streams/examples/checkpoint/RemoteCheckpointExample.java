@@ -28,15 +28,15 @@ import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.dbinit.mysql.delegate.DBDelegate;
 import org.apache.rocketmq.streams.dbinit.mysql.delegate.DBDelegateFactory;
-import org.apache.rocketmq.streams.examples.rocketmqsource.ProducerFromFile;
+import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
 import static org.apache.rocketmq.streams.db.driver.DriverBuilder.DEFALUT_JDBC_DRIVER;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 
-public class RemoteCheckpointTest {
+public class RemoteCheckpointExample {
     //replace with your mysql url, database name can be anyone else.
     private static final String URL = "jdbc:mysql://localhost:3306/rocketmq_streams?characterEncoding=utf8&useSSL=false";
     // user name of mysql
