@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.examples.rocketmqsource;
+package org.apache.rocketmq.streams.examples.source;
 
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
+import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 
-public class RocketMQSourceExample1 {
+public class RocketmqSourceExample1 {
     public static void main(String[] args) {
         ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
 
