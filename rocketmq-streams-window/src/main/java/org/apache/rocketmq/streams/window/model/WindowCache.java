@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.window.model;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,12 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
+import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -45,16 +48,12 @@ import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 /**
  * 缓存数据，flush时，刷新完成数据落盘
  */
-public abstract class WindowCache extends
-    AbstractSink implements IWindow.IWindowCheckpoint {
-
+public abstract class WindowCache extends AbstractSink implements IWindow.IWindowCheckpoint {
     private static final Log LOG = LogFactory.getLog(WindowCache.class);
 
-    public static final String SPLIT_SIGN = "##";
 
     public static final String IS_COMPRESSION_MSG = "_is_compress_msg";
     public static final String COMPRESSION_MSG_DATA = "_compress_msg";
-    public static final String MSG_FROM_SOURCE = "msg_from_source";
     public static final String ORIGIN_OFFSET = "origin_offset";
 
     public static final String ORIGIN_QUEUE_ID = "origin_queue_id";
@@ -68,7 +67,9 @@ public abstract class WindowCache extends
     public static final String SHUFFLE_KEY = "SHUFFLE_KEY";
 
     public static final String ORIGIN_MESSAGE_TRACE_ID = "origin_request_id";
+
     protected transient boolean isWindowTest = false;
+
     protected transient AtomicLong COUNT = new AtomicLong(0);
     /**
      * 分片转发channel
@@ -78,28 +79,30 @@ public abstract class WindowCache extends
     protected class ShuffleMsgCache extends AbstractMultiSplitMessageCache<Pair<ISplit, JSONObject>> {
 
         public ShuffleMsgCache() {
-            super(messages -> {
-                if (messages == null || messages.size() == 0) {
+            super(new IMessageFlushCallBack<Pair<ISplit, JSONObject>>() {
+                @Override
+                public boolean flushMessage(List<Pair<ISplit, JSONObject>> messages) {
+                    if (messages == null || messages.size() == 0) {
+                        return true;
+                    }
+                    ISplit split = messages.get(0).getLeft();
+                    JSONObject jsonObject = messages.get(0).getRight();
+                    JSONArray allMsgs = shuffleChannel.getMsgs(jsonObject);
+                    for (int i = 1; i < messages.size(); i++) {
+                        Pair<ISplit, JSONObject> pair = messages.get(i);
+                        JSONObject msg = pair.getRight();
+                        JSONArray jsonArray = shuffleChannel.getMsgs(msg);
+                        if (jsonArray != null) {
+                            allMsgs.addAll(jsonArray);
+                        }
+                    }
+                    JSONObject zipJsonObject = new JSONObject();
+                    zipJsonObject.put(COMPRESSION_MSG_DATA, CompressUtil.gZip(jsonObject.toJSONString()));
+                    zipJsonObject.put(IS_COMPRESSION_MSG, true);
+                    shuffleChannel.getProducer().batchAdd(new Message(zipJsonObject), split);
+                    shuffleChannel.getProducer().flush(split.getQueueId());
                     return true;
                 }
-                ISplit split = messages.get(0).getLeft();
-                JSONObject jsonObject = messages.get(0).getRight();
-                JSONArray allMsgs = shuffleChannel.getMsgs(jsonObject);
-                for (int i = 1; i < messages.size(); i++) {
-                    Pair<ISplit, JSONObject> pair = messages.get(i);
-                    JSONObject msg = pair.getRight();
-                    JSONArray jsonArray = shuffleChannel.getMsgs(msg);
-                    if (jsonArray != null) {
-                        allMsgs.addAll(jsonArray);
-                    }
-                }
-                JSONObject zipJsonObject = new JSONObject();
-                zipJsonObject.put(COMPRESSION_MSG_DATA, CompressUtil.gZip(jsonObject.toJSONString()));
-                zipJsonObject.put(IS_COMPRESSION_MSG, true);
-                shuffleChannel.getProducer().batchAdd(new Message(zipJsonObject), split);
-                shuffleChannel.getProducer().flush(split.getQueueId());
-
-                return true;
             });
         }
 
