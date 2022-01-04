@@ -288,12 +288,16 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         }
         MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
         RemoteBrokerOffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, NamespaceUtil.wrapNamespace(consumer.getNamespace(), consumer.getConsumerGroup())) {
-
+            Set<MessageQueue> firstComing = new HashSet<>();
             @Override
             public void removeOffset(MessageQueue mq) {
-                Set<String> splitIds = new HashSet<>();
-                splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
-                removeSplit(splitIds);
+                if (!firstComing.contains(mq)){
+                    firstComing.add(mq);
+                } else {
+                    Set<String> splitIds = new HashSet<>();
+                    splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
+                    removeSplit(splitIds);
+                }
                 super.removeOffset(mq);
             }
 
