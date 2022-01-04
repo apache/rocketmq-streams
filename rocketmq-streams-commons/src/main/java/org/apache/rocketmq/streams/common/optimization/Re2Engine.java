@@ -34,7 +34,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
  */
 public class Re2Engine<T> implements IStreamRegex<T> {
 
-    protected com.google.re2j.Pattern pattern;
+    protected Pattern pattern;
 
     protected Map<String, T> nameMap = new HashMap<>(64);
 
@@ -51,13 +51,13 @@ public class Re2Engine<T> implements IStreamRegex<T> {
     @Override public void compile() {
         StringBuffer buffer = new StringBuffer();
         Iterator<Map.Entry<String, String>> iterator = regexMap.entrySet().iterator();
-        com.google.re2j.Pattern testPattern;
+        Pattern testPattern;
         while (iterator.hasNext()) {
             Map.Entry<String, String> entry = iterator.next();
             String groupName = entry.getKey();
             String regex = entry.getValue();
             try {
-                testPattern = com.google.re2j.Pattern.compile(regex, com.google.re2j.Pattern.MULTILINE);
+                testPattern = Pattern.compile(regex, Pattern.MULTILINE);
             } catch (Exception e) {
                 iterator.remove();
                 unSupportMap.put(groupName, regex);
@@ -69,7 +69,7 @@ public class Re2Engine<T> implements IStreamRegex<T> {
             buffer.append("(?P<").append(groupName).append(">(").append(regex).append("))");
         }
         if (buffer.length() != 0) {
-            pattern = com.google.re2j.Pattern.compile(buffer.toString(), com.google.re2j.Pattern.MULTILINE & Pattern.CASE_INSENSITIVE);
+            pattern = Pattern.compile(buffer.toString(), Pattern.MULTILINE & Pattern.CASE_INSENSITIVE);
         }
     }
 

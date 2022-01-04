@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.streams.examples.rocketmqsource;
+package org.apache.rocketmq.streams.examples.aggregate;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.StreamBuilder;
@@ -24,11 +24,11 @@ import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
-public class RocketmqWindowTest {
+public class RocketMQWindowExample {
 
     /**
      * 1、make sure your rocketmq server has been started.

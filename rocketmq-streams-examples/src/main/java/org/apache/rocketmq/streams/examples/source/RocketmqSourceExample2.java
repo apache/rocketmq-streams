@@ -14,22 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.examples.source;
 
-package org.apache.rocketmq.streams.examples.rocketmqsource;
-
-import com.alibaba.fastjson.JSONObject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Arrays;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
+import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.RMQ_TOPIC;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
-public class RocketMQSourceExample3 {
+public class RocketmqSourceExample2 {
     /**
      * 1、make sure your rocketmq server has been started.
      */
@@ -50,24 +46,20 @@ public class RocketMQSourceExample3 {
                 false,
                 NAMESRV_ADDRESS)
             .forEach((message) -> {
+                System.out.println("forEach: before===========");
                 System.out.println("forEach: " + message);
+                System.out.println("forEach: after===========");
             })
             .map(message -> message)
             .filter((value) -> {
+                System.out.println("filter: ===========");
                 String messageValue = (String) value;
                 return messageValue.contains("InFlow");
             })
             .flatMap((message) -> {
-                JSONObject jsonObject = JSONObject.parseObject((String) message);
-                Set<Map.Entry<String, Object>> entries = jsonObject.entrySet();
-
-                List<String> result = new ArrayList<>();
-
-                for (Map.Entry<String, Object> entry : entries) {
-                    String str = entry.getKey() + ":" + entry.getValue();
-                    result.add(str);
-                }
-                return result;
+                String value = (String) message;
+                String[] result = value.split(" ");
+                return Arrays.asList(result);
             })
             .toPrint(1)
             .start();
