@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams</artifactId>
-        <version>1.0.0-Preview</version>
+        <version>1.0.1-Preview-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-streams-lease</artifactId>
     <name>ROCKETMQ STREAMS :: lease</name>
