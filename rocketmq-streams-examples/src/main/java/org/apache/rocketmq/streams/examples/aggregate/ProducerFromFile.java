@@ -17,7 +17,7 @@
  *
  */
 
-package org.apache.rocketmq.streams.examples.rocketmqsource;
+package org.apache.rocketmq.streams.examples.aggregate;
 
 import java.io.BufferedReader;
 import java.io.File;

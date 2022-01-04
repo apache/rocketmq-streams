@@ -24,9 +24,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.streams.examples.rocketmqsource.ProducerFromFile;
+import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
-import static org.apache.rocketmq.streams.examples.rocketmqsource.Constant.*;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
+import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class Producer {
     private static final AtomicInteger count = new AtomicInteger(0);
@@ -36,7 +37,7 @@ public class Producer {
      *
      * @param fileName
      */
-    public static void produceInLoop(String topic, String fileName) {
+    public static void produceInLoop(String fileName) {
         DefaultMQProducer producer = new DefaultMQProducer("test-group");
 
         try {
@@ -51,10 +52,11 @@ public class Producer {
                 }
 
                 for (String str : result) {
-                    Message msg = new Message(topic, "", str.getBytes(RemotingHelper.DEFAULT_CHARSET));
+                    Message msg = new Message(RMQ_TOPIC, "", str.getBytes(RemotingHelper.DEFAULT_CHARSET));
                     producer.send(msg);
                     count.getAndIncrement();
                 }
+
                 Thread.sleep(100);
             }
 
