@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.window.operator;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -338,15 +340,13 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         if (StringUtil.isEmpty(groupByFieldName)) {
             return null;
         }
+
         JSONObject msg = message.getMessageBody();
         String[] fieldNames = groupByFieldName.split(";");
         String[] values = new String[fieldNames.length];
-        boolean isFirst = true;
+
         int i = 0;
         for (String filedName : fieldNames) {
-            if (isFirst) {
-                isFirst = false;
-            }
             String value = msg.getString(filedName);
             values[i] = value;
             i++;

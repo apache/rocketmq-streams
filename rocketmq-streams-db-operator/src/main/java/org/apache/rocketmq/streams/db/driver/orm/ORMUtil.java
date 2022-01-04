@@ -360,37 +360,15 @@ public class ORMUtil {
         Object object = values.get(0);
         Map<String, Object> paras = new HashMap<>(16);
         MetaData metaData = createMetaDate(object, paras);
-        boolean containsIdField = false;
-        if (metaData.getIdFieldName() != null) {
-            for (Object o : values) {
-                Object id = ReflectUtil.getDeclaredField(o, metaData.getIdFieldName());
-                if (id == null) {
-                    containsIdField = false;
-                    break;
-                }
-                if (id instanceof Number) {
-                    if (Long.valueOf(id.toString()) == 0) {
-                        containsIdField = false;
-                        break;
-                    }
-                }
-                if (id instanceof String) {
-                    String idStr = (String)id;
-                    if (StringUtil.isEmpty(idStr)) {
-                        containsIdField = false;
-                        break;
-                    }
-                }
-            }
-        }
+
 
         String sql = null;
         if (flag == 0) {
-            sql = SQLUtil.createInsertSql(metaData, paras, containsIdField);
+            sql = SQLUtil.createInsertSql(metaData, paras, false);
         } else if (flag == 1) {
-            sql = SQLUtil.createInsertSql(metaData, paras, containsIdField);
+            sql = SQLUtil.createInsertSql(metaData, paras, false);
         } else if (flag == -1) {
-            sql = SQLUtil.createIgnoreInsertSql(metaData, paras, containsIdField);
+            sql = SQLUtil.createIgnoreInsertSql(metaData, paras, false);
         } else {
             throw new RuntimeException("the flag is not valdate " + flag);
         }
