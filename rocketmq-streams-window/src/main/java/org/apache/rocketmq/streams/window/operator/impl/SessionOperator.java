@@ -201,10 +201,6 @@ public class SessionOperator extends WindowOperator {
      */
     private WindowValue queryOrCreateWindowValue(WindowInstance windowInstance, String queueId, String groupByValue,
         IMessage message, List<WindowValue> valueList, String storeKey) {
-        //
-        if (CollectionUtil.isEmpty(valueList)) {
-            return createWindowValue(queueId, groupByValue, windowInstance, message, storeKey);
-        }
         //put keys to be deleted here and delete them at last
         List<String> deletePrefixKeyList = new ArrayList<>();
         //
@@ -214,20 +210,35 @@ public class SessionOperator extends WindowOperator {
             Pair<Date, Date> startEndPair = getSessionTime(message);
             Date messageBegin = startEndPair.getLeft();
             Date messageEnd = startEndPair.getRight();
-            if (messageBegin.compareTo(sessionBegin) >= 0 && messageBegin.compareTo(sessionEnd) < 0) {
+            if (messageBegin.compareTo(sessionBegin) < 0 && messageEnd.compareTo(sessionEnd) <= 0) {
+                sessionBegin = messageBegin;
+                value.setStartTime(DateUtil.format(sessionBegin, SESSION_DATETIME_PATTERN));
+                return value;
+            } else if (messageBegin.compareTo(sessionBegin) >= 0 && messageEnd.compareTo(sessionEnd) <= 0) {
+                return value;
+            } else if (messageBegin.compareTo(sessionBegin) >= 0 && messageBegin.compareTo(sessionEnd) < 0 && messageEnd.compareTo(sessionEnd) > 0) {
                 sessionEnd = messageEnd;
-                Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, waterMarkMinute * timeUnitAdjust);
-                value.setEndTime(DateUtil.format(sessionEnd, SESSION_DATETIME_PATTERN));
-                //clean order storage as sort field 'fireTime' changed
+                //clean older storage as sort field 'fireTime' changed
                 String existPartitionNumKey = createPrefixKey(value, windowInstance, queueId);
                 deletePrefixKeyList.add(existPartitionNumKey);
                 deletePrefixValue(deletePrefixKeyList);
                 //
+                Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, waterMarkMinute * timeUnitAdjust);
+                value.setEndTime(DateUtil.format(sessionEnd, SESSION_DATETIME_PATTERN));
                 value.setFireTime(DateUtil.format(sessionFire, SESSION_DATETIME_PATTERN));
                 return value;
-            } else if (messageBegin.compareTo(sessionBegin) < 0 && messageEnd.compareTo(sessionBegin) > 0) {
+            } else if (messageBegin.compareTo(sessionBegin) < 0 && messageEnd.compareTo(sessionEnd) > 0) {
                 sessionBegin = messageBegin;
+                sessionEnd = messageEnd;
+                //clean older storage as sort field 'fireTime' changed
+                String existPartitionNumKey = createPrefixKey(value, windowInstance, queueId);
+                deletePrefixKeyList.add(existPartitionNumKey);
+                deletePrefixValue(deletePrefixKeyList);
+                //
                 value.setStartTime(DateUtil.format(sessionBegin, SESSION_DATETIME_PATTERN));
+                value.setEndTime(DateUtil.format(sessionEnd, SESSION_DATETIME_PATTERN));
+                Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, waterMarkMinute * timeUnitAdjust);
+                value.setFireTime(DateUtil.format(sessionFire, SESSION_DATETIME_PATTERN));
                 return value;
             }
         }
@@ -256,7 +267,7 @@ public class SessionOperator extends WindowOperator {
             WindowValue outValue = allValueList.get(outIndex);
             for (int inIndex = outIndex + 1; inIndex < allValueList.size(); inIndex++) {
                 WindowValue inValue = allValueList.get(inIndex);
-                if (inValue.getFireTime().compareTo(outValue.getEndTime()) <= 0) {
+                if (inValue.getStartTime().compareTo(outValue.getEndTime()) <= 0) {
                     deleteValueMap.put(inIndex, outIndex);
                     outValue.setEndTime(outValue.getEndTime().compareTo(inValue.getEndTime()) <= 0 ? inValue.getEndTime() : outValue.getEndTime());
                     outValue.setFireTime(outValue.getFireTime().compareTo(inValue.getFireTime()) <= 0 ? inValue.getFireTime() : outValue.getFireTime());
@@ -480,10 +491,10 @@ public class SessionOperator extends WindowOperator {
 
     @Override
     public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
-        long numer = super.incrementAndGetSplitNumber(instance, shuffleId);
-        if (numer > 900000000) {
+        long number = super.incrementAndGetSplitNumber(instance, shuffleId);
+        if (number > 900000000) {
             this.getWindowMaxValueManager().resetSplitNum(instance, shuffleId);
         }
-        return numer;
+        return number;
     }
 }

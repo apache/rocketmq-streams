@@ -18,9 +18,11 @@ package org.apache.rocketmq.streams.common.optimization;
 
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
@@ -34,42 +36,47 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
  */
 public class Re2Engine<T> implements IStreamRegex<T> {
 
-    protected Pattern pattern;
+    protected com.google.re2j.Pattern pattern;
 
-    protected Map<String, T> nameMap = new HashMap<>(64);
+    private Map<String, List<T>> expressionMap = new HashMap<>(128);
 
-    protected Map<String, String> regexMap = new HashMap<>(64);
+    private Map<String, String> nameMap = new HashMap<>(128);
 
     protected Map<String, String> unSupportMap = new HashMap<>(32);
 
     @Override public void addRegex(String regex, T context) {
         String groupName = "P" + nameMap.size();
-        nameMap.put(groupName, context);
-        regexMap.put(groupName, regex);
+        if (!expressionMap.containsKey(regex)) {
+            expressionMap.put(regex, new ArrayList<>());
+        }
+        expressionMap.get(regex).add(context);
+        if (!nameMap.containsKey(regex)) {
+            nameMap.put(regex, groupName);
+        }
     }
 
     @Override public void compile() {
         StringBuffer buffer = new StringBuffer();
-        Iterator<Map.Entry<String, String>> iterator = regexMap.entrySet().iterator();
-        Pattern testPattern;
+        Iterator<Map.Entry<String, String>> iterator = nameMap.entrySet().iterator();
+        com.google.re2j.Pattern testPattern;
         while (iterator.hasNext()) {
             Map.Entry<String, String> entry = iterator.next();
-            String groupName = entry.getKey();
-            String regex = entry.getValue();
+            String expression = entry.getKey();
+            String groupName = entry.getValue();
             try {
-                testPattern = Pattern.compile(regex, Pattern.MULTILINE);
+                testPattern = com.google.re2j.Pattern.compile(expression, com.google.re2j.Pattern.MULTILINE);
             } catch (Exception e) {
                 iterator.remove();
-                unSupportMap.put(groupName, regex);
+                unSupportMap.put(groupName, expression);
                 continue;
             }
             if (buffer.length() != 0) {
                 buffer.append("|");
             }
-            buffer.append("(?P<").append(groupName).append(">(").append(regex).append("))");
+            buffer.append("(?P<").append(groupName).append(">(").append(expression).append("))");
         }
         if (buffer.length() != 0) {
-            pattern = Pattern.compile(buffer.toString(), Pattern.MULTILINE & Pattern.CASE_INSENSITIVE);
+            pattern = com.google.re2j.Pattern.compile(buffer.toString(), com.google.re2j.Pattern.MULTILINE & Pattern.CASE_INSENSITIVE);
         }
     }
 
@@ -92,10 +99,9 @@ public class Re2Engine<T> implements IStreamRegex<T> {
         Iterator<Map.Entry<String, String>> iterator = unSupportMap.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, String> entry = iterator.next();
-            String groupName = entry.getKey();
             String regex = entry.getValue();
             if (StringUtil.matchRegexCaseInsensitive(content, regex)) {
-                matchedSet.add(nameMap.get(groupName));
+                matchedSet.addAll(expressionMap.get(regex));
             }
         }
         return matchedSet;
@@ -119,12 +125,15 @@ public class Re2Engine<T> implements IStreamRegex<T> {
         }
         Set<T> matchedSet = new HashSet<>();
         Matcher matcher = pattern.matcher(content);
+        int index = 0;
         while (matcher.find()) {
-            Iterator<String> iterator = regexMap.keySet().iterator();
+            Iterator<Map.Entry<String, String>> iterator = nameMap.entrySet().iterator();
             while (iterator.hasNext()) {
-                String groupName = iterator.next();
+                Map.Entry<String, String> entry = iterator.next();
+                String groupName = entry.getValue();
+                String expression = entry.getKey();
                 if (matcher.group(groupName) != null) {
-                    matchedSet.add(nameMap.get(groupName));
+                    matchedSet.addAll(expressionMap.get(expression));
                     break;
                 }
             }
@@ -137,6 +146,6 @@ public class Re2Engine<T> implements IStreamRegex<T> {
     }
 
     @Override public int size() {
-        return regexMap.size();
+        return expressionMap.values().stream().mapToInt(list -> list.size()).sum();
     }
 }
