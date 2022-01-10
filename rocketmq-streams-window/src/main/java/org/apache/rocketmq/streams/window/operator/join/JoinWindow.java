@@ -17,13 +17,14 @@
 package org.apache.rocketmq.streams.window.operator.join;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
@@ -43,17 +44,12 @@ import org.apache.rocketmq.streams.window.state.impl.JoinLeftState;
 import org.apache.rocketmq.streams.window.state.impl.JoinRightState;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
+import org.apache.rocketmq.streams.window.storage.rocketmq.WindowJoinType;
+import org.apache.rocketmq.streams.window.storage.rocketmq.WindowType;
 
 import static org.apache.rocketmq.streams.window.shuffle.ShuffleChannel.SHUFFLE_OFFSET;
 
 public class JoinWindow extends AbstractShuffleWindow {
-
-    public static final String JOIN_KEY = "JOIN_KEY";
-
-    public static final String LABEL_LEFT = "left";
-
-    public static final String LABEL_RIGHT = "right";
-
     //保存多少个周期的数据。比如window的滚动周期是5分钟，join需要1个小时数据，则retainWindowCount=12
     protected int retainWindowCount = 4;
     protected List<String> leftJoinFieldNames;//join等值条件中，左流的字段列表
@@ -64,62 +60,72 @@ public class JoinWindow extends AbstractShuffleWindow {
     protected String expression;//条件表达式。在存在非等值比较时使用
     protected transient DBOperator joinOperator = new DBOperator();
 
-    //    @Override
-    //    protected void addPropertyToMessage(IMessage oriMessage, JSONObject oriJson){
-    //        oriJson.put("AbstractWindow", this);
-    //
-    //    }
 
     @Override
     protected int fireWindowInstance(WindowInstance instance, String shuffleId, Map<String, String> queueId2Offsets) {
+        //todo 只是清理吗？
         clearFire(instance);
         return 0;
     }
 
     @Override
     public void clearCache(String queueId) {
-        getStorage().clearCache(shuffleChannel.getChannelQueue(queueId), getWindowBaseValueClass());
+        //todo 清理本地缓存
+//        getStorage().clearCache(shuffleChannel.getChannelQueue(queueId), getWindowBaseValueClass());
         ShufflePartitionManager.getInstance().clearSplit(queueId);
     }
 
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
+        String windowInstanceId = instance.createWindowInstanceId();
 
         for (IMessage msg : messages) {
-            Map<String, WindowBaseValue> joinLeftStates = new HashMap<>();
-            Map<String, WindowBaseValue> joinRightStates = new HashMap<>();
             MessageHeader header = JSONObject.parseObject(msg.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
             msg.setHeader(header);
             String routeLabel = header.getMsgRouteFromLable();
-            String storeKey = createStoreKey(msg, routeLabel, instance);
+
             JoinState state = createJoinState(msg, instance, routeLabel);
-            if ("left".equalsIgnoreCase(routeLabel)) {
-                joinLeftStates.put(storeKey, state);
-            } else if ("right".equalsIgnoreCase(routeLabel)) {
-                joinRightStates.put(storeKey, state);
-            }
-            if (joinLeftStates.size() > 0) {
-                storage.multiPut(joinLeftStates);
-            }
-            if (joinRightStates.size() > 0) {
-                storage.multiPut(joinRightStates);
+            List<WindowBaseValue> temp = new ArrayList<>();
+            temp.add(state);
+
+            if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
+                storage.putWindowBaseValue(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT,  temp);
+
+                //存放左窗口最大分片数
+                Long maxPartitionNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT);
+                if (maxPartitionNum < state.getPartitionNum()) {
+                    storage.putMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT, state.getPartitionNum());
+                }
+            } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel)) {
+                storage.putWindowBaseValue(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT, temp);
+
+                //存放左窗口最大分片数
+                Long maxPartitionNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT);
+                if (maxPartitionNum < state.getPartitionNum()) {
+                    storage.putMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT, state.getPartitionNum());
+                }
+            } else {
+                throw new RuntimeException("param routeLabel: [" + routeLabel + "] error.");
             }
 
-            routeLabel = msg.getHeader().getMsgRouteFromLable();
-            String storeKeyPrefix = "";
-            Iterator<WindowBaseValue> iterator = null;
-            if (LABEL_LEFT.equalsIgnoreCase(routeLabel)) {
-                storeKeyPrefix = createStoreKeyPrefix(msg, LABEL_RIGHT, instance);
-                iterator = getMessageIterator(queueId, instance, msg, storeKeyPrefix, JoinRightState.class);
-            } else if (LABEL_RIGHT.equalsIgnoreCase(routeLabel)) {
-                storeKeyPrefix = createStoreKeyPrefix(msg, LABEL_LEFT, instance);
-                iterator = getMessageIterator(queueId, instance, msg, storeKeyPrefix, JoinLeftState.class);
+
+            String shuffleKey = msg.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
+
+            List<WindowBaseValue> totalJoinStates = new ArrayList<>();
+
+            if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
+                List<WindowBaseValue> leftJoinState = findJoinState(WindowJoinType.LEFT, shuffleKey, queueId);
+                totalJoinStates.addAll(leftJoinState);
+            } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel)) {
+                List<WindowBaseValue> rightJoinState = findJoinState(WindowJoinType.RIGHT, shuffleKey, queueId);
+                totalJoinStates.addAll(rightJoinState);
+            } else {
+                throw new RuntimeException("param routeLabel: [" + routeLabel + "] error.");
             }
 
             List<WindowBaseValue> tmpMessages = new ArrayList<>();
             int count = 0;
-            while (iterator.hasNext()) {
-                WindowBaseValue windowBaseValue = iterator.next();
+            for (WindowBaseValue windowBaseValue : totalJoinStates) {
                 if (windowBaseValue == null) {
                     continue;
                 }
@@ -136,88 +142,45 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     }
 
-    private Iterator<WindowBaseValue> getMessageIterator(String queueId, WindowInstance instance, IMessage msg,
-        String keyPrefix, Class<? extends WindowBaseValue> clazz) {
+    private List<WindowBaseValue> findJoinState(WindowJoinType joinType, String shuffleKey, String queueId) {
+        ArrayList<WindowBaseValue> result = new ArrayList<>();
 
-        List<WindowInstance> instances = new ArrayList<>();
-        for (Map.Entry<String, WindowInstance> entry : this.windowInstanceMap.entrySet()) {
-            if (queueId.equalsIgnoreCase(entry.getValue().getSplitId())) {
-                instances.add(entry.getValue());
-            }
-        }
-        Iterator<WindowInstance> windowInstanceIter = instances.iterator();
-        return new Iterator<WindowBaseValue>() {
-            private Iterator<WindowBaseValue> iterator = null;
+        String storeKeyPrefix = MapKeyUtil.createKey(shuffleKey, joinType.name());
 
-            @Override
-            public boolean hasNext() {
-                if (iterator != null && iterator.hasNext()) {
-                    return true;
-                }
-                if (windowInstanceIter.hasNext()) {
-                    WindowInstance instance = windowInstanceIter.next();
-                    iterator = storage.loadWindowInstanceSplitData(null, null, instance.createWindowInstanceId(), keyPrefix, clazz);
-                    if (iterator != null && iterator.hasNext()) {
-                        return true;
+        for (WindowInstance windowInstance : this.windowInstanceMap.values()) {
+
+            if (queueId.equalsIgnoreCase(windowInstance.getSplitId())) {
+                String resultWindowInstanceId = windowInstance.createWindowInstanceId();
+                List<WindowBaseValue> leftJoinStates = storage.getWindowBaseValue(resultWindowInstanceId, WindowType.JOIN_WINDOW, joinType);
+
+                if (leftJoinStates != null) {
+                    for (WindowBaseValue joinState : leftJoinStates) {
+                        //todo 原版本这里就传的null，待验证
+                        String prefix = MapKeyUtil.createKey(null, resultWindowInstanceId, storeKeyPrefix);
+
+                        String msgKey = joinState.getMsgKey();
+                        if (!StringUtil.isEmpty(msgKey) && msgKey.startsWith(prefix)) {
+                            result.add(joinState);
+                        }
                     }
                 }
-                return false;
             }
-
-            @Override
-            public WindowBaseValue next() {
-                return iterator.next();
-            }
-        };
-
-    }
-
-    private Iterator<WindowBaseValue> getIterator(String queueId, String keyPrefix, WindowInstance instance,
-        Class<? extends WindowBaseValue> clazz) {
-
-        List<WindowInstance> instances = new ArrayList<>();
-        for (Map.Entry<String, WindowInstance> entry : this.windowInstanceMap.entrySet()) {
-            instances.add(entry.getValue());
         }
-        Iterator<WindowInstance> windowInstanceIter = instances.iterator();
-        return new Iterator<WindowBaseValue>() {
-            private Iterator<WindowBaseValue> iterator = null;
 
-            @Override
-            public boolean hasNext() {
-                if (iterator != null && iterator.hasNext()) {
-                    return true;
-                }
-                if (windowInstanceIter.hasNext()) {
-                    WindowInstance instance = windowInstanceIter.next();
-                    iterator = storage.loadWindowInstanceSplitData(null, queueId, instance.createWindowInstanceId(), keyPrefix, clazz);
-                    if (iterator != null && iterator.hasNext()) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-                return false;
-            }
-
-            @Override
-            public WindowBaseValue next() {
-                return iterator.next();
-            }
-        };
-
+        return result;
     }
+
 
     public List<JSONObject> connectJoin(IMessage message, List<Map<String, Object>> rows, String joinType,
-        String rightAsName) {
+                                        String rightAsName) {
         List<JSONObject> result = new ArrayList<>();
 
-        if ("inner".equalsIgnoreCase(joinType)) {
+        if (WindowJoinType.RIGHT.name().equalsIgnoreCase(joinType)) {
             if (rows.size() <= 0) {
                 return result;
             }
             result = connectInnerJoin(message, rows, rightAsName);
-        } else if ("left".equalsIgnoreCase(joinType)) {
+        } else if (WindowJoinType.LEFT.name().equalsIgnoreCase(joinType)) {
             result = connectLeftJoin(message, rows, rightAsName);
         }
         return result;
@@ -230,7 +193,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         JSONObject messageBody = message.getMessageBody();
         String traceId = message.getHeader().getTraceId();
         int index = 1;
-        if (LABEL_LEFT.equalsIgnoreCase(routeLabel) && rows.size() > 0) {
+        if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
             for (Map<String, Object> raw : rows) {
                 JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(addAsName(raw, rightAsName));
@@ -238,11 +201,11 @@ public class JoinWindow extends AbstractShuffleWindow {
                 index++;
                 result.add(object);
             }
-        } else if (LABEL_LEFT.equalsIgnoreCase(routeLabel) && rows.size() <= 0) {
+        } else if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel) && rows.size() <= 0) {
             JSONObject object = (JSONObject) messageBody.clone();
             object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
             result.add(object);
-        } else if (LABEL_RIGHT.equalsIgnoreCase(routeLabel) && rows.size() > 0) {
+        } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
             messageBody = addAsName(messageBody, rightAsName);
             for (Map<String, Object> raw : rows) {
                 JSONObject object = (JSONObject) messageBody.clone();
@@ -267,7 +230,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         String routeLabel = message.getHeader().getMsgRouteFromLable();
         String traceId = message.getHeader().getTraceId();
         int index = 1;
-        if (LABEL_LEFT.equalsIgnoreCase(routeLabel)) {
+        if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
             JSONObject messageBody = message.getMessageBody();
             for (Map<String, Object> raw : rows) {
                 JSONObject object = (JSONObject) messageBody.clone();
@@ -298,7 +261,6 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
         for (Map.Entry<String, Object> tmp : raw.entrySet()) {
             object.put(rightAsName + "." + tmp.getKey(), tmp.getValue());
-            //            raw.remove(tmp.getKey());
         }
         return object;
     }
@@ -319,11 +281,6 @@ public class JoinWindow extends AbstractShuffleWindow {
         return storeKey;
     }
 
-    protected String createStoreKeyPrefix(IMessage message, String routeLabel, WindowInstance windowInstance) {
-        String shuffleKey = message.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
-        String storeKey = MapKeyUtil.createKey(shuffleKey, routeLabel);
-        return storeKey;
-    }
 
     /**
      * 根据左右流标志对原始消息进行封装
@@ -355,9 +312,9 @@ public class JoinWindow extends AbstractShuffleWindow {
         messageBody.remove("MessageHeader");
 
         JoinState state = null;
-        if ("left".equalsIgnoreCase(routeLabel)) {
+        if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
             state = new JoinLeftState();
-        } else if ("right".equalsIgnoreCase(routeLabel)) {
+        } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel)) {
             state = new JoinRightState();
         }
 
@@ -390,9 +347,9 @@ public class JoinWindow extends AbstractShuffleWindow {
      * @return
      */
     public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames,
-        List<String> rightJoinFieldNames) {
+                                     List<String> rightJoinFieldNames) {
         StringBuffer buffer = new StringBuffer();
-        if ("left".equalsIgnoreCase(joinLabel)) {
+        if (WindowJoinType.LEFT.name().equalsIgnoreCase(joinLabel)) {
             for (String field : leftJoinFieldNames) {
                 String value = messageBody.getString(field);
                 buffer.append(value).append("_");
@@ -423,11 +380,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         return JoinState.class;
     }
 
-    /**
-     * window触发后的清理工作
-     *
-     * @param windowInstance
-     */
+
     @Override
     public synchronized void clearFireWindowInstance(WindowInstance windowInstance) {
         List<WindowInstance> removeInstances = new ArrayList<>();
@@ -444,12 +397,19 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
 
         for (WindowInstance instance : removeInstances) {
-
+            //todo 按照msgKey删除window_max_value中数据
             windowMaxValueManager.deleteSplitNum(instance, instance.getSplitId());
+            //todo 删除缓存中数据，该windowInstanceId是否已经初始化完成；
             ShufflePartitionManager.getInstance().clearWindowInstance(instance.createWindowInstanceId());
-            storage.delete(instance.createWindowInstanceId(), null, WindowBaseValue.class, sqlCache);
+
+            //移除joinstate中的数据
+            storage.deleteWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, WindowJoinType.RIGHT);
+            storage.deleteWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, WindowJoinType.LEFT);
             if (!isLocalStorageOnly) {
+                //todo 移除windowInstance中数据
                 WindowInstance.clearInstance(instance, sqlCache);
+                //todo 删除WindowNameSpace、getWindowName早于特定时间的joinState
+                //todo 为什么用WindowInstanceId删除后还需要按照上述条件再删除一次？
                 joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(), this.getSizeInterval(), windowInstance.getStartTime());
             }
         }
@@ -542,21 +502,22 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     @Override
     protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
-        Long leftMaxSplitNum = storage.getMaxSplitNum(instance, JoinLeftState.class);
-        Long rigthMaxSplitNum = storage.getMaxSplitNum(instance, JoinRightState.class);
+        String windowInstanceId = instance.createWindowInstanceId();
+
+        Long leftMaxSplitNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT);
         if (leftMaxSplitNum == null) {
-            return rigthMaxSplitNum;
+            leftMaxSplitNum = Long.MIN_VALUE;
         }
-        if (rigthMaxSplitNum == null) {
-            return leftMaxSplitNum;
+
+
+        Long rightMaxSplitNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT);
+        if (rightMaxSplitNum == null) {
+            rightMaxSplitNum = Long.MIN_VALUE;
         }
-        if (leftMaxSplitNum >= rigthMaxSplitNum) {
-            return leftMaxSplitNum;
-        }
-        if (leftMaxSplitNum < rigthMaxSplitNum) {
-            return rigthMaxSplitNum;
-        }
-        return null;
+
+        Long result = leftMaxSplitNum > rightMaxSplitNum ? leftMaxSplitNum : rightMaxSplitNum;
+
+        return result == Long.MIN_VALUE ? null : result;
     }
 
     @Override

@@ -26,6 +26,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
+import org.apache.rocketmq.streams.window.storage.rocketmq.StorageDelegator;
 import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 
 public abstract class AbstractShuffleWindow extends AbstractWindow {
@@ -35,8 +36,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     protected boolean initConfigurable() {
-        storage = new WindowStorage();
-        storage.setLocalStorageOnly(isLocalStorageOnly);
+        storage = new StorageDelegator(isLocalStorageOnly);
         return super.initConfigurable();
     }
 

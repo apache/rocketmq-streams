@@ -70,6 +70,7 @@ import org.apache.rocketmq.streams.window.offset.WindowMaxValueManager;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
+import org.apache.rocketmq.streams.window.storage.rocketmq.StorageDelegator;
 import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 
 /**
@@ -192,7 +193,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     // protected transient ExecutorService deleteService = Executors.newSingleThreadExecutor();
 
     protected volatile transient WindowCache windowCache;
-    protected transient WindowStorage storage;
+    protected transient StorageDelegator storage;
     protected transient WindowTrigger windowFireSource;
     protected transient SQLCache sqlCache;
     protected transient EventTimeManager eventTimeManager;
@@ -757,7 +758,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return windowCache;
     }
 
-    public WindowStorage getStorage() {
+    public StorageDelegator getStorage() {
         return storage;
     }
 

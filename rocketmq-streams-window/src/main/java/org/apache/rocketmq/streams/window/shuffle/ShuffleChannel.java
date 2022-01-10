@@ -60,7 +60,6 @@ import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.operator.impl.WindowOperator.WindowRowOperator;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 
@@ -238,13 +237,15 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
         List<WindowInstance> allWindowInstances = WindowInstance.queryAllWindowInstance(DateUtil.getCurrentTimeString(), window, newSplitMessage.getSplitIds());
         if (CollectionUtil.isNotEmpty(allWindowInstances)) {
-            Map<String, Set<WindowInstance>> queueId2WindowInstances = new HashMap<>();
+
             for (WindowInstance windowInstance : allWindowInstances) {
                 windowInstance.setNewWindowInstance(false);
                 window.registerWindowInstance(windowInstance);
                 window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
                 String queueId = windowInstance.getSplitId();
-                window.getStorage().loadSplitData2Local(queueId, windowInstance.createWindowInstanceId(), window.getWindowBaseValueClass(), new WindowRowOperator(windowInstance, queueId, window));
+
+                //todo 新分片到来的时候，将远程加载到本地，设计在IStorage中实现，先查询本地，如果本地查询不到，查询远程，在存入本地
+//                window.getStorage().loadSplitData2Local(queueId, windowInstance.createWindowInstanceId(), window.getWindowBaseValueClass(), new WindowRowOperator(windowInstance, queueId, window));
                 window.initWindowInstanceMaxSplitNum(windowInstance);
             }
 
@@ -263,6 +264,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
      */
     protected void loadSplitProgress(NewSplitMessage newSplitMessage) {
         for (String queueId : newSplitMessage.getSplitIds()) {
+            //todo msg_key 查询max_offset?
             Map<String, String> result = window.getWindowMaxValueManager().loadOffsets(window.getConfigureName(), queueId);
             if (result != null) {
                 this.split2MaxOffsets.putAll(result);
