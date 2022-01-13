@@ -127,7 +127,7 @@ public class WindowMaxValueProcessor {
         }
 
         String keyPrefix = MapKeyUtil.createKey(name, splitId);
-        String sql = "select * from " + ORMUtil.getTableName(WindowMaxValue.class) + " where configure_name like '%" + name + "%' and partition like '%" + splitId + "%'";
+        String sql="select * from "+ ORMUtil.getTableName(WindowMaxValue.class)+ " where msg_key like '"+keyPrefix+"%'";
         List<WindowMaxValue> windowMaxValues = ORMUtil.queryForList(sql, null, WindowMaxValue.class);
         if (windowMaxValues == null || windowMaxValues.size() == 0) {
             return result;
