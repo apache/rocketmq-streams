@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -40,13 +41,10 @@ import static org.apache.rocketmq.streams.window.offset.WindowMaxValue.MAX_VALUE
 public class WindowMaxValueProcessor {
     protected AbstractWindow window;
     protected String splitId;
-    protected SQLCache sqlCache;
 
-    public WindowMaxValueProcessor(String splitId, AbstractWindow window,
-        SQLCache sqlCache) {
+    public WindowMaxValueProcessor(String splitId, AbstractWindow window) {
         this.splitId = splitId;
         this.window = window;
-        this.sqlCache = sqlCache;
     }
 
     protected Map<String, WindowMaxValue> windowOffsetMap = new HashMap<>();//all window offsets
@@ -73,16 +71,13 @@ public class WindowMaxValueProcessor {
         WindowMaxValue windowMaxValue = queryOrCreateWindowOffset(key, window.isLocalStorageOnly());
 
         this.windowOffsetMap.remove(key);
-        List<String> dels = new ArrayList<>();
-        dels.add(windowMaxValue.getMsgKey());
-        List<Pair<String, String>> likePairList = dels.stream().map(value -> Pair.of("msg_key", value + "%")).collect(Collectors.toList());
-        String sql = "delete from " + ORMUtil.getTableName(WindowMaxValue.class) + " where " + SQLUtil.createLikeSql(likePairList);
+        //todo 从远程中删除
 
-        if (sqlCache != null) {
-            sqlCache.addCache(new SQLElement(this.splitId, instance.createWindowInstanceId(), sql));
-        } else {
-            DriverBuilder.createDriver().execute(sql);
-        }
+//        List<String> dels = new ArrayList<>();
+//        dels.add(windowMaxValue.getMsgKey());
+//        List<Pair<String, String>> likePairList = dels.stream().map(value -> Pair.of("msg_key", value + "%")).collect(Collectors.toList());
+//        String sql = "delete from " + ORMUtil.getTableName(WindowMaxValue.class) + " where " + SQLUtil.createLikeSql(likePairList);
+//
     }
 
     public Map<String, WindowMaxValue> saveMaxOffset(boolean isLong, String name, Map<String, String> queueId2Offsets) {
@@ -125,6 +120,8 @@ public class WindowMaxValueProcessor {
         if (window.isLocalStorageOnly()) {
             return result;
         }
+
+        //todo 从远程中加载
 
         String keyPrefix = MapKeyUtil.createKey(name, splitId);
         String sql = "select * from " + ORMUtil.getTableName(WindowMaxValue.class) + " where configure_name like '%" + name + "%' and partition like '%" + splitId + "%'";
@@ -196,6 +193,10 @@ public class WindowMaxValueProcessor {
         if (keyNotInLocal.size() == 0) {
             return result;
         }
+
+        //todo 从远程中查询并放入本地缓存
+
+
         synchronized (this) {
             List<String> synchKeyNotInLocal = new ArrayList<>();
             for (String key : keyNotInLocal) {

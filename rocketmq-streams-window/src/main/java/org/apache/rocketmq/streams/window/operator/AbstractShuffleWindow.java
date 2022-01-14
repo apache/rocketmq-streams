@@ -36,6 +36,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     protected boolean initConfigurable() {
+        //todo 为什么需要由window来实例，storage应该不属于某个window
         storage = new StorageDelegator(isLocalStorageOnly);
         return super.initConfigurable();
     }
@@ -60,12 +61,12 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
     }
 
     @Override
-    public int fireWindowInstance(WindowInstance windowInstance, Map<String, String> queueId2Offset) {
+    public int fireWindowInstance(WindowInstance windowInstance) {
         Set<String> splitIds = new HashSet<>();
         splitIds.add(windowInstance.getSplitId());
         shuffleChannel.flush(splitIds);
-        int fireCount = fireWindowInstance(windowInstance, windowInstance.getSplitId(), queueId2Offset);
-        return fireCount;
+
+        return doFireWindowInstance(windowInstance);
     }
 
     /**
@@ -81,8 +82,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
      *
      * @param instance
      */
-    protected abstract int fireWindowInstance(WindowInstance instance, String queueId,
-        Map<String, String> queueId2Offset);
+    protected abstract int doFireWindowInstance(WindowInstance instance);
 
     public abstract void clearCache(String queueId);
 }

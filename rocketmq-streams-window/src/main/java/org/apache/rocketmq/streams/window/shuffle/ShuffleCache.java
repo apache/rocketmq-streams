@@ -24,13 +24,12 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
-import org.apache.rocketmq.streams.window.offset.WindowMaxValue;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
-import org.apache.rocketmq.streams.window.sqlcache.impl.SplitSQLElement;
+import org.apache.rocketmq.streams.window.storage.rocketmq.IStorage;
 
 /**
  * save receiver messages into cachefilter when checkpoint/autoflush/flush， process cachefilter message
@@ -42,32 +41,52 @@ public class ShuffleCache extends WindowCache {
         this.window = window;
     }
 
+    /**
+     * 调用时机：ShuffleChannel从上游读到shuffle数据，加入缓存后，
+     * 满足条件： 定时/条数大于特定值/checkpoint/开始接收批量消息 时触发此方法
+     *
+     * @param messageList
+     * @return
+     */
     @Override
     protected boolean batchInsert(List<IMessage> messageList) {
-        Map<Pair<String, String>, List<IMessage>> instance2Messages = new HashMap<>();
-        Map<String, WindowInstance> windowInstanceMap = new HashMap<>();
+        Map<Pair<String/*queueId*/, String/*windowInstanceId*/>, List<IMessage>> instance2Messages = new HashMap<>();
+        Map<String/*windowInstanceId*/, WindowInstance> windowInstanceMap = new HashMap<>();
+
         groupByWindowInstanceAndQueueId(messageList, instance2Messages, windowInstanceMap);
+
         List<Pair<String, String>> keys = new ArrayList<>(instance2Messages.keySet());
         Collections.sort(keys);
+
         for (Pair<String, String> queueIdAndInstanceKey : keys) {
             String queueId = queueIdAndInstanceKey.getLeft();
             String windowInstanceId = queueIdAndInstanceKey.getRight();
+
             List<IMessage> messages = instance2Messages.get(queueIdAndInstanceKey);
+
             WindowInstance windowInstance = windowInstanceMap.get(windowInstanceId);
+
             DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window, messages, windowInstance);
+
             window.shuffleCalculate(messages, windowInstance, queueId);
+
+            //保存处理进度
             saveSplitProgress(queueId, messages);
         }
         return true;
     }
 
     /**
-     * save consumer progress（offset）for groupby  source queueId
-     *
-     * @param queueId
+     * save consumer progress（offset）for groupby  source shuffleId
+     * window configName: name_window_10001
+     * shuffleId: shuffle_NormalTestTopic_namespace_name_broker-a_001
+     * oriQueueId: NormalTestTopic2_broker-a_000
+     * @param shuffleId
      * @param messages
      */
-    protected void saveSplitProgress(String queueId, List<IMessage> messages) {
+    protected void saveSplitProgress(String shuffleId, List<IMessage> messages) {
+        IStorage delegator = this.window.getStorage();
+
         Map<String, String> queueId2OrigOffset = new HashMap<>();
         Boolean isLong = false;
         for (IMessage message : messages) {
@@ -76,10 +95,19 @@ public class ShuffleCache extends WindowCache {
             String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
             queueId2OrigOffset.put(oriQueueId, oriOffset);
         }
-        Map<String, WindowMaxValue> windowMaxValueMap = window.getWindowMaxValueManager().saveMaxOffset(isLong, window.getConfigureName(), queueId, queueId2OrigOffset);
-        window.getSqlCache().addCache(new SplitSQLElement(queueId, ORMUtil.createBatchReplacetSQL(new ArrayList<>(windowMaxValueMap.values()))));
 
+        for (String oriQueueId : queueId2OrigOffset.keySet()) {
+            String currentOffset = queueId2OrigOffset.get(oriQueueId);
+
+            String remoteMaxOffset = delegator.getMaxOffset(window.getConfigureName(), shuffleId, oriQueueId);
+
+            if (remoteMaxOffset == null || MessageOffset.greateThan(currentOffset, remoteMaxOffset, isLong)) {
+                delegator.putMaxOffset(window.getConfigureName(), shuffleId, oriQueueId, currentOffset);
+            }
+        }
     }
+
+
 
     @Override
     protected String generateShuffleKey(IMessage message) {

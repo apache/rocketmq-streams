@@ -16,8 +16,8 @@ package org.apache.rocketmq.streams.window.storage.rocketmq;
  * limitations under the License.
  */
 
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
-import org.apache.rocketmq.streams.window.state.impl.JoinState;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 import java.util.List;
@@ -25,23 +25,53 @@ import java.util.List;
 public interface IStorage {
     String SEPARATOR = "@";
 
-    void putWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType, List<WindowBaseValue> windowBaseValue);
+
+    void putWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId, WindowInstance windowInstance);
+
+    List<WindowInstance> getWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId);
+
+    /**
+     * WindowInstance的唯一索引字段
+     *
+     * @param windowInstanceKey
+     */
+    void deleteWindowInstance(String windowInstanceKey);
+
+    void putWindowBaseValue(String windowInstanceId, String shuffleId,
+                            WindowType windowType, WindowJoinType joinType,
+                            List<WindowBaseValue> windowBaseValue);
+
 
     List<WindowBaseValue> getWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+
 
     //用windowInstanceId删除所有WindowBaseValue【包括WindowValue、JoinState】
     void deleteWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
+
+    String getMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId);
+
+    void putMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId, String offset);
+
+    void deleteMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId);
+
+
+    void putMaxPartitionNum(String windowInstanceKey, String shuffleId, long maxPartitionNum);
+
+    Long getMaxPartitionNum(String windowInstanceKey, String shuffleId);
+
+    void deleteMaxPartitionNum(String windowInstanceKey, String shuffleId);
+
+    int flush(List<String> queueId);
+
+    void clearCache(String queueId);
+
     //各种窗口类型的最大分区编号
-    void putMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType, long maxPartitionNum);
-
-    Long getMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
-
-    void deleteMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
-
-    void putMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType, long minPartitionNum);
-
-    void getMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
-
-    void deleteMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+//    void deleteMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+//
+//    void putMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType, long minPartitionNum);
+//
+//    Long getMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+//
+//    void deleteMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 }

@@ -17,6 +17,7 @@ package org.apache.rocketmq.streams.window.storage.rocketmq;
  */
 
 import org.apache.rocketmq.streams.state.kv.rocksdb.RocksDBOperator;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.rocksdb.RocksDB;
 
@@ -28,7 +29,24 @@ public class LocalStorage implements IStorage {
 
 
     @Override
-    public void putWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType, List<WindowBaseValue> windowBaseValue) {
+    public void putWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId, WindowInstance windowInstance) {
+
+    }
+
+    @Override
+    public List<WindowInstance> getWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId) {
+        return null;
+    }
+
+    @Override
+    public void deleteWindowInstance(String windowInstanceKey) {
+
+    }
+
+    @Override
+    public void putWindowBaseValue(String windowInstanceId, String shuffleId,
+                                   WindowType windowType, WindowJoinType joinType,
+                                   List<WindowBaseValue> windowBaseValue) {
 
     }
 
@@ -43,32 +61,44 @@ public class LocalStorage implements IStorage {
     }
 
     @Override
-    public void putMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType, long maxPartitionNum) {
-
-    }
-
-    @Override
-    public Long getMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+    public String getMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId) {
         return null;
     }
 
     @Override
-    public void deleteMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+    public void putMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId, String offset) {
 
     }
 
     @Override
-    public void putMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType, long minPartitionNum) {
+    public void deleteMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId) {
 
     }
 
     @Override
-    public void getMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+    public void putMaxPartitionNum(String windowInstanceKey, String shuffleId, long maxPartitionNum) {
 
     }
 
     @Override
-    public void deleteMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+    public Long getMaxPartitionNum(String windowInstanceKey, String shuffleId) {
+        return null;
+    }
+
+    @Override
+    public void deleteMaxPartitionNum(String windowInstanceKey, String shuffleId) {
 
     }
+
+    @Override
+    public int flush(List<String> queueId) {
+        return 0;
+    }
+
+    @Override
+    public void clearCache(String queueId) {
+
+    }
+
+
 }

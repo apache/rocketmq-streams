@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.window.shuffle;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -62,6 +64,8 @@ import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
+import org.apache.rocketmq.streams.window.storage.rocketmq.WindowJoinType;
+import org.apache.rocketmq.streams.window.storage.rocketmq.WindowType;
 
 import static org.apache.rocketmq.streams.window.model.WindowCache.ORIGIN_MESSAGE_TRACE_ID;
 
@@ -86,15 +90,13 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
     // protected NotifyChannel notfiyChannel;//负责做分片的通知管理
     protected AbstractShuffleWindow window;
-    private Set<String> currentQueueIds;//当前管理的分片
 
     protected transient boolean isWindowTest = false;
 
     /**
      * 每个分片，已经确定处理的最大offset
      */
-    protected transient Map<String, String> split2MaxOffsets = new HashMap<>();
-
+//    protected transient Map<String, String> split2MaxOffsets = new HashMap<>();
     public ShuffleChannel(AbstractShuffleWindow window) {
         this.window = window;
         channelConfig = new HashMap<>();
@@ -190,7 +192,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             message.getHeader().setQueueId(queueId);
             message.getMessageBody().put(SHUFFLE_OFFSET, oriMessage.getHeader().getOffset());
             window.updateMaxEventTime(message);
-            if (isRepeateMessage(message, queueId)) {
+            if (isRepeatMessage(message, queueId)) {
                 continue;
             }
             List<WindowInstance> windowInstances = window.queryOrCreateWindowInstance(message, queueId);
@@ -199,10 +201,9 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 continue;
             }
             for (WindowInstance windowInstance : windowInstances) {
-                String windowInstanceId = windowInstance.createWindowInstanceId();
                 //new instance, not need load data from remote
                 if (windowInstance.isNewWindowInstance()) {
-                    window.getSqlCache().addCache(new SQLElement(windowInstance.getSplitId(), windowInstanceId, ORMUtil.createBatchReplacetSQL(windowInstance)));
+//                    window.getStorage().putWindowInstance(windowInstance.getWindowInstanceKey(), windowInstance);
                     windowInstance.setNewWindowInstance(false);
                     ShufflePartitionManager.getInstance().setWindowInstanceFinished(windowInstance.createWindowInstanceId());
                 }
@@ -232,58 +233,55 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
     @Override
     public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
-        this.currentQueueIds = newSplitMessage.getCurrentSplitIds();
-        loadSplitProgress(newSplitMessage);
+        Set<String> splitIds = newSplitMessage.getSplitIds();
 
-        List<WindowInstance> allWindowInstances = WindowInstance.queryAllWindowInstance(DateUtil.getCurrentTimeString(), window, newSplitMessage.getSplitIds());
-        if (CollectionUtil.isNotEmpty(allWindowInstances)) {
+        ArrayList<WindowInstance> allWindowInstances = new ArrayList<>();
+        for (String splitId : splitIds) {
+            List<WindowInstance> instances = window.getStorage().getWindowInstance(window.getNameSpace(), window.getConfigureName(), splitId);
+            if (instances != null) {
+                for (WindowInstance instance : instances) {
+                    if (instance.getStatus() == 0) {
+                        allWindowInstances.add(instance);
+                    }
+                }
+            }
+        }
 
+
+        if (allWindowInstances.size() != 0) {
             for (WindowInstance windowInstance : allWindowInstances) {
                 windowInstance.setNewWindowInstance(false);
                 window.registerWindowInstance(windowInstance);
                 window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
-                String queueId = windowInstance.getSplitId();
 
-                //todo 新分片到来的时候，将远程加载到本地，设计在IStorage中实现，先查询本地，如果本地查询不到，查询远程，在存入本地
-//                window.getStorage().loadSplitData2Local(queueId, windowInstance.createWindowInstanceId(), window.getWindowBaseValueClass(), new WindowRowOperator(windowInstance, queueId, window));
-                window.initWindowInstanceMaxSplitNum(windowInstance);
-            }
 
-        } else {
-            for (String queueId : newSplitMessage.getSplitIds()) {
-                ShufflePartitionManager.getInstance().setSplitFinished(queueId);
+                //1、windowInstanceId-WindowBaseValue kv对从远程加载到本地缓存
+                String windowInstanceId = windowInstance.createWindowInstanceId();
+                WindowType windowType = window.getWindowType();
+
+                if (WindowType.JOIN_WINDOW == windowType) {
+                    window.getStorage().getWindowBaseValue(windowInstanceId, windowType, WindowJoinType.LEFT);
+                    window.getStorage().getWindowBaseValue(windowInstanceId, windowType, WindowJoinType.RIGHT);
+                } else {
+                    window.getStorage().getWindowBaseValue(windowInstanceId, windowType, null);
+                }
+
+                //2、maxOffset使用时，再查找、缓存，没有前缀查询不能按照splitIds查询所有；
             }
         }
+
         window.getFireReceiver().doMessage(message, context);
     }
 
-    /**
-     * load ori split consume offset
-     *
-     * @param newSplitMessage
-     */
-    protected void loadSplitProgress(NewSplitMessage newSplitMessage) {
-        for (String queueId : newSplitMessage.getSplitIds()) {
-            //todo msg_key 查询max_offset?
-            Map<String, String> result = window.getWindowMaxValueManager().loadOffsets(window.getConfigureName(), queueId);
-            if (result != null) {
-                this.split2MaxOffsets.putAll(result);
-            }
-        }
-    }
 
     @Override
     public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
-        this.currentQueueIds = removeSplitMessage.getCurrentSplitIds();
+        //去掉缓存中的
         Set<String> queueIds = removeSplitMessage.getSplitIds();
         if (queueIds != null) {
             for (String queueId : queueIds) {
-                ShufflePartitionManager.getInstance().setSplitInValidate(queueId);
                 window.clearCache(queueId);
-
             }
-            window.getWindowMaxValueManager().removeKeyPrefixFromLocalCache(queueIds);
-            //window.getWindowFireSource().removeSplit(queueIds);
         }
         window.getFireReceiver().doMessage(message, context);
     }
@@ -292,19 +290,14 @@ public class ShuffleChannel extends AbstractSystemChannel {
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
         if (message.getHeader().isNeedFlush()) {
             this.flush(message.getHeader().getCheckpointQueueIds());
-            window.getSqlCache().flush(message.getHeader().getCheckpointQueueIds());
+            window.getStorage().flush(new ArrayList<>(message.getHeader().getCheckpointQueueIds()));
         }
         CheckPointState checkPointState = new CheckPointState();
         checkPointState.setQueueIdAndOffset(this.shuffleCache.getFinishedQueueIdAndOffsets(checkPointMessage));
         checkPointMessage.reply(checkPointState);
     }
 
-    /**
-     * do system message
-     *
-     * @param oriMessage
-     * @param context
-     */
+
     protected void doSystemMessage(IMessage oriMessage, AbstractContext context) {
         ISystemMessage systemMessage = oriMessage.getSystemMessage();
         if (systemMessage instanceof CheckPointMessage) {
@@ -314,9 +307,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         } else if (systemMessage instanceof RemoveSplitMessage) {
             this.removeSplit(oriMessage, context, (RemoveSplitMessage) systemMessage);
         } else if (systemMessage instanceof BatchFinishMessage) {
-            //            if(COUNT.get()!=88121){
-            //                throw new RuntimeException("fired before receiver");
-            //            }
             System.out.println("start fire window by fininsh flag " + oriMessage.getHeader().getQueueId());
             this.batchMessageFinish(oriMessage, context, (BatchFinishMessage) systemMessage);
         } else {
@@ -332,15 +322,16 @@ public class ShuffleChannel extends AbstractSystemChannel {
      * @param queueId
      * @return
      */
-    protected boolean isRepeateMessage(IMessage message, String queueId) {
+    protected boolean isRepeatMessage(IMessage message, String queueId) {
         boolean isOrigOffsetLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
         String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
         String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
-        String key = MapKeyUtil.createKey(window.getConfigureName(), queueId, oriQueueId);
-        String offset = this.split2MaxOffsets.get(key);
-        if (offset != null) {
-            MessageOffset messageOffset = new MessageOffset(oriOffset, isOrigOffsetLong);
-            if (!messageOffset.greateThan(offset)) {
+
+        //由storage统一缓存，方便管理一致性
+        String maxOffset = this.window.getStorage().getMaxOffset(window.getConfigureName(), queueId, oriQueueId);
+
+        if (maxOffset != null) {
+            if (!MessageOffset.greateThan(oriOffset, maxOffset, isOrigOffsetLong)) {
                 System.out.println("the message offset is old, the message is discard ");
                 return true;
             }
@@ -374,7 +365,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     @Override
     protected String createShuffleTopic(String topic, ChainPipeline pipeline) {
         return "shuffle_" + topic + "_" + pipeline.getSource().getNameSpace().replaceAll("\\.", "_") + "_" + pipeline
-            .getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
+                .getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
     }
 
     /**
@@ -451,8 +442,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
     public ISplit getChannelQueue(String key) {
         int index = hash(key);
-        ISplit targetQueue = queueList.get(index);
-        return targetQueue;
+        return queueList.get(index);
     }
 
     public int hash(Object key) {
@@ -516,9 +506,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         return splitNum > 0 ? splitNum : 32;
     }
 
-    public Set<String> getCurrentQueueIds() {
-        return currentQueueIds;
-    }
 
     public List<ISplit> getQueueList() {
         return queueList;
@@ -532,9 +519,12 @@ public class ShuffleChannel extends AbstractSystemChannel {
     public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage batchFinishMessage) {
         if (window.supportBatchMsgFinish()) {
             shuffleCache.flush(message.getHeader().getQueueId());
-            Set<String> queueIds = new HashSet();
+            List<String> queueIds = new ArrayList<>();
             queueIds.add(message.getHeader().getQueueId());
-            window.getSqlCache().flush(queueIds);
+
+
+            window.getStorage().flush(queueIds);
+
             window.getWindowFireSource().fireWindowInstance(message.getHeader().getQueueId());
             IMessage cpMsg = batchFinishMessage.getMsg().copy();
             window.getFireReceiver().doMessage(cpMsg, context);

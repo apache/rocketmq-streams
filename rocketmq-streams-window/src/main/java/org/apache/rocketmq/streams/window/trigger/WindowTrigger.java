@@ -206,7 +206,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             if (windowInstance.getLastMaxUpdateTime() == null) {
                 windowInstance.setLastMaxUpdateTime(window.getMaxEventTime(windowInstance.getSplitId()));
             }
-            int fireCount = window.fireWindowInstance(windowInstance, null);
+            int fireCount = window.fireWindowInstance(windowInstance);
             LOG.debug("fire instance(" + windowInstanceTriggerId + " fire count is " + fireCount);
             firingWindowInstances.remove(windowInstanceTriggerId);
         } catch (Exception e) {
