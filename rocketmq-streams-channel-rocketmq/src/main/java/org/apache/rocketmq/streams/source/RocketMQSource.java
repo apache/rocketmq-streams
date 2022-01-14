@@ -286,7 +286,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         if (consumer.getMessageModel() == MessageModel.CLUSTERING) {
             consumer.changeInstanceNameToPID();
         }
-        MQClientInstance mQClientFactory = MQClientManager.getInstance().getAndCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
+        MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
         RemoteBrokerOffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, NamespaceUtil.wrapNamespace(consumer.getNamespace(), consumer.getConsumerGroup())) {
             Set<MessageQueue> firstComing = new HashSet<>();
             @Override

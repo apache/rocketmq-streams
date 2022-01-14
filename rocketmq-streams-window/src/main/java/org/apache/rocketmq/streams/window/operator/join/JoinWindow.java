@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -62,7 +63,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
 
     @Override
-    protected int fireWindowInstance(WindowInstance instance, String shuffleId, Map<String, String> queueId2Offsets) {
+    protected int doFireWindowInstance(WindowInstance instance) {
         //todo 只是清理吗？
         clearFire(instance);
         return 0;
@@ -70,9 +71,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     @Override
     public void clearCache(String queueId) {
-        //todo 清理本地缓存
-//        getStorage().clearCache(shuffleChannel.getChannelQueue(queueId), getWindowBaseValueClass());
-        ShufflePartitionManager.getInstance().clearSplit(queueId);
+        storage.clearCache(queueId);
     }
 
     @Override
@@ -89,21 +88,10 @@ public class JoinWindow extends AbstractShuffleWindow {
             temp.add(state);
 
             if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
-                storage.putWindowBaseValue(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT,  temp);
+                storage.putWindowBaseValue(windowInstanceId, queueId,  WindowType.JOIN_WINDOW, WindowJoinType.LEFT, temp);
 
-                //存放左窗口最大分片数
-                Long maxPartitionNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT);
-                if (maxPartitionNum < state.getPartitionNum()) {
-                    storage.putMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT, state.getPartitionNum());
-                }
             } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel)) {
-                storage.putWindowBaseValue(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT, temp);
-
-                //存放左窗口最大分片数
-                Long maxPartitionNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT);
-                if (maxPartitionNum < state.getPartitionNum()) {
-                    storage.putMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT, state.getPartitionNum());
-                }
+                storage.putWindowBaseValue(windowInstanceId, queueId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT, temp);
             } else {
                 throw new RuntimeException("param routeLabel: [" + routeLabel + "] error.");
             }
@@ -376,8 +364,8 @@ public class JoinWindow extends AbstractShuffleWindow {
     }
 
     @Override
-    public Class getWindowBaseValueClass() {
-        return JoinState.class;
+    public WindowType getWindowType() {
+        return WindowType.JOIN_WINDOW;
     }
 
 
@@ -397,23 +385,44 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
 
         for (WindowInstance instance : removeInstances) {
-            //todo 按照msgKey删除window_max_value中数据
-            windowMaxValueManager.deleteSplitNum(instance, instance.getSplitId());
-            //todo 删除缓存中数据，该windowInstanceId是否已经初始化完成；
-            ShufflePartitionManager.getInstance().clearWindowInstance(instance.createWindowInstanceId());
+            //清理MaxPartitionNum
+            storage.deleteMaxPartitionNum(instance.getWindowInstanceKey(), instance.getSplitId());
 
-            //移除joinstate中的数据
-            storage.deleteWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, WindowJoinType.RIGHT);
-            storage.deleteWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, WindowJoinType.LEFT);
-            if (!isLocalStorageOnly) {
-                //todo 移除windowInstance中数据
-                WindowInstance.clearInstance(instance, sqlCache);
-                //todo 删除WindowNameSpace、getWindowName早于特定时间的joinState
-                //todo 为什么用WindowInstanceId删除后还需要按照上述条件再删除一次？
-                joinOperator.cleanMessage(instance.getWindowNameSpace(), instance.getWindowName(), this.getRetainWindowCount(), this.getSizeInterval(), windowInstance.getStartTime());
+            //从windowInstance表中删除
+            storage.deleteWindowInstance(instance.getWindowInstanceKey());
+
+
+            //从JoinState表中删除
+            deleteFromJoinState(instance, WindowJoinType.RIGHT);
+            deleteFromJoinState(instance, WindowJoinType.LEFT);
+        }
+    }
+
+    private void deleteFromJoinState(WindowInstance instance, WindowJoinType windowJoinType) {
+
+        List<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+        if (windowBaseValue != null) {
+            for (WindowBaseValue baseValue : windowBaseValue) {
+                JoinRightState joinRightState = (JoinRightState) baseValue;
+
+                Date start = addTime(instance.getStartTime(), TimeUnit.MINUTES, -retainWindowCount * sizeInterval);
+
+                if (canDelete(instance, joinRightState, start)) {
+                    storage.deleteWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+                }
             }
         }
+    }
 
+    private boolean canDelete(WindowInstance instance, JoinState joinState, Date start) {
+        return instance.getWindowNameSpace().equals(joinState.getWindowNameSpace())
+                && instance.getWindowName().equals(joinState.getWindowName())
+                && instance.getGmtCreate().getTime() < start.getTime();
+    }
+
+    private Date addTime(String time, TimeUnit unit, int value) {
+        Date date = DateUtil.parseTime(time);
+        return DateUtil.addDate(unit, date, value);
     }
 
     protected List<Map<String, Object>> matchRows(JSONObject msg, List<Map<String, Object>> rows) {
@@ -500,25 +509,6 @@ public class JoinWindow extends AbstractShuffleWindow {
         }
     }
 
-    @Override
-    protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
-        String windowInstanceId = instance.createWindowInstanceId();
-
-        Long leftMaxSplitNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.LEFT);
-        if (leftMaxSplitNum == null) {
-            leftMaxSplitNum = Long.MIN_VALUE;
-        }
-
-
-        Long rightMaxSplitNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT);
-        if (rightMaxSplitNum == null) {
-            rightMaxSplitNum = Long.MIN_VALUE;
-        }
-
-        Long result = leftMaxSplitNum > rightMaxSplitNum ? leftMaxSplitNum : rightMaxSplitNum;
-
-        return result == Long.MIN_VALUE ? null : result;
-    }
 
     @Override
     public boolean supportBatchMsgFinish() {

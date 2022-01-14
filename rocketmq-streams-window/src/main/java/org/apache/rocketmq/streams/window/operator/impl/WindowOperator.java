@@ -29,10 +29,7 @@ import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
 import org.apache.rocketmq.streams.window.storage.rocketmq.WindowType;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -42,8 +39,9 @@ public class WindowOperator extends AbstractShuffleWindow {
     }
 
     @Override
-    public int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset) {
+    public int doFireWindowInstance(WindowInstance instance) {
         String windowInstanceId = instance.createWindowInstanceId();
+        String queueId = instance.getSplitId();
 
         List<WindowBaseValue> temp = storage.getWindowBaseValue(windowInstanceId, WindowType.NORMAL_WINDOW, null);
 
@@ -53,14 +51,11 @@ public class WindowOperator extends AbstractShuffleWindow {
 
         ArrayList<WindowValue> windowValues = new ArrayList<>();
         temp.forEach(windowBaseValue -> windowValues.add((WindowValue) windowBaseValue));
-        //todo 按照partition_num从小到达排序WindowValue
+        windowValues.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
 
         int fireCount = sendBatch(windowValues, queueId, 0);
 
         clearFire(instance);
-
-        //todo 去掉
-        this.sqlCache.addCache(new FiredNotifySQLElement(queueId, windowInstanceId));
 
         return fireCount;
     }
@@ -99,12 +94,17 @@ public class WindowOperator extends AbstractShuffleWindow {
 
         List<WindowBaseValue> windowValues = storage.getWindowBaseValue(instance.createWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
 
-        Map<String, List<WindowValue>> groupByMsgKey = windowValues.stream()
-                .map((value)-> (WindowValue)value)
-                .collect(Collectors.groupingBy(WindowValue::getMsgKey));
+        Map<String, List<WindowValue>> groupByMsgKey = new HashMap<>();
+        if (windowValues != null) {
+            Map<String, List<WindowValue>> temp = windowValues.stream()
+                    .map((value) -> (WindowValue) value)
+                    .collect(Collectors.groupingBy(WindowValue::getMsgKey));
+            groupByMsgKey.putAll(temp);
+        }
 
         List<WindowValue> allWindowValues = new ArrayList<>();
 
+        //处理不同groupBy的message
         for (String groupByKey : sortKeys) {
             List<IMessage> msgs = groupBy.get(groupByKey);
             String storeKey = createStoreKey(queueId, groupByKey, instance);
@@ -132,56 +132,19 @@ public class WindowOperator extends AbstractShuffleWindow {
             DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowCalculate(this, allWindowValues, queueId);
         }
 
-        saveStorage(instance.createWindowInstanceId(), allWindowValues);
+        saveStorage(instance.createWindowInstanceId(), queueId, allWindowValues);
     }
 
 
-    protected void saveStorage(String windowInstanceId, List<WindowValue> allWindowValues) {
-        long maxPartitionNum = Long.MIN_VALUE;
-        long minPartitionNum = Long.MAX_VALUE;
+    protected void saveStorage(String windowInstanceId, String queueId, List<WindowValue> allWindowValues) {
+        List<WindowBaseValue> temp = new ArrayList<>(allWindowValues);
 
-        ArrayList<WindowBaseValue> temp = new ArrayList<>();
-
-        for (WindowValue windowValue : allWindowValues) {
-            temp.add(windowValue);
-
-            //找到WindowValue中最大和最小的partition_num
-            long partitionNum = windowValue.getPartitionNum();
-            if (partitionNum > maxPartitionNum) {
-                maxPartitionNum = partitionNum;
-            }
-
-            if (partitionNum < minPartitionNum) {
-                minPartitionNum = partitionNum;
-            }
-        }
-
-        storage.putWindowBaseValue(windowInstanceId, WindowType.NORMAL_WINDOW, null, temp);
-
-        Long remoteMaxPartitionNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.NORMAL_WINDOW, null);
-        if (remoteMaxPartitionNum == null || maxPartitionNum > remoteMaxPartitionNum) {
-            storage.putMaxPartitionNum(windowInstanceId, WindowType.NORMAL_WINDOW, null, maxPartitionNum);
-        }
-
-        Long remoteMinPartitionNum = storage.getMaxPartitionNum(windowInstanceId, WindowType.NORMAL_WINDOW, null);
-        if (remoteMinPartitionNum == null || minPartitionNum < remoteMinPartitionNum) {
-            storage.putMinPartitionNum(windowInstanceId, WindowType.NORMAL_WINDOW, null, minPartitionNum);
-        }
-
-
-//        storage.multiPut(allWindowValues, windowInstanceId, queueId, sqlCache);
-//        Map<String, WindowBaseValue> partionNumOrders = new HashMap<>();//需要基于key前缀排序partitionnum
-//        for (WindowBaseValue windowBaseValue : allWindowValues.values()) {
-//            WindowValue windowValue = (WindowValue) windowBaseValue;
-//            String partitionNumKey = createStoreKey(getOrderBypPrefix() + queueId, MapKeyUtil.createKey(getOrderBypFieldName(windowValue), windowValue.getGroupBy()), windowInstance);
-//            partionNumOrders.put(partitionNumKey, windowValue);
-//        }
-//        storage.getLocalStorage().multiPut(partionNumOrders);
+        storage.putWindowBaseValue(windowInstanceId, queueId, WindowType.NORMAL_WINDOW, null, temp);
     }
 
     @Override
-    public Class getWindowBaseValueClass() {
-        return WindowValue.class;
+    public WindowType getWindowType() {
+        return WindowType.NORMAL_WINDOW;
     }
 
     /**
@@ -233,10 +196,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         return groupBy;
     }
 
-    @Override
-    protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
-        return storage.getMaxPartitionNum(instance.createWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
-    }
+
 
     @Override
     public boolean supportBatchMsgFinish() {
@@ -263,7 +223,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         windowValue.setGroupBy(groupBy == null ? "" : groupBy);
         windowValue.setMsgKey(StringUtil.createMD5Str(MapKeyUtil.createKey(queueId, instance.createWindowInstanceId(), groupBy)));
         String shuffleId = shuffleChannel.getChannelQueue(groupBy).getQueueId();
-        windowValue.setPartitionNum(createPartitionNum(windowValue, queueId, instance));
+        windowValue.setPartitionNum(createPartitionNum(queueId, instance));
         windowValue.setPartition(shuffleId);
         windowValue.setWindowInstancePartitionId(instance.getWindowInstanceKey());
         windowValue.setWindowInstanceId(instance.getWindowInstanceKey());
@@ -271,7 +231,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         return windowValue;
     }
 
-    protected long createPartitionNum(WindowValue windowValue, String shuffleId, WindowInstance instance) {
+    protected long createPartitionNum(String shuffleId, WindowInstance instance) {
         return incrementAndGetSplitNumber(instance, shuffleId);
     }
 
@@ -286,80 +246,30 @@ public class WindowOperator extends AbstractShuffleWindow {
         return MapKeyUtil.createKey(shuffleId, windowInstance.createWindowInstanceId(), groupByKey);
     }
 
-    /**
-     * 删除掉触发过的数据
-     *
-     * @param windowInstance
-     */
+
     @Override
     public void clearFireWindowInstance(WindowInstance windowInstance) {
         boolean canClear = windowInstance.isCanClearResource();
 
         if (canClear) {
             logoutWindowInstance(windowInstance.createWindowInstanceTriggerId());
-            //todo,按照msgKey删除window_max_value中记录
-            windowMaxValueManager.deleteSplitNum(windowInstance, windowInstance.getSplitId());
-            //清除 内存中windowInstanceId已经准备完毕的标识。
-            ShufflePartitionManager.getInstance().clearWindowInstance(windowInstance.createWindowInstanceId());
 
+            //清理MaxPartitionNum
+            storage.deleteMaxPartitionNum(windowInstance.getWindowInstanceKey(), windowInstance.getSplitId());
+
+            //清理WindowInstance
+            storage.deleteWindowInstance(windowInstance.getWindowInstanceKey());
+
+            //清理WindowValue
             storage.deleteWindowBaseValue(windowInstance.createWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
-
-            //todo WindowInstance没有保存到db中
-            if (!isLocalStorageOnly) {
-                WindowInstance.clearInstance(windowInstance, sqlCache);
-            }
         }
 
     }
 
     @Override
     public void clearCache(String queueId) {
-        //todo 从内存中删除数据
-//        getStorage().clearCache(shuffleChannel.getChannelQueue(queueId), getWindowBaseValueClass());
-//        getStorage().clearCache(getOrderByQueue(queueId, getOrderBypPrefix()), getWindowBaseValueClass());
-        ShufflePartitionManager.getInstance().clearSplit(queueId);
+        storage.clearCache(queueId);
     }
 
-
-    /**
-     * todo 将远程load到本地
-     */
-//    public static class WindowRowOperator implements IRowOperator {
-//
-//        protected WindowInstance windowInstance;
-//        protected String spiltId;
-//        protected AbstractWindow window;
-//
-//        public WindowRowOperator(WindowInstance windowInstance, String spiltId, AbstractWindow window) {
-//            this.windowInstance = windowInstance;
-//            this.spiltId = spiltId;
-//            this.window = window;
-//        }
-//
-//        @Override
-//        public synchronized void doProcess(Map<String, Object> row) {
-//            WindowValue windowValue = ORMUtil.convert(row, WindowValue.class);
-//            List<String> keys = new ArrayList<>();
-//            String storeKey = createStoreKey(spiltId, windowValue.getGroupBy(), windowInstance);
-//            keys.add(storeKey);
-//            String storeOrderKey = createStoreKey(getOrderBypPrefix() + windowValue.getPartition(), MapKeyUtil.createKey(getOrderBypFieldName(windowValue), windowValue.getGroupBy()), windowInstance);
-//            Map<String, WindowBaseValue> valueMap = window.getStorage().getLocalStorage().multiGet(WindowValue.class, keys);
-//            if (CollectionUtil.isEmpty(valueMap)) {
-//                Map<String, WindowBaseValue> map = new HashMap<>(4);
-//
-//                map.put(storeKey, windowValue);
-//                map.put(storeOrderKey, windowValue);
-//                window.getStorage().getLocalStorage().multiPut(map);
-//                return;
-//            }
-//            WindowValue localValue = (WindowValue) valueMap.values().iterator().next();
-//            if (windowValue.getUpdateVersion() > localValue.getUpdateVersion()) {
-//                Map<String, WindowBaseValue> map = new HashMap<>();
-//                map.put(storeKey, windowValue);
-//                map.put(storeOrderKey, windowValue);
-//                window.getStorage().getLocalStorage().multiPut(map);
-//            }
-//        }
-//    }
 
 }

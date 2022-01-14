@@ -31,11 +31,10 @@ public class WindowMaxValueManager implements IWindowMaxValueManager {
     protected AbstractWindow window;
     protected Map<String, WindowMaxValueProcessor> windowMaxValueProcessorMap = new HashMap<>();
     protected transient ExecutorService executorService;
-    protected transient SQLCache sqlCache;
 
-    public WindowMaxValueManager(AbstractWindow window, SQLCache sqlCache) {
+    public WindowMaxValueManager(AbstractWindow window) {
         this.window = window;
-        this.sqlCache = sqlCache;
+
         this.executorService = new ThreadPoolExecutor(10, 10,
             0L, TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<Runnable>());
@@ -47,7 +46,7 @@ public class WindowMaxValueManager implements IWindowMaxValueManager {
             synchronized (this) {
                 windowMaxValueProcessor = windowMaxValueProcessorMap.get(queueId);
                 if (windowMaxValueProcessor == null) {
-                    windowMaxValueProcessor = new WindowMaxValueProcessor(queueId, this.window, sqlCache);
+                    windowMaxValueProcessor = new WindowMaxValueProcessor(queueId, this.window);
                     windowMaxValueProcessorMap.put(queueId, windowMaxValueProcessor);
                 }
             }
