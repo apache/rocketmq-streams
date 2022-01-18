@@ -1,9 +1,5 @@
 dist: trusty
-
-env:
-  global:
-    - CODECOV_TOKEN=59121d3e-7f65-4c78-b1cf-3cd3afec07a0
-    
+ 
 language: java
 
 jdk:
@@ -24,4 +20,4 @@ script:
 
 after_success:
   - mvn test
-  - bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
