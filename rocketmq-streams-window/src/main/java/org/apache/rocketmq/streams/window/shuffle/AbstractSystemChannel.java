@@ -57,7 +57,6 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
     protected ISource consumer;
     protected AbstractSupportShuffleSink producer;
     protected Map<String, String> channelConfig = new HashMap<>();
-    ;
     protected boolean hasCreateShuffleChannel = false;
 
     public void startChannel() {

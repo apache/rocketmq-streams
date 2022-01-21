@@ -1,4 +1,4 @@
-package org.apache.rocketmq.streams.window.storage.rocketmq;
+package org.apache.rocketmq.streams.window.storage;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -16,7 +16,8 @@ package org.apache.rocketmq.streams.window.storage.rocketmq;
  * limitations under the License.
  */
 
-public enum WindowJoinType {
-    LEFT,
-    RIGHT
+public enum WindowType {
+    NORMAL_WINDOW,
+    JOIN_WINDOW,
+    SESSION_WINDOW
 }

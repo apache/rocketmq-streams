@@ -21,7 +21,6 @@ import com.alibaba.fastjson.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -50,22 +49,17 @@ import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
-import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.CompressUtil;
-import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
-import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
-import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
-import org.apache.rocketmq.streams.window.storage.rocketmq.WindowJoinType;
-import org.apache.rocketmq.streams.window.storage.rocketmq.WindowType;
+import org.apache.rocketmq.streams.window.storage.WindowJoinType;
+import org.apache.rocketmq.streams.window.storage.WindowType;
 
 import static org.apache.rocketmq.streams.window.model.WindowCache.ORIGIN_MESSAGE_TRACE_ID;
 
@@ -203,9 +197,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             for (WindowInstance windowInstance : windowInstances) {
                 //new instance, not need load data from remote
                 if (windowInstance.isNewWindowInstance()) {
-//                    window.getStorage().putWindowInstance(windowInstance.getWindowInstanceKey(), windowInstance);
                     windowInstance.setNewWindowInstance(false);
-                    ShufflePartitionManager.getInstance().setWindowInstanceFinished(windowInstance.createWindowInstanceId());
                 }
             }
 
@@ -237,7 +229,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
         ArrayList<WindowInstance> allWindowInstances = new ArrayList<>();
         for (String splitId : splitIds) {
-            List<WindowInstance> instances = window.getStorage().getWindowInstance(window.getNameSpace(), window.getConfigureName(), splitId);
+            List<WindowInstance> instances = window.getStorage().getWindowInstance(splitId, window.getNameSpace(), window.getConfigureName());
             if (instances != null) {
                 for (WindowInstance instance : instances) {
                     if (instance.getStatus() == 0) {
@@ -250,8 +242,10 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
         if (allWindowInstances.size() != 0) {
             for (WindowInstance windowInstance : allWindowInstances) {
+                String splitId = windowInstance.getSplitId();
                 windowInstance.setNewWindowInstance(false);
-                window.registerWindowInstance(windowInstance);
+                //和window.getWindowFireSource().registFireWindowInstanceIfNotExist重复了
+//                window.registerWindowInstance(windowInstance);
                 window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
 
 
@@ -260,10 +254,10 @@ public class ShuffleChannel extends AbstractSystemChannel {
                 WindowType windowType = window.getWindowType();
 
                 if (WindowType.JOIN_WINDOW == windowType) {
-                    window.getStorage().getWindowBaseValue(windowInstanceId, windowType, WindowJoinType.LEFT);
-                    window.getStorage().getWindowBaseValue(windowInstanceId, windowType, WindowJoinType.RIGHT);
+                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.left);
+                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.right);
                 } else {
-                    window.getStorage().getWindowBaseValue(windowInstanceId, windowType, null);
+                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, null);
                 }
 
                 //2、maxOffset使用时，再查找、缓存，没有前缀查询不能按照splitIds查询所有；
@@ -328,7 +322,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
         String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
 
         //由storage统一缓存，方便管理一致性
-        String maxOffset = this.window.getStorage().getMaxOffset(window.getConfigureName(), queueId, oriQueueId);
+        String maxOffset = this.window.getStorage().getMaxOffset(queueId, window.getConfigureName(), oriQueueId);
 
         if (maxOffset != null) {
             if (!MessageOffset.greateThan(oriOffset, maxOffset, isOrigOffsetLong)) {

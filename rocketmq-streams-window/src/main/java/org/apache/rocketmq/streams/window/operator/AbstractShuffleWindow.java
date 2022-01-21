@@ -18,26 +18,27 @@ package org.apache.rocketmq.streams.window.operator;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
-import org.apache.rocketmq.streams.window.storage.WindowStorage;
-import org.apache.rocketmq.streams.window.storage.rocketmq.StorageDelegator;
+import org.apache.rocketmq.streams.window.storage.StorageDelegator;
+import org.apache.rocketmq.streams.window.storage.rocketmq.RocketmqKV;
 import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 
 public abstract class AbstractShuffleWindow extends AbstractWindow {
-
+    private transient String PREFIX = "windowStates";
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
 
     @Override
     protected boolean initConfigurable() {
-        //todo 为什么需要由window来实例，storage应该不属于某个window
-        storage = new StorageDelegator(isLocalStorageOnly);
         return super.initConfigurable();
     }
 
@@ -51,6 +52,15 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
             this.shuffleChannel.init();
             windowCache.setBatchSize(5000);
             windowCache.setShuffleChannel(shuffleChannel);
+
+            ISource source = this.getFireReceiver().getPipeline().getSource();
+
+            String sourceTopic = source.getTopic();
+
+            String stateTopic = createStateTopic(PREFIX, sourceTopic);
+            String str = createStr(PREFIX);
+
+            this.storage = new RocketmqKV(stateTopic, str, str, "127.0.0.1:9876", isLocalStorageOnly);
         }
     }
 
@@ -85,4 +95,34 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
     protected abstract int doFireWindowInstance(WindowInstance instance);
 
     public abstract void clearCache(String queueId);
+
+    private String createStateTopic(String prefix, String topic) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(prefix);
+        builder.append("_");
+
+        builder.append(topic);
+        builder.append("_");
+
+        String namespace = this.getNameSpace().replaceAll("\\.", "_");
+        builder.append(namespace);
+        builder.append("_");
+
+        String configureName = this.getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
+        builder.append(configureName);
+
+        return builder.toString();
+    }
+
+    private String createStr(String prefix) {
+        String temp = MapKeyUtil.createKey(this.getNameSpace(), this.getConfigureName(), this.getUpdateFlag() + "");
+        String result = temp.replaceAll("\\.", "_").replaceAll(";", "_");
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(prefix);
+        builder.append("_");
+        builder.append(result);
+
+        return builder.toString();
+    }
 }

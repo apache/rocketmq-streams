@@ -1,3 +1,4 @@
+package org.apache.rocketmq.streams.window.storage.rocketmq;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -14,16 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.window.storage;
 
-/**
- * 为了适配不同存储，可以通过key generator的实现来做非kv系统的映射
- */
-public interface IKeyGenerator {
+import org.apache.rocketmq.common.message.Message;
 
-    /**
-     * @param
-     * @return
-     */
-    String createKey();
+public class SendFailedWrap {
+    private String shuffleId;
+    private Message message;
+
+    public SendFailedWrap(String shuffleId, Message message) {
+        this.shuffleId = shuffleId;
+        this.message = message;
+    }
+
+    public String getShuffleId() {
+        return shuffleId;
+    }
+
+    public void setShuffleId(String shuffleId) {
+        this.shuffleId = shuffleId;
+    }
+
+    public Message getMessage() {
+        return message;
+    }
+
+    public void setMessage(Message message) {
+        this.message = message;
+    }
 }

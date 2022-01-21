@@ -1,3 +1,4 @@
+package org.apache.rocketmq.streams.window.storage;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -14,15 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.window.storage.file;
 
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 
-public class FileStorage<T extends WindowBaseValue> {
-    private static final String SPLIT_SIGN = "############";
-    protected transient String filePath = "/tmp/storage/file.storage";
-    protected transient Map<String, String> cache = new HashMap<>();
+import java.util.List;
 
+public class WindowInstanceWarp {
+    private WindowInstance instance;
+    private List<String> multiIndex;
+
+    public WindowInstanceWarp(WindowInstance instance, List<String> multiIndex) {
+        this.instance = instance;
+        this.multiIndex = multiIndex;
+    }
+
+    public WindowInstance getInstance() {
+        return instance;
+    }
+
+    public void setInstance(WindowInstance instance) {
+        this.instance = instance;
+    }
+
+    public List<String> getMultiIndex() {
+        return multiIndex;
+    }
+
+    public void setMultiIndex(List<String> multiIndex) {
+        this.multiIndex = multiIndex;
+    }
 }

@@ -27,7 +27,12 @@ import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUM
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class RocketmqSourceExample4 {
-
+    /**
+     * right stream will replace at the same key, if condition match.
+     * left stream will always be output.
+     * right stream item will be ignored if condition not match.
+     * @param args
+     */
     public static void main(String[] args) {
         System.out.println("send data to rocketmq");
         ProducerFromFile.produce("joinData-1.txt", NAMESRV_ADDRESS, RMQ_TOPIC);

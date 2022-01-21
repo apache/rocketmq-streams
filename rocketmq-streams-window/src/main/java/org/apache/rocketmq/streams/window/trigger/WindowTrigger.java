@@ -150,7 +150,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             return;
         }
         synchronized (this) {
-            if (this.firingWindowInstances.containsKey(windowInstance.createWindowInstanceTriggerId())) {
+            if (this.firingWindowInstances.containsKey(triggerId)) {
                 return;
             }
             this.orderWindowInstancs.offer(windowInstance);

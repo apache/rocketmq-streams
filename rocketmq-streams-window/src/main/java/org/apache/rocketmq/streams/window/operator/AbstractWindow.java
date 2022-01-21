@@ -48,8 +48,8 @@ import org.apache.rocketmq.streams.window.model.FunctionExecutor;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
-import org.apache.rocketmq.streams.window.storage.rocketmq.IStorage;
-import org.apache.rocketmq.streams.window.storage.rocketmq.WindowType;
+import org.apache.rocketmq.streams.window.storage.IStorage;
+import org.apache.rocketmq.streams.window.storage.WindowType;
 import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 
 import java.util.*;
@@ -172,9 +172,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected transient WindowTrigger windowFireSource;
     protected transient EventTimeManager eventTimeManager;
 
-    //create and save window instacne max partitionNum and window max eventTime
-
-
     public AbstractWindow() {
         setType(IWindow.TYPE);
     }
@@ -263,15 +260,13 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         windowInstance.setWindowInstanceName(createWindowInstanceName(startTime, endTime, fireTime));
         windowInstance.setWindowName(getConfigureName());
         windowInstance.setWindowNameSpace(getNameSpace());
-        String windowInstanceId = windowInstance.createWindowInstanceId();
-        String dbWindowInstanceId = StringUtil.createMD5Str(windowInstanceId);
-        windowInstance.setWindowInstanceKey(dbWindowInstanceId);
+        windowInstance.setWindowInstanceKey(windowInstance.createWindowInstanceId());
         if (fireMode == 2) {
             windowInstance.setCanClearResource(false);
         } else {
             windowInstance.setCanClearResource(true);
         }
-        windowInstance.setWindowInstanceSplitName(StringUtil.createMD5Str(MapKeyUtil.createKey(getNameSpace(), getConfigureName(), splitId)));
+        windowInstance.setWindowInstanceSplitName(MapKeyUtil.createKey(getNameSpace(), getConfigureName(), splitId));
         windowInstance.setNewWindowInstance(true);
         return windowInstance;
     }
@@ -297,12 +292,12 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      */
     public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
         //instance.getWindowInstanceKey() 和shuffled组成key查询是否有相同，有的话+1，没有的话从100000000开始
-        Long maxPartitionNum = this.storage.getMaxPartitionNum(instance.getWindowInstanceKey(), shuffleId);
+        Long maxPartitionNum = this.storage.getMaxPartitionNum(shuffleId, instance.getWindowInstanceKey());
         if (maxPartitionNum == null) {
             maxPartitionNum = this.maxPartitionNum;
         } else {
             maxPartitionNum += 1;
-            this.storage.putMaxPartitionNum(instance.getWindowInstanceKey(), shuffleId, maxPartitionNum);
+            this.storage.putMaxPartitionNum(shuffleId, instance.getWindowInstanceKey(), maxPartitionNum);
         }
 
         return maxPartitionNum;

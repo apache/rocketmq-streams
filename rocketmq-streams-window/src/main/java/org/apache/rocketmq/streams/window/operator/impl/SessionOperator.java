@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
@@ -44,8 +43,7 @@ import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
-import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
-import org.apache.rocketmq.streams.window.storage.rocketmq.WindowType;
+import org.apache.rocketmq.streams.window.storage.WindowType;
 
 /**
  * an implementation of session window to save extra memory for different group by window instances
@@ -144,7 +142,8 @@ public class SessionOperator extends WindowOperator {
                 value2StoreMap.put(groupValue, storeKey);
             }
 
-            List<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(instance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+            List<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(instance.getSplitId(),
+                    instance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
             //1、按照storeKey过滤
             //2、将WindowBaseValue转化成WindowValue
             List<String> storeKeys = new ArrayList<>();
@@ -302,7 +301,7 @@ public class SessionOperator extends WindowOperator {
 
 
     private void deleteMergeWindow(String windowInstanceId, String queueId, String fireTime, long partitionNum, String groupBy) {
-        List<WindowBaseValue> windowBaseValueList = storage.getWindowBaseValue(windowInstanceId, WindowType.SESSION_WINDOW, null);
+        List<WindowBaseValue> windowBaseValueList = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null);
 
         if (windowBaseValueList != null) {
             Iterator<WindowBaseValue> iterator = windowBaseValueList.iterator();
@@ -316,7 +315,7 @@ public class SessionOperator extends WindowOperator {
         }
 
         if (windowBaseValueList != null && windowBaseValueList.size() != 0) {
-            storage.putWindowBaseValue(windowInstanceId, queueId, WindowType.SESSION_WINDOW, null, windowBaseValueList);
+            storage.putWindowBaseValue(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null, windowBaseValueList);
         }
     }
 
@@ -346,7 +345,7 @@ public class SessionOperator extends WindowOperator {
                     .map(value -> (WindowBaseValue) value)
                     .collect(Collectors.toList());
 
-            storage.putWindowBaseValue(windowInstance.createWindowInstanceId(), queueId, WindowType.SESSION_WINDOW, null, temp);
+            storage.putWindowBaseValue(queueId, windowInstance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null, temp);
         }
 
     }
@@ -370,7 +369,7 @@ public class SessionOperator extends WindowOperator {
         value.setEndTime(endTime);
         value.setFireTime(fireTime);
         value.setGroupBy(groupBy);
-        value.setMsgKey(StringUtil.createMD5Str(storeKey));
+        value.setMsgKey(storeKey);
         //FIXME shuffleId vs queueId TODO delete assert
         String shuffleId = shuffleChannel.getChannelQueue(groupBy).getQueueId();
         assert shuffleId.equalsIgnoreCase(queueId);
@@ -391,7 +390,7 @@ public class SessionOperator extends WindowOperator {
         synchronized (lock) {
             String queueId = windowInstance.getSplitId();
 
-            List<WindowBaseValue> baseValues = storage.getWindowBaseValue(windowInstance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+            List<WindowBaseValue> baseValues = storage.getWindowBaseValue(queueId, windowInstance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
             if (baseValues == null || baseValues.size() == 0) {
                 return 0;
             }
@@ -482,7 +481,7 @@ public class SessionOperator extends WindowOperator {
             prefixKeySet.add(prefixKey);
         }
 
-        List<WindowBaseValue> temp = storage.getWindowBaseValue(instance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+        List<WindowBaseValue> temp = storage.getWindowBaseValue(queueId, instance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
         Map<String, List<WindowValue>> storeValueMap = temp.stream()
                 .map((value) -> (WindowValue) value)
                 .filter((value) -> {
@@ -516,7 +515,7 @@ public class SessionOperator extends WindowOperator {
     public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
         long numer = super.incrementAndGetSplitNumber(instance, shuffleId);
         if (numer > 900000000) {
-            this.storage.putMaxPartitionNum(instance.createWindowInstanceId(), shuffleId, numer);
+            this.storage.putMaxPartitionNum(shuffleId, instance.createWindowInstanceId(), numer);
         }
         return numer;
     }
