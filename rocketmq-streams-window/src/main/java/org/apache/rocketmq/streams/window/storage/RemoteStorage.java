@@ -1,4 +1,4 @@
-package org.apache.rocketmq.streams.window.storage.rocketmq;
+package org.apache.rocketmq.streams.window.storage;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.window.storage.rocketmq;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.store.kv.KeyValuePair;
-import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
@@ -130,64 +129,74 @@ public class RemoteStorage implements IStorage {
 
 
     @Override
-    public void putWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId, WindowInstance windowInstance) {
+    public void init() {
 
     }
 
     @Override
-    public List<WindowInstance> getWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId) {
+    public void start() {
+
+    }
+
+    @Override
+    public void putWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, WindowInstance windowInstance) {
+
+    }
+
+    @Override
+    public List<WindowInstance> getWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName) {
         return null;
     }
 
     @Override
-    public void deleteWindowInstance(String windowInstanceKey) {
+    public void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceKey) {
 
     }
 
     @Override
-    public void putWindowBaseValue(String windowInstanceId, String shuffleId,
+    public void putWindowBaseValue(String shuffleId, String windowInstanceId,
                                    WindowType windowType, WindowJoinType joinType,
                                    List<WindowBaseValue> windowBaseValue) {
 
     }
 
     @Override
-    public List<WindowBaseValue> getWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+    public List<WindowBaseValue> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
         return null;
     }
 
     @Override
-    public void deleteWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+    public void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
 
     }
 
     @Override
-    public String getMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId) {
+    public String getMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId) {
         return null;
     }
 
     @Override
-    public void putMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId, String offset) {
+    public void putMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId, String offset) {
 
     }
 
     @Override
-    public void deleteMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId) {
+    public void deleteMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId) {
 
     }
 
     @Override
-    public void putMaxPartitionNum(String windowInstanceKey, String shuffleId, long maxPartitionNum) {
+    public void putMaxPartitionNum(String shuffleId, String windowInstanceKey, long maxPartitionNum) {
 
     }
 
     @Override
-    public Long getMaxPartitionNum(String windowInstanceKey, String shuffleId) {
+    public Long getMaxPartitionNum(String shuffleId, String windowInstanceKey) {
         return null;
     }
 
     @Override
-    public void deleteMaxPartitionNum(String windowInstanceKey, String shuffleId) {
+    public void deleteMaxPartitionNum(String shuffleId, String windowInstanceKey) {
 
     }
 

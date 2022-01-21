@@ -44,9 +44,8 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.JoinLeftState;
 import org.apache.rocketmq.streams.window.state.impl.JoinRightState;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
-import org.apache.rocketmq.streams.window.storage.ShufflePartitionManager;
-import org.apache.rocketmq.streams.window.storage.rocketmq.WindowJoinType;
-import org.apache.rocketmq.streams.window.storage.rocketmq.WindowType;
+import org.apache.rocketmq.streams.window.storage.WindowJoinType;
+import org.apache.rocketmq.streams.window.storage.WindowType;
 
 import static org.apache.rocketmq.streams.window.shuffle.ShuffleChannel.SHUFFLE_OFFSET;
 
@@ -59,7 +58,6 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     protected String joinType;//join类型，值为INNER,LEFT
     protected String expression;//条件表达式。在存在非等值比较时使用
-    protected transient DBOperator joinOperator = new DBOperator();
 
 
     @Override
@@ -87,11 +85,11 @@ public class JoinWindow extends AbstractShuffleWindow {
             List<WindowBaseValue> temp = new ArrayList<>();
             temp.add(state);
 
-            if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
-                storage.putWindowBaseValue(windowInstanceId, queueId,  WindowType.JOIN_WINDOW, WindowJoinType.LEFT, temp);
+            if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel)) {
+                storage.putWindowBaseValue(queueId, windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.left, temp);
 
-            } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel)) {
-                storage.putWindowBaseValue(windowInstanceId, queueId, WindowType.JOIN_WINDOW, WindowJoinType.RIGHT, temp);
+            } else if (WindowJoinType.right.name().equalsIgnoreCase(routeLabel)) {
+                storage.putWindowBaseValue(queueId, windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.right, temp);
             } else {
                 throw new RuntimeException("param routeLabel: [" + routeLabel + "] error.");
             }
@@ -101,11 +99,11 @@ public class JoinWindow extends AbstractShuffleWindow {
 
             List<WindowBaseValue> totalJoinStates = new ArrayList<>();
 
-            if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
-                List<WindowBaseValue> leftJoinState = findJoinState(WindowJoinType.LEFT, shuffleKey, queueId);
+            if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel)) {
+                List<WindowBaseValue> leftJoinState = findJoinState(WindowJoinType.right, shuffleKey, queueId);
                 totalJoinStates.addAll(leftJoinState);
-            } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel)) {
-                List<WindowBaseValue> rightJoinState = findJoinState(WindowJoinType.RIGHT, shuffleKey, queueId);
+            } else if (WindowJoinType.right.name().equalsIgnoreCase(routeLabel)) {
+                List<WindowBaseValue> rightJoinState = findJoinState(WindowJoinType.left, shuffleKey, queueId);
                 totalJoinStates.addAll(rightJoinState);
             } else {
                 throw new RuntimeException("param routeLabel: [" + routeLabel + "] error.");
@@ -139,7 +137,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
             if (queueId.equalsIgnoreCase(windowInstance.getSplitId())) {
                 String resultWindowInstanceId = windowInstance.createWindowInstanceId();
-                List<WindowBaseValue> leftJoinStates = storage.getWindowBaseValue(resultWindowInstanceId, WindowType.JOIN_WINDOW, joinType);
+                List<WindowBaseValue> leftJoinStates = storage.getWindowBaseValue(windowInstance.getSplitId(), resultWindowInstanceId, WindowType.JOIN_WINDOW, joinType);
 
                 if (leftJoinStates != null) {
                     for (WindowBaseValue joinState : leftJoinStates) {
@@ -163,12 +161,12 @@ public class JoinWindow extends AbstractShuffleWindow {
                                         String rightAsName) {
         List<JSONObject> result = new ArrayList<>();
 
-        if (WindowJoinType.RIGHT.name().equalsIgnoreCase(joinType)) {
+        if ("inner".equalsIgnoreCase(joinType)) {
             if (rows.size() <= 0) {
                 return result;
             }
             result = connectInnerJoin(message, rows, rightAsName);
-        } else if (WindowJoinType.LEFT.name().equalsIgnoreCase(joinType)) {
+        } else if ("left".equalsIgnoreCase(joinType)) {
             result = connectLeftJoin(message, rows, rightAsName);
         }
         return result;
@@ -181,7 +179,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         JSONObject messageBody = message.getMessageBody();
         String traceId = message.getHeader().getTraceId();
         int index = 1;
-        if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
+        if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
             for (Map<String, Object> raw : rows) {
                 JSONObject object = (JSONObject) messageBody.clone();
                 object.fluentPutAll(addAsName(raw, rightAsName));
@@ -189,11 +187,11 @@ public class JoinWindow extends AbstractShuffleWindow {
                 index++;
                 result.add(object);
             }
-        } else if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel) && rows.size() <= 0) {
+        } else if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel) && rows.size() <= 0) {
             JSONObject object = (JSONObject) messageBody.clone();
             object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
             result.add(object);
-        } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
+        } else if (WindowJoinType.right.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
             messageBody = addAsName(messageBody, rightAsName);
             for (Map<String, Object> raw : rows) {
                 JSONObject object = (JSONObject) messageBody.clone();
@@ -218,7 +216,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         String routeLabel = message.getHeader().getMsgRouteFromLable();
         String traceId = message.getHeader().getTraceId();
         int index = 1;
-        if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
+        if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel)) {
             JSONObject messageBody = message.getMessageBody();
             for (Map<String, Object> raw : rows) {
                 JSONObject object = (JSONObject) messageBody.clone();
@@ -300,9 +298,9 @@ public class JoinWindow extends AbstractShuffleWindow {
         messageBody.remove("MessageHeader");
 
         JoinState state = null;
-        if (WindowJoinType.LEFT.name().equalsIgnoreCase(routeLabel)) {
+        if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel)) {
             state = new JoinLeftState();
-        } else if (WindowJoinType.RIGHT.name().equalsIgnoreCase(routeLabel)) {
+        } else if (WindowJoinType.right.name().equalsIgnoreCase(routeLabel)) {
             state = new JoinRightState();
         }
 
@@ -337,7 +335,7 @@ public class JoinWindow extends AbstractShuffleWindow {
     public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames,
                                      List<String> rightJoinFieldNames) {
         StringBuffer buffer = new StringBuffer();
-        if (WindowJoinType.LEFT.name().equalsIgnoreCase(joinLabel)) {
+        if (WindowJoinType.left.name().equalsIgnoreCase(joinLabel)) {
             for (String field : leftJoinFieldNames) {
                 String value = messageBody.getString(field);
                 buffer.append(value).append("_");
@@ -353,7 +351,7 @@ public class JoinWindow extends AbstractShuffleWindow {
             }
         }
 
-        return StringUtil.createMD5Str(buffer.toString());
+        return buffer.toString();
     }
 
     @Override
@@ -386,21 +384,21 @@ public class JoinWindow extends AbstractShuffleWindow {
 
         for (WindowInstance instance : removeInstances) {
             //清理MaxPartitionNum
-            storage.deleteMaxPartitionNum(instance.getWindowInstanceKey(), instance.getSplitId());
+            storage.deleteMaxPartitionNum(instance.getSplitId(), instance.getWindowInstanceKey());
 
             //从windowInstance表中删除
-            storage.deleteWindowInstance(instance.getWindowInstanceKey());
+            storage.deleteWindowInstance(instance.getSplitId(), this.getNameSpace(), this.getConfigureName(), instance.getWindowInstanceKey());
 
 
             //从JoinState表中删除
-            deleteFromJoinState(instance, WindowJoinType.RIGHT);
-            deleteFromJoinState(instance, WindowJoinType.LEFT);
+            deleteFromJoinState(instance, WindowJoinType.right);
+            deleteFromJoinState(instance, WindowJoinType.left);
         }
     }
 
     private void deleteFromJoinState(WindowInstance instance, WindowJoinType windowJoinType) {
 
-        List<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+        List<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
         if (windowBaseValue != null) {
             for (WindowBaseValue baseValue : windowBaseValue) {
                 JoinRightState joinRightState = (JoinRightState) baseValue;
@@ -408,7 +406,7 @@ public class JoinWindow extends AbstractShuffleWindow {
                 Date start = addTime(instance.getStartTime(), TimeUnit.MINUTES, -retainWindowCount * sizeInterval);
 
                 if (canDelete(instance, joinRightState, start)) {
-                    storage.deleteWindowBaseValue(instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+                    storage.deleteWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
                 }
             }
         }

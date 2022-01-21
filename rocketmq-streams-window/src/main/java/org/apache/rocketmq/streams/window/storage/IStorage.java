@@ -1,4 +1,4 @@
-package org.apache.rocketmq.streams.window.storage.rocketmq;
+package org.apache.rocketmq.streams.window.storage;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,49 +18,51 @@ package org.apache.rocketmq.streams.window.storage.rocketmq;
 
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
-import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 import java.util.List;
 
 public interface IStorage {
     String SEPARATOR = "@";
 
+    void init();
 
-    void putWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId, WindowInstance windowInstance);
+    void start();
 
-    List<WindowInstance> getWindowInstance(String windowNamespace, String windowConfigureName, String shuffleId);
+    void putWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, WindowInstance windowInstance);
+
+    List<WindowInstance> getWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName);
 
     /**
      * WindowInstance的唯一索引字段
      *
      * @param windowInstanceKey
      */
-    void deleteWindowInstance(String windowInstanceKey);
+    void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceKey);
 
-    void putWindowBaseValue(String windowInstanceId, String shuffleId,
+    void putWindowBaseValue(String shuffleId, String windowInstanceId,
                             WindowType windowType, WindowJoinType joinType,
                             List<WindowBaseValue> windowBaseValue);
 
 
-    List<WindowBaseValue> getWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+    List<WindowBaseValue> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
 
     //用windowInstanceId删除所有WindowBaseValue【包括WindowValue、JoinState】
-    void deleteWindowBaseValue(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+    void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
 
-    String getMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId);
+    String getMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId);
 
-    void putMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId, String offset);
+    void putMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId, String offset);
 
-    void deleteMaxOffset(String windowConfigureName, String shuffleId, String oriQueueId);
+    void deleteMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId);
 
 
-    void putMaxPartitionNum(String windowInstanceKey, String shuffleId, long maxPartitionNum);
+    void putMaxPartitionNum(String shuffleId, String windowInstanceKey, long maxPartitionNum);
 
-    Long getMaxPartitionNum(String windowInstanceKey, String shuffleId);
+    Long getMaxPartitionNum(String shuffleId, String windowInstanceKey);
 
-    void deleteMaxPartitionNum(String windowInstanceKey, String shuffleId);
+    void deleteMaxPartitionNum(String shuffleId, String windowInstanceKey);
 
     int flush(List<String> queueId);
 

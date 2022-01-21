@@ -29,7 +29,7 @@ import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
-import org.apache.rocketmq.streams.window.storage.rocketmq.IStorage;
+import org.apache.rocketmq.streams.window.storage.IStorage;
 
 /**
  * save receiver messages into cachefilter when checkpoint/autoflush/flush， process cachefilter message
@@ -99,10 +99,10 @@ public class ShuffleCache extends WindowCache {
         for (String oriQueueId : queueId2OrigOffset.keySet()) {
             String currentOffset = queueId2OrigOffset.get(oriQueueId);
 
-            String remoteMaxOffset = delegator.getMaxOffset(window.getConfigureName(), shuffleId, oriQueueId);
+            String remoteMaxOffset = delegator.getMaxOffset(shuffleId, window.getConfigureName(), oriQueueId);
 
             if (remoteMaxOffset == null || MessageOffset.greateThan(currentOffset, remoteMaxOffset, isLong)) {
-                delegator.putMaxOffset(window.getConfigureName(), shuffleId, oriQueueId, currentOffset);
+                delegator.putMaxOffset(shuffleId, window.getConfigureName(), oriQueueId, currentOffset);
             }
         }
     }

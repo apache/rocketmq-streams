@@ -218,10 +218,12 @@ public class WindowInstance extends Entity implements Serializable {
                     Date clearWindowInstanceFireTime = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
                     WindowInstance lastWindowInstance = window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end), DateUtil.format(clearWindowInstanceFireTime), queueId);
                     lastWindowInstance.setCanClearResource(true);
-                    window.registerWindowInstance(lastWindowInstance);
+
+                    //和window.getWindowFireSource().registFireWindowInstanceIfNotExist重复了
+//                    window.registerWindowInstance(lastWindowInstance);
 
                     //保存windowInstance
-                    window.getStorage().putWindowInstance(window.getNameSpace(), window.getConfigureName(), queueId, lastWindowInstance);
+                    window.getStorage().putWindowInstance(queueId,window.getNameSpace(), window.getConfigureName(), lastWindowInstance);
 
                     window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance, window);
                 }
@@ -258,10 +260,11 @@ public class WindowInstance extends Entity implements Serializable {
                 List<WindowInstance> emitInstances = createEmitWindowInstance(window, windowInstance);
                 if (emitInstances != null && emitInstances.size() > 0) {
                     for (WindowInstance emitBeforeInstance : emitInstances) {
-                        window.registerWindowInstance(emitBeforeInstance);
+                        //和window.getWindowFireSource().registFireWindowInstanceIfNotExist重复了
+//                        window.registerWindowInstance(emitBeforeInstance);
 
                         //保存windowInstance
-                        window.getStorage().putWindowInstance(window.getNameSpace(), window.getConfigureName(), queueId, emitBeforeInstance);
+                        window.getStorage().putWindowInstance(queueId, window.getNameSpace(), window.getConfigureName(), emitBeforeInstance);
 
                         window.getWindowFireSource().registFireWindowInstanceIfNotExist(emitBeforeInstance, window);
                     }
