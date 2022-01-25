@@ -22,6 +22,7 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
@@ -30,7 +31,6 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
 import org.apache.rocketmq.streams.window.storage.AbstractStorage;
 import org.apache.rocketmq.streams.window.storage.IStorage;
-import org.apache.rocketmq.streams.window.storage.SendStateCallBack;
 import org.apache.rocketmq.streams.window.storage.WindowJoinType;
 import org.apache.rocketmq.streams.window.storage.WindowType;
 
@@ -40,21 +40,27 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class RocketmqKV extends AbstractStorage {
     private static final String SEND_TIMESTAMP = "sendTimestamp";
-    private boolean isLocalStorageOnly;
+    private static final String SEND_DATA_TYPE = "sendDataType";
+    private final boolean isLocalStorageOnly;
     private DefaultMQProducer producer;
     private DefaultMQPushConsumer consumer;
     //两个streams实例topic可能相同，但是tag不同
     private String topic;
     private String tags;
+
 
     private ExecutorService executorService;
     //发送失败message
@@ -74,8 +80,10 @@ public class RocketmqKV extends AbstractStorage {
         this.isLocalStorageOnly = isLocalStorageOnly;
 
         if (!isLocalStorageOnly) {
-            //todo 有限队列
-            this.executorService = Executors.newFixedThreadPool(4);
+            this.executorService = new ThreadPoolExecutor(4, 4, 0,
+                    TimeUnit.MILLISECONDS,
+                    new LinkedBlockingQueue<>(10_000),
+                    new ThreadFactoryImpl("ConvertMsg2State_" + this.getClass().getSimpleName() + "_"));
 
             this.topic = topic;
             this.tags = tags;
@@ -95,7 +103,7 @@ public class RocketmqKV extends AbstractStorage {
 
                 this.consumer.start();
             } catch (Throwable t) {
-
+                throw new RuntimeException("connect to rocketmq error.", t);
             }
         }
 
@@ -150,21 +158,32 @@ public class RocketmqKV extends AbstractStorage {
 
     @SuppressWarnings("unchecked")
     private <T> void updateState(String key, MessageExt newState, final ConcurrentHashMap<String, Wrap<T>> target) {
-        long sendTimestamp = getSendTimestamp(newState);
-        Object obj = SerializeUtil.deserialize(newState.getBody());
+        byte[] body = newState.getBody();
+        String type = newState.getUserProperty(SEND_DATA_TYPE);
+        if (body == null) {
+            return;
+        }
 
-        if (obj instanceof DeleteMessage) {
+        if (SendDataType.DELETE_MESSAGE_TYPE.name().equals(type)) {
             target.remove(key);
+            return;
+        }
+
+        Object obj;
+        if (SendDataType.STRING_TYPE.name().equals(type)) {
+            obj = new String(body, StandardCharsets.UTF_8);
         } else {
-            T value = (T) obj;
+            obj = SerializeUtil.deserialize(body);
+        }
 
-            synchronized (target) {
-                Wrap<T> wrap = target.get(key);
+        T value = (T) obj;
+        synchronized (target) {
+            Wrap<T> wrap = target.get(key);
+            long sendTimestamp = getSendTimestamp(newState);
 
-                if (wrap == null || wrap.sendTimestamp < sendTimestamp) {
-                    Wrap<T> temp = new Wrap<>(sendTimestamp, value);
-                    target.put(key, temp);
-                }
+            if (wrap == null || wrap.sendTimestamp < sendTimestamp) {
+                Wrap<T> temp = new Wrap<>(sendTimestamp, value);
+                target.put(key, temp);
             }
         }
 
@@ -203,7 +222,7 @@ public class RocketmqKV extends AbstractStorage {
         String key = super.buildKey(KeyPrefix.WINDOW_INSTANCE.value, shuffleId, windowNamespace, windowConfigureName, windowInstanceKey);
 
         windowInstanceStates.remove(key);
-        sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE.name(), shuffleId);
+        sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE, shuffleId);
     }
 
 
@@ -295,7 +314,7 @@ public class RocketmqKV extends AbstractStorage {
 
         for (String key : keys) {
             windowBaseValueStates.remove(key);
-            sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE.name(), shuffleId);
+            sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE, shuffleId);
         }
 
     }
@@ -325,7 +344,7 @@ public class RocketmqKV extends AbstractStorage {
         String key = super.buildKey(KeyPrefix.MAX_OFFSET.value, shuffleId, windowConfigureName, oriQueueId);
 
         maxOffsetStates.remove(key);
-        sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE.name(), shuffleId);
+        sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE, shuffleId);
     }
 
     @Override
@@ -353,7 +372,7 @@ public class RocketmqKV extends AbstractStorage {
         String key = super.buildKey(KeyPrefix.MAX_PARTITION_NUM.value, shuffleId, windowInstanceKey);
 
         maxPartitionNumStates.remove(key);
-        sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE.name(), shuffleId);
+        sendIfNecessary(key, DeleteMessage.DELETE_MESSAGE, shuffleId);
     }
 
     @Override
@@ -365,6 +384,7 @@ public class RocketmqKV extends AbstractStorage {
     }
 
 
+    //提交位点
     @Override
     public int flush(List<String> queueIdList) {
         if (isLocalStorageOnly) {
@@ -386,7 +406,7 @@ public class RocketmqKV extends AbstractStorage {
                     SendResult result = this.producer.send(message);
                     if (result.getSendStatus() == SendStatus.SEND_OK) {
 
-                        synchronized (this.currentRetain) {
+                        synchronized (this.sendFailed) {
                             iterator.remove();
                             this.currentRetain.decrementAndGet();
                             successNum++;
@@ -396,7 +416,7 @@ public class RocketmqKV extends AbstractStorage {
 
             }
         } catch (Throwable t) {
-
+            throw new RuntimeException("send data to rocketmq synchronously，error.", t);
         }
 
         return successNum;
@@ -409,10 +429,17 @@ public class RocketmqKV extends AbstractStorage {
 
         try {
             Message message;
-            if (body instanceof String) {
-                message = new Message(topic, tags, key, ((String) body).getBytes(StandardCharsets.UTF_8));
+            if (body instanceof DeleteMessage) {
+                String name = DeleteMessage.DELETE_MESSAGE.name();
+                byte[] deleteMsg = name.getBytes(StandardCharsets.UTF_8);
+                message = new Message(topic, tags, key, deleteMsg);
+                message.putUserProperty(SEND_DATA_TYPE, SendDataType.DELETE_MESSAGE_TYPE.name());
             } else if (body instanceof byte[]) {
                 message = new Message(topic, tags, key, (byte[]) body);
+                message.putUserProperty(SEND_DATA_TYPE, SendDataType.BYTE_ARRAY_TYPE.name());
+            } else if (body instanceof String) {
+                message = new Message(topic, tags, key, ((String) body).getBytes(StandardCharsets.UTF_8));
+                message.putUserProperty(SEND_DATA_TYPE, SendDataType.STRING_TYPE.name());
             } else {
                 throw new UnsupportedOperationException();
             }
@@ -420,7 +447,7 @@ public class RocketmqKV extends AbstractStorage {
             message.putUserProperty(SEND_TIMESTAMP, String.valueOf(System.currentTimeMillis()));
             producer.send(message, new SendStateCallBack(shuffleId, message, currentRetain, maxRetain, sendFailed));
         } catch (Throwable t) {
-
+            throw new RuntimeException("send data to rocketmq asynchronously，error.", t);
         }
     }
 
@@ -450,10 +477,10 @@ public class RocketmqKV extends AbstractStorage {
     }
 
     enum KeyPrefix {
-        WINDOW_INSTANCE("windowInstance" + IStorage.SEPARATOR),
-        WINDOW_BASE_VALUE("windowBaseValue" + IStorage.SEPARATOR),
-        MAX_OFFSET("maxOffset" + IStorage.SEPARATOR),
-        MAX_PARTITION_NUM("maxPartitionNum" + IStorage.SEPARATOR);
+        WINDOW_INSTANCE("windowInstance"),
+        WINDOW_BASE_VALUE("windowBaseValue"),
+        MAX_OFFSET("maxOffset"),
+        MAX_PARTITION_NUM("maxPartitionNum");
 
         private final String value;
 
@@ -464,6 +491,12 @@ public class RocketmqKV extends AbstractStorage {
 
     enum DeleteMessage {
         DELETE_MESSAGE
+    }
+
+    enum SendDataType {
+        DELETE_MESSAGE_TYPE,
+        STRING_TYPE,
+        BYTE_ARRAY_TYPE
     }
 
     static class Wrap<T> {

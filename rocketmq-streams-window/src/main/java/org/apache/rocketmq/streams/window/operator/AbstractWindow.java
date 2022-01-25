@@ -179,12 +179,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     @Override
     protected boolean initConfigurable() {
         boolean success = super.initConfigurable();
-        /**
-         * 如果没有db配置，不开启远程存储服务
-         */
-        if (!ORMUtil.hasConfigueDB()) {
-            isLocalStorageOnly = true;
-        }
+
 
         AbstractWindow window = this;
         windowCache = new WindowCache() {

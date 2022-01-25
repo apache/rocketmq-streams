@@ -23,14 +23,6 @@ import java.util.List;
 public abstract class AbstractStorage implements IStorage {
 
     @Override
-    public void init() {
-    }
-
-    @Override
-    public void start() {
-    }
-
-    @Override
     public int flush(List<String> queueId) {
         return 0;
     }
@@ -38,17 +30,6 @@ public abstract class AbstractStorage implements IStorage {
     @Override
     public void clearCache(String queueId) {
     }
-
-    //将uniqueKey放在拼接的最后一位
-//    protected String buildUniqueKey(String uniqueKey, String...args) {
-//        String[] temp = new String[args.length + 1];
-//        for (int i = 0; i < args.length; i++) {
-//            temp[i] = args[i];
-//        }
-//        temp[args.length] = uniqueKey;
-//
-//        return this.buildKey(temp);
-//    }
 
     protected String buildKey(String... args) {
         if (args == null || args.length == 0) {

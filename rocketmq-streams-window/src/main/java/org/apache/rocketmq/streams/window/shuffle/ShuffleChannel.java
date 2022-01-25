@@ -244,8 +244,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             for (WindowInstance windowInstance : allWindowInstances) {
                 String splitId = windowInstance.getSplitId();
                 windowInstance.setNewWindowInstance(false);
-                //和window.getWindowFireSource().registFireWindowInstanceIfNotExist重复了
-//                window.registerWindowInstance(windowInstance);
+
                 window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
 
 
