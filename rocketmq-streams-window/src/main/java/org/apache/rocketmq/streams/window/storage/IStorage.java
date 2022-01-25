@@ -24,10 +24,6 @@ import java.util.List;
 public interface IStorage {
     String SEPARATOR = "@";
 
-    void init();
-
-    void start();
-
     void putWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, WindowInstance windowInstance);
 
     List<WindowInstance> getWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName);
@@ -67,13 +63,4 @@ public interface IStorage {
     int flush(List<String> queueId);
 
     void clearCache(String queueId);
-
-    //各种窗口类型的最大分区编号
-//    void deleteMaxPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
-//
-//    void putMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType, long minPartitionNum);
-//
-//    Long getMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
-//
-//    void deleteMinPartitionNum(String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 }

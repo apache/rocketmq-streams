@@ -16,24 +16,21 @@
  */
 package org.apache.rocketmq.streams.window.operator;
 
+import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
+import org.apache.rocketmq.streams.window.storage.rocketmq.RocketmqKV;
+import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.window.model.WindowInstance;
-import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
-import org.apache.rocketmq.streams.window.storage.StorageDelegator;
-import org.apache.rocketmq.streams.window.storage.rocketmq.RocketmqKV;
-import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
-
 public abstract class AbstractShuffleWindow extends AbstractWindow {
-    private transient String PREFIX = "windowStates";
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
 
@@ -57,6 +54,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
             String sourceTopic = source.getTopic();
 
+            String PREFIX = "windowStates";
             String stateTopic = createStateTopic(PREFIX, sourceTopic);
             String str = createStr(PREFIX);
 
