@@ -20,13 +20,17 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 import java.util.List;
+import java.util.concurrent.Future;
 
 public interface IStorage {
     String SEPARATOR = "@";
 
+    Future<?> load(String shuffleId);
+
+
     void putWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, WindowInstance windowInstance);
 
-    List<WindowInstance> getWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName);
+    <T> RocksdbIterator<T> getWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName);
 
     /**
      * WindowInstance的唯一索引字段
@@ -39,13 +43,17 @@ public interface IStorage {
                             WindowType windowType, WindowJoinType joinType,
                             List<WindowBaseValue> windowBaseValue);
 
+    void putWindowBaseValueIterator(String shuffleId, String windowInstanceId,
+                                    WindowType windowType, WindowJoinType joinType,
+                                    RocksdbIterator<? extends WindowBaseValue> windowBaseValueIterator);
 
-    List<WindowBaseValue> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+    <T> RocksdbIterator<T> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
 
     //用windowInstanceId删除所有WindowBaseValue【包括WindowValue、JoinState】
     void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
+    void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType, String msgKey);
 
     String getMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId);
 

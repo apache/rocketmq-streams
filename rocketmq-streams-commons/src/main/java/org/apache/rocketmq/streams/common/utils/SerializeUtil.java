@@ -23,6 +23,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
@@ -111,4 +112,11 @@ public class SerializeUtil {
         }
     }
 
+    public static String deserialize2String(byte[] array){
+        try {
+            return new String(array, StandardCharsets.UTF_8);
+        }catch (Throwable t) {
+            return null;
+        }
+    }
 }

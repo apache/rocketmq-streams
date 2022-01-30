@@ -44,6 +44,8 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.JoinLeftState;
 import org.apache.rocketmq.streams.window.state.impl.JoinRightState;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
+import org.apache.rocketmq.streams.window.storage.IteratorWrap;
+import org.apache.rocketmq.streams.window.storage.RocksdbIterator;
 import org.apache.rocketmq.streams.window.storage.WindowJoinType;
 import org.apache.rocketmq.streams.window.storage.WindowType;
 
@@ -94,24 +96,19 @@ public class JoinWindow extends AbstractShuffleWindow {
                 throw new RuntimeException("param routeLabel: [" + routeLabel + "] error.");
             }
 
-
-            String shuffleKey = msg.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
-
-            List<WindowBaseValue> totalJoinStates = new ArrayList<>();
-
+            Iterator<WindowBaseValue> iterator;
             if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel)) {
-                List<WindowBaseValue> leftJoinState = findJoinState(WindowJoinType.right, shuffleKey, queueId);
-                totalJoinStates.addAll(leftJoinState);
+                iterator = getMessageIterator(queueId, WindowJoinType.right);
             } else if (WindowJoinType.right.name().equalsIgnoreCase(routeLabel)) {
-                List<WindowBaseValue> rightJoinState = findJoinState(WindowJoinType.left, shuffleKey, queueId);
-                totalJoinStates.addAll(rightJoinState);
+                iterator = getMessageIterator(queueId, WindowJoinType.left);
             } else {
                 throw new RuntimeException("param routeLabel: [" + routeLabel + "] error.");
             }
 
             List<WindowBaseValue> tmpMessages = new ArrayList<>();
             int count = 0;
-            for (WindowBaseValue windowBaseValue : totalJoinStates) {
+            while (iterator.hasNext()) {
+                WindowBaseValue windowBaseValue = iterator.next();
                 if (windowBaseValue == null) {
                     continue;
                 }
@@ -128,32 +125,40 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     }
 
-    private List<WindowBaseValue> findJoinState(WindowJoinType joinType, String shuffleKey, String queueId) {
-        ArrayList<WindowBaseValue> result = new ArrayList<>();
 
-        String storeKeyPrefix = MapKeyUtil.createKey(shuffleKey, joinType.name());
+    private Iterator<WindowBaseValue> getMessageIterator(String queueId, WindowJoinType joinType) {
 
-        for (WindowInstance windowInstance : this.windowInstanceMap.values()) {
-
-            if (queueId.equalsIgnoreCase(windowInstance.getSplitId())) {
-                String resultWindowInstanceId = windowInstance.createWindowInstanceId();
-                List<WindowBaseValue> leftJoinStates = storage.getWindowBaseValue(windowInstance.getSplitId(), resultWindowInstanceId, WindowType.JOIN_WINDOW, joinType);
-
-                if (leftJoinStates != null) {
-                    for (WindowBaseValue joinState : leftJoinStates) {
-                        //todo 原版本这里就传的null，待验证
-                        String prefix = MapKeyUtil.createKey(null, resultWindowInstanceId, storeKeyPrefix);
-
-                        String msgKey = joinState.getMsgKey();
-                        if (!StringUtil.isEmpty(msgKey) && msgKey.startsWith(prefix)) {
-                            result.add(joinState);
-                        }
-                    }
-                }
+        List<WindowInstance> instances = new ArrayList<>();
+        for (Map.Entry<String, WindowInstance> entry : this.windowInstanceMap.entrySet()) {
+            if (queueId.equalsIgnoreCase(entry.getValue().getSplitId())) {
+                instances.add(entry.getValue());
             }
         }
+        Iterator<WindowInstance> windowInstanceIter = instances.iterator();
+        return new Iterator<WindowBaseValue>() {
+            private RocksdbIterator<WindowBaseValue> iterator = null;
 
-        return result;
+            @Override
+            public boolean hasNext() {
+                if (iterator != null && iterator.hasNext()) {
+                    return true;
+                }
+                if (windowInstanceIter.hasNext()) {
+                    WindowInstance instance = windowInstanceIter.next();
+                    iterator = storage.getWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, joinType);
+                    if (iterator != null && iterator.hasNext()) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            @Override
+            public WindowBaseValue next() {
+                return iterator.next().getData();
+            }
+        };
+
     }
 
 
@@ -398,16 +403,15 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     private void deleteFromJoinState(WindowInstance instance, WindowJoinType windowJoinType) {
 
-        List<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
-        if (windowBaseValue != null) {
-            for (WindowBaseValue baseValue : windowBaseValue) {
-                JoinRightState joinRightState = (JoinRightState) baseValue;
+        RocksdbIterator<JoinState> joinStates = storage.getWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+        while (joinStates.hasNext()) {
+            IteratorWrap<JoinState> next = joinStates.next();
 
-                Date start = addTime(instance.getStartTime(), TimeUnit.MINUTES, -retainWindowCount * sizeInterval);
+            JoinState joinState = next.getData();
+            Date start = addTime(instance.getStartTime(), TimeUnit.MINUTES, -retainWindowCount * sizeInterval);
 
-                if (canDelete(instance, joinRightState, start)) {
-                    storage.deleteWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
-                }
+            if (canDelete(instance, joinState, start)) {
+                storage.deleteWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
             }
         }
     }
