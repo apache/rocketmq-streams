@@ -18,17 +18,6 @@ package org.apache.rocketmq.streams.window.shuffle;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -58,8 +47,17 @@ import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.storage.WindowJoinType;
-import org.apache.rocketmq.streams.window.storage.WindowType;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.rocketmq.streams.window.model.WindowCache.ORIGIN_MESSAGE_TRACE_ID;
 
@@ -87,6 +85,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
     protected transient boolean isWindowTest = false;
 
+    private transient HashMap<String, Future<?>> loadResult = new HashMap<>();
     /**
      * 每个分片，已经确定处理的最大offset
      */
@@ -223,45 +222,53 @@ public class ShuffleChannel extends AbstractSystemChannel {
         return null;
     }
 
+    //加载状态数据到本地存储
     @Override
     public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
         Set<String> splitIds = newSplitMessage.getSplitIds();
 
-        ArrayList<WindowInstance> allWindowInstances = new ArrayList<>();
         for (String splitId : splitIds) {
-            List<WindowInstance> instances = window.getStorage().getWindowInstance(splitId, window.getNameSpace(), window.getConfigureName());
-            if (instances != null) {
-                for (WindowInstance instance : instances) {
-                    if (instance.getStatus() == 0) {
-                        allWindowInstances.add(instance);
-                    }
-                }
-            }
+            Future<?> future = this.window.getStorage().load(splitId);
+            this.loadResult.put(splitId, future);
         }
 
 
-        if (allWindowInstances.size() != 0) {
-            for (WindowInstance windowInstance : allWindowInstances) {
-                String splitId = windowInstance.getSplitId();
-                windowInstance.setNewWindowInstance(false);
-
-                window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
-
-
-                //1、windowInstanceId-WindowBaseValue kv对从远程加载到本地缓存
-                String windowInstanceId = windowInstance.createWindowInstanceId();
-                WindowType windowType = window.getWindowType();
-
-                if (WindowType.JOIN_WINDOW == windowType) {
-                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.left);
-                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.right);
-                } else {
-                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, null);
-                }
-
-                //2、maxOffset使用时，再查找、缓存，没有前缀查询不能按照splitIds查询所有；
-            }
-        }
+        //todo 上面已经预加载过了。
+//        ArrayList<WindowInstance> allWindowInstances = new ArrayList<>();
+//        for (String splitId : splitIds) {
+//            List<WindowInstance> instances = window.getStorage().getWindowInstance(splitId, window.getNameSpace(), window.getConfigureName());
+//            if (instances != null) {
+//                for (WindowInstance instance : instances) {
+//                    if (instance.getStatus() == 0) {
+//                        allWindowInstances.add(instance);
+//                    }
+//                }
+//            }
+//        }
+//
+//
+//        if (allWindowInstances.size() != 0) {
+//            for (WindowInstance windowInstance : allWindowInstances) {
+//                String splitId = windowInstance.getSplitId();
+//                windowInstance.setNewWindowInstance(false);
+//
+//                window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
+//
+//
+//                //1、windowInstanceId-WindowBaseValue kv对从远程加载到本地缓存
+//                String windowInstanceId = windowInstance.createWindowInstanceId();
+//                WindowType windowType = window.getWindowType();
+//
+//                if (WindowType.JOIN_WINDOW == windowType) {
+//                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.left);
+//                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.right);
+//                } else {
+//                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, null);
+//                }
+//
+//                //2、maxOffset使用时，再查找、缓存，没有前缀查询不能按照splitIds查询所有；
+//            }
+//        }
 
         window.getFireReceiver().doMessage(message, context);
     }
@@ -523,5 +530,9 @@ public class ShuffleChannel extends AbstractSystemChannel {
             window.getFireReceiver().doMessage(cpMsg, context);
         }
 
+    }
+
+    public HashMap<String, Future<?>> getLoadResult() {
+        return loadResult;
     }
 }

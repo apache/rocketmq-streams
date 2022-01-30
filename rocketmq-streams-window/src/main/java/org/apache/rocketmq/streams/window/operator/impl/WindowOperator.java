@@ -25,6 +25,8 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
+import org.apache.rocketmq.streams.window.storage.IteratorWrap;
+import org.apache.rocketmq.streams.window.storage.RocksdbIterator;
 import org.apache.rocketmq.streams.window.storage.WindowType;
 
 import java.util.*;
@@ -41,14 +43,15 @@ public class WindowOperator extends AbstractShuffleWindow {
         String windowInstanceId = instance.createWindowInstanceId();
         String queueId = instance.getSplitId();
 
-        List<WindowBaseValue> temp = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.NORMAL_WINDOW, null);
-
-        if (temp == null || temp.size() == 0) {
-            return 0;
-        }
+        RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.NORMAL_WINDOW, null);
 
         ArrayList<WindowValue> windowValues = new ArrayList<>();
-        temp.forEach(windowBaseValue -> windowValues.add((WindowValue) windowBaseValue));
+        while (rocksdbIterator.hasNext()) {
+            IteratorWrap<WindowBaseValue> next = rocksdbIterator.next();
+            WindowValue data = (WindowValue)next.getData();
+            windowValues.add(data);
+        }
+
         windowValues.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
 
         int fireCount = sendBatch(windowValues, queueId, 0);
@@ -90,7 +93,13 @@ public class WindowOperator extends AbstractShuffleWindow {
         List<String> sortKeys = new ArrayList<>();
         Map<String, List<IMessage>> groupBy = groupByGroupName(messages, sortKeys);
 
-        List<WindowBaseValue> windowValues = storage.getWindowBaseValue(queueId, instance.createWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
+        RocksdbIterator<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(queueId, instance.createWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
+
+        ArrayList<WindowBaseValue> windowValues = new ArrayList<>();
+        while (windowBaseValue.hasNext()) {
+            IteratorWrap<WindowBaseValue> next = windowBaseValue.next();
+            windowValues.add(next.getData());
+        }
 
         Map<String, List<WindowValue>> groupByMsgKey = new HashMap<>();
         if (windowValues != null) {

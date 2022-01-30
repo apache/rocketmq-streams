@@ -16,11 +16,23 @@ package org.apache.rocketmq.streams.window.storage;
  * limitations under the License.
  */
 
+import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public abstract class AbstractStorage implements IStorage {
+
+    @Override
+    public Future<?> load(String shuffleId) {
+        return new NullFuture();
+    }
 
     @Override
     public int flush(List<String> queueId) {
@@ -31,7 +43,13 @@ public abstract class AbstractStorage implements IStorage {
     public void clearCache(String queueId) {
     }
 
-    protected String buildKey(String... args) {
+    protected String getCurrentTimestamp() {
+        long l = System.currentTimeMillis();
+
+        return String.valueOf(l);
+    }
+
+    protected String merge(String... args) {
         if (args == null || args.length == 0) {
             return null;
         }
@@ -48,5 +66,46 @@ public abstract class AbstractStorage implements IStorage {
     protected List<String> split(String str) {
         String[] split = str.split(IStorage.SEPARATOR);
         return new ArrayList<>(Arrays.asList(split));
+    }
+
+    protected long getTimestamp(Object target) {
+        if (target instanceof WindowInstance) {
+            return ((WindowInstance) target).getLastMaxUpdateTime();
+        } else if (target instanceof WindowBaseValue) {
+            return ((WindowBaseValue) target).getUpdateVersion();
+        } else if (target instanceof String) {
+            String time = ((String) target).split(IStorage.SEPARATOR)[0];
+            return Long.parseLong(time);
+        } else {
+            throw new RuntimeException();
+        }
+    }
+
+
+    static class NullFuture implements Future<Object> {
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return true;
+        }
+
+        @Override
+        public Object get() throws InterruptedException, ExecutionException {
+            return null;
+        }
+
+        @Override
+        public Object get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            return null;
+        }
     }
 }

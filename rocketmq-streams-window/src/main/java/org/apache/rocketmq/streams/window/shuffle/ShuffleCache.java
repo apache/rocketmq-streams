@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
@@ -68,6 +70,8 @@ public class ShuffleCache extends WindowCache {
 
             DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window, messages, windowInstance);
 
+            stateMustLoad(queueId);
+
             window.shuffleCalculate(messages, windowInstance, queueId);
 
             //保存处理进度
@@ -76,11 +80,23 @@ public class ShuffleCache extends WindowCache {
         return true;
     }
 
+    private void stateMustLoad(String queueId) {
+        try {
+            //在计算之前需要异步加载状态完成
+            HashMap<String, Future<?>> loadResult = this.window.getShuffleChannel().getLoadResult();
+            Future<?> future = loadResult.get(queueId);
+            future.get();
+        } catch (Throwable t) {
+            throw new RuntimeException();
+        }
+    }
+
     /**
      * save consumer progress（offset）for groupby  source shuffleId
      * window configName: name_window_10001
      * shuffleId: shuffle_NormalTestTopic_namespace_name_broker-a_001
      * oriQueueId: NormalTestTopic2_broker-a_000
+     *
      * @param shuffleId
      * @param messages
      */
@@ -108,7 +124,6 @@ public class ShuffleCache extends WindowCache {
     }
 
 
-
     @Override
     protected String generateShuffleKey(IMessage message) {
         return null;
@@ -122,7 +137,7 @@ public class ShuffleCache extends WindowCache {
      * @param windowInstanceMap
      */
     protected void groupByWindowInstanceAndQueueId(List<IMessage> messageList,
-        Map<Pair<String, String>, List<IMessage>> instance2Messages, Map<String, WindowInstance> windowInstanceMap) {
+                                                   Map<Pair<String, String>, List<IMessage>> instance2Messages, Map<String, WindowInstance> windowInstanceMap) {
         for (IMessage message : messageList) {
             //the queueId will be replace below, so get first here!
             String queueId = message.getHeader().getQueueId();

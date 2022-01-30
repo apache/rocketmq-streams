@@ -22,7 +22,8 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
-import org.apache.rocketmq.streams.window.storage.rocketmq.RocketmqKV;
+import org.apache.rocketmq.streams.window.storage.rocketmq.DefaultStorage;
+import org.apache.rocketmq.streams.window.storage.rocksdb.RocksdbStorage;
 import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 
 import java.util.HashSet;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class AbstractShuffleWindow extends AbstractWindow {
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
+
 
     @Override
     protected boolean initConfigurable() {
@@ -58,7 +60,9 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
             String stateTopic = createStateTopic(PREFIX, sourceTopic);
             String str = createStr(PREFIX);
 
-            this.storage = new RocketmqKV(stateTopic, str, str, "127.0.0.1:9876", isLocalStorageOnly);
+            RocksdbStorage rocksdbStorage = new RocksdbStorage();
+            this.storage = new DefaultStorage(stateTopic, str, str, "127.0.0.1:9876", isLocalStorageOnly, rocksdbStorage);
+
         }
     }
 
@@ -123,4 +127,9 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
         return builder.toString();
     }
+
+    public ShuffleChannel getShuffleChannel() {
+        return shuffleChannel;
+    }
+
 }
