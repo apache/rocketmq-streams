@@ -101,13 +101,9 @@ public class WindowOperator extends AbstractShuffleWindow {
             windowValues.add(next.getData());
         }
 
-        Map<String, List<WindowValue>> groupByMsgKey = new HashMap<>();
-        if (windowValues != null) {
-            Map<String, List<WindowValue>> temp = windowValues.stream()
-                    .map((value) -> (WindowValue) value)
-                    .collect(Collectors.groupingBy(WindowValue::getMsgKey));
-            groupByMsgKey.putAll(temp);
-        }
+        Map<String, List<WindowValue>> temp = windowValues.stream().map((value) -> (WindowValue) value).collect(Collectors.groupingBy(WindowValue::getMsgKey));
+
+        Map<String, List<WindowValue>> groupByMsgKey = new HashMap<>(temp);
 
         List<WindowValue> allWindowValues = new ArrayList<>();
 
@@ -149,10 +145,6 @@ public class WindowOperator extends AbstractShuffleWindow {
         storage.putWindowBaseValue(queueId, windowInstanceId, WindowType.NORMAL_WINDOW, null, temp);
     }
 
-    @Override
-    public WindowType getWindowType() {
-        return WindowType.NORMAL_WINDOW;
-    }
 
     /**
      * 按group name 进行分组

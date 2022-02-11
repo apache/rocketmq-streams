@@ -144,11 +144,6 @@ public class OverWindow extends AbstractWindow {
     }
 
     @Override
-    public WindowType getWindowType() {
-        return WindowType.NORMAL_WINDOW;
-    }
-
-    @Override
     public int fireWindowInstance(WindowInstance windowInstance) {
         return 0;
     }

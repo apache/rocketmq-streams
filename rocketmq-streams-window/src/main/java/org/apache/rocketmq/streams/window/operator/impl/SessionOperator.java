@@ -62,8 +62,6 @@ public class SessionOperator extends WindowOperator {
 
     private static final String SESSION_DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
-    private static final String ORDER_BY_FIRE_TIME_PREFIX = "_order_by_fire_time_";
-
     /**
      * 会话窗口的超时时间，时间单位时秒，默认10分钟
      */
@@ -328,10 +326,6 @@ public class SessionOperator extends WindowOperator {
         }
     }
 
-    private static String createPrefixKey(WindowValue windowValue, WindowInstance windowInstance, String queueId) {
-        return MapKeyUtil.createKey(getOrderBypPrefix() + queueId, windowInstance.createWindowInstanceId(), windowValue.getFireTime(), String.valueOf(windowValue.getPartitionNum()), windowValue.getGroupBy());
-    }
-
     private Pair<Date, Date> getSessionTime(IMessage message) {
         Long occurTime = System.currentTimeMillis();
         try {
@@ -387,10 +381,6 @@ public class SessionOperator extends WindowOperator {
         value.setWindowInstancePartitionId(instance.getWindowInstanceKey());
         value.setWindowInstanceId(instance.getWindowInstanceKey());
         return value;
-    }
-
-    protected static String getOrderBypPrefix() {
-        return ORDER_BY_FIRE_TIME_PREFIX;
     }
 
 
@@ -528,10 +518,6 @@ public class SessionOperator extends WindowOperator {
         store(lastValueMap, instance, queueId);
     }
 
-    @Override
-    public WindowType getWindowType() {
-        return WindowType.SESSION_WINDOW;
-    }
 
     @Override
     public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
