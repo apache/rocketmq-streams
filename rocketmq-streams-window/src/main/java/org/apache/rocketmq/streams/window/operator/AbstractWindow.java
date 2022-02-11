@@ -298,7 +298,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return maxPartitionNum;
     }
 
-    public abstract WindowType getWindowType();
 
     public abstract int fireWindowInstance(WindowInstance windowInstance);
 

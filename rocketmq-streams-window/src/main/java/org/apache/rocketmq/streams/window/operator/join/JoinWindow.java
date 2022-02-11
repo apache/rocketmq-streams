@@ -366,11 +366,6 @@ public class JoinWindow extends AbstractShuffleWindow {
         return messageKey;
     }
 
-    @Override
-    public WindowType getWindowType() {
-        return WindowType.JOIN_WINDOW;
-    }
-
 
     @Override
     public synchronized void clearFireWindowInstance(WindowInstance windowInstance) {
