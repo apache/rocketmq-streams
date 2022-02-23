@@ -28,7 +28,7 @@ public class RocksdbIterator<T> implements Iterator<IteratorWrap<T>> {
     private String keyPrefix;
     private ReadOptions readOptions = new ReadOptions();
     private RocksIterator rocksIterator;
-    private volatile boolean rocksdbHasNext = true;
+
 
 
     public RocksdbIterator(String keyPrefix, RocksDB rocksDB) {
@@ -39,17 +39,18 @@ public class RocksdbIterator<T> implements Iterator<IteratorWrap<T>> {
 
     @Override
     public boolean hasNext() {
-        return rocksIterator.isValid() && rocksdbHasNext;
+        boolean hasNext = rocksIterator.isValid();
+        String key = new String(rocksIterator.key());
+
+        if (!key.startsWith(keyPrefix)) {
+            hasNext = false;
+        }
+        return hasNext;
     }
 
     @Override
     public IteratorWrap<T> next() {
         String key = new String(rocksIterator.key());
-
-        if (!key.startsWith(keyPrefix)) {
-            rocksdbHasNext = false;
-            return null;
-        }
 
         T data = SerializeUtil.deserialize(rocksIterator.value());
         IteratorWrap<T> result = new IteratorWrap<>(key, data, rocksIterator.value());

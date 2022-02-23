@@ -240,6 +240,16 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     }
 
     @Override
+    public void setNamesrvAddr(String namesrvAddr) {
+        source.setNamesrvAddr(namesrvAddr);
+    }
+
+    @Override
+    public String getNamesrvAddr() {
+        return source.getNamesrvAddr();
+    }
+
+    @Override
     public void atomicSink(ISystemMessage message){
 
     }

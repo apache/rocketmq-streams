@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractShuffleWindow extends AbstractWindow {
+    private static final String PREFIX = "windowStates";
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
 
@@ -52,18 +53,25 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
             windowCache.setBatchSize(5000);
             windowCache.setShuffleChannel(shuffleChannel);
 
-            ISource source = this.getFireReceiver().getPipeline().getSource();
-
-            String sourceTopic = source.getTopic();
-
-            String PREFIX = "windowStates";
-            String stateTopic = createStateTopic(PREFIX, sourceTopic);
-            String str = createStr(PREFIX);
-
-            RocksdbStorage rocksdbStorage = new RocksdbStorage();
-            this.storage = new DefaultStorage(stateTopic, str, str, "127.0.0.1:9876", isLocalStorageOnly, rocksdbStorage);
-
+            initStorage();
         }
+    }
+
+    private void initStorage() {
+        ISource source = this.getFireReceiver().getPipeline().getSource();
+
+        String sourceTopic = source.getTopic();
+        String namesrvAddr = source.getNamesrvAddr();
+
+
+        String stateTopic = createStateTopic(PREFIX, sourceTopic);
+        String groupId = createStr(PREFIX);
+
+        int size = this.shuffleChannel.getQueueList().size();
+
+        RocksdbStorage rocksdbStorage = new RocksdbStorage();
+        this.storage = new DefaultStorage(stateTopic, groupId, namesrvAddr,
+                                            size, isLocalStorageOnly, rocksdbStorage);
     }
 
     @Override

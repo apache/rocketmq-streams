@@ -17,10 +17,13 @@ package org.apache.rocketmq.streams.window.storage.rocketmq;
  */
 
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
+import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
@@ -36,8 +39,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -49,11 +54,9 @@ public class DefaultStorage extends AbstractStorage {
     private final boolean isLocalStorageOnly;
     private final RocksdbStorage rocksdbStorage;
 
-
     //两个streams实例topic可能相同，但是tag不同
     private final String topic;
     private final String groupId;
-    private final String tags;
 
     private DefaultMQProducer producer;
     private DefaultLitePullConsumer consumer;
@@ -63,14 +66,13 @@ public class DefaultStorage extends AbstractStorage {
     private ExecutorService pollExecutor;
 
 
-    public DefaultStorage(String topic, String groupId, String tags, String namesrv,
+    public DefaultStorage(String topic, String groupId, String namesrv, int queueNum,
                           boolean isLocalStorageOnly, RocksdbStorage rocksdbStorage) {
         this.isLocalStorageOnly = isLocalStorageOnly;
         this.rocksdbStorage = rocksdbStorage;
 
         this.topic = topic;
         this.groupId = groupId;
-        this.tags = tags;
 
 
         if (!isLocalStorageOnly) {
@@ -80,25 +82,15 @@ public class DefaultStorage extends AbstractStorage {
                 this.producer = new DefaultMQProducer(groupId);
                 this.producer.setNamesrvAddr(namesrv);
                 this.producer.start();
+                //create topic
+                this.producer.createTopic(this.producer.getCreateTopicKey(), topic, queueNum);
 
                 this.consumer = new DefaultLitePullConsumer(this.groupId);
                 this.consumer.setNamesrvAddr(namesrv);
-                this.consumer.subscribe(topic, tags);
                 this.consumer.setAutoCommit(false);
                 this.consumer.start();
-                //暂时认为MQ不会因为扩缩broker而扩缩，只在这里获取一次
-                Collection<MessageQueue> mqs = this.consumer.fetchMessageQueues(topic);
-                if (mqs != null) {
-                    Map<Integer, List<MessageQueue>> temp = mqs.stream().collect(Collectors.groupingBy(MessageQueue::getQueueId));
-                    for (Integer queueId : temp.keySet()) {
-                        List<MessageQueue> messageQueues = temp.get(queueId);
-                        assert messageQueues.size() == 1;
-                        this.queueId2MQ.put(queueId, messageQueues.get(0));
-                    }
-                }
-
             } catch (Throwable t) {
-                throw new RuntimeException("connect to rocketmq error.", t);
+                throw new RuntimeException("start rocketmq client error.", t);
             }
         }
     }
@@ -164,13 +156,8 @@ public class DefaultStorage extends AbstractStorage {
         for (String key : lastStates.keySet()) {
             MessageExt newState = lastStates.get(key);
 
-            if (key.startsWith(WINDOW_INSTANCE.getValue())) {
-                updateState(key, newState);
-            } else if (key.startsWith(DataType.WINDOW_BASE_VALUE.getValue())) {
-                updateState(key, newState);
-            } else if (key.startsWith(DataType.MAX_OFFSET.getValue())) {
-                updateState(key, newState);
-            } else if (key.startsWith(DataType.MAX_PARTITION_NUM.getValue())) {
+            if (key.startsWith(WINDOW_INSTANCE.getValue()) || key.startsWith(DataType.WINDOW_BASE_VALUE.getValue())
+                    || key.startsWith(DataType.MAX_OFFSET.getValue()) || key.startsWith(DataType.MAX_PARTITION_NUM.getValue())) {
                 updateState(key, newState);
             }
         }
@@ -179,52 +166,36 @@ public class DefaultStorage extends AbstractStorage {
 
     private synchronized void updateState(String key, MessageExt newState) {
         byte[] body = newState.getBody();
-        String result = SerializeUtil.deserialize2String(body);
-
-        if (body == null) {
+        Object newValue = SerializeUtil.deserialize(body);
+        if (body == null || newValue == null) {
             return;
         }
 
-        if (DeleteMessage.DELETE_MESSAGE.name().equals(result)) {
+        if (isDeleted(newValue)) {
             rocksdbStorage.delete(key);
             return;
         }
 
-        byte[] bytes = rocksdbStorage.get(key);
-        if (bytes == null || bytes.length == 0) {
+        byte[] oldBytes = rocksdbStorage.get(key);
+        Object oldValue = SerializeUtil.deserialize(oldBytes);
+
+        if (oldBytes == null || oldBytes.length == 0 || isDeleted(oldValue)) {
             rocksdbStorage.put(key, body);
             return;
         }
 
-        Object newValue;
-        if (result != null) {
-            newValue = result;
-            long newTimestamp = getTimestamp(newValue);
+        long newTimestamp = getTimestamp(newValue);
+        long oldTimestamp = getTimestamp(oldValue);
 
-
-            String oldValue = new String(bytes, StandardCharsets.UTF_8);
-            long oldTimestamp = getTimestamp(oldValue);
-
-            if (newTimestamp > oldTimestamp) {
-                rocksdbStorage.put(key, body);
-            }
-
-        } else {
-            newValue = SerializeUtil.deserialize(body);
-
-            if (newValue instanceof WindowBaseValue) {
-                long newVersion = getTimestamp(newValue);
-
-                WindowBaseValue oldValue = SerializeUtil.deserialize(bytes);
-                long oldVersion = getTimestamp(oldValue);
-
-                if (newVersion > oldVersion) {
-                    rocksdbStorage.put(key, body);
-                }
-            }
-
-            //windowInstance为窗口元数据，不存在更新的情况
+        if (newTimestamp > oldTimestamp) {
+            rocksdbStorage.put(key, body);
         }
+
+        //windowInstance为窗口元数据，不存在更新的情况
+    }
+
+    private boolean isDeleted(Object value) {
+        return value instanceof String && (DeleteMessage.DELETE_MESSAGE.name().equals(value));
     }
 
 
@@ -321,7 +292,10 @@ public class DefaultStorage extends AbstractStorage {
             for (String queueId : queueIdList) {
                 final MessageQueue queue = getMessageQueue(queueId);
                 //todo 指定messageQueue提交offset
-                this.consumer.committed(queue);
+                HashSet<MessageQueue> set = new HashSet<>();
+                set.add(queue);
+
+                this.consumer.commit(set, true);
 
                 //poll到最新的checkpoint，为下一次提交offset做准备；
                 this.pollExecutor.execute(() -> this.pollToLast(queue));
@@ -352,11 +326,10 @@ public class DefaultStorage extends AbstractStorage {
             IteratorWrap<Object> wrap = iterator.next();
 
             byte[] raw = wrap.getRaw();
-            if (raw == null || raw.length ==0) {
-                raw = DeleteMessage.DELETE_MESSAGE.name().getBytes(StandardCharsets.UTF_8);
+            if (raw != null && raw.length != 0) {
+                System.out.println("send message to MQ: key=" + wrap.getKey() + "; data=" + wrap.getData());
+                count += send0(shuffleId, wrap.getKey(), raw);
             }
-
-            count += send0(shuffleId, wrap.getKey(), raw);
         }
 
         return count;
@@ -367,7 +340,7 @@ public class DefaultStorage extends AbstractStorage {
         MessageQueue queue = getMessageQueue(shuffleId);
         try {
 
-            Message message = new Message(topic, tags, key, body);
+            Message message = new Message(topic, "", key, body);
             //todo 没报错是否就是send_ok，选择MQ写入，后面commitOffset时对这个MQ进行
             producer.send(message, queue);
 
@@ -380,14 +353,37 @@ public class DefaultStorage extends AbstractStorage {
     //状态topic的MQ数量与shuffle topic的MQ数量需要相同
     private MessageQueue getMessageQueue(String shuffleId) {
         //最后四位为queueId
-        String substring = shuffleId.substring(shuffleId.length() - 4);
+        String substring = shuffleId.substring(shuffleId.length() - 3);
         Integer queueIdNumber = Integer.parseInt(substring);
+
+        MessageQueue result = queueId2MQ.get(queueIdNumber);
+
+        if (result == null) {
+            try {
+                Collection<MessageQueue> mqs = this.consumer.fetchMessageQueues(topic);
+                if (mqs != null) {
+                    Map<Integer, List<MessageQueue>> temp = mqs.stream().collect(Collectors.groupingBy(MessageQueue::getQueueId));
+                    for (Integer queueId : temp.keySet()) {
+                        List<MessageQueue> messageQueues = temp.get(queueId);
+                        assert messageQueues.size() == 1;
+                        this.queueId2MQ.put(queueId, messageQueues.get(0));
+                    }
+                }
+            } catch (Throwable t) {
+                System.out.println(t);
+            }
+        }
+
         return queueId2MQ.get(queueIdNumber);
     }
 
 
-    enum DeleteMessage {
-        DELETE_MESSAGE
+    public enum DeleteMessage {
+        DELETE_MESSAGE;
+
+        public byte[] bytes() {
+            return this.name().getBytes(StandardCharsets.UTF_8);
+        }
     }
 
 }
