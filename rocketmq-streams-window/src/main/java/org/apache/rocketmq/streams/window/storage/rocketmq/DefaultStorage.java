@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.streams.common.utils.CreateTopicUtil;
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
@@ -53,6 +54,7 @@ import static org.apache.rocketmq.streams.window.storage.DataType.WINDOW_INSTANC
 public class DefaultStorage extends AbstractStorage {
     private final boolean isLocalStorageOnly;
     private final RocksdbStorage rocksdbStorage;
+    private final String clusterName = "DefaultCluster";
 
     //两个streams实例topic可能相同，但是tag不同
     private final String topic;
@@ -83,7 +85,7 @@ public class DefaultStorage extends AbstractStorage {
                 this.producer.setNamesrvAddr(namesrv);
                 this.producer.start();
                 //create topic
-                this.producer.createTopic(this.producer.getCreateTopicKey(), topic, queueNum);
+                CreateTopicUtil.create(clusterName, topic, queueNum, namesrv);
 
                 this.consumer = new DefaultLitePullConsumer(this.groupId);
                 this.consumer.setNamesrvAddr(namesrv);
@@ -97,6 +99,10 @@ public class DefaultStorage extends AbstractStorage {
 
     @Override
     public Future<?> load(String shuffleId) {
+        if (isLocalStorageOnly) {
+            return super.load(shuffleId);
+        }
+
         MessageQueue messageQueue = getMessageQueue(shuffleId);
         if (messageQueue == null) {
             throw new RuntimeException("can not find MQ with shuffleId = [" + shuffleId + "]");
@@ -279,7 +285,7 @@ public class DefaultStorage extends AbstractStorage {
     @Override
     public int flush(List<String> queueIdList) {
         if (isLocalStorageOnly) {
-            return 0;
+            return super.flush(queueIdList);
         }
 
         int successNum = 0;
@@ -327,7 +333,6 @@ public class DefaultStorage extends AbstractStorage {
 
             byte[] raw = wrap.getRaw();
             if (raw != null && raw.length != 0) {
-                System.out.println("send message to MQ: key=" + wrap.getKey() + "; data=" + wrap.getData());
                 count += send0(shuffleId, wrap.getKey(), raw);
             }
         }

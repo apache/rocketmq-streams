@@ -100,6 +100,10 @@
             <artifactId>re2j</artifactId>
             <version>1.6</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-tools</artifactId>
+        </dependency>
 
 
     </dependencies>

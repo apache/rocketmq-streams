@@ -201,6 +201,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         defaultMQAdminExt.setVipChannelEnabled(false);
         defaultMQAdminExt.setNamesrvAddr(this.getNamesrvAddr());
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        defaultMQAdminExt.setAdminExtGroup(topic.trim());
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setReadQueueNums(splitNum);
         topicConfig.setWriteQueueNums(splitNum);
