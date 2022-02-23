@@ -73,7 +73,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     /**
      * 消息队列命名空间接入点
      */
-    protected String namesrvAddr;
+
 
     protected Long pullIntervalMs;
 
@@ -386,14 +386,6 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
     public void setPullIntervalMs(Long pullIntervalMs) {
         this.pullIntervalMs = pullIntervalMs;
-    }
-
-    public String getNamesrvAddr() {
-        return namesrvAddr;
-    }
-
-    public void setNamesrvAddr(String namesrvAddr) {
-        this.namesrvAddr = namesrvAddr;
     }
 
     public ConsumeFromWhere getConsumeFromWhere() {

@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.common.channel.source;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
@@ -64,6 +66,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     protected int maxThread = Runtime.getRuntime().availableProcessors();
     @ENVDependence
     protected String topic = "";
+    protected String namesrvAddr;
     /**
      * 多长时间做一次checkpoint
      */
@@ -134,7 +137,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @return
      */
     public AbstractContext doReceiveMessage(JSONObject message, boolean needSetCheckPoint, String queueId,
-        String offset) {
+                                            String offset) {
         Message msg = createMessage(message, queueId, offset, needSetCheckPoint);
         AbstractContext context = executeMessage(msg);
         return context;
@@ -326,7 +329,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             messageQueueChangedCheck(channelMessage.getHeader());
         }
 
-        boolean needFlush = channelMessage.getHeader().isSystemMessage() == false && channelMessage.getHeader().isNeedFlush();
+        boolean needFlush = !channelMessage.getHeader().isSystemMessage() && channelMessage.getHeader().isNeedFlush();
 
         if (receiver != null) {
             receiver.doMessage(channelMessage, context);
@@ -374,9 +377,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @param header
      */
     protected void messageQueueChangedCheck(MessageHeader header) {
-        if (supportNewSplitFind() && supportRemoveSplitFind()) {
-            return;
-        }
+
         Set<String> queueIds = new HashSet<>();
         String msgQueueId = header.getQueueId();
         if (StringUtil.isNotEmpty(msgQueueId)) {
@@ -386,8 +387,9 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         if (checkpointQueueIds != null) {
             queueIds.addAll(checkpointQueueIds);
         }
+
         Set<String> newQueueIds = new HashSet<>();
-        Set<String> removeQueueIds = new HashSet<>();
+
         for (String queueId : queueIds) {
             if (isNotDataSplit(queueId)) {
                 continue;
@@ -405,7 +407,9 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
                 }
             }
         }
-        if (!supportNewSplitFind()) {
+
+
+        if (newQueueIds.size() != 0) {
             addNewSplit(newQueueIds);
         }
 
@@ -620,6 +624,16 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    @Override
+    public String getNamesrvAddr() {
+        return this.namesrvAddr;
+    }
+
+    @Override
+    public void setNamesrvAddr(String namesrvAddr) {
+        this.namesrvAddr = namesrvAddr;
     }
 
     public void setCheckpointTime(long checkpointTime) {
