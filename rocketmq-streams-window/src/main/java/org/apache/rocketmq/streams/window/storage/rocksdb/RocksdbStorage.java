@@ -357,17 +357,10 @@ public class RocksdbStorage extends AbstractStorage {
     public void clearCache(String queueId) {
         String keyPrefix;
         //删除windowInstance缓存
-        keyPrefix = super.merge(DataType.WINDOW_INSTANCE.getValue(), queueId);
-        deleteByKeyPrefix(keyPrefix);
-
-        keyPrefix = super.merge(DataType.WINDOW_BASE_VALUE.getValue(), queueId);
-        deleteByKeyPrefix(keyPrefix);
-
-        keyPrefix = super.merge(DataType.MAX_PARTITION_NUM.getValue(), queueId);
-        deleteByKeyPrefix(keyPrefix);
-
-        keyPrefix = super.merge(DataType.MAX_OFFSET.getValue(), queueId);
-        deleteByKeyPrefix(keyPrefix);
+        for (DataType type : DataType.values()) {
+            keyPrefix = super.merge(type.getValue(), queueId);
+            deleteByKeyPrefix(keyPrefix);
+        }
     }
 
     private void deleteByKeyPrefix(String keyPrefix) {
@@ -386,23 +379,7 @@ public class RocksdbStorage extends AbstractStorage {
     }
 
     public <T> RocksdbIterator<T> getData(String queueId, DataType type) {
-        String keyPrefix;
-        switch (type) {
-            case WINDOW_INSTANCE:
-                keyPrefix = super.merge(DataType.WINDOW_INSTANCE.getValue(), queueId);
-                break;
-            case WINDOW_BASE_VALUE:
-                keyPrefix = super.merge(DataType.WINDOW_BASE_VALUE.getValue(), queueId);
-                break;
-            case MAX_OFFSET:
-                keyPrefix = super.merge(DataType.MAX_OFFSET.getValue(), queueId);
-                break;
-            case MAX_PARTITION_NUM:
-                keyPrefix = super.merge(DataType.MAX_PARTITION_NUM.getValue(), queueId);
-                break;
-            default:
-                throw new RuntimeException();
-        }
+        String keyPrefix = super.merge(type.getValue(), queueId);
 
         return new RocksdbIterator<>(keyPrefix, rocksDB);
     }

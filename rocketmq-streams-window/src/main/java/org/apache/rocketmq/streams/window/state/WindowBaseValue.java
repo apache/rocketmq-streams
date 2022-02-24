@@ -32,12 +32,12 @@ public class WindowBaseValue extends Entity implements Serializable {
     private static final long serialVersionUID = -4985883726971532986L;
 
     /**
-     * 唯一标识一个groupBy的窗口计算数据 创建唯一主键 内存及磁盘里使用(partition,windowNamespace,windowName,startTime,endOrFireTime,groupByValue)的拼接 数据库里用上面拼接字符串的MD5
+     * 唯一标识一个groupBy的窗口计算数据 创建唯一主键 partition,windowNamespace,windowName,startTime,endOrFireTime,groupByValue
      */
     protected String msgKey;
 
     /**
-     * 唯一标识一个窗口 内存及磁盘使用(patitionId,windowNamespace,windowName,startTime,endOrFireTime) 数据库里使用上面字符串的MD5
+     * patitionId,windowNamespace,windowName,startTime,endOrFireTime
      */
     protected String windowInstanceId;
 

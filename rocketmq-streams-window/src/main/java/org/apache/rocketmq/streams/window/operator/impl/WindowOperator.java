@@ -146,12 +146,7 @@ public class WindowOperator extends AbstractShuffleWindow {
     }
 
 
-    /**
-     * 按group name 进行分组
-     *
-     * @param messages
-     * @return
-     */
+
     protected Map<String, List<IMessage>> groupByGroupName(List<IMessage> messages, List<String> sortKeys) {
         if (messages == null || messages.size() == 0) {
             return new HashMap<>();
