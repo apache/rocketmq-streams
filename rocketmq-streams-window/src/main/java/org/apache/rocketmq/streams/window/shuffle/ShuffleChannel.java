@@ -232,44 +232,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
             this.loadResult.put(splitId, future);
         }
 
-
-        //todo 上面已经预加载过了。
-//        ArrayList<WindowInstance> allWindowInstances = new ArrayList<>();
-//        for (String splitId : splitIds) {
-//            List<WindowInstance> instances = window.getStorage().getWindowInstance(splitId, window.getNameSpace(), window.getConfigureName());
-//            if (instances != null) {
-//                for (WindowInstance instance : instances) {
-//                    if (instance.getStatus() == 0) {
-//                        allWindowInstances.add(instance);
-//                    }
-//                }
-//            }
-//        }
-//
-//
-//        if (allWindowInstances.size() != 0) {
-//            for (WindowInstance windowInstance : allWindowInstances) {
-//                String splitId = windowInstance.getSplitId();
-//                windowInstance.setNewWindowInstance(false);
-//
-//                window.getWindowFireSource().registFireWindowInstanceIfNotExist(windowInstance, window);
-//
-//
-//                //1、windowInstanceId-WindowBaseValue kv对从远程加载到本地缓存
-//                String windowInstanceId = windowInstance.createWindowInstanceId();
-//                WindowType windowType = window.getWindowType();
-//
-//                if (WindowType.JOIN_WINDOW == windowType) {
-//                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.left);
-//                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, WindowJoinType.right);
-//                } else {
-//                    window.getStorage().getWindowBaseValue(splitId, windowInstanceId, windowType, null);
-//                }
-//
-//                //2、maxOffset使用时，再查找、缓存，没有前缀查询不能按照splitIds查询所有；
-//            }
-//        }
-
         window.getFireReceiver().doMessage(message, context);
     }
 

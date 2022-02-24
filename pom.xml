@@ -92,7 +92,6 @@
         <module>rocketmq-streams-schedule</module>
         <module>rocketmq-streams-lease</module>
         <module>rocketmq-streams-db-operator</module>
-        <module>rocketmq-streams-dbinit</module>
         <module>rocketmq-streams-window</module>
         <module>rocketmq-streams-clients</module>
         <module>rocketmq-streams-channel-rocketmq</module>
