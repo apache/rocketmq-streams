@@ -318,58 +318,6 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         }
     }
 
-    /**
-     * merge different window values into one window value which have the same group by value
-     *
-     * @param window          the window definition
-     * @param windowInstances all window instance which belong to same window and have different group by value
-     * @return
-     */
-    public static List<WindowValue> mergeWindowValues(AbstractWindow window, List<WindowInstance> windowInstances) {
-        if (windowInstances == null || windowInstances.size() == 0) {
-            return new ArrayList<>();
-        }
-        StringBuilder sb = new StringBuilder();
-        boolean isFirst = true;
-        String name = MapKeyUtil.createKey(window.getNameSpace(), window.getConfigureName());
-        for (WindowInstance windowInstance : windowInstances) {
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                sb.append(",");
-            }
-            sb.append("('" + name + "','" + windowInstance.getStartTime() + "','" + windowInstance.getEndTime() + "')");
-        }
-        String inSQL = sb.toString();
-        /**
-         * 分批，内存撑暴 todo
-         */
-        String sql = "select * from " + ORMUtil
-            .getTableName(WindowValue.class) + " where status > 0 && (name, start_time, end_time) in (" + inSQL + ")";
-        Map<String, Object> paras = new HashMap<>(4);
-        List<WindowValue> windowValueList = ORMUtil.queryForList(sql, paras, WindowValue.class);
-        return queryMergeWindowValues(window, windowValueList);
-    }
-
-    public static List<WindowValue> queryMergeWindowValues(AbstractWindow window, List<WindowValue> windowValueList) {
-        Map<String, List<WindowValue>> groupWindowMap = new HashMap<>(64);
-        for (WindowValue value : windowValueList) {
-            String key = MapKeyUtil.createKeyBySign(value.getStartTime(), value.getEndTime(),
-                value.getGroupBy());
-            if (groupWindowMap.containsKey(key)) {
-                groupWindowMap.get(key).add(value);
-            } else {
-                groupWindowMap.put(key, new ArrayList<WindowValue>() {{
-                    add(value);
-                }});
-            }
-        }
-        List<WindowValue> mergedValueList = new ArrayList<>();
-        for (Entry<String, List<WindowValue>> entry : groupWindowMap.entrySet()) {
-            mergedValueList.add(mergeWindowValue(window, entry.getValue()));
-        }
-        return mergedValueList;
-    }
 
     /**
      * merge the group which has the same group by value and different split id
