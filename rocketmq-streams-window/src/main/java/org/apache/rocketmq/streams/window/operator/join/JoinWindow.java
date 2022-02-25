@@ -323,7 +323,6 @@ public class JoinWindow extends AbstractShuffleWindow {
         state.setPartition(shuffleId);
         state.setWindowInstanceId(instance.getWindowInstanceKey());
         state.setPartitionNum(incrementAndGetSplitNumber(instance, shuffleId));
-        state.setWindowInstancePartitionId(instance.getWindowInstanceKey());
 
         return state;
     }

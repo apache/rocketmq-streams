@@ -423,7 +423,6 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         clonedValue.setMsgKey(msgKey);
         clonedValue.setAggColumnMap(aggColumnResult);
         clonedValue.setMaxOffset(getMaxOffset());
-        clonedValue.setWindowInstancePartitionId(windowInstancePartitionId);
         clonedValue.setWindowInstanceId(windowInstanceId);
         clonedValue.setPartition(partition);
         clonedValue.setPartitionNum(partitionNum);
