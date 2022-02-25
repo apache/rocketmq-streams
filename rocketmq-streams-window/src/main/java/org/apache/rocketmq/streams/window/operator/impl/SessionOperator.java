@@ -37,7 +37,6 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
@@ -93,7 +92,7 @@ public class SessionOperator extends WindowOperator {
     @Override
     public List<WindowInstance> queryOrCreateWindowInstance(IMessage message, String queueId) {
         WindowInstance instance = createWindowInstance(SESSION_WINDOW_BEGIN_TIME, SESSION_WINDOW_END_TIME, null, queueId);
-        String windowInstanceId = instance.createWindowInstanceId();
+        String windowInstanceId = instance.getWindowInstanceId();
         WindowInstance existWindowInstance = searchWindowInstance(windowInstanceId);
         if (existWindowInstance == null) {
             Pair<Date, Date> startEndPair = getSessionTime(message);
@@ -118,7 +117,7 @@ public class SessionOperator extends WindowOperator {
 
     @Override
     public WindowInstance registerWindowInstance(WindowInstance windowInstance) {
-        return super.registerWindowInstance(windowInstance.createWindowInstanceId(), windowInstance);
+        return super.registerWindowInstance(windowInstance.getWindowInstanceId(), windowInstance);
     }
 
     @Override
@@ -145,7 +144,7 @@ public class SessionOperator extends WindowOperator {
             List<WindowBaseValue> windowBaseValue =new ArrayList<>();
 
             RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(instance.getSplitId(),
-                    instance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+                    instance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null);
             while (rocksdbIterator.hasNext()) {
                 IteratorWrap<WindowBaseValue> next = rocksdbIterator.next();
                 windowBaseValue.add(next.getData());
@@ -240,7 +239,7 @@ public class SessionOperator extends WindowOperator {
                 Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, waterMarkMinute * timeUnitAdjust);
                 value.setEndTime(DateUtil.format(sessionEnd, SESSION_DATETIME_PATTERN));
                 //clean order storage as sort field 'fireTime' changed
-                deleteMergeWindow(windowInstance.createWindowInstanceId(), value.getPartition(), value.getFireTime(), value.getPartitionNum(), value.getGroupBy());
+                deleteMergeWindow(windowInstance.getWindowInstanceId(), value.getPartition(), value.getFireTime(), value.getPartitionNum(), value.getGroupBy());
                 //
                 value.setFireTime(DateUtil.format(sessionFire, SESSION_DATETIME_PATTERN));
                 return value;
@@ -299,7 +298,7 @@ public class SessionOperator extends WindowOperator {
 
         deleteValueMap.keySet().forEach(key -> {
             WindowValue windowValue = allValueList.get(key);
-            deleteMergeWindow(windowInstance.createWindowInstanceId(), windowValue.getPartition(),
+            deleteMergeWindow(windowInstance.getWindowInstanceId(), windowValue.getPartition(),
                     windowValue.getFireTime(), windowValue.getPartitionNum(), windowValue.getGroupBy());
         });
         return resultList;
@@ -348,7 +347,7 @@ public class SessionOperator extends WindowOperator {
                     .map(value -> (WindowBaseValue) value)
                     .collect(Collectors.toList());
 
-            storage.putWindowBaseValue(queueId, windowInstance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null, temp);
+            storage.putWindowBaseValue(queueId, windowInstance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null, temp);
         }
 
     }
@@ -378,7 +377,7 @@ public class SessionOperator extends WindowOperator {
         assert shuffleId.equalsIgnoreCase(queueId);
         value.setPartitionNum(createPartitionNum(queueId, instance));
         value.setPartition(shuffleId);
-        value.setWindowInstanceId(instance.getWindowInstanceKey());
+        value.setWindowInstanceId(instance.getWindowInstanceId());
         return value;
     }
 
@@ -389,7 +388,7 @@ public class SessionOperator extends WindowOperator {
             String queueId = windowInstance.getSplitId();
 
             RocksdbIterator<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(queueId,
-                    windowInstance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+                    windowInstance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null);
 
 
             ArrayList<WindowBaseValue> baseValues = new ArrayList<>();
@@ -456,7 +455,7 @@ public class SessionOperator extends WindowOperator {
         clearWindowValues(valueList, queueId, instance);
 
         if (!nextFireTime.equals(currentFireTime)) {
-            String instanceId = instance.createWindowInstanceId();
+            String instanceId = instance.getWindowInstanceId();
             WindowInstance existedWindowInstance = searchWindowInstance(instanceId);
             if (existedWindowInstance != null) {
                 existedWindowInstance.setFireTime(DateUtil.format(new Date(nextFireTime)));
@@ -484,7 +483,7 @@ public class SessionOperator extends WindowOperator {
 
         }
 
-        RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(queueId, instance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+        RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(queueId, instance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null);
         List<WindowBaseValue> temp = new ArrayList<>();
         while (rocksdbIterator.hasNext()) {
             IteratorWrap<WindowBaseValue> next = rocksdbIterator.next();
@@ -511,7 +510,7 @@ public class SessionOperator extends WindowOperator {
         }
 
         for (WindowValue windowValue : deleteValueList) {
-            storage.deleteWindowBaseValue(queueId, instance.createWindowInstanceId(), WindowType.SESSION_WINDOW, null, windowValue.getMsgKey());
+            storage.deleteWindowBaseValue(queueId, instance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null, windowValue.getMsgKey());
         }
 
         store(lastValueMap, instance, queueId);
@@ -522,7 +521,7 @@ public class SessionOperator extends WindowOperator {
     public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
         long numer = super.incrementAndGetSplitNumber(instance, shuffleId);
         if (numer > 900000000) {
-            this.storage.putMaxPartitionNum(shuffleId, instance.createWindowInstanceId(), numer);
+            this.storage.putMaxPartitionNum(shuffleId, instance.getWindowInstanceId(), numer);
         }
         return numer;
     }

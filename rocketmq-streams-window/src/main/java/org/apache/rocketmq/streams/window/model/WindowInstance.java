@@ -73,13 +73,13 @@ public class WindowInstance extends Entity implements Serializable {
     protected String windowInstanceName;//默认等于窗口名，需要区分不同窗口时使用
 
     /**
-     * splitId,windowNameSpace,windowName,windowInstanceName,windowInstanceName 数据库中存储的是MD5值
+     * splitId,windowNameSpace,windowName,windowInstanceName,windowInstanceName
      */
     protected String windowInstanceSplitName;
     /**
-     * windowInstanceId, splitId,windowNameSpace,windowName,windowInstanceName,windowInstanceName,startTime,endTime" 数据库中存储的是MD5值
+     * splitId,windowNameSpace,windowName,windowInstanceName,startTime,endTime
      */
-    protected String windowInstanceKey;
+    protected String windowInstanceId;
 
     protected transient Boolean isNewWindowInstance = false;//当第一次创建时设置为true，否则设置为false
 
@@ -108,17 +108,12 @@ public class WindowInstance extends Entity implements Serializable {
         windowInstance.setGmtModified(new Date());
         windowInstance.setGmtCreate(new Date());
         windowInstance.setWindowInstanceName(this.windowInstanceName);
-        windowInstance.setWindowInstanceKey(this.windowInstanceKey);
+        windowInstance.setWindowInstanceId(this.windowInstanceId);
         windowInstance.setWindowName(this.windowName);
         windowInstance.setWindowNameSpace(this.windowNameSpace);
         windowInstance.setStatus(this.status);
         windowInstance.setVersion(this.version);
         return windowInstance;
-    }
-
-
-    public String createWindowInstanceId() {
-        return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime);
     }
 
     public String createWindowInstanceTriggerId() {
@@ -388,9 +383,6 @@ public class WindowInstance extends Entity implements Serializable {
         this.version = version;
     }
 
-    public String getWindowInstanceKey() {
-        return windowInstanceKey;
-    }
 
     public String getWindowInstanceName() {
         return windowInstanceName;
@@ -400,8 +392,17 @@ public class WindowInstance extends Entity implements Serializable {
         this.windowInstanceName = windowInstanceName;
     }
 
-    public void setWindowInstanceKey(String windowInstanceKey) {
-        this.windowInstanceKey = windowInstanceKey;
+    public String getWindowInstanceId() {
+        if (windowInstanceId != null) {
+            return windowInstanceId;
+        }
+        windowInstanceId = MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime);
+
+        return windowInstanceId;
+    }
+
+    public void setWindowInstanceId(String windowInstanceId) {
+        this.windowInstanceId = windowInstanceId;
     }
 
     public Boolean isNewWindowInstance() {
@@ -438,12 +439,12 @@ public class WindowInstance extends Entity implements Serializable {
 
     @Override
     public int hashCode() {
-        return createWindowInstanceId().hashCode();
+        return getWindowInstanceId().hashCode();
     }
 
     @Override
     public String toString() {
-        return createWindowInstanceId().toString();
+        return getWindowInstanceId().toString();
     }
 
     public boolean isCanClearResource() {

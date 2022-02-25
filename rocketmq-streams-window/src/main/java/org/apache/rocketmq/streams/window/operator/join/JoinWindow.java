@@ -76,7 +76,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
-        String windowInstanceId = instance.createWindowInstanceId();
+        String windowInstanceId = instance.getWindowInstanceId();
 
         for (IMessage msg : messages) {
             MessageHeader header = JSONObject.parseObject(msg.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
@@ -145,7 +145,7 @@ public class JoinWindow extends AbstractShuffleWindow {
                 }
                 if (windowInstanceIter.hasNext()) {
                     WindowInstance instance = windowInstanceIter.next();
-                    iterator = storage.getWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, joinType);
+                    iterator = storage.getWindowBaseValue(instance.getSplitId(), instance.getWindowInstanceId(), WindowType.JOIN_WINDOW, joinType);
                     if (iterator != null && iterator.hasNext()) {
                         return true;
                     }
@@ -268,7 +268,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         String shuffleKey = message.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
         String orginQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
         String originOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
-        String storeKey = MapKeyUtil.createKey(windowInstance.createWindowInstanceId(), shuffleKey, routeLabel, orginQueueId, originOffset);
+        String storeKey = MapKeyUtil.createKey(windowInstance.getWindowInstanceId(), shuffleKey, routeLabel, orginQueueId, originOffset);
         return storeKey;
     }
 
@@ -321,7 +321,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         String shuffleKey = message.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
         String shuffleId = shuffleChannel.getChannelQueue(shuffleKey).getQueueId();
         state.setPartition(shuffleId);
-        state.setWindowInstanceId(instance.getWindowInstanceKey());
+        state.setWindowInstanceId(instance.getWindowInstanceId());
         state.setPartitionNum(incrementAndGetSplitNumber(instance, shuffleId));
 
         return state;
@@ -383,10 +383,10 @@ public class JoinWindow extends AbstractShuffleWindow {
 
         for (WindowInstance instance : removeInstances) {
             //清理MaxPartitionNum
-            storage.deleteMaxPartitionNum(instance.getSplitId(), instance.getWindowInstanceKey());
+            storage.deleteMaxPartitionNum(instance.getSplitId(), instance.getWindowInstanceId());
 
             //从windowInstance表中删除
-            storage.deleteWindowInstance(instance.getSplitId(), this.getNameSpace(), this.getConfigureName(), instance.getWindowInstanceKey());
+            storage.deleteWindowInstance(instance.getSplitId(), this.getNameSpace(), this.getConfigureName(), instance.getWindowInstanceId());
 
 
             //从JoinState表中删除
@@ -397,7 +397,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     private void deleteFromJoinState(WindowInstance instance, WindowJoinType windowJoinType) {
 
-        RocksdbIterator<JoinState> joinStates = storage.getWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+        RocksdbIterator<JoinState> joinStates = storage.getWindowBaseValue(instance.getSplitId(), instance.getWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
         while (joinStates.hasNext()) {
             IteratorWrap<JoinState> next = joinStates.next();
 
@@ -405,7 +405,7 @@ public class JoinWindow extends AbstractShuffleWindow {
             Date start = addTime(instance.getStartTime(), TimeUnit.MINUTES, -retainWindowCount * sizeInterval);
 
             if (canDelete(instance, joinState, start)) {
-                storage.deleteWindowBaseValue(instance.getSplitId(), instance.createWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+                storage.deleteWindowBaseValue(instance.getSplitId(), instance.getWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
             }
         }
     }

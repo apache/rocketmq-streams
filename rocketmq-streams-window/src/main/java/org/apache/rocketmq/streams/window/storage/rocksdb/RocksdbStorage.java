@@ -54,9 +54,9 @@ public class RocksdbStorage extends AbstractStorage {
         }
 
         //唯一键
-        String windowInstanceKey = windowInstance.getWindowInstanceKey();
+        String windowInstanceId = windowInstance.getWindowInstanceId();
 
-        String key = super.merge(DataType.WINDOW_INSTANCE.getValue(), shuffleId, windowNamespace, windowConfigureName, windowInstanceKey);
+        String key = super.merge(DataType.WINDOW_INSTANCE.getValue(), shuffleId, windowNamespace, windowConfigureName, windowInstanceId);
 
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
         byte[] valueBytes = SerializeUtil.serialize(windowInstance);
@@ -76,12 +76,12 @@ public class RocksdbStorage extends AbstractStorage {
     }
 
     @Override
-    public void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceKey) {
-        if (windowInstanceKey == null) {
+    public void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceId) {
+        if (windowInstanceId == null) {
             return;
         }
 
-        String key = super.merge(DataType.WINDOW_INSTANCE.getValue(), shuffleId, windowNamespace, windowConfigureName, windowInstanceKey);
+        String key = super.merge(DataType.WINDOW_INSTANCE.getValue(), shuffleId, windowNamespace, windowConfigureName, windowInstanceId);
 
         try {
             byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
@@ -266,8 +266,8 @@ public class RocksdbStorage extends AbstractStorage {
     }
 
     @Override
-    public void putMaxPartitionNum(String shuffleId, String windowInstanceKey, long maxPartitionNum) {
-        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceKey);
+    public void putMaxPartitionNum(String shuffleId, String windowInstanceId, long maxPartitionNum) {
+        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceId);
 
         try {
             byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
@@ -282,8 +282,8 @@ public class RocksdbStorage extends AbstractStorage {
     }
 
     @Override
-    public Long getMaxPartitionNum(String shuffleId, String windowInstanceKey) {
-        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceKey);
+    public Long getMaxPartitionNum(String shuffleId, String windowInstanceId) {
+        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceId);
 
         try {
             byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
@@ -302,8 +302,8 @@ public class RocksdbStorage extends AbstractStorage {
     }
 
     @Override
-    public void deleteMaxPartitionNum(String shuffleId, String windowInstanceKey) {
-        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceKey);
+    public void deleteMaxPartitionNum(String shuffleId, String windowInstanceId) {
+        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceId);
 
         try {
             byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);

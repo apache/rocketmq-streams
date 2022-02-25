@@ -35,9 +35,9 @@ public interface IStorage {
     /**
      * WindowInstance的唯一索引字段
      *
-     * @param windowInstanceKey
+     * @param windowInstanceId
      */
-    void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceKey);
+    void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceId);
 
     void putWindowBaseValue(String shuffleId, String windowInstanceId,
                             WindowType windowType, WindowJoinType joinType,
@@ -62,11 +62,11 @@ public interface IStorage {
     void deleteMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId);
 
 
-    void putMaxPartitionNum(String shuffleId, String windowInstanceKey, long maxPartitionNum);
+    void putMaxPartitionNum(String shuffleId, String windowInstanceId, long maxPartitionNum);
 
-    Long getMaxPartitionNum(String shuffleId, String windowInstanceKey);
+    Long getMaxPartitionNum(String shuffleId, String windowInstanceId);
 
-    void deleteMaxPartitionNum(String shuffleId, String windowInstanceKey);
+    void deleteMaxPartitionNum(String shuffleId, String windowInstanceId);
 
     int flush(List<String> queueId);
 

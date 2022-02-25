@@ -149,13 +149,13 @@ public class ShuffleCache extends WindowCache {
             message.getHeader().setOffsetIsLong(isLong);
             List<WindowInstance> windowInstances = (List<WindowInstance>) message.getMessageBody().get(WindowInstance.class.getSimpleName());
             for (WindowInstance windowInstance : windowInstances) {
-                String windowInstanceId = windowInstance.createWindowInstanceId();
+                String windowInstanceId = windowInstance.getWindowInstanceId();
                 Pair<String, String> queueIdAndInstanceKey = Pair.of(queueId, windowInstanceId);
                 List<IMessage> messages = instance2Messages.computeIfAbsent(queueIdAndInstanceKey, k -> new ArrayList<>());
                 //in case of changing message concurrently in hop window
                 IMessage cloneMessage = message.deepCopy();
                 //bring window instance id into accumulator computation
-                cloneMessage.getMessageBody().put("HIT_WINDOW_INSTANCE_ID", windowInstance.createWindowInstanceId());
+                cloneMessage.getMessageBody().put("HIT_WINDOW_INSTANCE_ID", windowInstance.getWindowInstanceId());
                 messages.add(cloneMessage);
                 windowInstanceMap.put(windowInstanceId, windowInstance);
             }

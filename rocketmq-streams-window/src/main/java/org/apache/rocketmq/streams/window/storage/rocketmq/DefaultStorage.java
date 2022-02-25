@@ -217,8 +217,8 @@ public class DefaultStorage extends AbstractStorage {
 
     //put的key是什么，就按照什么key删除
     @Override
-    public void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceKey) {
-        rocksdbStorage.deleteWindowInstance(shuffleId, windowNamespace, windowConfigureName, windowInstanceKey);
+    public void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceId) {
+        rocksdbStorage.deleteWindowInstance(shuffleId, windowNamespace, windowConfigureName, windowInstanceId);
     }
 
 
@@ -266,18 +266,18 @@ public class DefaultStorage extends AbstractStorage {
     }
 
     @Override
-    public void putMaxPartitionNum(String shuffleId, String windowInstanceKey, long maxPartitionNum) {
-        rocksdbStorage.putMaxPartitionNum(shuffleId, windowInstanceKey, maxPartitionNum);
+    public void putMaxPartitionNum(String shuffleId, String windowInstanceId, long maxPartitionNum) {
+        rocksdbStorage.putMaxPartitionNum(shuffleId, windowInstanceId, maxPartitionNum);
     }
 
     @Override
-    public Long getMaxPartitionNum(String shuffleId, String windowInstanceKey) {
-        return rocksdbStorage.getMaxPartitionNum(shuffleId, windowInstanceKey);
+    public Long getMaxPartitionNum(String shuffleId, String windowInstanceId) {
+        return rocksdbStorage.getMaxPartitionNum(shuffleId, windowInstanceId);
     }
 
     @Override
-    public void deleteMaxPartitionNum(String shuffleId, String windowInstanceKey) {
-        rocksdbStorage.deleteMaxPartitionNum(shuffleId, windowInstanceKey);
+    public void deleteMaxPartitionNum(String shuffleId, String windowInstanceId) {
+        rocksdbStorage.deleteMaxPartitionNum(shuffleId, windowInstanceId);
     }
 
 

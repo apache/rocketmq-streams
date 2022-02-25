@@ -40,7 +40,7 @@ public class WindowOperator extends AbstractShuffleWindow {
 
     @Override
     public int doFireWindowInstance(WindowInstance instance) {
-        String windowInstanceId = instance.createWindowInstanceId();
+        String windowInstanceId = instance.getWindowInstanceId();
         String queueId = instance.getSplitId();
 
         RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.NORMAL_WINDOW, null);
@@ -93,7 +93,7 @@ public class WindowOperator extends AbstractShuffleWindow {
         List<String> sortKeys = new ArrayList<>();
         Map<String, List<IMessage>> groupBy = groupByGroupName(messages, sortKeys);
 
-        RocksdbIterator<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(queueId, instance.createWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
+        RocksdbIterator<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(queueId, instance.getWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
 
         ArrayList<WindowBaseValue> windowValues = new ArrayList<>();
         while (windowBaseValue.hasNext()) {
@@ -135,7 +135,7 @@ public class WindowOperator extends AbstractShuffleWindow {
             DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowCalculate(this, allWindowValues, queueId);
         }
 
-        saveStorage(instance.createWindowInstanceId(), queueId, allWindowValues);
+        saveStorage(instance.getWindowInstanceId(), queueId, allWindowValues);
     }
 
 
@@ -208,11 +208,11 @@ public class WindowOperator extends AbstractShuffleWindow {
         windowValue.setEndTime(instance.getEndTime());
         windowValue.setFireTime(instance.getFireTime());
         windowValue.setGroupBy(groupBy == null ? "" : groupBy);
-        windowValue.setMsgKey(MapKeyUtil.createKey(queueId, instance.createWindowInstanceId(), groupBy));
+        windowValue.setMsgKey(MapKeyUtil.createKey(queueId, instance.getWindowInstanceId(), groupBy));
         String shuffleId = shuffleChannel.getChannelQueue(groupBy).getQueueId();
         windowValue.setPartitionNum(createPartitionNum(queueId, instance));
         windowValue.setPartition(shuffleId);
-        windowValue.setWindowInstanceId(instance.getWindowInstanceKey());
+        windowValue.setWindowInstanceId(instance.getWindowInstanceId());
 
         return windowValue;
     }
@@ -223,7 +223,7 @@ public class WindowOperator extends AbstractShuffleWindow {
 
 
     protected static String createStoreKey(String shuffleId, String groupByKey, WindowInstance windowInstance) {
-        return MapKeyUtil.createKey(shuffleId, windowInstance.createWindowInstanceId(), groupByKey);
+        return MapKeyUtil.createKey(shuffleId, windowInstance.getWindowInstanceId(), groupByKey);
     }
 
 
@@ -235,13 +235,13 @@ public class WindowOperator extends AbstractShuffleWindow {
             logoutWindowInstance(windowInstance.createWindowInstanceTriggerId());
 
             //清理MaxPartitionNum
-            storage.deleteMaxPartitionNum(windowInstance.getSplitId(), windowInstance.getWindowInstanceKey());
+            storage.deleteMaxPartitionNum(windowInstance.getSplitId(), windowInstance.getWindowInstanceId());
 
             //清理WindowInstance
-            storage.deleteWindowInstance(windowInstance.getSplitId(), this.getNameSpace(), this.getConfigureName(), windowInstance.getWindowInstanceKey());
+            storage.deleteWindowInstance(windowInstance.getSplitId(), this.getNameSpace(), this.getConfigureName(), windowInstance.getWindowInstanceId());
 
             //清理WindowValue
-            storage.deleteWindowBaseValue(windowInstance.getSplitId(), windowInstance.createWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
+            storage.deleteWindowBaseValue(windowInstance.getSplitId(), windowInstance.getWindowInstanceId(), WindowType.NORMAL_WINDOW, null);
         }
 
     }
