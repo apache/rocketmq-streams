@@ -378,7 +378,6 @@ public class SessionOperator extends WindowOperator {
         assert shuffleId.equalsIgnoreCase(queueId);
         value.setPartitionNum(createPartitionNum(queueId, instance));
         value.setPartition(shuffleId);
-        value.setWindowInstancePartitionId(instance.getWindowInstanceKey());
         value.setWindowInstanceId(instance.getWindowInstanceKey());
         return value;
     }

@@ -238,6 +238,8 @@ public class WindowInstance extends Entity implements Serializable {
             String startTime = DateUtil.format(begin);
             String endTime = DateUtil.format(end);
             String fireTime = DateUtil.format(fire);
+
+            //todo 这里不是都创建出来WindowInstance了吗
             String windowInstanceTriggerId = window.createWindowInstance(startTime, endTime, fireTime, queueId).createWindowInstanceTriggerId();
             WindowInstance windowInstance = window.searchWindowInstance(windowInstanceTriggerId);
             if (windowInstance == null) {
@@ -249,6 +251,7 @@ public class WindowInstance extends Entity implements Serializable {
             }
         }
         List<WindowInstance> lostInstanceList = null;
+        //todo 这里针对lost的都创建一次
         lostInstanceList = WindowInstance.createWindowInstances(window, lostWindowTimeList, lostFireList, queueId);
         instanceList.addAll(lostInstanceList);
         if (CollectionUtil.isNotEmpty(lostInstanceList)) {

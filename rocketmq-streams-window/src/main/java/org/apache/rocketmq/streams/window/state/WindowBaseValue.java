@@ -32,12 +32,14 @@ public class WindowBaseValue extends Entity implements Serializable {
     private static final long serialVersionUID = -4985883726971532986L;
 
     /**
-     * 唯一标识一个groupBy的窗口计算数据 创建唯一主键 partition,windowNamespace,windowName,startTime,endOrFireTime,groupByValue
+     * 唯一标识
+     * queueId + windowInstanceId + groupBy
      */
     protected String msgKey;
 
     /**
-     * patitionId,windowNamespace,windowName,startTime,endOrFireTime
+     * 属于那个windowInstance
+     * splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime
      */
     protected String windowInstanceId;
 
@@ -50,11 +52,6 @@ public class WindowBaseValue extends Entity implements Serializable {
      * 同一分片同一窗口的自增数据（增加逻辑在业务里，为什么不使用id？）
      */
     protected long partitionNum;
-
-    /**
-     * 标识一个分片同一个窗口 内存及磁盘使用(partition,windowNamespace,windowName,windowinstanceName,startTime,endTime,partition) 数据库里使用上面字符串的MD5值
-     */
-    protected String windowInstancePartitionId;
 
     /**
      * 窗口实例的开始时间
@@ -166,13 +163,7 @@ public class WindowBaseValue extends Entity implements Serializable {
         this.updateVersion.set(updateVersion);
     }
 
-    public String getWindowInstancePartitionId() {
-        return windowInstancePartitionId;
-    }
 
-    public void setWindowInstancePartitionId(String windowInstancePartitionId) {
-        this.windowInstancePartitionId = windowInstancePartitionId;
-    }
 
     @Override
     public WindowBaseValue clone() {

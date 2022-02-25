@@ -212,7 +212,6 @@ public class WindowOperator extends AbstractShuffleWindow {
         String shuffleId = shuffleChannel.getChannelQueue(groupBy).getQueueId();
         windowValue.setPartitionNum(createPartitionNum(queueId, instance));
         windowValue.setPartition(shuffleId);
-        windowValue.setWindowInstancePartitionId(instance.getWindowInstanceKey());
         windowValue.setWindowInstanceId(instance.getWindowInstanceKey());
 
         return windowValue;
