@@ -265,11 +265,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-dbinit</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-clients</artifactId>
                 <version>${project.version}</version>
             </dependency>

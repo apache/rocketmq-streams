@@ -85,7 +85,7 @@ public class DebugWriter {
             JSONObject msg = new JSONObject();
             msg.put("offset", message.getHeader().getOffset());
             msg.put("queueid", message.getMessageBody().getString(message.getHeader().getQueueId()));
-            msg.put("windowInstaceId", instance.createWindowInstanceId());
+            msg.put("windowInstaceId", instance.getWindowInstanceId());
             msgs.add(msg.toJSONString());
         }
         FileUtil.write(logFilePath, msgs, true);
