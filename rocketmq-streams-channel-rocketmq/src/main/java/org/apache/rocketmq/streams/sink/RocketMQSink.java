@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
@@ -244,19 +245,17 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         List<ISplit> messageQueues = new ArrayList<>();
         try {
 
-            if (messageQueues == null || messageQueues.size() == 0) {
-                List<MessageQueue> metaqQueueSet = producer.fetchPublishMessageQueues(topic);
-                List<ISplit> queueList = new ArrayList<>();
-                for (MessageQueue queue : metaqQueueSet) {
-                    RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
-                    queueList.add(rocketMQMessageQueue);
+            List<MessageQueue> messageQueueSet = producer.fetchPublishMessageQueues(topic);
+            List<ISplit> queueList = new ArrayList<>();
+            for (MessageQueue queue : messageQueueSet) {
+                RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
+                queueList.add(rocketMQMessageQueue);
 
-                }
-                Collections.sort(queueList);
-                messageQueues = queueList;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            Collections.sort(queueList);
+            messageQueues = queueList;
+        } catch (MQClientException e) {
+            return messageQueues;
         }
 
         return messageQueues;

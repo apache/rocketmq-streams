@@ -87,7 +87,7 @@ public class ShuffleCache extends WindowCache {
             Future<?> future = loadResult.get(queueId);
             future.get();
         } catch (Throwable t) {
-            throw new RuntimeException();
+            throw new RuntimeException(t);
         }
     }
 

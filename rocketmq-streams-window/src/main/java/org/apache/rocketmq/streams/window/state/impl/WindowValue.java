@@ -242,7 +242,9 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                 this.maxOffset.put(queueId, offset);
             } else {
                 //如果比最大的offset 小或等于，则直接丢弃掉消息
-                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data " + maxOffsetOfQueue + " " + message.getHeader().getOffset());
+                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data."
+                        + ",queueId= " + queueId + ",maxOffsetOfQueue="+ maxOffsetOfQueue
+                        + ",messageOffset=" + message.getHeader().getOffset());
                 return false;
             }
         }

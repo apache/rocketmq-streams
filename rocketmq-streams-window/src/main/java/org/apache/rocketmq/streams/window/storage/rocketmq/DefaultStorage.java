@@ -17,13 +17,10 @@ package org.apache.rocketmq.streams.window.storage.rocketmq;
  */
 
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
-import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.streams.common.utils.CreateTopicUtil;
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
@@ -36,14 +33,12 @@ import org.apache.rocketmq.streams.window.storage.WindowJoinType;
 import org.apache.rocketmq.streams.window.storage.WindowType;
 import org.apache.rocketmq.streams.window.storage.rocksdb.RocksdbStorage;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -109,24 +104,30 @@ public class DefaultStorage extends AbstractStorage {
         }
 
         //从上一offset提交位置，poll到最新数据位置
-        return this.pollExecutor.submit(() -> this.pollToLast(messageQueue));
+        return this.pollExecutor.submit(() -> this.pollToLast(messageQueue, true));
     }
 
-    private void pollToLast(MessageQueue messageQueue) {
+    private void pollToLast(MessageQueue messageQueue, boolean replay) {
         List<MessageQueue> temp = new ArrayList<>();
         temp.add(messageQueue);
 
-        //assign 与poll必须原子；
-        synchronized (this.consumer) {
-            this.consumer.assign(temp);
+        try {
+            //assign 与poll必须原子；
+            synchronized (this.consumer) {
+                this.consumer.assign(temp);
 
-            List<MessageExt> msgs = this.consumer.poll(pollTimeoutMillis);
-            while (msgs.size() != 0) {
-                this.replayState(msgs);
-                msgs = this.consumer.poll(pollTimeoutMillis);
+                List<MessageExt> msgs = this.consumer.poll(pollTimeoutMillis);
+                while (msgs.size() != 0) {
+                    if (replay) {
+                        this.replayState(msgs);
+                    } else {
+                        Thread.sleep(10);
+                    }
+                    msgs = this.consumer.poll(pollTimeoutMillis);
+                }
             }
+        }catch (Throwable ignored) {
         }
-
     }
 
     private void replayState(List<MessageExt> msgs) {
@@ -177,18 +178,9 @@ public class DefaultStorage extends AbstractStorage {
             return;
         }
 
-        if (isDeleted(newValue)) {
-            rocksdbStorage.delete(key);
-            return;
-        }
-
         byte[] oldBytes = rocksdbStorage.get(key);
         Object oldValue = SerializeUtil.deserialize(oldBytes);
 
-        if (oldBytes == null || oldBytes.length == 0 || isDeleted(oldValue)) {
-            rocksdbStorage.put(key, body);
-            return;
-        }
 
         long newTimestamp = getTimestamp(newValue);
         long oldTimestamp = getTimestamp(oldValue);
@@ -198,10 +190,6 @@ public class DefaultStorage extends AbstractStorage {
         }
 
         //windowInstance为窗口元数据，不存在更新的情况
-    }
-
-    private boolean isDeleted(Object value) {
-        return value instanceof String && (DeleteMessage.DELETE_MESSAGE.name().equals(value));
     }
 
 
@@ -280,7 +268,6 @@ public class DefaultStorage extends AbstractStorage {
         rocksdbStorage.deleteMaxPartitionNum(shuffleId, windowInstanceId);
     }
 
-
     //按照queueId提交offset，避免了不同streams实例，多次提交offset
     @Override
     public int flush(List<String> queueIdList) {
@@ -304,7 +291,7 @@ public class DefaultStorage extends AbstractStorage {
                 this.consumer.commit(set, true);
 
                 //poll到最新的checkpoint，为下一次提交offset做准备；
-                this.pollExecutor.execute(() -> this.pollToLast(queue));
+                this.pollExecutor.execute(() -> this.pollToLast(queue, false));
             }
 
         } catch (Throwable t) {
@@ -346,7 +333,7 @@ public class DefaultStorage extends AbstractStorage {
         try {
 
             Message message = new Message(topic, "", key, body);
-            //todo 没报错是否就是send_ok，选择MQ写入，后面commitOffset时对这个MQ进行
+            //选择MQ写入，后面commitOffset时对这个MQ进行
             producer.send(message, queue);
 
             return 1;
@@ -380,15 +367,6 @@ public class DefaultStorage extends AbstractStorage {
         }
 
         return queueId2MQ.get(queueIdNumber);
-    }
-
-
-    public enum DeleteMessage {
-        DELETE_MESSAGE;
-
-        public byte[] bytes() {
-            return this.name().getBytes(StandardCharsets.UTF_8);
-        }
     }
 
 }
