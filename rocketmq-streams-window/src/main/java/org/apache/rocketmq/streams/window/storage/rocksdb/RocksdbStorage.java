@@ -27,7 +27,6 @@ import org.apache.rocketmq.streams.window.storage.IteratorWrap;
 import org.apache.rocketmq.streams.window.storage.RocksdbIterator;
 import org.apache.rocketmq.streams.window.storage.WindowJoinType;
 import org.apache.rocketmq.streams.window.storage.WindowType;
-import org.apache.rocketmq.streams.window.storage.rocketmq.DefaultStorage;
 import org.rocksdb.RocksDB;
 import org.rocksdb.WriteOptions;
 
@@ -85,7 +84,7 @@ public class RocksdbStorage extends AbstractStorage {
 
         try {
             byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
-            rocksDB.put(writeOptions, bytes, DefaultStorage.DeleteMessage.DELETE_MESSAGE.bytes());
+            rocksDB.delete(writeOptions, bytes);
         } catch (Exception e) {
             throw new RuntimeException("deleteWindowInstance from rocksdb error", e);
         }
@@ -118,8 +117,10 @@ public class RocksdbStorage extends AbstractStorage {
         }
     }
 
+
     private void doPut(WindowBaseValue baseValue, String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
         String key = createKey(shuffleId, windowInstanceId, windowType, joinType, baseValue);
+
 
         try {
             byte[] valueBytes;
@@ -165,7 +166,7 @@ public class RocksdbStorage extends AbstractStorage {
             for (String msgKey : msgKeys) {
                 String key = super.merge(keyPrefix, msgKey);
                 byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
-                rocksDB.put(writeOptions, bytes, DefaultStorage.DeleteMessage.DELETE_MESSAGE.bytes());
+                rocksDB.delete(writeOptions, bytes);
             }
 
         } catch (Exception e) {
@@ -183,7 +184,7 @@ public class RocksdbStorage extends AbstractStorage {
 
         try {
             byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-            rocksDB.put(writeOptions, keyBytes, DefaultStorage.DeleteMessage.DELETE_MESSAGE.bytes());
+            rocksDB.delete(writeOptions, keyBytes);
         } catch (Throwable t) {
             throw new RuntimeException("deleteWindowBaseValue from rocksdb error", t);
         }
@@ -259,7 +260,7 @@ public class RocksdbStorage extends AbstractStorage {
 
         try {
             byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-            rocksDB.put(writeOptions, keyBytes, DefaultStorage.DeleteMessage.DELETE_MESSAGE.bytes());
+            rocksDB.delete(writeOptions, keyBytes);
         } catch (Exception e) {
             throw new RuntimeException("deleteMaxOffset from rocksdb error", e);
         }
@@ -307,7 +308,7 @@ public class RocksdbStorage extends AbstractStorage {
 
         try {
             byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-            rocksDB.put(writeOptions, keyBytes, DefaultStorage.DeleteMessage.DELETE_MESSAGE.bytes());
+            rocksDB.delete(writeOptions, keyBytes);
         } catch (Exception e) {
             throw new RuntimeException("deleteMaxPartitionNum from rocksdb error", e);
         }
@@ -320,7 +321,7 @@ public class RocksdbStorage extends AbstractStorage {
 
         try {
             byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
-            rocksDB.put(writeOptions, bytes, DefaultStorage.DeleteMessage.DELETE_MESSAGE.bytes());
+            rocksDB.delete(writeOptions, bytes);
         } catch (Exception e) {
             throw new RuntimeException();
         }
@@ -370,8 +371,7 @@ public class RocksdbStorage extends AbstractStorage {
             IteratorWrap<Object> iteratorWrap = data.next();
             String key = iteratorWrap.getKey();
             try {
-                rocksDB.put(writeOptions, key.getBytes(StandardCharsets.UTF_8),
-                        DefaultStorage.DeleteMessage.DELETE_MESSAGE.bytes());
+                rocksDB.delete(writeOptions, key.getBytes(StandardCharsets.UTF_8));
             } catch (Throwable t) {
                 throw new RuntimeException();
             }
