@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.configurable.service.impl;
+package org.apache.rocketmq.streams.db.configuable;
 
 import com.google.auto.service.AutoService;
 import java.util.Properties;
@@ -24,13 +24,13 @@ import org.apache.rocketmq.streams.configurable.service.AbstractSupportParentCon
 import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
 
 @AutoService(IConfigurableService.class)
-@ServiceName(ConfigurableServcieType.MEMORY_SERVICE_NAME)
-public class MemorySupportParentConfigureService extends AbstractSupportParentConfigureService {
+@ServiceName(ConfigurableServcieType.FILE_SERVICE_NAME)
+public class FileSupportParentConfigureService extends AbstractSupportParentConfigureService {
 
     @Override
     protected void initBeforeInitConfigurable(Properties property) {
-        //        this.rootConfigureService = new MemoryConfigureService(property);
-        this.parentConfigureService = new MemoryConfigureService(properties);
-        this.configureService = new MemoryConfigureService(properties);
+        this.configureService = new FileConfigureService(properties);
+        this.parentConfigureService = new FileConfigureService(properties);
     }
+
 }
