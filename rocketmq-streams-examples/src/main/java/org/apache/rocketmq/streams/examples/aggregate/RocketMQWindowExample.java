@@ -23,6 +23,7 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
@@ -35,7 +36,7 @@ public class RocketMQWindowExample {
      * 2、rocketmq allow create topic automatically.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC, true);
 
         try {
             Thread.sleep(1000 * 3);

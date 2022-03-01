@@ -142,6 +142,11 @@ public class JoinStream {
         return this;
     }
 
+    public JoinStream setLocalStorageOnly(boolean localStorageOnly) {
+        this.joinWindow.setLocalStorageOnly(localStorageOnly);
+        return this;
+    }
+
     /**
      * 增加条件,用表达式形式表达(leftFieldName,function,rightFieldName)&&({name,==,otherName}||(age,==,age)) 后续再增加结构化的方法 。 后续该方法将下线，推荐使用on
      *
