@@ -31,10 +31,6 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-commons</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-streams-serviceloader</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
