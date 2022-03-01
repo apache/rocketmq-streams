@@ -17,7 +17,7 @@
  *
  */
 
-package org.apache.rocketmq.streams.examples.aggregate;
+package org.apache.rocketmq.streams.examples.send;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -26,28 +26,56 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class ProducerFromFile {
+    private static final DefaultMQProducer producer = new DefaultMQProducer("test-group");
+    private static final AtomicLong count = new AtomicLong(0);
+    private static boolean init = false;
 
-    public static void produce(String filePath, String nameServ, String topic) {
-        try {
-            DefaultMQProducer producer = new DefaultMQProducer("test-group");
+    private static synchronized void initProducer(String nameServ) throws Throwable {
+        if (!init) {
             producer.setNamesrvAddr(nameServ);
             producer.start();
+            init = true;
+        }
+    }
+
+    public static void produceInLoop(String filePath, String nameServ, String topic, long interval) {
+        while (true) {
+            try {
+                produce(filePath, nameServ, topic, false);
+
+                Thread.sleep(interval);
+
+                if (count.get() % 500 == 0) {
+                    System.out.println("send message num: " + count.get());
+                }
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
+    }
+
+    public static void produce(String filePath, String nameServ, String topic, boolean shutdown) {
+        try {
+            initProducer(nameServ);
 
             List<String> result = ProducerFromFile.read(filePath);
 
             for (String str : result) {
                 Message msg = new Message(topic, "", str.getBytes(RemotingHelper.DEFAULT_CHARSET));
-                SendResult sendResult = producer.send(msg);
-                System.out.printf("%s%n", sendResult);
+                producer.send(msg);
+                count.getAndIncrement();
             }
-            //Shut down once the producer instance is not longer in use.
-            producer.shutdown();
+
+            if (shutdown) {
+                producer.shutdown();
+            }
         } catch (Throwable t) {
             t.printStackTrace();
         }

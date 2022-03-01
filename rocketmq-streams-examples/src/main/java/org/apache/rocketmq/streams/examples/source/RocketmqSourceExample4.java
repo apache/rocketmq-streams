@@ -20,7 +20,7 @@ package org.apache.rocketmq.streams.examples.source;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.transform.DataStream;
-import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
@@ -35,9 +35,9 @@ public class RocketmqSourceExample4 {
      */
     public static void main(String[] args) {
         System.out.println("send data to rocketmq");
-        ProducerFromFile.produce("joinData-1.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("joinData-1.txt", NAMESRV_ADDRESS, RMQ_TOPIC, false);
 
-        ProducerFromFile.produce("joinData-2.txt", NAMESRV_ADDRESS, RMQ_TOPIC + 2);
+        ProducerFromFile.produce("joinData-2.txt", NAMESRV_ADDRESS, RMQ_TOPIC + 2, true);
 
         try {
             Thread.sleep(1000 * 3);
@@ -60,7 +60,7 @@ public class RocketmqSourceExample4 {
             return false;
         });
 
-        leftStream.leftJoin(rightStream).setCondition("(ProjectName,==,ProjectName)&(LogStore,==,LogStore)").toDataSteam().toPrint(1).start();
+        leftStream.leftJoin(rightStream).setLocalStorageOnly(false).setCondition("(ProjectName,==,ProjectName)&(LogStore,==,LogStore)").toDataSteam().toPrint(1).start();
 
         System.out.println("consumer end");
     }

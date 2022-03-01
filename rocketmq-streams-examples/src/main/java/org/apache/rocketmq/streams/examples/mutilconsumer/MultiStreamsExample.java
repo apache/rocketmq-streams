@@ -20,14 +20,17 @@
 package org.apache.rocketmq.streams.examples.mutilconsumer;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
@@ -43,7 +46,7 @@ public class MultiStreamsExample {
         producerPool.submit(new Runnable() {
             @Override
             public void run() {
-                Producer.produceInLoop("data.txt");
+                ProducerFromFile.produceInLoop("data.txt", NAMESRV_ADDRESS, RMQ_TOPIC, 100);
             }
         });
 
