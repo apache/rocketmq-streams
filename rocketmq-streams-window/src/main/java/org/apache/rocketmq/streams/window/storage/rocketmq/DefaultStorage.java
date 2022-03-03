@@ -56,12 +56,13 @@ public class DefaultStorage extends AbstractStorage {
     private final String groupId;
 
     private DefaultMQProducer producer;
-    private DefaultLitePullConsumer consumer;
+    private DefaultLitePullConsumer checkpointConsumer;
+    private DefaultLitePullConsumer loadConsumer;
 
-    private static final long pollTimeoutMillis = 2 * 1000L;
+    private static final long pollTimeoutMillis = 50L;
     private Map<Integer, MessageQueue> queueId2MQ = new HashMap<>();
-    private ExecutorService pollExecutor;
-
+    private ExecutorService loadExecutor;
+    private ExecutorService checkpointExecutor;
 
     public DefaultStorage(String topic, String groupId, String namesrv, int queueNum,
                           boolean isLocalStorageOnly, RocksdbStorage rocksdbStorage) {
@@ -73,7 +74,9 @@ public class DefaultStorage extends AbstractStorage {
 
 
         if (!isLocalStorageOnly) {
-            this.pollExecutor = Executors.newSingleThreadExecutor();
+            this.loadExecutor = Executors.newSingleThreadExecutor();
+            this.checkpointExecutor = Executors.newSingleThreadExecutor();
+            ;
 
             try {
                 this.producer = new DefaultMQProducer(groupId);
@@ -82,10 +85,15 @@ public class DefaultStorage extends AbstractStorage {
                 //create topic
                 CreateTopicUtil.create(clusterName, topic, queueNum, namesrv);
 
-                this.consumer = new DefaultLitePullConsumer(this.groupId);
-                this.consumer.setNamesrvAddr(namesrv);
-                this.consumer.setAutoCommit(false);
-                this.consumer.start();
+                this.checkpointConsumer = new DefaultLitePullConsumer(this.groupId);
+                this.checkpointConsumer.setNamesrvAddr(namesrv);
+                this.checkpointConsumer.setAutoCommit(false);
+                this.checkpointConsumer.start();
+
+                this.loadConsumer = new DefaultLitePullConsumer(this.groupId);
+                this.loadConsumer.setNamesrvAddr(namesrv);
+                this.loadConsumer.setAutoCommit(false);
+                this.loadConsumer.start();
             } catch (Throwable t) {
                 throw new RuntimeException("start rocketmq client error.", t);
             }
@@ -104,7 +112,7 @@ public class DefaultStorage extends AbstractStorage {
         }
 
         //从上一offset提交位置，poll到最新数据位置
-        return this.pollExecutor.submit(() -> this.pollToLast(messageQueue, true));
+        return this.loadExecutor.submit(() -> this.pollToLast(messageQueue, true));
     }
 
     private void pollToLast(MessageQueue messageQueue, boolean replay) {
@@ -112,21 +120,31 @@ public class DefaultStorage extends AbstractStorage {
         temp.add(messageQueue);
 
         try {
-            //assign 与poll必须原子；
-            synchronized (this.consumer) {
-                this.consumer.assign(temp);
 
-                List<MessageExt> msgs = this.consumer.poll(pollTimeoutMillis);
-                while (msgs.size() != 0) {
-                    if (replay) {
+            if (replay) {
+                //assign 与poll必须原子；
+                synchronized (this.loadConsumer) {
+                    this.loadConsumer.assign(temp);
+
+                    List<MessageExt> msgs = this.loadConsumer.poll(pollTimeoutMillis);
+                    while (msgs.size() != 0) {
                         this.replayState(msgs);
-                    } else {
-                        Thread.sleep(10);
+                        msgs = this.loadConsumer.poll(pollTimeoutMillis);
                     }
-                    msgs = this.consumer.poll(pollTimeoutMillis);
+                }
+            } else {
+                //assign 与poll必须原子；
+                synchronized (this.checkpointConsumer) {
+                    this.checkpointConsumer.assign(temp);
+
+                    List<MessageExt> msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
+                    while (msgs.size() != 0) {
+                        msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
+                    }
                 }
             }
-        }catch (Throwable ignored) {
+
+        } catch (Throwable ignored) {
         }
     }
 
@@ -288,10 +306,10 @@ public class DefaultStorage extends AbstractStorage {
                 HashSet<MessageQueue> set = new HashSet<>();
                 set.add(queue);
 
-                this.consumer.commit(set, true);
+                this.checkpointConsumer.commit(set, true);
 
                 //poll到最新的checkpoint，为下一次提交offset做准备；
-                this.pollExecutor.execute(() -> this.pollToLast(queue, false));
+                this.checkpointExecutor.execute(() -> this.pollToLast(queue, false));
             }
 
         } catch (Throwable t) {
@@ -352,7 +370,7 @@ public class DefaultStorage extends AbstractStorage {
 
         if (result == null) {
             try {
-                Collection<MessageQueue> mqs = this.consumer.fetchMessageQueues(topic);
+                Collection<MessageQueue> mqs = this.checkpointConsumer.fetchMessageQueues(topic);
                 if (mqs != null) {
                     Map<Integer, List<MessageQueue>> temp = mqs.stream().collect(Collectors.groupingBy(MessageQueue::getQueueId));
                     for (Integer queueId : temp.keySet()) {

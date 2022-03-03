@@ -38,6 +38,7 @@ import org.apache.rocketmq.streams.window.storage.IStorage;
  */
 public class ShuffleCache extends WindowCache {
     protected AbstractShuffleWindow window;
+    private HashMap<String, Boolean> hasLoad = new HashMap<>();
 
     public ShuffleCache(AbstractShuffleWindow window) {
         this.window = window;
@@ -81,11 +82,27 @@ public class ShuffleCache extends WindowCache {
     }
 
     private void stateMustLoad(String queueId) {
+        Boolean load = this.hasLoad.get(queueId);
+        if (load != null && load) {
+            return;
+        }
+
+        //在计算之前需要异步加载状态完成
+        HashMap<String, Future<?>> loadResult = this.window.getShuffleChannel().getLoadResult();
+        Future<?> future = loadResult.get(queueId);
+
+        if (future == null) {
+            return;
+        }
+
         try {
-            //在计算之前需要异步加载状态完成
-            HashMap<String, Future<?>> loadResult = this.window.getShuffleChannel().getLoadResult();
-            Future<?> future = loadResult.get(queueId);
+            long before = System.currentTimeMillis();
             future.get();
+            long after = System.currentTimeMillis();
+
+            System.out.println("message wait before state recover:[" + (after - before) + "] ms, queueId=" + queueId);
+
+            hasLoad.put(queueId, true);
         } catch (Throwable t) {
             throw new RuntimeException("check remote with queueId:" + queueId + ",error", t);
         }
