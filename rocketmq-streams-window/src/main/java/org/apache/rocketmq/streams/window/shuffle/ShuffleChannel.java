@@ -137,7 +137,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
             this.queueMap = tmp;
         }
-        isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+//        isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
     }
 
     /**
@@ -216,7 +216,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
         }
         if (isWindowTest) {
             long count = COUNT.addAndGet(messages.size());
-            System.out.println(window.getConfigureName() + " receive shuffle msg count is " + count);
+            System.out.println(window.getConfigureName() + " receive total shuffle msg count is " + count + ",this batch size: " + messages.size());
         }
 
         return null;
