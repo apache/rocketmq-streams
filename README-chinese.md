@@ -9,6 +9,18 @@
 * 轻量级部署：可以单独部署，也支持集群部署
 * 多种类型的数据输入以及输出，source 支持 rocketmq ， sink 支持db, rocketmq 等
 
+# Architecture
+- [整体架构](docs/design/1.RocketMQ-streams整体架构.md)： 介绍RocketMQ-streams总体构成；
+  
+- [构建拓扑图](docs/design/2.构建DataStream.md)： 介绍如何通过DataStream将各个算子添加进入计算拓扑；
+
+- [启动](docs/design/3.启动DataStream.md)：介绍计算拓扑图如何启动，消费数据流入之前需要做那些准备工作；
+
+- [数据的流转](docs/design/4.数据的流转过程.md)：介绍数据进入计算拓扑的流转过程，以及各种系统消息的作用原理；
+
+- [Window算子解析](docs/design/5.Window算子解析.md)： 介绍有状态算子window实例化、数据处理、窗口触发过程；
+
+
 # DataStream Example
 
 ```java
