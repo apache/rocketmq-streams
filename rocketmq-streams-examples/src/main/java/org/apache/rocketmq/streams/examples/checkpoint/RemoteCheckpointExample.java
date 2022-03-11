@@ -75,9 +75,9 @@ public class RemoteCheckpointExample {
                         JSONObject.parseObject((String) message);
                     } catch (Throwable t) {
                         // if can not convert to json, discard it.because all operator are base on json.
-                        return true;
+                        return false;
                     }
-                    return false;
+                    return true;
                 })
                 //must convert message to json.
                 .map(message -> JSONObject.parseObject((String) message))

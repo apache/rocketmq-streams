@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.configurable.service.impl;
+package org.apache.rocketmq.streams.db.configuable;
 
 import java.io.File;
 import java.util.ArrayList;
