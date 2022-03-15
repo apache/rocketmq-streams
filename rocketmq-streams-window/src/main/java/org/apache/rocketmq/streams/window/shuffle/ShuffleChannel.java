@@ -76,18 +76,26 @@ public class ShuffleChannel extends AbstractSystemChannel {
     protected static final String SHUFFLE_QUEUE_ID = "SHUFFLE_QUEUE_ID";
     public static final String SHUFFLE_OFFSET = "SHUFFLE_OFFSET";
     protected static final String SHUFFLE_MESSAGES = "SHUFFLE_MESSAGES";
-    protected String MSG_OWNER = "MSG_OWNER";//消息所属的window
+    /**
+     * 消息所属的window
+     */
+    protected String MSG_OWNER = "MSG_OWNER";
 
     private static final String SHUFFLE_TRACE_ID = "SHUFFLE_TRACE_ID";
 
     protected ShuffleCache shuffleCache;
 
-    protected Map<String, ISplit> queueMap = new ConcurrentHashMap<>();
-    protected List<ISplit> queueList;//所有的分片
+    protected Map<String, ISplit<?, ?>> queueMap = new ConcurrentHashMap<>();
+    /**
+     * 所有的分片
+     */
+    protected List<ISplit<?, ?>> queueList;
 
-    // protected NotifyChannel notfiyChannel;//负责做分片的通知管理
     protected AbstractShuffleWindow window;
-    private Set<String> currentQueueIds;//当前管理的分片
+    /**
+     * 当前管理的分片
+     */
+    private Set<String> currentQueueIds;
 
     protected transient boolean isWindowTest = false;
 
@@ -123,7 +131,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
      */
     public void init() {
         this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
-
         this.producer = createSink(window.getNameSpace(), window.getConfigureName());
         if (this.consumer == null || this.producer == null) {
             autoCreateShuffleChannel(window.getFireReceiver().getPipeline());
@@ -136,8 +143,8 @@ public class ShuffleChannel extends AbstractSystemChannel {
         }
         if (producer != null && (queueList == null || queueList.size() == 0)) {
             queueList = producer.getSplitList();
-            Map<String, ISplit> tmp = new ConcurrentHashMap<>();
-            for (ISplit queue : queueList) {
+            Map<String, ISplit<?, ?>> tmp = new ConcurrentHashMap<>();
+            for (ISplit<?, ?> queue : queueList) {
                 tmp.put(queue.getQueueId(), queue);
             }
 
@@ -352,12 +359,12 @@ public class ShuffleChannel extends AbstractSystemChannel {
     }
 
     @Override
-    protected void putDynamicPropertyValue(Set<String> dynamiPropertySet, Properties properties) {
+    protected void putDynamicPropertyValue(Set<String> dynamicPropertySet, Properties properties) {
         String groupName = "groupName";
-        if (!dynamiPropertySet.contains(groupName)) {
+        if (!dynamicPropertySet.contains(groupName)) {
             properties.put(groupName, getDynamicPropertyValue());
         }
-        if (!dynamiPropertySet.contains("tags")) {
+        if (!dynamicPropertySet.contains("tags")) {
             properties.put("tags", getDynamicPropertyValue());
         }
     }
@@ -518,7 +525,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
         return currentQueueIds;
     }
 
-    public List<ISplit> getQueueList() {
+    public List<ISplit<?, ?>> getQueueList() {
         return queueList;
     }
 

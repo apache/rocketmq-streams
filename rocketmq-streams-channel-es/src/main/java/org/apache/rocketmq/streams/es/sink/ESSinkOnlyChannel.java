@@ -27,6 +27,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -53,11 +54,11 @@ public class ESSinkOnlyChannel extends AbstractSink {
     private String authUsername;
     @ENVDependence
     private String authPassword;
-    private int socketTimeOut = 1000;
+    private int socketTimeOut = 5 * 60 * 1000;;
 
-    private int connectTimeOut = 10000;
+    private int connectTimeOut = 5 * 60 * 1000;;
 
-    private int connectionRequestTimeOut = 500;
+    private int connectionRequestTimeOut =  5 * 60 * 1000;;
 
     private String schema = "http";
     @ENVDependence
@@ -97,6 +98,7 @@ public class ESSinkOnlyChannel extends AbstractSink {
 
     @Override
     protected boolean initConfigurable() {
+        super.initConfigurable();
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         if (client == null) {
             RestClientBuilder builder = RestClient.builder(new HttpHost(host, Integer.parseInt(port), schema));
@@ -123,6 +125,7 @@ public class ESSinkOnlyChannel extends AbstractSink {
         return true;
     }
 
+
     private List<IndexRequest> generateRequests(List<IMessage> messages) {
         List<IndexRequest> requests = new ArrayList<>();
         messages.forEach(message -> {
@@ -148,6 +151,7 @@ public class ESSinkOnlyChannel extends AbstractSink {
         try {
             response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
+            e.printStackTrace();
             LOG.error("batch insert message to es exception " + e);
             return false;
         }

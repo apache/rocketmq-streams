@@ -9,18 +9,6 @@
 * 轻量级部署：可以单独部署，也支持集群部署
 * 多种类型的数据输入以及输出，source 支持 rocketmq ， sink 支持db, rocketmq 等
 
-# Architecture
-- [整体架构](docs/design/1.RocketMQ-streams整体架构.md)： 介绍RocketMQ-streams总体构成；
-  
-- [构建拓扑图](docs/design/2.构建DataStream.md)： 介绍如何通过DataStream将各个算子添加进入计算拓扑；
-
-- [启动](docs/design/3.启动DataStream.md)：介绍计算拓扑图如何启动，消费数据流入之前需要做那些准备工作；
-
-- [数据的流转](docs/design/4.数据的流转过程.md)：介绍数据进入计算拓扑的流转过程，以及各种系统消息的作用原理；
-
-- [Window算子解析](docs/design/5.Window算子解析.md)： 介绍有状态算子window实例化、数据处理、窗口触发过程；
-
-
 # DataStream Example
 
 ```java
@@ -42,7 +30,7 @@ DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -72,6 +60,13 @@ DataStreamSource 是分段式编程的源头类，用于对接各种数据源，
     + ```groupName``` 消费者组的名称，必填参数
     + ```isJson``` 是否json格式，非必填参数
     + ```tags``` rocketmq消费的tags值，用于过滤消息，非必填参数
+
++ ```fromKafka``` 从kafka中获取数据，包含5个参数
+    + ```bootstrapserver``` kafka的bootstrapserver 地址，包括ip和端口，多个值以逗号分隔, 必填参数
+    + ```topic``` kafka的topic， 必填参数
+    + ```groupName``` 消费组， 必填参数
+    + ```isJson``` 是否json格式，非必填参数，默认为true
+    + ```maxThread``` 客户端最大线程数，非必填参数，默认为1
 
 + ```fromMqtt``` 从满足MQTT协议的终端读取数据， 满足边缘计算的场景，其中包含9个参数
     + ```url```  mqtt broker的地址，必填参数
@@ -105,6 +100,7 @@ DataStream实现了一系列常见的流计算算子
 + ```toMqtt``` 将结果输出到满足mqtt协议的设备中，生成一个新的DataStream实例
 + ```toDB``` 将结果保存到数据库
 + ```toRocketmq``` 将结果输出到rocketmq
++ ```toKafka``` 将结果输出到kafka
 + ```to``` 将结果经过自定义的ISink接口输出到指定的存储
 + ```window``` 在窗口内进行相关的统计分析，一般会与```groupBy```连用， ```window()```用来定义窗口的大小， ```groupBy()```用来定义统计分析的主key，可以指定多个
     + ```count``` 在窗口内计数

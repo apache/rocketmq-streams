@@ -49,7 +49,7 @@ public class FunctionTest {
         message.put("from", "2019-07-14 00:00:00");
         message.put("last", "2019-07-14 01:00:00");
         message.put("event_type", "alert");
-        String scriptValue = "now=now();nowhh=datefirst(now,'hh');from=dateAdd(last,'hh',-1);";
+        String scriptValue = "now=now();x =concat(from,last)";
         List<IMessage> list = ScriptComponent.getInstance().getService().executeScript(message, scriptValue);
         for (int i = 0; i < list.size(); i++) {
             assertTrue(list.get(i).getMessageBody().getString("from").equals("2019-07-14 00:00:00"));

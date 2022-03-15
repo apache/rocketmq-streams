@@ -21,7 +21,7 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 
 public abstract class AbstractSupportShuffleSink extends AbstractSink {
 
-    protected transient int splitNum ;//分片个数
+    protected transient int splitNum;//分片个数
 
     //sls对应的project和logstore初始化是否完成标志
     protected volatile transient boolean hasCreated = false;
@@ -43,13 +43,13 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
      *
      * @return
      */
-    public abstract List<ISplit> getSplitList();
+    public abstract List<ISplit<?, ?>> getSplitList();
 
     @Override
     protected boolean initConfigurable() {
         boolean success = super.initConfigurable();
         hasCreated = false;
-        if(this.splitNum>0){
+        if (this.splitNum > 0) {
             checkAndCreateTopic();
         }
         return success;
@@ -64,7 +64,7 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
                 if (!hasCreated) {
                     try {
                         createTopicIfNotExist(splitNum);
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
 

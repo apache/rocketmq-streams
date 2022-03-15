@@ -33,10 +33,12 @@ import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
 import org.apache.rocketmq.streams.configurable.service.ConfigurableServiceFactory;
 
 /**
- * 对Configurable对象，做统一的管理，统一查询，插入和更新。 insert/update 把configuabel对象写入存储，支持文件存储（file），内存存储（memory）和db存储（DB）。可以在配置通过这个ConfigureFileKey.CONNECT_TYPE key 配置 query 是基于内存的查询，对象定时load到内存，可以在属性文件通过这个ConfigureFileKey.POLLING_TIME key配置加载周期，单位是秒 新对象加载后生效，已经存在的对象只有updateFlag发生变化才会被替换
+ * 对Configurable对象，做统一的管理，统一查询，插入和更新。 insert/update 把configuabel对象写入存储，
+ * 支持文件存储（file），内存存储（memory）和db存储（DB）。可以在配置通过这个ConfigureFileKey.CONNECT_TYPE key 配置
+ * query 是基于内存的查询，对象定时load到内存，可以在属性文件通过这个ConfigureFileKey.POLLING_TIME key配置加载周期，
+ * 单位是秒 新对象加载后生效，已经存在的对象只有updateFlag发生变化才会被替换
  */
-public class ConfigurableComponent extends AbstractComponent<IConfigurableService>
-    implements IConfigurableService {
+public class ConfigurableComponent extends AbstractComponent<IConfigurableService> implements IConfigurableService {
 
     private static final Log LOG = LogFactory.getLog(ConfigurableComponent.class);
 
@@ -46,8 +48,7 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
 
     public ConfigurableComponent() {
         initConfigurableServiceDescriptor();
-        addConfigureDescriptor(
-            new ConfigureDescriptor(CONNECT_TYPE, false, ConfigurableServcieType.DEFAULT_SERVICE_NAME));
+        addConfigureDescriptor(new ConfigureDescriptor(CONNECT_TYPE, false, ConfigurableServcieType.DEFAULT_SERVICE_NAME));
     }
 
     public static ConfigurableComponent getInstance(String namespace) {
@@ -85,7 +86,7 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
     /**
      * 启动测试模式，用内存数据库存储和加载configurable数据
      */
-    public static void begineTestMode() {
+    public static void beginTestMode() {
         System.setProperty(ConfigurableComponent.CONNECT_TYPE, ConfigurableServcieType.MEMORY_SERVICE_NAME);
     }
 
@@ -162,10 +163,6 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
     public <T> T queryConfigurable(String configurableType, String name) {
         return (T) queryConfigurableByIdent(configurableType, name);
     }
-
-    //protected void insertConfigurable(JSONObject message, IConfigurable configurable) {
-    //    ConfigurableUtil.insertConfigurable(message, configurable, this.configureService);
-    //}
 
     @Override
     public String getNamespace() {

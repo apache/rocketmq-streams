@@ -27,7 +27,7 @@ public class UserDefinedSink extends AbstractUDFSink {
 
     }
 
-    @Override protected void sendMessage2Store(ISplit split, List<IMessage> messageList) {
+    @Override protected void sendMessage2Store(ISplit<?, ?> split, List<IMessage> messageList) {
 
     }
 }

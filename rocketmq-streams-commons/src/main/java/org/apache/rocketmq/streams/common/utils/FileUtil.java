@@ -21,10 +21,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -36,6 +38,12 @@ import java.util.jar.JarFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.log4j.lf5.util.StreamUtils;
 import org.apache.rocketmq.streams.common.interfaces.ILineMessageProcessor;
 
 public class FileUtil {
@@ -949,8 +957,8 @@ public class FileUtil {
     }
 
     public static void main(String[] args) {
-        File file = new File("http:sss");
-        System.out.println(file.getName());
+        File target = new File("/Users/yd/Downloads/test.html");
+        downloadFile("https://zhuanlan.zhihu.com/p/60383884", target);
     }
 
     /**
@@ -972,4 +980,38 @@ public class FileUtil {
         }
         return file.delete();
     }
+
+    public static void downloadFile(String url, File destFile) {
+        if (!url.contains("http") && !url.contains("https")) {
+            url = "http://" + url;
+        }
+        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+            HttpGet httpget = new HttpGet(url);
+            httpget.setConfig(RequestConfig.custom() //
+                .setConnectionRequestTimeout(3000) //
+                .setConnectTimeout(3000) //
+                .setSocketTimeout(3000) //
+                .build());
+            try (CloseableHttpResponse response = httpclient.execute(httpget)) {
+                org.apache.http.HttpEntity entity = response.getEntity();
+//                File desc = new File(dest_file+File.separator+fileName);
+                if (!destFile.exists()) {
+                    destFile.createNewFile();
+                }
+                File folder = destFile.getParentFile();
+                folder.mkdirs();
+                try (InputStream is = entity.getContent(); //
+                     OutputStream os = new FileOutputStream(destFile)) {
+                    StreamUtils.copy(is, os);
+                }
+            }catch(Exception e){
+                throw new Throwable("文件下载失败......", e);
+            } finally {
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+//        return dest_file+File.separator+fileName;
+    }
+
 }

@@ -248,10 +248,12 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         if (eventTimeLastUpdateTime == null) {
             return new FireResult();
         }
-        int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
-        if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
-            LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
-            return new FireResult(true, 1);
+        if (isTest) {
+            int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
+            if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
+                LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
+                return new FireResult(true, 1);
+            }
         }
         return new FireResult();
     }

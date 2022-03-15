@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.sink;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -238,22 +239,20 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     }
 
     @Override
-    public List<ISplit> getSplitList() {
+    public List<ISplit<?, ?>> getSplitList() {
         initProducer();
-        List<ISplit> messageQueues = new ArrayList<>();
+        List<ISplit<?, ?>> messageQueues;
         try {
 
-            if (messageQueues == null || messageQueues.size() == 0) {
-                List<MessageQueue> metaqQueueSet = producer.fetchPublishMessageQueues(topic);
-                List<ISplit> queueList = new ArrayList<>();
-                for (MessageQueue queue : metaqQueueSet) {
-                    RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
-                    queueList.add(rocketMQMessageQueue);
+            List<MessageQueue> metaqQueueSet = producer.fetchPublishMessageQueues(topic);
+            List<ISplit<?, ?>> queueList = new ArrayList<>();
+            for (MessageQueue queue : metaqQueueSet) {
+                RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
+                queueList.add(rocketMQMessageQueue);
 
-                }
-                Collections.sort(queueList);
-                messageQueues = queueList;
             }
+            queueList.sort((Comparator<ISplit>) Comparable::compareTo);
+            messageQueues = queueList;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -263,12 +262,12 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     @Override
     public int getSplitNum() {
-        List<ISplit> splits = getSplitList();
+        List<ISplit<?, ?>> splits = getSplitList();
         if (splits == null || splits.size() == 0) {
             return 0;
         }
         Set<Integer> splitNames = new HashSet<>();
-        for (ISplit split : splits) {
+        for (ISplit<?, ?> split : splits) {
             MessageQueue messageQueue = (MessageQueue) split.getQueue();
             splitNames.add(messageQueue.getQueueId());
         }

@@ -23,31 +23,28 @@ import java.util.Map;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
-public abstract class AbstractUDFSink extends AbstractSink{
+public abstract class AbstractUDFSink extends AbstractSink {
     @Override protected boolean batchInsert(List<IMessage> messages) {
-        return batchInsert(messages,this);
+        return batchInsert(messages, this);
     }
-     public static boolean batchInsert(List<IMessage> messages,AbstractUDFSink sink) {
+
+    public static boolean batchInsert(List<IMessage> messages, AbstractUDFSink sink) {
 
         if (messages == null) {
             return true;
         }
         try {
             Map<String, List<IMessage>> msgsByQueueId = new HashMap<>();// group by queueId, if the message not contains queue info ,the set default string as default queueId
-            Map<String, ISplit> messageQueueMap = new HashMap<>();//if has queue id in message, save the map for queueid 2 messagequeeue
+            Map<String, ISplit<?, ?>> messageQueueMap = new HashMap<>();//if has queue id in message, save the map for queueid 2 messagequeeue
             String defaultQueueId = "<null>";//message is not contains queue ,use default
             for (IMessage msg : messages) {
-                ISplit channelQueue = sink.getSplit(msg);
+                ISplit<?, ?> channelQueue = sink.getSplit(msg);
                 String queueId = defaultQueueId;
                 if (channelQueue != null) {
                     queueId = channelQueue.getQueueId();
                     messageQueueMap.put(queueId, channelQueue);
                 }
-                List<IMessage> messageList = msgsByQueueId.get(queueId);
-                if (messageList == null) {
-                    messageList = new ArrayList<>();
-                    msgsByQueueId.put(queueId, messageList);
-                }
+                List<IMessage> messageList = msgsByQueueId.computeIfAbsent(queueId, k -> new ArrayList<>());
                 messageList.add(msg);
             }
             List<IMessage> messageList = msgsByQueueId.get(defaultQueueId);
@@ -60,8 +57,8 @@ public abstract class AbstractUDFSink extends AbstractSink{
             }
             for (String queueId : msgsByQueueId.keySet()) {
                 messageList = msgsByQueueId.get(queueId);
-                ISplit split=messageQueueMap.get(queueId);
-                sink.sendMessage2Store(split,messageList);
+                ISplit<?, ?> split = messageQueueMap.get(queueId);
+                sink.sendMessage2Store(split, messageList);
 
             }
         } catch (Exception e) {
@@ -74,5 +71,5 @@ public abstract class AbstractUDFSink extends AbstractSink{
 
     protected abstract void sendMessage2Store(List<IMessage> messageList);
 
-    protected abstract void sendMessage2Store(ISplit split,List<IMessage> messageList);
+    protected abstract void sendMessage2Store(ISplit<?, ?> split, List<IMessage> messageList);
 }

@@ -29,7 +29,7 @@ public abstract class AbstractSupportShuffleUDFSink extends AbstractSupportShuff
                 sink.sendMessage2Store(messageList);
             }
 
-            @Override protected void sendMessage2Store(ISplit split, List<IMessage> messageList) {
+            @Override protected void sendMessage2Store(ISplit<?, ?> split, List<IMessage> messageList) {
                 sink.sendMessage2Store(split, messageList);
             }
         });
@@ -37,7 +37,7 @@ public abstract class AbstractSupportShuffleUDFSink extends AbstractSupportShuff
 
     @Override
     public int getSplitNum() {
-        List<ISplit> splits = getSplitList();
+        List<ISplit<?, ?>> splits = getSplitList();
         if (splits == null || splits.size() == 0) {
             return 0;
         }
@@ -46,5 +46,5 @@ public abstract class AbstractSupportShuffleUDFSink extends AbstractSupportShuff
 
     protected abstract void sendMessage2Store(List<IMessage> messageList);
 
-    protected abstract void sendMessage2Store(ISplit split, List<IMessage> messageList);
+    protected abstract void sendMessage2Store(ISplit<?, ?> split, List<IMessage> messageList);
 }

@@ -46,6 +46,7 @@ import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.connectors.source.CycleDynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.DynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
+import org.apache.rocketmq.streams.kafka.source.KafkaSource;
 import org.apache.rocketmq.streams.mqtt.source.PahoSource;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
@@ -176,6 +177,25 @@ public class DataStreamSource {
         mqttSource.setJsonData(jsonData);
         this.mainPipelineBuilder.setSource(mqttSource);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+    }
+
+    public DataStream fromKafka(String endpoint, String topic, String groupName) {
+        return fromKafka(endpoint, topic, groupName, true);
+    }
+
+    public DataStream fromKafka(String endpoint, String topic, String groupName, Boolean isJson) {
+        return fromKafka(endpoint, topic, groupName, isJson, 1);
+    }
+
+    public DataStream fromKafka(String endpoint, String topic, String groupName, Boolean isJson, int maxThread) {
+        KafkaSource kafkaChannel = new KafkaSource();
+        kafkaChannel.setBootstrapServers(endpoint);
+        kafkaChannel.setTopic(topic);
+        kafkaChannel.setGroupName(groupName);
+        kafkaChannel.setJsonData(isJson);
+        kafkaChannel.setMaxThread(maxThread);
+        this.mainPipelineBuilder.setSource(kafkaChannel);
+        return new DataStream(this.mainPipelineBuilder, null);
     }
 
     public DataStream from(ISource<?> source) {
