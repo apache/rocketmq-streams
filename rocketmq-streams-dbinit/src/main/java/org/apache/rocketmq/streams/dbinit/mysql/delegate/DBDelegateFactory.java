@@ -41,4 +41,9 @@ public class DBDelegateFactory {
 
         return new MysqlDelegate();
     }
+
+    public static void main(String[] args) {
+        DBDelegateFactory.getDelegate().init();
+    }
+
 }

@@ -39,7 +39,7 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
     /**
      * 是否取消IAfterConfigurableRefreshListener的执行，如成员变量通过set设置时，可以使用
      */
-    protected boolean cancelAfterConfigurableRefreshListerner = false;
+    protected boolean cancelAfterConfigurableRefreshListener = false;
 
     public String getEntityName() {
         return entityName;
@@ -49,12 +49,12 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
         this.entityName = entityName;
     }
 
-    public boolean isCancelAfterConfigurableRefreshListerner() {
-        return cancelAfterConfigurableRefreshListerner;
+    public boolean isCancelAfterConfigurableRefreshListener() {
+        return cancelAfterConfigurableRefreshListener;
     }
 
-    public void setCancelAfterConfigurableRefreshListerner(boolean cancelAfterConfigurableRefreshListerner) {
-        this.cancelAfterConfigurableRefreshListerner = cancelAfterConfigurableRefreshListerner;
+    public void setCancelAfterConfigurableRefreshListener(boolean cancelAfterConfigurableRefreshListener) {
+        this.cancelAfterConfigurableRefreshListener = cancelAfterConfigurableRefreshListener;
     }
 
     /**
@@ -64,8 +64,8 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
      * @param context
      * @param pipelines
      */
-    public void sendSystem(IMessage message, AbstractContext context, Collection<ChainPipeline> pipelines) {
-        if (message.getHeader().isSystemMessage() == false) {
+    public void sendSystem(IMessage message, AbstractContext context, Collection<ChainPipeline<?>> pipelines) {
+        if (!message.getHeader().isSystemMessage()) {
             return;
         }
         if (pipelines != null && pipelines.size() > 0) {
@@ -83,10 +83,10 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
      * @param pipelines
      */
     public void sendSystem(IMessage message, AbstractContext context, Pipeline... pipelines) {
-        if (message.getHeader().isSystemMessage() == false || pipelines == null) {
+        if (!message.getHeader().isSystemMessage() || pipelines == null) {
             return;
         }
-        Set<ChainPipeline> set = new HashSet<>();
+        Set<ChainPipeline<?>> set = new HashSet<>();
         for (Pipeline pipeline : pipelines) {
             if (pipeline != null) {
                 set.add((ChainPipeline) pipeline);
@@ -96,8 +96,7 @@ public abstract class ChainStage<T extends IMessage> extends AbstractStage<T> {
     }
 
     protected SectionPipeline getReceiverAfterCurrentNode() {
-        SectionPipeline receiver = new SectionPipeline((ChainPipeline) getPipeline(), this);
-        return receiver;
+        return new SectionPipeline((ChainPipeline<?>) getPipeline(), this);
     }
 
 }

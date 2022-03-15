@@ -82,6 +82,10 @@ public class ComponentCreator {
         ComponentCreator.properties = properties;
     }
 
+    public static void updateProperties(Properties properties) {
+        ComponentCreator.properties.putAll(properties);
+    }
+
     public static String[] createKV(Properties properties) {
         List<String> keys = new ArrayList<>();
         Iterator<Object> keyIterator = properties.keySet().iterator();

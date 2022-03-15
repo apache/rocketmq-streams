@@ -74,19 +74,19 @@ public class KVAddress {
             return;
         }
 
-        byte[] bytes = new byte[2];
-        bytes[0] = byteArray.getByte(3);
-        int x = conflictValue & 127;
-        bytes[1] = NumberUtils.toByte(x)[0];
+        byte[] bytes=new byte[2];
+        bytes[0]=byteArray.getByte(3);
+        int x=conflictValue&127;
+        bytes[1]= NumberUtils.toByte(x)[0];
         this.conflictIndex = NumberUtils.toInt(bytes);
         this.offset = byteArray.castInt(0, 3);
     }
 
     public byte[] createBytes() {
-        byte[] values = NumberUtils.toByte(offset, 5);
-        byte[] indexBytes = NumberUtils.toByte(conflictIndex);
-        values[3] = indexBytes[0];
-        byte fisrtByte = indexBytes[1];
+        byte[] values = NumberUtils.toByte(offset,5);
+        byte[] indexBytes= NumberUtils.toByte(conflictIndex);
+        values[3]=indexBytes[0];
+        byte fisrtByte =indexBytes[1];
 
         int value = 0;
         if (isConflict) {
@@ -96,36 +96,36 @@ public class KVAddress {
         }
 
         values[4] = (byte) (value & 0xff);
-        return values;
+        return  values;
     }
 
     public byte[] createBytesIngoreFirstBit() {
-        byte[] values = NumberUtils.toByte(offset, 5);
-        byte[] indexBytes = NumberUtils.toByte(conflictIndex);
-        values[3] = indexBytes[0];
-        values[4] = indexBytes[1];
+        byte[] values = NumberUtils.toByte(offset,5);
+        byte[] indexBytes= NumberUtils.toByte(conflictIndex);
+        values[3]=indexBytes[0];
+        values[4]=indexBytes[1];
         return values;
     }
 
-    public Long convertLongValue() {
-        byte[] bytes = createBytesIngoreFirstBit();
+    public Long convertLongValue(){
+        byte[] bytes=createBytesIngoreFirstBit();
         return NumberUtils.toLong(bytes);
 
     }
 
-    public static KVAddress createMapAddressFromLongValue(Long value) {
-        byte[] bytes = NumberUtils.toByte(value);
+    public static KVAddress createMapAddressFromLongValue(Long value){
+        byte[] bytes=NumberUtils.toByte(value);
         return createAddressFromBytes(bytes);
     }
 
-    public static KVAddress createAddressFromBytes(byte[] bytes) {
-        int offset = NumberUtils.toInt(bytes, 0, 3);
-        byte firstByte = bytes[4];
-        if (firstByte < 0) {
-            bytes[4] = 0;
+    public static KVAddress createAddressFromBytes(byte[] bytes){
+        int offset=NumberUtils.toInt(bytes,0,3);
+        byte firstByte =bytes[4];
+        if(firstByte<0){
+            bytes[4]=0;
         }
-        int index = NumberUtils.toInt(bytes, 3, 2);
-        KVAddress mapAddress = new KVAddress(index, offset);
+        int index=NumberUtils.toInt(bytes,3,2);
+        KVAddress mapAddress=new KVAddress(index,offset);
         return mapAddress;
 
     }

@@ -61,7 +61,7 @@ public class DependencyTree {
         for (Map<String, PreFingerprint> fingerprintMap : preFingerprintMap) {
             for (PreFingerprint fingerprint : fingerprintMap.values()) {
                 fingerprint.getFilterChainStage().setPreFingerprint(fingerprint);
-                for (FilterChainStage previewFilterChainStage : fingerprint.getAllPreviewFilterChainStage()) {
+                for (AbstractStage<?> previewFilterChainStage : fingerprint.getAllPreviewFilterChainStage()) {
                     previewFilterChainStage.setPreFingerprint(fingerprint);
                 }
             }
@@ -144,7 +144,7 @@ public class DependencyTree {
      * @return
      */
     protected boolean mergePreFingerprint(PreFingerprint fingerprint, ChainPipeline pipeline) {
-        String sourceLable = fingerprint.getSourceStageLable();
+        String sourceLable = fingerprint.getSourceStageLabel();
         if (sourceLable == null) {
             sourceLable = pipeline.getChannelName();
         }
@@ -152,11 +152,11 @@ public class DependencyTree {
         Map<String, PreFingerprint> preFingerprintMap = preFingerprintExecutor.get(sourceLable);
         if (preFingerprintMap == null) {
             preFingerprintMap = new HashMap<>();
-            preFingerprintMap.put(fingerprint.getNextStageLable(), fingerprint);
+            preFingerprintMap.put(fingerprint.getNextStageLabel(), fingerprint);
             preFingerprintExecutor.put(sourceLable, preFingerprintMap);
             return true;
         }
-        PreFingerprint previewPreFingerprint = preFingerprintMap.get(fingerprint.getNextStageLable());
+        PreFingerprint previewPreFingerprint = preFingerprintMap.get(fingerprint.getNextStageLabel());
         if (previewPreFingerprint != null && !mergeFingerprint(previewPreFingerprint, fingerprint)) {
             return false;
         }
@@ -164,7 +164,7 @@ public class DependencyTree {
             fingerprint.addPreviwFilterChainStage(previewPreFingerprint.getAllPreviewFilterChainStage());
             fingerprint.addPreviwFilterChainStage(previewPreFingerprint.getFilterChainStage());
         }
-        preFingerprintMap.put(fingerprint.getNextStageLable(), fingerprint);
+        preFingerprintMap.put(fingerprint.getNextStageLabel(), fingerprint);
         return true;
     }
 

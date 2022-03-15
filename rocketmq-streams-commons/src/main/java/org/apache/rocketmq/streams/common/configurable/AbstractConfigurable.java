@@ -40,8 +40,6 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
 
     protected transient IConfigurableService configurableService;
 
-    protected long updateFlag = 0;//通过它来触发更新，其他字段变更都不会触发更新
-
     /**
      * 是否完成初始化
      */
@@ -117,14 +115,14 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
     public static String createSQL(IConfigurable configurable, String tableName) {
         String json = configurable.toJson();
         Entity entity = null;
-        if (Entity.class.isInstance(configurable)) {
+        if (configurable instanceof Entity) {
             entity = (Entity) configurable;
         } else {
             entity = new Entity();
         }
         int status = 1;
         if (configurable.getPrivateData("status") != null) {
-            status = Integer.valueOf(configurable.getPrivateData("status"));
+            status = Integer.parseInt(configurable.getPrivateData("status"));
         }
         String theSecretValue;
         try {
@@ -178,10 +176,6 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         return this.privateDatas;
     }
 
-    public Map<String, Object> getPrivateDatas() {
-        return privateDatas;
-    }
-
     public void setPrivateDatas(Map<String, Object> privateDatas) {
         this.privateDatas = privateDatas;
     }
@@ -202,15 +196,8 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         return hasInit;
     }
 
-    public long getUpdateFlag() {
-        return updateFlag;
-    }
-
     public void setHasInit(boolean hasInit) {
         this.hasInit = hasInit;
     }
 
-    public void setUpdateFlag(long updateFlag) {
-        this.updateFlag = updateFlag;
-    }
 }

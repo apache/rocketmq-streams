@@ -207,7 +207,6 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
      * @return
      */
     protected ISource createSource(String namespace, String name) {
-
         IChannelBuilder builder = createBuilder();
         if (builder == null) {
             return null;
@@ -274,13 +273,11 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
     /**
      * 根据属性文件配置
      *
-     * @return
+     * @return 资源文件
      */
     protected Properties createChannelProperties(String namespace) {
         Properties properties = new Properties();
-        Iterator<Map.Entry<Object, Object>> it = ComponentCreator.getProperties().entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Object, Object> entry = it.next();
+        for (Map.Entry<Object, Object> entry : ComponentCreator.getProperties().entrySet()) {
             String key = (String) entry.getKey();
             String value = (String) entry.getValue();
             if (key.startsWith(getChannelConfig().get(CHANNEL_PROPERTY_KEY_PREFIX))) {
@@ -293,11 +290,9 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                         properties.put(channelKey, value);
                     }
                 }
-
             }
-
         }
-        Set<String> mutilPropertySet = new HashSet<>();
+        Set<String> multiPropertySet = new HashSet<>();
         String dynamicProperty = properties.getProperty("dynamic.property");
         if (dynamicProperty != null) {
 
@@ -306,28 +301,28 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
 
             for (String properyKey : mutilPropertys) {
                 properties.put(properyKey, dynamicPropertyValue);
-                mutilPropertySet.add(properyKey);
+                multiPropertySet.add(properyKey);
             }
 
         }
-        putDynamicPropertyValue(mutilPropertySet, properties);
+        putDynamicPropertyValue(multiPropertySet, properties);
         return properties;
     }
 
     /**
      * 如果需要额外的动态属性，可以在子类添加
      *
-     * @param dynamiPropertySet
+     * @param dynamicPropertySet 资源集
      */
-    protected void putDynamicPropertyValue(Set<String> dynamiPropertySet, Properties properties) {
+    protected void putDynamicPropertyValue(Set<String> dynamicPropertySet, Properties properties) {
 
     }
 
-    public ISource getConsumer() {
+    public ISource<?> getConsumer() {
         return consumer;
     }
 
-    public ISink getProducer() {
+    public ISink<?> getProducer() {
         return producer;
     }
 

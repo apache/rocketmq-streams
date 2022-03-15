@@ -1,0 +1,128 @@
+package org.apache.rocketmq.streams.configurable.service.impl;
+
+import com.alibaba.fastjson.JSONObject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.component.AbstractComponent;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
+
+
+public class HttpConfigureService extends AbstractConfigurableService {
+
+    private static final Log LOG = LogFactory.getLog(HttpConfigureService.class);
+
+    protected String accessId;
+    protected String accessIdSecret;
+    protected String endPoint;
+
+    protected transient IAcsClient client;
+
+    public HttpConfigureService() {
+        init();
+    }
+
+    public HttpConfigureService(String accessId, String accessIdSecret) {
+        this.accessId = accessId;
+        this.accessIdSecret = accessIdSecret;
+        init();
+    }
+
+    public HttpConfigureService(Properties properties) {
+        super(properties);
+        this.accessId = properties.getProperty(AbstractComponent.HTTP_AK);
+        this.accessIdSecret = properties.getProperty(AbstractComponent.HTTP_SK);
+        this.endPoint = properties.getProperty(HTTP_SERVICE_ENDPOINT);
+        init();
+    }
+
+    public void init() {
+        try {
+            IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessId, accessIdSecret);
+            DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", "Sas", "filter.aliyuncs.com");
+            client = new DefaultAcsClient(profile);
+        } catch (Exception e) {
+            LOG.error("init http configurable service error ", e);
+        }
+
+    }
+
+    @Override
+    protected GetConfigureResult loadConfigurable(String namespace) {
+        GetConfigureResult result = new GetConfigureResult();
+        QueryDipperConfigureRequest request = new QueryDipperConfigureRequest();
+        request.setDipperNamespace(namespace);
+        try {
+            QueryDipperConfigureResponse response = client.getAcsResponse(request);
+            if (response == null || !response.getSuccess()) {
+                result.setQuerySuccess(false);
+                if (LOG.isErrorEnabled()) {
+                    LOG.error("loadConfigurable error!namespace=" + namespace + ",response=" + JSONObject.toJSONString(
+                        response));
+                }
+            } else {
+                result.setQuerySuccess(true);
+                List<Configure> configures = new ArrayList<Configure>();
+                Data data = response.getData();
+                if (data != null) {
+                    for (Item item : data.getItems()) {
+                        Configure configure = convert2Configure(item);
+                        configures.add(configure);
+                    }
+                }
+                result.setConfigurables(convert(configures));
+            }
+        } catch (Exception e) {
+            result.setQuerySuccess(false);
+            if (LOG.isErrorEnabled()) {
+                LOG.error("loadConfigurable error!namespace=" + namespace, e);
+            }
+        }
+        return result;
+    }
+
+
+
+    private Configure convert2Configure(Item item) {
+        Configure configure = new Configure();
+        configure.setAccountId(item.getAccountId());
+        configure.setAccountName(item.getAccountName());
+        configure.setAccountNickName(item.getAccountNickName());
+        configure.setClientIp(item.getDipperClientIp());
+        configure.setJsonValue(item.getJsonValue());
+        configure.setName(item.getName());
+        configure.setNameSpace(item.getDipperNamespace());
+        configure.setRequestId(item.getDipperRequestId());
+        configure.setType(item.getType());
+        return configure;
+    }
+
+    public String getAccessId() {
+        return accessId;
+    }
+
+    public String getAccessIdSecret() {
+        return accessIdSecret;
+    }
+
+    public void setAccessId(String accessId) {
+        this.accessId = accessId;
+    }
+
+    public void setAccessIdSecret(String accessIdSecret) {
+        this.accessIdSecret = accessIdSecret;
+    }
+
+    @Override
+    protected void updateConfigurable(Configurable configurable) {
+        throw new RuntimeException("不支持这个方法");
+    }
+
+    @Override
+    protected void insertConfigurable(Configurable configurable) {
+        throw new RuntimeException("不支持这个方法");
+    }
+}

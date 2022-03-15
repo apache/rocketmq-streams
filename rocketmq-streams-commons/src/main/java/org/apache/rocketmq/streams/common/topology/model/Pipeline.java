@@ -55,14 +55,19 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
     /**
      * stage列表
      */
-    protected List<AbstractStage> stages = new ArrayList<>();
-
-    //给数据源取个名字，主要用于同源任务归并
-    private String sourceIdentification;//数据源名称，如果pipline是数据源pipline需要设置
-    protected String msgSourceName;//主要用于在join，union场景，标记上游节点用
+    protected List<AbstractStage<?>> stages = new ArrayList<>();
 
     /**
-     * KEY: source stage lable value: key:next stage lable: value :PreFingerprint
+     * 给数据源取个名字，主要用于同源任务归并,数据源名称，如果pipeline是数据源pipeline需要设置
+     */
+    private String sourceIdentification;
+    /**
+     * 主要用于在join，union场景，标记上游节点用
+     */
+    protected String msgSourceName;
+
+    /**
+     * KEY: source stage label value: key:next stage label: value :PreFingerprint
      */
     protected transient Map<String, Map<String, PreFingerprint>> preFingerprintExecutor = new HashMap<>();
 
@@ -70,8 +75,7 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
         setType(TYPE);
     }
 
-    @Override
-    public T doMessage(T t, AbstractContext context) {
+    @Override public T doMessage(T t, AbstractContext context) {
         T message = doMessage(t, context, null);
         return message;
     }
@@ -90,16 +94,16 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
      * @param replaceStage
      * @return
      */
-    protected T doMessageInner(T t, AbstractContext context, AbstractStage... replaceStage) {
+    protected T doMessageInner(T t, AbstractContext context, AbstractStage<?>... replaceStage) {
         return doMessageFromIndex(t, context, 0, replaceStage);
     }
 
-    public T doMessageFromIndex(T t, AbstractContext context, int index, AbstractStage... replaceStage) {
+    public T doMessageFromIndex(T t, AbstractContext context, int index, AbstractStage<?>... replaceStage) {
         context.setMessage(t);
         //boolean needFlush = needFlush(t);
         for (int i = index; i < stages.size(); i++) {
-            AbstractStage oriStage = stages.get(i);
-            AbstractStage stage = chooseReplaceStage(oriStage, replaceStage);
+            AbstractStage<?> oriStage = stages.get(i);
+            AbstractStage<?> stage = chooseReplaceStage(oriStage, replaceStage);
             boolean isContinue = executeStage(stage, t, context);
             if (!isContinue) {
                 if (stage.isAsyncNode()) {
@@ -122,12 +126,8 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
         if (preFingerprint == null) {
             return;
         }
-        Map<String, PreFingerprint> preFingerprintMap = this.preFingerprintExecutor.get(preFingerprint.getSourceStageLable());
-        if (preFingerprintMap == null) {
-            preFingerprintMap = new HashMap<>();
-            this.preFingerprintExecutor.put(preFingerprint.getSourceStageLable(), preFingerprintMap);
-        }
-        preFingerprintMap.put(preFingerprint.getNextStageLable(), preFingerprint);
+        Map<String, PreFingerprint> preFingerprintMap = this.preFingerprintExecutor.computeIfAbsent(preFingerprint.getSourceStageLabel(), k -> new HashMap<>());
+        preFingerprintMap.put(preFingerprint.getNextStageLabel(), preFingerprint);
     }
 
     protected PreFingerprint getPreFingerprint(String currentLable, String nextLable) {
@@ -287,12 +287,11 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
         stage.setLabel(lable);
     }
 
-    public void setStages(List<AbstractStage> stages) {
+    public void setStages(List<AbstractStage<?>> stages) {
         this.stages = stages;
     }
 
-    @Override
-    public void destroy() {
+    @Override public void destroy() {
         if (LOG.isInfoEnabled()) {
             LOG.info(getName() + " is destroy, release pipline " + stages.size());
         }
@@ -307,7 +306,7 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
         this.name = name;
     }
 
-    public List<AbstractStage> getStages() {
+    public List<AbstractStage<?>> getStages() {
         return stages;
     }
 

@@ -116,7 +116,7 @@ public class FileSource extends AbstractBatchSource {
         LinkedBlockingQueue<FileIterator> iterators = new LinkedBlockingQueue<>(1000);
         File file = getFile(filePath);
         if (!file.exists()) {
-            throw new RuntimeException("filePath not exist.the filePath is "+filePath);
+            return null;
         }
         try {
             if (!file.isDirectory()) {

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.common.optimization;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -31,25 +32,23 @@ public class TaskOptimization {
     /**
      * Automatically parses pipelines, generates pre-filter fingerprints and expression estimates
      */
-    protected transient IHomologousOptimization homologousOptimization;
+    protected transient volatile IHomologousOptimization homologousOptimization;
 
     public TaskOptimization(int homologousExpressionCaseSize, int preFingerprintCaseSize) {
         this.homologousExpressionCaseSize = homologousExpressionCaseSize;
         this.preFingerprintCaseSize = preFingerprintCaseSize;
     }
 
-    public void openOptimiazte(ChainPipeline... pipelines) {
+    public void openOptimization(ChainPipeline<?>... pipelines) {
         if (pipelines == null) {
             return;
         }
-        List<ChainPipeline> pipelineList = new ArrayList<>();
-        for (ChainPipeline pipeline : pipelines) {
-            pipelineList.add(pipeline);
-        }
-        openOptimiazte(pipelineList);
+        List<ChainPipeline<?>> pipelineList = new ArrayList<>();
+        Collections.addAll(pipelineList, pipelines);
+        openOptimization(pipelineList);
     }
 
-    public void openOptimiazte(List<ChainPipeline> pipelines) {
+    public void openOptimization(List<ChainPipeline<?>> pipelines) {
         if (this.homologousOptimization == null) {
             synchronized (this) {
                 if (this.homologousOptimization == null) {
@@ -64,7 +63,7 @@ public class TaskOptimization {
         }
     }
 
-    public void calculateOptimiazteExpression(IMessage message, AbstractContext context) {
+    public void calculateOptimizationExpression(IMessage message, AbstractContext context) {
         if (homologousOptimization != null) {
             homologousOptimization.calculate(message, context);
         }

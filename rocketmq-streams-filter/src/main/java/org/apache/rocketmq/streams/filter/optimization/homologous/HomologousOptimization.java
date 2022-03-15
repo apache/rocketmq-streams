@@ -36,7 +36,7 @@ public class HomologousOptimization implements IHomologousOptimization {
     protected transient HomologousCompute homologousCompute;
 
     @Override
-    public void optimizate(List<ChainPipeline> pipelines, int cacheSize, int preFingerprintCacheSize) {
+    public void optimizate(List<ChainPipeline<?>> pipelines, int cacheSize, int preFingerprintCacheSize) {
         List<CommonExpression> commonExpressions = new ArrayList<>();
         FingerprintCache fingerprintCache = new FingerprintCache(preFingerprintCacheSize);
         for (ChainPipeline<?> pipeline : pipelines) {

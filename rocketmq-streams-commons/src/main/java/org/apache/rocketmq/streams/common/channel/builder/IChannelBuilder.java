@@ -31,13 +31,12 @@ public interface IChannelBuilder {
     /**
      * 主要完成sql中的with 属性和source/sink字段名的映射
      *
-     * @param formatProperties
-     * @param inputProperties
-     * @param formatName
-     * @param inputName
+     * @param formatProperties 资源文件
+     * @param inputProperties  资源文件
+     * @param formatName       key值
+     * @param inputName        输入值
      */
-    static void formatPropertiesName(JSONObject formatProperties, Properties inputProperties, String formatName,
-        String inputName) {
+    static void formatPropertiesName(JSONObject formatProperties, Properties inputProperties, String formatName, String inputName) {
         String inputValue = inputProperties.getProperty(inputName);
         if (StringUtil.isNotEmpty(inputValue)) {
             formatProperties.put(formatName, inputValue);
@@ -47,24 +46,24 @@ public interface IChannelBuilder {
     /**
      * 创建channel
      *
-     * @param properties
-     * @return
+     * @param properties 资源文件
+     * @return source实例
      */
-    ISource createSource(String namespace, String name, Properties properties, MetaData metaData);
+    ISource<?> createSource(String namespace, String name, Properties properties, MetaData metaData);
 
     /**
      * 返回channel类型，和blink语句中的type值一致
      *
-     * @return
+     * @return 类型
      */
     String getType();
 
     /**
      * 创建channel
      *
-     * @param properties
-     * @return
+     * @param properties 资源文件
+     * @return sink实例
      */
-    ISink createSink(String namespace, String name, Properties properties, MetaData metaData);
+    ISink<?> createSink(String namespace, String name, Properties properties, MetaData metaData);
 
 }
