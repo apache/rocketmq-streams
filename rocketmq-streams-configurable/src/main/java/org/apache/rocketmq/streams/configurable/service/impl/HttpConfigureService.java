@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.streams.configurable.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
@@ -53,14 +69,12 @@ import org.apache.rocketmq.streams.common.utils.AESUtil;
 import org.apache.rocketmq.streams.configurable.model.Configure;
 import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
 
-
 public class HttpConfigureService extends AbstractConfigurableService {
 
     public static final int NORMAL_STATUES = 200;
     public static final String CHARSET = "UTF-8";
     public static final int TIMOUT = 10000;
     public static final int CONNECT_TIMOUT = 10000;
-
 
     protected String accessId;
     protected String accessIdSecret;
@@ -142,7 +156,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
             JSONObject param = new JSONObject();
             param.put("namespace", namespace);
             CloseableHttpResponse response = post(endPoint, param.toJSONString(), null);
-            if (response == null ) {
+            if (response == null) {
                 result.setQuerySuccess(false);
                 if (LOG.isErrorEnabled()) {
                     LOG.error("loadConfigurable error!namespace=" + namespace + ",response=" + JSONObject.toJSONString(
@@ -177,8 +191,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
         return result;
     }
 
-
-    public  CloseableHttpResponse get(String url, Map<String, String> param) {
+    public CloseableHttpResponse get(String url, Map<String, String> param) {
 
         try {
             HttpGet httpGet = new HttpGet(url);
@@ -197,7 +210,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
 
     }
 
-    public  CloseableHttpResponse get(String url, Header... headers) {
+    public CloseableHttpResponse get(String url, Header... headers) {
         try {
             HttpGet httpGet = new HttpGet(url);
             if (headers != null && headers.length > 0) {
@@ -213,7 +226,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
         return null;
     }
 
-    public  CloseableHttpResponse post(String url, String body, Header... headers) {
+    public CloseableHttpResponse post(String url, String body, Header... headers) {
         try {
             HttpPost httpPost = new HttpPost(url);
             StringEntity stringEntity = new StringEntity(body, CHARSET);
@@ -280,8 +293,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
 //        return configure;
 //    }
 
-
-    public  String toString(HttpEntity entity, Charset defaultCharset) throws IOException, ParseException {
+    public String toString(HttpEntity entity, Charset defaultCharset) throws IOException, ParseException {
         Args.notNull(entity, "Entity");
         InputStream instream = entity.getContent();
         if (instream == null) {
@@ -289,7 +301,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
         } else {
             try {
                 Args.check(entity.getContentLength() <= 2147483647L, "HTTP entity too large to be buffered in memory");
-                int i = (int)entity.getContentLength();
+                int i = (int) entity.getContentLength();
                 if (i < 0) {
                     i = 4096;
                 }
@@ -320,7 +332,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
                 char[] tmp = new char[1024];
 
                 int l;
-                while((l = reader.read(tmp)) != -1) {
+                while ((l = reader.read(tmp)) != -1) {
                     buffer.append(tmp, 0, l);
                 }
 

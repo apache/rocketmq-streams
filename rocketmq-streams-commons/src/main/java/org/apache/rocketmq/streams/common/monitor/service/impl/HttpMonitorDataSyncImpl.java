@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.rocketmq.streams.common.monitor.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
@@ -58,7 +74,6 @@ public class HttpMonitorDataSyncImpl implements MonitorDataSyncService {
     @Override
     public void updateJobStage(Collection<JobStage> jobStages) {
 
-
         String response = client.postContent(endPoint + UPDATE_JOBSTAGE, JSONObject.toJSONString(jobStages));
 
     }
@@ -82,7 +97,7 @@ public class HttpMonitorDataSyncImpl implements MonitorDataSyncService {
         return null;
     }
 
-    public  String toString(HttpEntity entity, Charset defaultCharset) throws IOException, ParseException {
+    public String toString(HttpEntity entity, Charset defaultCharset) throws IOException, ParseException {
         Args.notNull(entity, "Entity");
         InputStream instream = entity.getContent();
         if (instream == null) {
@@ -90,7 +105,7 @@ public class HttpMonitorDataSyncImpl implements MonitorDataSyncService {
         } else {
             try {
                 Args.check(entity.getContentLength() <= 2147483647L, "HTTP entity too large to be buffered in memory");
-                int i = (int)entity.getContentLength();
+                int i = (int) entity.getContentLength();
                 if (i < 0) {
                     i = 4096;
                 }
@@ -121,7 +136,7 @@ public class HttpMonitorDataSyncImpl implements MonitorDataSyncService {
                 char[] tmp = new char[1024];
 
                 int l;
-                while((l = reader.read(tmp)) != -1) {
+                while ((l = reader.read(tmp)) != -1) {
                     buffer.append(tmp, 0, l);
                 }
 
