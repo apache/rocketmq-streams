@@ -52,7 +52,7 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
     /**
      * piplineNames的对象表示
      */
-    protected transient Map<String, ChainPipeline> piplines = null;
+    protected transient Map<String, ChainPipeline<?>> piplines = null;
 
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
@@ -168,7 +168,7 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
         if (piplineNames == null) {
             return;
         }
-        Map<String, ChainPipeline> piplineMap = new HashMap<>();
+        Map<String, ChainPipeline<?>> piplineMap = new HashMap<>();
         for (String pipeLineName : piplineNames) {
             ChainPipeline chainPipline = configurableService.queryConfigurable(Pipeline.TYPE, pipeLineName);
             if (chainPipline != null) {

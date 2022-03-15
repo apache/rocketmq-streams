@@ -45,9 +45,12 @@ public interface IConfigurableService {
 
     String FILE_SERVICE_NAME = "file";
 
+    String FILE_PATH_NAME = "filePathAndName";
+
     String HTTP_SERVICE_NAME = "http";
 
-    String FILE_PATH_NAME = "filePathAndName";
+    String HTTP_SERVICE_ENDPOINT = "dipper.configurable.service.type.http.endpoint";
+
 
     /**
      * 启动定时任务，定期从存储加载对象到内存

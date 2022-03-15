@@ -16,15 +16,17 @@
  */
 package org.apache.rocketmq.streams.common.topology.task;
 
-import java.util.List;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 
+/**
+ * 帮助某个pipline 关联对应的数据源pipline。 主要用于多个同源任务自动装配的场景 namespace:source pipline的name space name：piplineName
+ */
 public class TaskAssigner extends BasedConfigurable {
-    public static String TYPE="taskAssinger";
-    protected String taskName;
-    protected List<String> pipelineNames;
+    public static String TYPE = "assigner";
+    protected String taskName;//数据源对应的pipline name
+    protected String pipelineName;//需要关联的pipline name
 
-    public TaskAssigner(){
+    public TaskAssigner() {
         setType(TYPE);
     }
 
@@ -36,11 +38,11 @@ public class TaskAssigner extends BasedConfigurable {
         this.taskName = taskName;
     }
 
-    public List<String> getPipelineNames() {
-        return pipelineNames;
+    public String getPipelineName() {
+        return pipelineName;
     }
 
-    public void setPipelineNames(List<String> pipelineNames) {
-        this.pipelineNames = pipelineNames;
+    public void setPipelineName(String pipelineName) {
+        this.pipelineName = pipelineName;
     }
 }

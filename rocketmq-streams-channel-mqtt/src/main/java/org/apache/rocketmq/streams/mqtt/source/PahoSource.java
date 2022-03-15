@@ -18,7 +18,10 @@ package org.apache.rocketmq.streams.mqtt.source;
 
 import com.alibaba.fastjson.JSONObject;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.source.AbstractBatchSource;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -27,7 +30,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-public class PahoSource extends AbstractBatchSource {
+public class PahoSource extends AbstractSource {
 
     private String url;
     private String clientId;
@@ -54,8 +57,7 @@ public class PahoSource extends AbstractBatchSource {
         this(url, clientId, topic, username, password, true, 10, 60, true);
     }
 
-    public PahoSource(String url, String clientId, String topic, String username, String password, Boolean cleanSession,
-        Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect) {
+    public PahoSource(String url, String clientId, String topic, String username, String password, Boolean cleanSession, Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect) {
         this.url = url;
         this.clientId = clientId;
         this.topic = topic;
@@ -68,10 +70,12 @@ public class PahoSource extends AbstractBatchSource {
     }
 
     private transient MqttClient client;
+    protected transient AtomicLong offsetGenerator;
 
     @Override protected boolean startSource() {
         try {
             this.client = new MqttClient(url, clientId, new MemoryPersistence());
+            this.offsetGenerator = new AtomicLong(System.currentTimeMillis());
             this.client.setCallback(new MqttCallback() {
 
                 @Override public void connectionLost(Throwable throwable) {
@@ -105,8 +109,10 @@ public class PahoSource extends AbstractBatchSource {
                         }
 
                         try {
-                            client.connect(connOpts);
-                            System.out.println("Reconnecting success");
+                            if (!client.isConnected()) {
+                                client.connect(connOpts);
+                                System.out.println("Reconnecting success");
+                            }
                             client.subscribe(topic);
                             break;
                         } catch (MqttException e) {
@@ -123,7 +129,8 @@ public class PahoSource extends AbstractBatchSource {
 
                 @Override public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
                     JSONObject msg = create(new String(mqttMessage.getPayload(), StandardCharsets.UTF_8));
-                    doReceiveMessage(msg, false);
+                    msg.put("__topic", s);
+                    doReceiveMessage(msg, false, RuntimeUtil.getDipperInstanceId(), offsetGenerator.incrementAndGet() + "");
                 }
 
                 @Override public void deliveryComplete(IMqttDeliveryToken token) {
@@ -159,8 +166,10 @@ public class PahoSource extends AbstractBatchSource {
             }
 
             System.out.println("Connecting to broker: " + url);
-            this.client.connect(connOpts);
-            System.out.println("Connected");
+            if (!this.client.isConnected()) {
+                this.client.connect(connOpts);
+                System.out.println("Connected");
+            }
             this.client.subscribe(topic);
             return true;
         } catch (MqttException e) {
@@ -172,10 +181,11 @@ public class PahoSource extends AbstractBatchSource {
     @Override public void destroy() {
         super.destroy();
         try {
-            if (this.client != null) {
+            if (this.client != null && this.client.isConnected()) {
                 this.client.disconnect();
                 this.client.close();
             }
+            super.destroy();
         } catch (MqttException e) {
             e.printStackTrace();
         }

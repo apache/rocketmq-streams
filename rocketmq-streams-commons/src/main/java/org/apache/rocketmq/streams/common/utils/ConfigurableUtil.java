@@ -86,9 +86,9 @@ public class ConfigurableUtil {
         if (!configurable1.getConfigureName().equals(configurable2.getConfigureName())) {
             return false;
         }
-        if (AbstractConfigurable.class.isInstance(configurable1) && AbstractConfigurable.class.isInstance(configurable2)) {
-            AbstractConfigurable abstractConfigurable1 = (AbstractConfigurable) configurable1;
-            AbstractConfigurable abstractConfigurable2 = (AbstractConfigurable) configurable2;
+        if (BasedConfigurable.class.isInstance(configurable1) && BasedConfigurable.class.isInstance(configurable2)) {
+            BasedConfigurable abstractConfigurable1 = (BasedConfigurable)configurable1;
+            BasedConfigurable abstractConfigurable2 = (BasedConfigurable)configurable2;
             if (abstractConfigurable1.getUpdateFlag() == abstractConfigurable2.getUpdateFlag()) {
                 return true;
             } else {

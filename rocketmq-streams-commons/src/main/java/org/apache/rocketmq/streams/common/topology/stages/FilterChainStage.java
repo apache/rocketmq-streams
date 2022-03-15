@@ -31,6 +31,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IFilterService;
+import org.apache.rocketmq.streams.common.monitor.ConsoleMonitorManager;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
@@ -47,14 +48,15 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
     protected transient AtomicInteger count = new AtomicInteger(0);
     protected transient Map<String, Integer> map = new HashMap<>();
     private List<String> names;
-    protected String nameRegex;//通过名字匹配模式，加载一批规则，避免大批量输入规则名称
+    /**
+     * 通过名字匹配模式，加载一批规则，避免大批量输入规则名称
+     */
+    protected String nameRegex;
     private transient List<R> rules;
     private transient Map<String, JSONObject> ruleName2JsonObject = new HashMap<>();
     public static transient Class componentClass = ReflectUtil.forClass("org.apache.rocketmq.streams.filter.FilterComponent");
     protected boolean openHyperscan = false;
     protected static transient IComponent<IFilterService> component;
-
-    protected transient PreFingerprint preFingerprint = null;
 
     public FilterChainStage() {
         setEntityName("filter");
@@ -75,7 +77,7 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
             if (component == null) {
                 component = ComponentCreator.getComponent(null, componentClass);
             }
-            message.getHeader().setPiplineExecutorMonitor(new TopologyFilterMonitor());
+            message.getHeader().setPipelineExecutorMonitor(new TopologyFilterMonitor());
             List<R> fireRules = component.getService().executeRule(message, context, rules);
 
             //not match rules
@@ -98,13 +100,23 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
     };
 
     protected void traceRuleInfo(IMessage message) {
-        TopologyFilterMonitor monitor = message.getHeader().getPiplineExecutorMonitor();
+        TopologyFilterMonitor monitor = message.getHeader().getPipelineExecutorMonitor();
         if (monitor != null) {
             if (monitor.getNotFireExpression2DependentFields() != null) {
 
                 Map<String, List<String>> notFireExpressions = monitor.getNotFireExpression2DependentFields();
                 Iterator<Entry<String, List<String>>> it = notFireExpressions.entrySet().iterator();
                 String description = "the View  " + getOwnerSqlNodeTableName() + " break ,has " + notFireExpressions.size() + " expression not fire:" + PrintUtil.LINE;
+
+                String exceptionMsg;
+                // 如果 it 为空，说明表达式中只有 or ，即所有条件都不符合
+                if (!it.hasNext()) {
+                    exceptionMsg = rules.get(0).getExpressionName();
+                } else {
+                    exceptionMsg = it.next().getKey();
+                }
+                ConsoleMonitorManager.getInstance().reportOutput(FilterChainStage.this, message, ConsoleMonitorManager.MSG_FILTERED, exceptionMsg);
+
                 StringBuilder stringBuilder = new StringBuilder(description);
                 int index = 1;
                 while (it.hasNext()) {
@@ -128,7 +140,7 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
     }
 
     protected void traceFailExpression(IMessage message) {
-        TopologyFilterMonitor monitor = message.getHeader().getPiplineExecutorMonitor();
+        TopologyFilterMonitor monitor = message.getHeader().getPipelineExecutorMonitor();
         if (monitor != null) {
             if (monitor.getNotFireExpression2DependentFields() != null) {
 
@@ -151,6 +163,7 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
                     }
                     stringBuilder.append("The " + index++ + " expression is " + PrintUtil.LINE + getExpressionDescription(expression, message) + PrintUtil.LINE);
                 }
+                ConsoleMonitorManager.getInstance().reportOutput(FilterChainStage.this, message, ConsoleMonitorManager.MSG_FILTERED, stringBuilder.toString());
                 TraceUtil.debug(message.getHeader().getTraceId(), "break rule", stringBuilder.toString());
             }
 
