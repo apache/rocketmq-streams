@@ -137,8 +137,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         if (bitSet == null) {
             return null;
         }
-        boolean result = bitSet.get(var.getIndex());
-        return result;
+        return bitSet.get(var.getIndex());
     }
 
     public void resetIsContinue() {

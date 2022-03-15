@@ -1,13 +1,12 @@
-# RocketMQ Streams 
-[![Build Status](https://app.travis-ci.com/apache/rocketmq-streams.svg?branch=main)](https://app.travis-ci.com/apache/rocketmq-streams)
-[![CodeCov](https://codecov.io/gh/apache/rocketmq-stream/branch/main/graph/badge.svg)](https://app.codecov.io/gh/apache/rocketmq-streams) 
+# RocketMQ Streams [![Build Status](https://app.travis-ci.com/apache/rocketmq-streams.svg?branch=main)](https://app.travis-ci.com/apache/rocketmq-streams) [![CodeCov](https://codecov.io/gh/apache/rocketmq-stream/branch/main/graph/badge.svg)](https://app.codecov.io/gh/apache/rocketmq-streams)
+
 [![GitHub release](https://img.shields.io/badge/release-download-orange.svg)](https://github.com/apache/rocketmq-streams/releases)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/apache/rocketmq-streams.svg)](http://isitmaintained.com/project/apache/rocketmq-streams "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/apache/rocketmq-streams.svg)](http://isitmaintained.com/project/apache/rocketmq-streams "Percentage of issues still open")
 [![Twitter Follow](https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social)](https://twitter.com/intent/follow?screen_name=ApacheRocketMQ)
 
-## [中文文档](./README-chinese.md)
+## [中文文档](./README-Chinese.md)
 
 ## [Quick Start](./quick_start.md)
 
@@ -36,7 +35,7 @@ DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -68,6 +67,24 @@ DataStreamSource is a source class of segmented programming, used to interface w
     + ```groupName```: the name of the consumer group. Required.
     + ```isJson```: specifies whether data is in JSON format. Optional.
     + ```tags```: the tags for filtering messages used by the RocketMQ consumer. Optional.
+    
++ ```fromKafka``` read data from the Kafka, including five parameters:
+  + ```bootstrapserver``` the Kafka bootstrap servers. Required.
+  + ```topic``` the topic name of Kafka. Required.
+  + ```groupName``` the name of the consumer group. Required.
+  + ```isJson``` specifies whether data is in JSON format. Optional.
+  + ```maxThread``` the number of the Kafka consumer max Threads.Optional.
+
++ ```fromMqtt``` reads data from MQTT service, including nine parameters:
+  + ```url```  the broker of the MQTT service. Required.
+  + ```clientId``` the client id. Required
+  + ```topic``` the name of the MQTT topic. Required.
+  + ```username``` username. Optional. 
+  + ```password``` password. Optional. 
+  + ```cleanSession``` specifies Whether to clear the session during the restart. Optional.
+  + ```connectionTimeout``` the connection timeout. Optional.
+  + ```aliveInterval``` Survival time interval. Optional.
+  + ```automaticReconnect``` specifies Whether to reconnect. Optional.
 
 + ```from```: custom data source. You can specify your own data source by implementing ISource interface.
 
@@ -90,6 +107,7 @@ DataStream implements a series of common stream calculation operators as follows
 + ```toFile```: saves the result as a file and generates a new DataStreamAction instance.
 + ```toDB```: saves the result to the database.
 + ```toRocketmq```: outputs the result to RocketMQ.
++ ```toKafka```: outputs the result to Kafka.
 + ```to```: outputs the result to the specified storage through the custom ISink interface.
 + ```window```: performs relevant statistical analysis in the window, generally used in conjunction with ```groupBy```. ```window()``` is used to define the size of the window, and ```groupBy( )``` used to define the main key of statistical analysis. You can specify multiple main keys:
     + ```count```: counts in the window.

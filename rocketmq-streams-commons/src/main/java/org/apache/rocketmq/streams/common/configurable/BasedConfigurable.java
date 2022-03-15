@@ -48,6 +48,8 @@ public class BasedConfigurable extends AbstractConfigurable {
 
     protected String version = "1.0";
 
+    protected long updateFlag = 0;//通过它来触发更新，其他字段变更都不会触发更新
+
     @Override
     public String getNameSpace() {
         return nameSpace;
@@ -249,4 +251,11 @@ public class BasedConfigurable extends AbstractConfigurable {
         this.version = version;
     }
 
+    public long getUpdateFlag() {
+        return updateFlag;
+    }
+
+    public void setUpdateFlag(long updateFlag) {
+        this.updateFlag = updateFlag;
+    }
 }

@@ -35,6 +35,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -188,9 +189,9 @@ public class BlinkRuleV2Expression {
             RelationExpression relationExpression = new RelationExpression();
             relationExpression.setValue(new ArrayList<String>());
             relationExpression.setRelation("and");
-            relationExpression.setConfigureName(NameCreator.createNewName("_blink_rule_v2", "relation"));
+            relationExpression.setConfigureName(NameCreatorContext.get().createNewName("_blink_rule_v2", "relation"));
             for (Expression expression : expressions) {
-                String name = NameCreator.createNewName("_blink_rule_v2", expression.getVarName());
+                String name = NameCreatorContext.get().createNewName("_blink_rule_v2", expression.getVarName());
                 expression.setConfigureName(name);
                 expression.setNameSpace("tmp");
                 relationExpression.getValue().add(expression.getConfigureName());

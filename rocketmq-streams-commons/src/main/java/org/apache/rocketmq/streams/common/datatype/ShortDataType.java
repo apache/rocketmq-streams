@@ -47,7 +47,7 @@ public class ShortDataType extends BaseDataType<Short> {
         if (jsonValue == null || "N/A".equals(jsonValue)) {
             return null;
         }
-        return Short.valueOf(jsonValue);
+        return Double.valueOf(jsonValue).shortValue();
     }
 
     @Override

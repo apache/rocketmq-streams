@@ -42,6 +42,11 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     public void windowInit() {
+
+    }
+
+    @Override
+    public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
         if (hasCreated.compareAndSet(false, true)) {
             this.windowFireSource = new WindowTrigger(this);
             this.windowFireSource.init();
@@ -51,10 +56,6 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
             windowCache.setBatchSize(5000);
             windowCache.setShuffleChannel(shuffleChannel);
         }
-    }
-
-    @Override
-    public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
         shuffleChannel.startChannel();
         return super.doMessage(message, context);
     }

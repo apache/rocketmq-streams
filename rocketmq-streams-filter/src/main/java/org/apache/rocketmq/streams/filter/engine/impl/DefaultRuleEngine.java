@@ -71,7 +71,7 @@ public class DefaultRuleEngine implements IRuleEngine {
                     }
                     boolean isFireRule = rule.doMessage(message, context);
                     if (isFireRule == false && isTrace) {
-                        TopologyFilterMonitor piplineExecutorMonitor = message.getHeader().getPiplineExecutorMonitor();
+                        TopologyFilterMonitor piplineExecutorMonitor = message.getHeader().getPipelineExecutorMonitor();
                         if (piplineExecutorMonitor != null) {
                             piplineExecutorMonitor.setNotFireRule(rule.getConfigureName());
                             piplineExecutorMonitor.setNotFireExpression2DependentFields(ruleContext.getExpressionMonitor().getNotFireExpression2DependentFields());

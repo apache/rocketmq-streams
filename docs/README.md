@@ -60,6 +60,13 @@ DataStreamSource 是分段式编程的源头类，用于对接各种数据源，
     + ```groupName``` 消费者组的名称，必填参数
     + ```isJson``` 是否json格式，非必填参数
     + ```tags``` rocketmq消费的tags值，用于过滤消息，非必填参数
+  
++ ```fromKafka``` 从kafka中获取数据，包含5个参数
+  + ```bootstrapserver``` kafka的bootstrapserver 地址，包括ip和端口，多个值以逗号分隔, 必填参数
+  + ```topic``` kafka的topic， 必填参数
+  + ```groupName``` 消费组， 必填参数
+  + ```isJson``` 是否json格式，非必填参数，默认为true
+  + ```maxThread``` 客户端最大线程数，非必填参数，默认为1
 
 + ```fromMqtt``` 从满足MQTT协议的终端读取数据， 满足边缘计算的场景，其中包含9个参数
     + ```url```  mqtt broker的地址，必填参数
@@ -93,6 +100,7 @@ DataStream实现了一系列常见的流计算算子
 + ```toMqtt``` 将结果输出到满足mqtt协议的设备中，生成一个新的DataStream实例
 + ```toDB``` 将结果保存到数据库
 + ```toRocketmq``` 将结果输出到rocketmq
++ ```toKafka``` 将结果输出到kafka
 + ```to``` 将结果经过自定义的ISink接口输出到指定的存储
 + ```window``` 在窗口内进行相关的统计分析，一般会与```groupBy```连用， ```window()```用来定义窗口的大小， ```groupBy()```用来定义统计分析的主key，可以指定多个
     + ```count``` 在窗口内计数

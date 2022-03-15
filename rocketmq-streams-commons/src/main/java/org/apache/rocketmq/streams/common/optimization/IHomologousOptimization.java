@@ -23,7 +23,7 @@ import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 
 public interface IHomologousOptimization {
 
-    void optimizate(List<ChainPipeline> pipelineList, int cacheSize, int preFingerprintCacheSize);
+    void optimizate(List<ChainPipeline<?>> pipelineList, int cacheSize, int preFingerprintCacheSize);
 
 
     void calculate(IMessage message, AbstractContext context);

@@ -31,7 +31,7 @@ import org.apache.rocketmq.streams.client.strategy.Strategy;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSink;
-import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -65,6 +65,7 @@ import org.apache.rocketmq.streams.dim.model.DBDim;
 import org.apache.rocketmq.streams.dim.model.FileDim;
 import org.apache.rocketmq.streams.filter.operator.FilterOperator;
 import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.kafka.sink.KafkaSink;
 import org.apache.rocketmq.streams.mqtt.sink.PahoSink;
 import org.apache.rocketmq.streams.script.operator.impl.ScriptOperator;
 import org.apache.rocketmq.streams.sink.RocketMQSink;
@@ -178,11 +179,11 @@ public class DataStream implements Serializable {
                     } else {
                         List<IMessage> splitMessages = new ArrayList<>();
                         for (T t : result) {
-                            Message subMessage = null;
+                            Message subMessage = message.deepCopy();
                             if (t instanceof JSONObject) {
-                                subMessage = new Message((JSONObject) t);
+                                subMessage.setMessageBody((JSONObject) t);
                             } else {
-                                subMessage = new Message(new UserDefinedMessage(t));
+                                subMessage.setMessageBody(new UserDefinedMessage(t));
                             }
                             splitMessages.add(subMessage);
                         }
@@ -362,7 +363,7 @@ public class DataStream implements Serializable {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 String labelName = splitFunction.split(message.getMessageValue());
-                message.getHeader().addRouteLable(labelName);
+                message.getHeader().addRouteLabel(labelName);
                 return null;
             }
         };
@@ -646,6 +647,13 @@ public class DataStream implements Serializable {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
+    public DataStream toKafka(String bootstrapServers, String topic) {
+        KafkaSink kafkaSink = new KafkaSink(bootstrapServers, topic);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(kafkaSink);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+    }
+
     public DataStream toEnhanceDBSink(String url, String userName, String password, String tableName) {
         EnhanceDBSink sink = new EnhanceDBSink(url, userName, password, tableName);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
@@ -674,7 +682,7 @@ public class DataStream implements Serializable {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-    public DataStream to(ISink<?> sink) {
+    public DataStream to(AbstractSink sink) {
         ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
@@ -724,7 +732,6 @@ public class DataStream implements Serializable {
                     }
                 });
                 thread.start();
-
             }
         } else {
             pipeline.startChannel();

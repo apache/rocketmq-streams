@@ -22,17 +22,20 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.channel.impl.view.ViewSink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
+import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.topology.stages.OutputChainStage;
-import org.apache.rocketmq.streams.common.utils.NameCreatorUtil;
+import org.apache.rocketmq.streams.common.topology.stages.ViewChainStage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class PipelineBuilder implements Serializable {
@@ -168,7 +171,11 @@ public class PipelineBuilder implements Serializable {
         if (isBreak) {
             return null;
         }
-        OutputChainStage<?> outputChainStage = new OutputChainStage<>();
+        OutputChainStage<?> outputChainStage = new OutputChainStage<>();;
+        if(ViewSink.class.isInstance(sink)){
+
+            outputChainStage=new ViewChainStage();
+        }
         sink.addConfigurables(this);
         outputChainStage.setSink(sink);
         pipeline.addChainStage(outputChainStage);
@@ -209,7 +216,7 @@ public class PipelineBuilder implements Serializable {
      * @return
      */
     public String createConfigurableName(String type) {
-        return NameCreatorUtil.createNewName(this.pipelineName, type);
+        return NameCreatorContext.get().createNewName(this.pipelineName, type);
     }
 
     /**
@@ -259,15 +266,15 @@ public class PipelineBuilder implements Serializable {
         if (nextStages == null) {
             return;
         }
-        List<String> lableNames = new ArrayList<>();
+        List<String> labelNames = new ArrayList<>();
         for (ChainStage<?> stage : nextStages) {
-            lableNames.add(stage.getLabel());
+            labelNames.add(stage.getLabel());
         }
 
         if (currentChainStage == null) {
-            this.pipeline.setChannelNextStageLabel(lableNames);
+            this.pipeline.setChannelNextStageLabel(labelNames);
         } else {
-            currentChainStage.setNextStageLabels(lableNames);
+            currentChainStage.getNextStageLabels().addAll(labelNames);
             for (ChainStage<?> stage : nextStages) {
                 stage.getPrevStageLabels().add(currentChainStage.getLabel());
             }
@@ -304,7 +311,7 @@ public class PipelineBuilder implements Serializable {
         if (isBreak) {
             return;
         }
-        List<ChainStage> stages = new ArrayList<>();
+        List<ChainStage<?>> stages = new ArrayList<>();
         stages.add(stage);
         setHorizontalStages(stages);
     }
@@ -314,7 +321,7 @@ public class PipelineBuilder implements Serializable {
      *
      * @param stages
      */
-    public void setHorizontalStages(List<ChainStage> stages) {
+    public void setHorizontalStages(List<ChainStage<?>> stages) {
         if (isBreak) {
             return;
         }
