@@ -7,7 +7,7 @@
 # Features
 
 * 轻量级部署：可以单独部署，也支持集群部署
-* 多种类型的数据输入以及输出，source 支持 rocketmq ， sink 支持db, rocketmq 等
+* 多种类型的数据输入以及输出，source 支持 [RocketMQ](https://github.com/apache/rocketmq) ， sink 支持db, rocketmq 等
 
 # Architecture
 - [整体架构](docs/design/1.RocketMQ-streams整体架构.md)： 介绍RocketMQ-streams总体构成；
