@@ -18,7 +18,9 @@
 package org.apache.rocketmq.streams.source;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,20 +30,21 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
-import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
-import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueByConfig;
+import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import org.apache.rocketmq.client.impl.consumer.PullRequest;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -50,6 +53,7 @@ import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -64,24 +68,15 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     protected static final Log LOG = LogFactory.getLog(RocketMQSource.class);
 
     private static final String STRATEGY_AVERAGE = "average";
-    private static final String STRATEGY_MACHINE = "machine";
-    private static final String STRATEGY_CONFIG = "config";
 
     @ENVDependence
-    protected String tags = "*";
-
-    /**
-     * 消息队列命名空间接入点
-     */
-
+    protected String tags = SubscriptionData.SUB_ALL;
 
     protected Long pullIntervalMs;
-
     protected String strategyName;
+    protected transient ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET;//默认从哪里消费,不会被持久化。不设置默认从尾部消费
 
-    protected transient DefaultMQPushConsumer consumer;
-    protected transient ConsumeFromWhere consumeFromWhere;//默认从哪里消费,不会被持久化。不设置默认从尾部消费
-    protected transient String consumerOffset;//从哪里开始消费
+    protected transient PullConsumer pullConsumer;
 
     public RocketMQSource() {
     }
@@ -107,109 +102,25 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     protected boolean startSource() {
         try {
             destroyConsumer();
-            consumer = startConsumer();
+            this.pullConsumer = new PullConsumer(topic, groupName, namesrvAddr, tags, pullIntervalMs, consumeFromWhere);
+            this.pullConsumer.start();
+
             return true;
-        } catch (Exception e) {
+        } catch (MQClientException e) {
             setInitSuccess(false);
-            e.printStackTrace();
             throw new RuntimeException("start rocketmq channel error " + topic, e);
         }
     }
 
-    protected DefaultMQPushConsumer startConsumer() {
-        try {
-            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(groupName);
-            if (pullIntervalMs != null) {
-                consumer.setPullInterval(pullIntervalMs);
-            }
-            AllocateMessageQueueStrategy defaultStrategy = new AllocateMessageQueueAveragely();
-            if (STRATEGY_AVERAGE.equalsIgnoreCase(this.strategyName)) {
-                consumer.setAllocateMessageQueueStrategy(defaultStrategy);
-            } else if (STRATEGY_MACHINE.equalsIgnoreCase(this.strategyName)) {
-                //consumer.setAllocateMessageQueueStrategy(new AllocateMessageQueueByMachine(defaultStrategy));
-            } else if (STRATEGY_CONFIG.equalsIgnoreCase(this.strategyName)) {
-                consumer.setAllocateMessageQueueStrategy(new AllocateMessageQueueByConfig());
-            }
-
-            consumer.setPersistConsumerOffsetInterval((int) this.checkpointTime);
-            consumer.setConsumeMessageBatchMaxSize(maxFetchLogGroupSize);
-            consumer.setNamesrvAddr(this.namesrvAddr);
-            if (consumeFromWhere != null) {
-                consumer.setConsumeFromWhere(consumeFromWhere);
-                if (consumerOffset != null) {
-                    consumer.setConsumeTimestamp(consumerOffset);
-                }
-            }
-            Map<String, Boolean> isFirstDataForQueue = new HashMap<>();
-            //consumer.setCommitOffsetWithPullRequestEnable(false);
-            consumer.subscribe(topic, tags);
-            consumer.registerMessageListener((MessageListenerOrderly) (msgs, context) -> {
-                try {
-                    int i = 0;
-                    for (MessageExt msg : msgs) {
-
-                        JSONObject jsonObject = create(msg.getBody(), msg.getProperties());
-
-                        String queueId = RocketMQMessageQueue.getQueueId(context.getMessageQueue());
-                        String offset = msg.getQueueOffset() + "";
-                        org.apache.rocketmq.streams.common.context.Message message = createMessage(jsonObject, queueId, offset, false);
-                        message.getHeader().setOffsetIsLong(true);
-
-                        if (DebugWriter.isOpenDebug()) {
-                            Boolean isFirstData = isFirstDataForQueue.get(queueId);
-                            if (isFirstData == null) {
-                                synchronized (this) {
-                                    isFirstData = isFirstDataForQueue.get(queueId);
-                                    if (isFirstData == null) {
-                                        isFirstDataForQueue.put(queueId, true);
-                                    }
-                                    DebugWriter.getInstance(getTopic()).receiveFirstData(queueId, msg.getQueueOffset());
-                                }
-                            }
-                        }
-
-                        if (i == msgs.size() - 1) {
-                            message.getHeader().setNeedFlush(true);
-                        }
-                        executeMessage(message);
-                        i++;
-                    }
-                } catch (Exception e) {
-
-                    LOG.error("consume message from rocketmq error " + e, e);
-                    e.printStackTrace();
-
-                }
-
-                return ConsumeOrderlyStatus.SUCCESS;// 返回消费成功
-            });
-
-            setOffsetStore(consumer);
-            consumer.start();
-
-            return consumer;
-        } catch (Exception e) {
-            setInitSuccess(false);
-            e.printStackTrace();
-            throw new RuntimeException("start metaq channel error " + topic, e);
-        }
-    }
 
     @Override
     public List<ISplit> getAllSplits() {
         try {
             List<ISplit> messageQueues = new ArrayList<>();
-            if (messageQueues == null || messageQueues.size() == 0) {
-                Set<MessageQueue> metaqQueueSet = consumer.fetchSubscribeMessageQueues(this.topic);
-                for (MessageQueue queue : metaqQueueSet) {
-                    RocketMQMessageQueue metaqMessageQueue = new RocketMQMessageQueue(queue);
-                    if (isNotDataSplit(metaqMessageQueue.getQueueId())) {
-                        continue;
-                    }
-
-                    messageQueues.add(metaqMessageQueue);
-
-                }
+            Collection<MessageQueue> metaqQueueSet = this.pullConsumer.fetchMessageQueues(this.topic);
+            for (MessageQueue queue : metaqQueueSet) {
+                RocketMQMessageQueue metaqMessageQueue = new RocketMQMessageQueue(queue);
+                messageQueues.add(metaqMessageQueue);
             }
             return messageQueues;
         } catch (MQClientException e) {
@@ -218,12 +129,13 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         }
     }
 
+    //todo 计算正在工作的分片？
     @Override
     public Map<String, List<ISplit>> getWorkingSplitsGroupByInstances() {
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExt.setVipChannelEnabled(false);
         defaultMQAdminExt.setAdminExtGroup(UUID.randomUUID().toString());
-        defaultMQAdminExt.setInstanceName(this.consumer.getInstanceName());
+        defaultMQAdminExt.setInstanceName(this.pullConsumer.getInstanceName());
         try {
             defaultMQAdminExt.start();
             Map<MessageQueue, String> queue2Instances = getMessageQueueAllocationResult(defaultMQAdminExt, this.groupName);
@@ -234,11 +146,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
                     continue;
                 }
                 String instanceName = queue2Instances.get(messageQueue);
-                List<ISplit> splits = instanceOwnerQueues.get(instanceName);
-                if (splits == null) {
-                    splits = new ArrayList<>();
-                    instanceOwnerQueues.put(instanceName, splits);
-                }
+                List<ISplit> splits = instanceOwnerQueues.computeIfAbsent(instanceName, k -> new ArrayList<>());
                 splits.add(metaqMessageQueue);
             }
             return instanceOwnerQueues;
@@ -250,9 +158,9 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         }
     }
 
-    protected Map<MessageQueue, String> getMessageQueueAllocationResult(DefaultMQAdminExt defaultMQAdminExt,
-        String groupName) {
-        HashMap results = new HashMap();
+    private Map<MessageQueue, String> getMessageQueueAllocationResult(DefaultMQAdminExt defaultMQAdminExt,
+                                                                      String groupName) {
+        HashMap<MessageQueue, String> results = new HashMap<>();
 
         try {
             ConsumerConnection consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
@@ -276,46 +184,6 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         return results;
     }
 
-    /**
-     * 设置offset存储，包装原有的RemoteBrokerOffsetStore，在保存offset前发送系统消息 this method suggest to be removed, use check barrier to achieve checkpoint asynchronous.
-     *
-     * @param consumer
-     */
-    protected void setOffsetStore(DefaultMQPushConsumer consumer) {
-        DefaultMQPushConsumerImpl defaultMQPushConsumer = consumer.getDefaultMQPushConsumerImpl();
-        if (consumer.getMessageModel() == MessageModel.CLUSTERING) {
-            consumer.changeInstanceNameToPID();
-        }
-        MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(defaultMQPushConsumer.getDefaultMQPushConsumer());
-        RemoteBrokerOffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, NamespaceUtil.wrapNamespace(consumer.getNamespace(), consumer.getConsumerGroup())) {
-            Set<MessageQueue> firstComing = new HashSet<>();
-            @Override
-            public void removeOffset(MessageQueue mq) {
-                if (!firstComing.contains(mq)){
-                    firstComing.add(mq);
-                } else {
-                    Set<String> splitIds = new HashSet<>();
-                    splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
-                    removeSplit(splitIds);
-                }
-                super.removeOffset(mq);
-            }
-
-            @Override
-            public void updateConsumeOffsetToBroker(MessageQueue mq, long offset,
-                boolean isOneway) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-                sendCheckpoint(new RocketMQMessageQueue(mq).getQueueId());
-                if (DebugWriter.isOpenDebug()) {
-                    ConcurrentMap<MessageQueue, AtomicLong> offsetTable = ReflectUtil.getDeclaredField(this, "offsetTable");
-                    DebugWriter.getInstance(getTopic()).writeSaveOffset(mq, offsetTable.get(mq));
-                }
-                //                LOG.info("the queue Id is " + new RocketMQMessageQueue(mq).getQueueId() + ",rocketmq start save offset，the save time is " + DateUtil.getCurrentTimeString());
-                super.updateConsumeOffsetToBroker(mq, offset, isOneway);
-            }
-        };
-        consumer.setOffsetStore(offsetStore);//每个一分钟运行一次
-    }
-
     @Override
     protected boolean isNotDataSplit(String queueId) {
         return queueId.toUpperCase().startsWith("RETRY") || queueId.toUpperCase().startsWith("%RETRY%");
@@ -337,35 +205,13 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     }
 
     public void destroyConsumer() {
-        List<DefaultMQPushConsumer> oldConsumers = new ArrayList<>();
-        if (consumer != null) {
-            oldConsumers.add(consumer);
-        }
-        try {
-            for (DefaultMQPushConsumer consumer : oldConsumers) {
-                consumer.shutdown();
-            }
-
-        } catch (Throwable t) {
-            if (LOG.isWarnEnabled()) {
-                LOG.warn(t.getMessage(), t);
-            }
-        }
-
+        this.pullConsumer.shutdown(true);
     }
 
     @Override
     public void destroy() {
         super.destroy();
         destroyConsumer();
-    }
-
-    public String getStrategyName() {
-        return strategyName;
-    }
-
-    public void setStrategyName(String strategyName) {
-        this.strategyName = strategyName;
     }
 
     public String getTags() {
@@ -376,31 +222,96 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         this.tags = tags;
     }
 
-    public DefaultMQPushConsumer getConsumer() {
-        return consumer;
-    }
 
-    public Long getPullIntervalMs() {
-        return pullIntervalMs;
-    }
+    public class PullConsumer extends ServiceThread {
+        private final long pullIntervalMs;
+        private final DefaultLitePullConsumer pullConsumer;
 
-    public void setPullIntervalMs(Long pullIntervalMs) {
-        this.pullIntervalMs = pullIntervalMs;
-    }
+        public PullConsumer(String topic, String groupName, String namesrv,
+                            String tags, long pullIntervalMs, ConsumeFromWhere consumeFromWhere) throws MQClientException {
 
-    public ConsumeFromWhere getConsumeFromWhere() {
-        return consumeFromWhere;
-    }
+            this.pullIntervalMs = pullIntervalMs;
 
-    public void setConsumeFromWhere(ConsumeFromWhere consumeFromWhere) {
-        this.consumeFromWhere = consumeFromWhere;
-    }
+            pullConsumer = new DefaultLitePullConsumer(groupName);
+            pullConsumer.setNamesrvAddr(namesrv);
+            pullConsumer.setConsumeFromWhere(consumeFromWhere);
+            pullConsumer.subscribe(topic, tags);
+            pullConsumer.setAutoCommit(false);
 
-    public String getConsumerOffset() {
-        return consumerOffset;
-    }
+            MessageQueueListener origin = pullConsumer.getMessageQueueListener();
+            MessageListenerDelegator delegator = new MessageListenerDelegator(origin, removingMessageQueue -> {
+                Set<String> splitIds = new HashSet<>();
+                for (MessageQueue mq : removingMessageQueue) {
+                    splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
+                }
 
-    public void setConsumerOffset(String consumerOffset) {
-        this.consumerOffset = consumerOffset;
+                RocketMQSource.this.removeSplit(splitIds);
+            }, new Consumer<Set<MessageQueue>>() {
+                @Override
+                public void accept(Set<MessageQueue> messageQueues) {
+                    //todo load 状态
+                }
+            });
+            pullConsumer.setMessageQueueListener(delegator);
+
+            pullConsumer.start();
+        }
+
+        @Override
+        public void run() {
+
+            while (!this.isStopped()) {
+                try {
+                    List<MessageExt> msgs = pullConsumer.poll(pullIntervalMs);
+
+                    int i = 0;
+                    for (MessageExt msg : msgs) {
+                        JSONObject jsonObject = create(msg.getBody(), msg.getProperties());
+
+                        String topic = msg.getTopic();
+                        int queueId = msg.getQueueId();
+                        String brokerName = msg.getBrokerName();
+                        MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
+                        String unionQueueId = RocketMQMessageQueue.getQueueId(queue);
+
+
+                        String offset = msg.getQueueOffset() + "";
+                        org.apache.rocketmq.streams.common.context.Message message = createMessage(jsonObject, unionQueueId, offset, false);
+                        message.getHeader().setOffsetIsLong(true);
+
+                        if (i == msgs.size() - 1) {
+                            message.getHeader().setNeedFlush(true);
+                        }
+                        executeMessage(message);
+                        i++;
+                    }
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        public Collection<MessageQueue> fetchMessageQueues(String topic) throws MQClientException {
+            return this.pullConsumer.fetchMessageQueues(topic);
+        }
+
+        public String getInstanceName() {
+            return this.pullConsumer.getInstanceName();
+        }
+
+        public void commit(Set<MessageQueue> messageQueues) {
+            this.pullConsumer.commit(messageQueues, true);
+        }
+
+        @Override
+        public void shutdown(boolean interrupt) {
+            this.pullConsumer.shutdown();
+            super.shutdown(interrupt);
+        }
+
+        @Override
+        public String getServiceName() {
+            return "RStreams-pull-thread";
+        }
     }
 }
