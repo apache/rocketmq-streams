@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams</artifactId>
-        <version>1.0.1-preview</version>
+        <version>1.0.2-preview-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-streams-connectors</artifactId>
     <packaging>jar</packaging>
