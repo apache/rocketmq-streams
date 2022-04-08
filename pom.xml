@@ -125,7 +125,7 @@
         <auto-service.version>1.0-rc5</auto-service.version>
         <mysql-connector.version>5.1.40</mysql-connector.version>
         <fastjson.version>1.2.9</fastjson.version>
-        <quartz.version>2.2.1</quartz.version>
+        <quartz.version>2.3.2</quartz.version>
         <httpclient.version>4.5.2</httpclient.version>
         <commons-io.version>2.5</commons-io.version>
         <junit.version>4.12</junit.version>
