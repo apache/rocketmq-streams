@@ -386,13 +386,6 @@ public class SessionOperator extends WindowOperator {
             //get iterator sorted by fire time
             WindowBaseValueIterator<WindowValue> it = storage.loadWindowInstanceSplitData(getOrderBypPrefix(), queueId, windowInstance.createWindowInstanceId(), null, getWindowBaseValueClass());
             //
-            if (queueId2Offset != null) {
-                String offset = queueId2Offset.get(queueId);
-                if (StringUtil.isNotEmpty(offset)) {
-                    it.setPartitionNum(Long.valueOf(offset));
-                }
-            }
-            //
             Long currentFireTime = DateUtil.parse(windowInstance.getFireTime(), SESSION_DATETIME_PATTERN).getTime();
             Long nextFireTime = currentFireTime + 1000 * 60 * 1;
             List<WindowValue> toFireValueList = new ArrayList<>();
@@ -412,8 +405,18 @@ public class SessionOperator extends WindowOperator {
                     }
                 }
             }
-            doFire(queueId, windowInstance, toFireValueList, currentFireTime, nextFireTime);
+            doFire(queueId, windowInstance, toFireValueList);
             //
+            if (!nextFireTime.equals(currentFireTime)) {
+                String instanceId = windowInstance.createWindowInstanceId();
+                WindowInstance existedWindowInstance = searchWindowInstance(instanceId);
+                if (existedWindowInstance != null) {
+                    existedWindowInstance.setFireTime(DateUtil.format(new Date(nextFireTime)));
+                    windowFireSource.registFireWindowInstanceIfNotExist(windowInstance, this);
+                } else {
+                    LOG.error("window instance lost, queueId: " + queueId + " ,fire time" + windowInstance.getFireTime());
+                }
+            }
             return toFireValueList.size();
         }
 
@@ -432,25 +435,13 @@ public class SessionOperator extends WindowOperator {
         return false;
     }
 
-    private void doFire(String queueId, WindowInstance instance, List<WindowValue> valueList, Long currentFireTime,
-        Long nextFireTime) {
+    private void doFire(String queueId, WindowInstance instance, List<WindowValue> valueList) {
         if (CollectionUtil.isEmpty(valueList)) {
             return;
         }
         valueList.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
         sendFireMessage(valueList, queueId);
         clearWindowValues(valueList, queueId, instance);
-        //
-        if (!nextFireTime.equals(currentFireTime)) {
-            String instanceId = instance.createWindowInstanceId();
-            WindowInstance existedWindowInstance = searchWindowInstance(instanceId);
-            if (existedWindowInstance != null) {
-                existedWindowInstance.setFireTime(DateUtil.format(new Date(nextFireTime)));
-                windowFireSource.registFireWindowInstanceIfNotExist(instance, this);
-            } else {
-                LOG.error("window instance lost, queueId: " + queueId + " ,fire time" + instance.getFireTime());
-            }
-        }
     }
 
     /**
