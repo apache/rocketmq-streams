@@ -21,38 +21,41 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class MessageListenerDelegator implements MessageQueueListener {
     private final MessageQueueListener delegator;
-    private Consumer<Set<MessageQueue>> removingQueueFunction;
-    private Consumer<Set<MessageQueue>> addingQueueFunction;
     private Set<MessageQueue> lastDivided = null;
+    private Set<MessageQueue> removingQueue;
 
 
-    public MessageListenerDelegator(MessageQueueListener delegator, Consumer<Set<MessageQueue>> removingQueueFunction,
-                                    Consumer<Set<MessageQueue>> addingQueueFunction) {
+    public MessageListenerDelegator(MessageQueueListener delegator) {
         this.delegator = delegator;
-        this.removingQueueFunction = removingQueueFunction;
-        this.addingQueueFunction = addingQueueFunction;
     }
 
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-        HashSet<MessageQueue> removingQueue = new HashSet<>();
+
+        //上一次分配有，但是这一次没有,需要对这些mq进行状态移除
         if (lastDivided != null) {
-            for (MessageQueue queue : mqDivided) {
-                if (!lastDivided.contains(queue)) {
-                    removingQueue.add(queue);
+            this.removingQueue = new HashSet<>();
+            for (MessageQueue last : lastDivided) {
+                if (!mqDivided.contains(last)) {
+                    removingQueue.add(last);
                 }
             }
         }
 
-        lastDivided = mqDivided;
-
-        this.removingQueueFunction.accept(removingQueue);
-
         delegator.messageQueueChanged(topic, mqAll, mqDivided);
+
+        lastDivided = mqDivided;
+    }
+
+    public Set<MessageQueue> getLastDivided() {
+        return this.lastDivided;
+    }
+
+    public Set<MessageQueue> getRemovingQueue() {
+        return this.removingQueue;
     }
 }
