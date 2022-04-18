@@ -99,7 +99,6 @@
         <module>rocketmq-streams-channel-http</module>
         <module>rocketmq-streams-state</module>
         <module>rocketmq-streams-examples</module>
-        <module>rocketmq-streams-checkpoint</module>
         <module>rocketmq-streams-connectors</module>
         <module>rocketmq-streams-channel-syslog</module>
         <module>rocketmq-streams-channel-es</module>
