@@ -14,7 +14,7 @@
 ## Features
 
 * Lightweight deployment: RocketMQ Streams can be deployed separately or in cluster mode.
-* Various types of data input and output: source supports RocketMQ while sink supports databases and RocketMQ, etc.
+* Various types of data input and output: source supports [RocketMQ](https://github.com/apache/rocketmq) while sink supports databases and RocketMQ, etc.
 
 ## DataStream Example
 
