@@ -61,7 +61,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     @ENVDependence
     private String tags = SubscriptionData.SUB_ALL;
 
-    private int pullThreadNum = 1;
+    private int userPullThreadNum = 1;
     private long pullTimeout;
     private long commitInternalMs = 1000;
     private String strategyName;
@@ -100,12 +100,12 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             this.pullConsumer.start();
 
             if (this.executorService == null) {
-                this.executorService = new ThreadPoolExecutor(pullThreadNum, pullThreadNum, 0, TimeUnit.MILLISECONDS,
+                this.executorService = new ThreadPoolExecutor(userPullThreadNum, userPullThreadNum, 0, TimeUnit.MILLISECONDS,
                         new ArrayBlockingQueue<>(1000), r -> new Thread(r, "RStream-poll-thread"));
             }
 
-            pullTasks = new PullTask[pullThreadNum * 2];
-            for (int i = 0; i < pullThreadNum * 2; i++) {
+            pullTasks = new PullTask[userPullThreadNum];
+            for (int i = 0; i < userPullThreadNum; i++) {
                 pullTasks[i] = new PullTask(this.pullConsumer, pullTimeout, commitInternalMs);
                 this.executorService.execute(pullTasks[i]);
             }
@@ -209,7 +209,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
     @Override
     protected boolean isNotDataSplit(String queueId) {
-        return queueId.toUpperCase().startsWith("RETRY") || queueId.toUpperCase().startsWith("%RETRY%");
+        return false;
     }
 
     @Override
@@ -254,58 +254,10 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         destroyConsumer();
     }
 
-    public String getTags() {
-        return tags;
-    }
-
-    public void setTags(String tags) {
-        this.tags = tags;
-    }
-
-    public Long getPullTimeout() {
-        return pullTimeout;
-    }
-
-    public void setPullTimeout(Long pullTimeout) {
-        this.pullTimeout = pullTimeout;
-    }
-
-    public String getStrategyName() {
-        return strategyName;
-    }
-
-    public void setStrategyName(String strategyName) {
-        this.strategyName = strategyName;
-    }
-
-    public RPCHook getRpcHook() {
-        return rpcHook;
-    }
-
-    public void setRpcHook(RPCHook rpcHook) {
-        this.rpcHook = rpcHook;
-    }
-
-    public int getPullThreadNum() {
-        return pullThreadNum;
-    }
-
-    public void setPullThreadNum(int pullThreadNum) {
-        this.pullThreadNum = pullThreadNum;
-    }
-
-    public long getCommitInternalMs() {
-        return commitInternalMs;
-    }
-
-    public void setCommitInternalMs(long commitInternalMs) {
-        this.commitInternalMs = commitInternalMs;
-    }
-
     public class PullTask implements Runnable {
         private final long pullTimeout;
         private final long commitInternalMs;
-        private long lastCommit = 0L;
+        private volatile long lastCommit = 0L;
 
         private final DefaultLitePullConsumer pullConsumer;
         private final MessageListenerDelegator delegator;
@@ -366,12 +318,13 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
                 }
 
                 //拉取的批量消息处理完成以后判断是否提交位点；
-                if (System.currentTimeMillis() - lastCommit >= commitInternalMs) {
-                    lastCommit = System.currentTimeMillis();
-                    //向broker提交消费位点,todo 从consumer那里拿不到正在消费哪些messageQueue
-                    commit(this.delegator.getLastDivided());
+                synchronized (this.pullConsumer) {
+                    if (System.currentTimeMillis() - lastCommit >= commitInternalMs || isStopped) {
+                        lastCommit = System.currentTimeMillis();
+                        //向broker提交消费位点,todo 从consumer那里拿不到正在消费哪些messageQueue
+                        commit(this.delegator.getLastDivided());
+                    }
                 }
-
             }
         }
 
@@ -379,4 +332,54 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             this.isStopped = true;
         }
     }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
+    public Long getPullTimeout() {
+        return pullTimeout;
+    }
+
+    public void setPullTimeout(Long pullTimeout) {
+        this.pullTimeout = pullTimeout;
+    }
+
+    public String getStrategyName() {
+        return strategyName;
+    }
+
+    public void setStrategyName(String strategyName) {
+        this.strategyName = strategyName;
+    }
+
+    public RPCHook getRpcHook() {
+        return rpcHook;
+    }
+
+    public void setRpcHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
+    }
+
+    public int getUserPullThreadNum() {
+        return userPullThreadNum;
+    }
+
+    public void setUserPullThreadNum(int userPullThreadNum) {
+        this.userPullThreadNum = userPullThreadNum;
+    }
+
+    public long getCommitInternalMs() {
+        return commitInternalMs;
+    }
+
+    public void setCommitInternalMs(long commitInternalMs) {
+        this.commitInternalMs = commitInternalMs;
+    }
+
+
 }
