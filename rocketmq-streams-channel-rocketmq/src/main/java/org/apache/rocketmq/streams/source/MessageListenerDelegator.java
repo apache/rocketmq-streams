@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.source;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -52,10 +53,10 @@ public class MessageListenerDelegator implements MessageQueueListener {
     }
 
     public Set<MessageQueue> getLastDivided() {
-        return this.lastDivided;
+        return Collections.unmodifiableSet(this.lastDivided);
     }
 
     public Set<MessageQueue> getRemovingQueue() {
-        return this.removingQueue;
+        return Collections.unmodifiableSet(this.removingQueue);
     }
 }
