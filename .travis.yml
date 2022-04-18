@@ -16,8 +16,7 @@ before_install:
 
 script:
   - travis_retry mvn -B clean apache-rat:check
-  - travis_retry mvn -B clean install jacoco:report
+  - travis_retry mvn -B clean install cobertura:cobertura
 
 after_success:
-  - mvn test
   - bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
