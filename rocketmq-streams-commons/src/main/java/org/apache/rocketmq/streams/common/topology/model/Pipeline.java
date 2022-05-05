@@ -34,6 +34,7 @@ import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
+import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
@@ -176,7 +177,12 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
             T lastMsg = null;
             for (T subT : oldSplits) {
                 context.closeSplitMode(subT);
-                subT.getHeader().setMsgRouteFromLable(t.getHeader().getMsgRouteFromLable());
+                if(ChainPipeline.class.isInstance(this)&&!((ChainPipeline)this).isTopology()&&StringUtil.isNotEmpty(this.msgSourceName)){
+                    subT.getHeader().setMsgRouteFromLable(t.getHeader().getMsgRouteFromLable());
+                }else {
+                    subT.getHeader().setMsgRouteFromLable(t.getHeader().getMsgRouteFromLable());
+                }
+
                 subT.getHeader().addLayerOffset(splitMessageOffset);
                 splitMessageOffset++;
                 boolean isContinue = doMessage(subT, stage, context);

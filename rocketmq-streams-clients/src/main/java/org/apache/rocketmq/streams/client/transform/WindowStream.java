@@ -21,10 +21,16 @@ import java.util.Set;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.functions.ReduceFunction;
+import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
+import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.apache.rocketmq.streams.script.service.udf.SimpleUDAFScript;
+import org.apache.rocketmq.streams.script.service.udf.UDAFScript;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 /**
@@ -90,10 +96,13 @@ public class WindowStream {
      * @return
      */
     public WindowStream count_distinct(String fieldName, String asName) {
-        String distinctName = "__" + fieldName + "_distinct_" + asName + "__";
-        String prefix = distinctName + "=distinct(" + fieldName + ")";
-        String suffix = asName + "=count(" + distinctName + ")";
-        window.getSelectMap().put(asName, prefix + ";" + suffix);
+        return count_distinct_2(fieldName,asName);
+    }
+
+    public WindowStream addUDAF(IAccumulator accumulator, String asName,String... fieldNames) {
+        AggregationScript.registUDAF(accumulator.getClass().getSimpleName(),accumulator.getClass());
+        String prefix = asName + "="+accumulator.getClass().getSimpleName()+"(" + MapKeyUtil.createKeyBySign(",",fieldNames)+")";
+        window.getSelectMap().put(asName,prefix);
         return this;
     }
 

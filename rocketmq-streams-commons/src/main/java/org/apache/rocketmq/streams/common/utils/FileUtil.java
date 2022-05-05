@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -957,8 +958,14 @@ public class FileUtil {
     }
 
     public static void main(String[] args) {
-        File target = new File("/Users/yd/Downloads/test.html");
-        downloadFile("https://zhuanlan.zhihu.com/p/60383884", target);
+        long begin = System.currentTimeMillis();
+//        File file = new File("/Users/yd/Documents/tert.jar");
+//        downloadFile("https://yundun-bigdata.oss-cn-qingdao.aliyuncs.com/download/dipper/linux64/1.0.0/rocketmq-stream-sql_20220225112207911.jar",
+//            file);
+        downloadNet("https://yundun-bigdata.oss-cn-qingdao.aliyuncs.com/download/dipper/linux64/1.0.0/rocketmq-stream-sql_20220225112207911.jar",
+            "/Users/yd/Documents/tert.jar");
+        long end = System.currentTimeMillis();
+        System.out.println("用时=====" + (end - begin));
     }
 
     /**
@@ -1012,6 +1019,33 @@ public class FileUtil {
             e.printStackTrace();
         }
 //        return dest_file+File.separator+fileName;
+    }
+
+    public static void downloadNet(String packageUrl, String destPath)  {
+        // 下载网络文件
+        int bytesum = 0;
+        int byteread = 0;
+
+
+
+        try {
+            URL url = new URL(packageUrl);
+            URLConnection conn = url.openConnection();
+            InputStream inStream = conn.getInputStream();
+            FileOutputStream fs = new FileOutputStream(destPath);
+
+            byte[] buffer = new byte[2048];
+            int length;
+            while ((byteread = inStream.read(buffer)) != -1) {
+                bytesum += byteread;
+                System.out.println(bytesum);
+                fs.write(buffer, 0 , byteread);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

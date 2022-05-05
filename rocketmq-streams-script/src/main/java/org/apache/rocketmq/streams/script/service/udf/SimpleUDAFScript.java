@@ -14,23 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.db.sink;
+package org.apache.rocketmq.streams.script.service.udf;
 
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.context.IMessage;
+public class SimpleUDAFScript extends UDAFScript {
 
-public class SplitBySerialNumber extends AbstractMultiTableSink {
-    public SplitBySerialNumber(String url, String userName, String password) {
-        super(url, userName, password);
+    public SimpleUDAFScript(){
+        this.accumulateMethodName = "accumulate";
+        this.createAccumulatorMethodName = "createAccumulator";
+        this.getValueMethodName = "getValue";
+        this.retractMethodName = "retract";
+        this.mergeMethodName = "merge";
+        this.methodName = "eval";
+        this.initMethodName = "open";
+        this.initParameters = new Object[0];
     }
 
-    @Override
-    protected String createTableName(String splitId) {
-        return null;
-    }
-
-    @Override
-    protected ISplit<?, ?> getSplitFromMessage(IMessage message) {
-        return null;
+    @Override protected Object createMergeParamters(Iterable its) {
+        return its;
     }
 }

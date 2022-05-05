@@ -77,7 +77,7 @@ public class KafkaSource extends AbstractSupportShuffleSource {
         props.put("key.serializer.encoding", getEncoding());
         props.put("value.serializer.encoding", getEncoding());
         this.props = props;
-        return true;
+        return super.initConfigurable();
     }
 
     @Override protected boolean startSource() {

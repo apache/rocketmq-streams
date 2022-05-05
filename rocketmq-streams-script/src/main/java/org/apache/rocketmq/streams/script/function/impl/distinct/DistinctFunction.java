@@ -37,7 +37,6 @@ public class DistinctFunction {
                 }
             }
         }
-        cache = new KeySet(MAX_SIZE);
         String key = MapKeyUtil.createKey(keys);
         boolean success = cache.contains(key);
         if (!success) {

@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.batchloader.BatchRowLoader;
 import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
@@ -32,9 +33,12 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 public abstract class AbstractWindowStorage<T extends WindowBaseValue> implements IWindowStorage<T> {
     protected boolean isLocalStorageOnly = false;
-    protected transient ExecutorService dataLoaderExecutor = new ThreadPoolExecutor(10, 10,
-        0L, TimeUnit.MILLISECONDS,
-        new LinkedBlockingQueue<Runnable>());
+//    protected transient ExecutorService dataLoaderExecutor = new ThreadPoolExecutor(10, 10,
+//        0L, TimeUnit.MILLISECONDS,
+//        new LinkedBlockingQueue<Runnable>(), new ThreadPoolFactory.DipperThreadFactory("AbstractWindowStorage-"));
+
+    protected transient ExecutorService dataLoaderExecutor = ThreadPoolFactory.createThreadPool(10, 10, 0L, TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<Runnable>(), "AbstractWindowStorage");
     ;
 
 

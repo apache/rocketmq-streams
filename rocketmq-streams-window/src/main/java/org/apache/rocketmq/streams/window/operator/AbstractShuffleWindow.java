@@ -47,16 +47,23 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
-        if (hasCreated.compareAndSet(false, true)) {
-            this.windowFireSource = new WindowTrigger(this);
-            this.windowFireSource.init();
-            this.windowFireSource.start(getFireReceiver());
-            this.shuffleChannel = new ShuffleChannel(this);
-            this.shuffleChannel.init();
-            windowCache.setBatchSize(5000);
-            windowCache.setShuffleChannel(shuffleChannel);
+        if (!hasCreated.get() || windowCache == null) {
+            synchronized (this) {
+                if (!hasCreated.get() || windowCache == null) {
+                    this.windowFireSource = new WindowTrigger(this);
+                    this.windowFireSource.init();
+                    this.windowFireSource.start(getFireReceiver());
+                    this.shuffleChannel = new ShuffleChannel(this);
+                    this.shuffleChannel.init();
+                    windowCache.setBatchSize(5000);
+                    windowCache.setShuffleChannel(shuffleChannel);
+                    shuffleChannel.startChannel();
+                    hasCreated.set(true);
+                }
+            }
+
         }
-        shuffleChannel.startChannel();
+
         return super.doMessage(message, context);
     }
 
@@ -65,8 +72,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
         Set<String> splitIds = new HashSet<>();
         splitIds.add(windowInstance.getSplitId());
         shuffleChannel.flush(splitIds);
-        int fireCount = fireWindowInstance(windowInstance, windowInstance.getSplitId(), queueId2Offset);
-        return fireCount;
+        return fireWindowInstance(windowInstance, windowInstance.getSplitId(), queueId2Offset);
     }
 
     /**
@@ -82,8 +88,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
      *
      * @param instance
      */
-    protected abstract int fireWindowInstance(WindowInstance instance, String queueId,
-        Map<String, String> queueId2Offset);
+    protected abstract int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset);
 
     public abstract void clearCache(String queueId);
 }

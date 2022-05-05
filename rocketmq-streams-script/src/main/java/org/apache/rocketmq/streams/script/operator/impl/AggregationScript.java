@@ -196,6 +196,10 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
         return null;
     }
 
+
+    public static void registUDAF(String functionName,Class accumulator){
+        aggregationEngineMap.put(functionName,accumulator);
+    }
     public Object getAccumulator() {
         return accumulator;
     }

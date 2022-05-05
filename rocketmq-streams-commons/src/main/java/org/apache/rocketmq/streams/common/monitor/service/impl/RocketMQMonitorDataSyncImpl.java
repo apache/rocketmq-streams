@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.common.monitor.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -36,7 +37,7 @@ import org.apache.rocketmq.streams.common.monitor.model.JobStage;
 import org.apache.rocketmq.streams.common.monitor.model.TraceIdsDO;
 import org.apache.rocketmq.streams.common.monitor.model.TraceMonitorDO;
 import org.apache.rocketmq.streams.common.monitor.service.MonitorDataSyncService;
-import org.apache.rocketmq.streams.common.utils.IPUtil;
+import org.apache.rocketmq.streams.common.utils.CompressUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 
 public class RocketMQMonitorDataSyncImpl implements MonitorDataSyncService {
@@ -111,9 +112,10 @@ public class RocketMQMonitorDataSyncImpl implements MonitorDataSyncService {
 
         protected Long pullIntervalMs;
         protected String ruleUpTopic = ComponentCreator.getProperties().getProperty(DataSyncConstants.RULE_UP_TOPIC);
+        protected String ruleUpTag = ComponentCreator.getProperties().getProperty(DataSyncConstants.RULE_UP_TAG, "T_MSG_DIPPER_RULE");
         protected String ruleDownTopic = ComponentCreator.getProperties().getProperty(DataSyncConstants.RULE_DOWN_TOPIC);
-        protected String tags = "*";
-        public String CHARSET = "UTF-8";
+        protected String ruleDownTag = ComponentCreator.getProperties().getProperty(DataSyncConstants.RULE_DOWN_TAG, "T_MSG_DIPPER_RULE_PUSH");
+        public  String CHARSET = "UTF-8";
 
         protected transient DefaultMQProducer producer;
 
@@ -126,17 +128,18 @@ public class RocketMQMonitorDataSyncImpl implements MonitorDataSyncService {
         protected DefaultMQPushConsumer initConsumer() {
             try {
 //                DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(IPUtil.getLocalIdentification().replaceAll("\\.", "_"));
-                DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("jobconfig_comsumer");
+                DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("jobconfig_comsumer" + RuntimeUtil.getPid());
                 if (pullIntervalMs != null) {
                     consumer.setPullInterval(pullIntervalMs);
                 }
 //                consumer.setNamesrvAddr(this.namesrvAddr);
-                consumer.subscribe(ruleDownTopic, tags);
+                consumer.subscribe(ruleDownTopic, ruleDownTag);
                 consumer.registerMessageListener((MessageListenerOrderly) (msgs, context) -> {
                     try {
                         int i = 0;
                         for (MessageExt msg : msgs) {
                             String ruleMsg = new String(msg.getBody(), CHARSET);
+                            LOG.info("receive message is :" + ruleMsg);
                             dealMessage(ruleMsg);
                         }
                     } catch (Exception e) {
@@ -168,9 +171,26 @@ public class RocketMQMonitorDataSyncImpl implements MonitorDataSyncService {
             sendMsg(msg, ruleUpTopic);
         }
 
+//        protected void sendMsg(byte[] msg) {
+//            sendMsg(msg, ruleUpTopic);
+//        }
+
         protected void sendMsg(JSONObject msg, String topic) {
             try {
-                Message message = new Message(topic, tags, null, msg.toJSONString().getBytes("UTF-8"));
+//                byte[] bytes = CompressUtil.gZip(msg.toJSONString());
+                byte[] bytes = msg.toJSONString().getBytes(StandardCharsets.UTF_8);
+                LOG.info("sendMsg is: " + msg.toJSONString() + "   topic is: " + topic + " tag is: " + ruleUpTag + "  byte length is " + bytes.length);
+                Message message = new Message(topic, ruleUpTag, null, bytes);
+                producer.send(message);
+            } catch (Exception e) {
+                LOG.error("updater sendMsg error: ", e);
+                e.printStackTrace();
+            }
+        }
+
+        protected void sendMsg(byte[] msg, String topic) {
+            try {
+                Message message = new Message(topic, ruleUpTag, null, msg);
                 producer.send(message);
             } catch (Exception e) {
                 LOG.error("updater sendMsg error: ", e);

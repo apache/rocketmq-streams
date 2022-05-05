@@ -72,13 +72,13 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     }
 
     @Override
-    public boolean batchAdd(IMessage message,  ISplit split) {
+    public boolean batchAdd(IMessage message,  ISplit<?,?> split) {
         message.getMessageBody().put(TARGET_QUEUE, split);
         return batchAdd(message);
     }
 
-    public ISplit getSplit(IMessage message) {
-        return (ISplit) message.getMessageBody().get(TARGET_QUEUE);
+    public ISplit<?,?> getSplit(IMessage message) {
+        return (ISplit<?,?>) message.getMessageBody().get(TARGET_QUEUE);
     }
 
     @Override

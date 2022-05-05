@@ -35,21 +35,21 @@ public class ConfigurableExecutorJob implements StatefulJob {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        IScheduleExecutor channelExecutor = null;
-
-        try {
-            JobDetail jobDetail = context.getJobDetail();
-            channelExecutor = (IScheduleExecutor)jobDetail.getJobDataMap().get(IScheduleExecutor.class.getName());
-            channelExecutor.doExecute();
-        } catch (Exception e) {
-            //降低日志量
-            //            LOG.error("schedule error "+channelExecutor.toString(),e);
-            IMonitor startupMonitor = MonitorFactory.getOrCreateMonitor(MapKeyUtil.createKey(MonitorFactory.PIPLINE_START_UP, channelExecutor.getNameSpace()));
-            IMonitor monitor = startupMonitor.createChildren(channelExecutor.getConfigureName());
-            monitor.addContextMessage(JSON.parse(channelExecutor.toString()));
-            String name = MapKeyUtil.createKeyBySign(".", channelExecutor.getNameSpace(), channelExecutor.getConfigureName());
-            monitor.occureError(e, name + " schedule error", e.getMessage());
-        }
+//        IScheduleExecutor channelExecutor = null;
+//
+//        try {
+//            JobDetail jobDetail = context.getJobDetail();
+//            channelExecutor = (IScheduleExecutor)jobDetail.getJobDataMap().get(IScheduleExecutor.class.getName());
+//            channelExecutor.doExecute();
+//        } catch (Exception e) {
+//            //降低日志量
+//            //            LOG.error("schedule error "+channelExecutor.toString(),e);
+//            IMonitor startupMonitor = MonitorFactory.getOrCreateMonitor(MapKeyUtil.createKey(MonitorFactory.PIPLINE_START_UP, channelExecutor.getNameSpace()));
+//            IMonitor monitor = startupMonitor.createChildren(channelExecutor.getConfigureName());
+//            monitor.addContextMessage(JSON.parse(channelExecutor.toString()));
+//            String name = MapKeyUtil.createKeyBySign(".", channelExecutor.getNameSpace(), channelExecutor.getConfigureName());
+//            monitor.occureError(e, name + " schedule error", e.getMessage());
+//        }
 
     }
 }

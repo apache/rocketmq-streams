@@ -80,7 +80,7 @@
     DataStream dataStream=dataStream.toRocketmq(topic,tags,groupName,namesrvAddress);
 
 ```
-##kafka
+## kafka
 ```java
     String bootstrapServers = ......;//kafka的bootstrap server
     String topic = ......; //kafka的topic
