@@ -40,7 +40,7 @@ public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>,
      * @param message
      * @return
      */
-    boolean batchAdd(IMessage message, ISplit split);
+    boolean batchAdd(IMessage message, ISplit<?,?> split);
 
     /**
      * 根据channel推断 meta，或者不需要meta，如消息对垒

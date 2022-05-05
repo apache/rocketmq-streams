@@ -46,6 +46,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
@@ -88,9 +89,8 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
 
     public AbstractIntelligenceCache() {
         setType(TYPE);
-        executorService = new ThreadPoolExecutor(20, 20,
-            0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(1000));
+        executorService = ThreadPoolFactory.createThreadPool(20, 20,0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>(1000), "AbstractIntelligenceCache");
         scheduledExecutorService = new ScheduledThreadPoolExecutor(3);
     }
 

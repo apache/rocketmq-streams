@@ -320,8 +320,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      */
 
     public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
-        long maxValue = windowMaxValueManager.incrementAndGetSplitNumber(instance, shuffleId);
-        return maxValue;
+        return windowMaxValueManager.incrementAndGetSplitNumber(instance, shuffleId);
     }
 
     public abstract Class getWindowBaseValueClass();

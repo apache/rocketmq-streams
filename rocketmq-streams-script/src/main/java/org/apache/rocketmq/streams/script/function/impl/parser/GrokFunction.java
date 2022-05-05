@@ -43,9 +43,9 @@ public class GrokFunction {
          传入自定义的pattern, 会从已注册的patterns里面进行配对, 例如: TIMESTAMP_ISO8601:timestamp1, TIMESTAMP_ISO8601在注册的
          patterns里面有对应的解析格式, 配对成功后, 会在match时按照固定的解析格式将解析结果存入map中, 此处timestamp1作为输出的key
           */
-        grokStr = FunctionUtils.getValueString(message, context, grokStr);
+        grokStr = FunctionUtils.getConstant( grokStr);
         Grok grok = grokCompiler.compile(grokStr);
-        fieldName = FunctionUtils.getValueString(message, context, fieldName);
+        fieldName = FunctionUtils.getConstant(fieldName);
         String logMsg = message.getMessageBody().getString(fieldName);
         // 通过match()方法进行匹配, 对log进行解析, 按照指定的格式进行输出
         Match grokMatch = grok.match(logMsg);

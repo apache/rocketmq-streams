@@ -74,11 +74,16 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
         create();
         if (sourceValue != null) {
             source = InstantiationUtil.deserializeObject(Base64Utils.decode(sourceValue));
-            source.init();
+            if(source!=null){
+                source.init();
+            }
+
         }
         if (sinkValue != null) {
             sink = InstantiationUtil.deserializeObject(Base64Utils.decode(sinkValue));
-            sink.init();
+            if(sink!=null){
+                sink.init();
+            }
         }
 
     }
@@ -244,5 +249,7 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     public void atomicSink(ISystemMessage message){
 
     }
+
+
 
 }

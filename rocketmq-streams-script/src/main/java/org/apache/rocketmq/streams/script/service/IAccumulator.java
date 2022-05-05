@@ -16,10 +16,12 @@
  */
 package org.apache.rocketmq.streams.script.service;
 
+import java.io.Serializable;
+
 /**
  * UDAF的标准接口，所有的udaf都要实现这个接口。 Blink UDAF也是生成这个接口的实现类来完成转化的
  */
-public interface IAccumulator<T, ACC> {
+public interface IAccumulator<T, ACC> extends Serializable {
 
     String ACCUMULATOR_VALUE = "value";
 

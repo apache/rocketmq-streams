@@ -16,24 +16,59 @@
  */
 package org.apache.rocketmq.streams.common.threadpool;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ThreadPoolFactory {
-    public static ExecutorService createThreadPool(int coreSize){
-        ExecutorService executorService= new ThreadPoolExecutor(coreSize, coreSize,
-            1000*60L, TimeUnit.MILLISECONDS,
-            new SynchronousQueue<Runnable>(),new ThreadPoolExecutor.CallerRunsPolicy());
+    public static ExecutorService createThreadPool(int coreSize, String poolNamePrefix) {
+        ExecutorService executorService = new ThreadPoolExecutor(coreSize, coreSize,
+            1000 * 60L, TimeUnit.MILLISECONDS,
+            new SynchronousQueue<Runnable>(), new DipperThreadFactory(poolNamePrefix), new ThreadPoolExecutor.CallerRunsPolicy());
         return executorService;
     }
 
-
-    public static ExecutorService createThreadPool(int min,int max){
-        ExecutorService executorService= new ThreadPoolExecutor(min, max,
-            1000*60L, TimeUnit.MILLISECONDS,
-            new SynchronousQueue<Runnable>(),new ThreadPoolExecutor.CallerRunsPolicy());
+    public static ExecutorService createThreadPool(int min, int max, String poolNamePrefix) {
+        ExecutorService executorService = new ThreadPoolExecutor(min, max,
+            1000 * 60L, TimeUnit.MILLISECONDS,
+            new SynchronousQueue<Runnable>(), new DipperThreadFactory(poolNamePrefix), new ThreadPoolExecutor.CallerRunsPolicy());
         return executorService;
+    }
+
+    public static ExecutorService createThreadPool(int min, int max, long keepAliveTime, TimeUnit timeUnit, BlockingQueue<Runnable> workQueue, String poolNamePrefix) {
+        ExecutorService executorService = new ThreadPoolExecutor(min, max,
+            keepAliveTime, timeUnit,
+            workQueue, new DipperThreadFactory(poolNamePrefix), new ThreadPoolExecutor.CallerRunsPolicy());
+        return executorService;
+    }
+    public static class DipperThreadFactory implements ThreadFactory {
+        private final AtomicInteger poolNumber = new AtomicInteger(1);
+        private final ThreadGroup group;
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final String namePrefix;
+
+        public DipperThreadFactory(String poolNamePrefix) {
+            SecurityManager s = System.getSecurityManager();
+            group = (s != null) ? s.getThreadGroup() :
+                Thread.currentThread().getThreadGroup();
+            namePrefix = poolNamePrefix + "-dipper-" +
+                poolNumber.getAndIncrement() +
+                "-thread-";
+        }
+
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(group, r,
+                namePrefix + threadNumber.getAndIncrement(),
+                0);
+            if (t.isDaemon())
+                t.setDaemon(false);
+            if (t.getPriority() != Thread.NORM_PRIORITY)
+                t.setPriority(Thread.NORM_PRIORITY);
+            return t;
+        }
     }
 }

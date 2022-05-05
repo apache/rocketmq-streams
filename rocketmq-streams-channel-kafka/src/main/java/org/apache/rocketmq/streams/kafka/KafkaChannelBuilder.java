@@ -41,10 +41,8 @@ public class KafkaChannelBuilder extends AbstractSupportShuffleChannelBuilder {
      * @return
      */
     @Override
-    public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
-
-        KafkaSource kafkaSource = (KafkaSource) ConfigurableUtil.create(KafkaSource.class.getName(), namespace, name, createFormatProperty(properties), null);
-        return kafkaSource;
+    public ISource<?> createSource(String namespace, String name, Properties properties, MetaData metaData) {
+        return (KafkaSource) ConfigurableUtil.create(KafkaSource.class.getName(), namespace, name, createFormatProperty(properties), null);
     }
 
     @Override
@@ -53,7 +51,7 @@ public class KafkaChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     }
 
     @Override
-    public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
+    public ISink<?> createSink(String namespace, String name, Properties properties, MetaData metaData) {
         return (KafkaSink) ConfigurableUtil.create(KafkaSink.class.getName(), namespace, name, createFormatProperty(properties), null);
     }
 
@@ -85,10 +83,9 @@ public class KafkaChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     }
 
     @Override
-    public ISink createBySource(ISource pipelineSource) {
+    public ISink<?> createBySource(ISource<?> pipelineSource) {
         KafkaSource kafkaSource = (KafkaSource) pipelineSource;
         String topic = kafkaSource.getTopic();
-        KafkaSink sink = new KafkaSink(kafkaSource.getBootstrapServers(), topic);
-        return sink;
+        return new KafkaSink(kafkaSource.getBootstrapServers(), topic);
     }
 }
