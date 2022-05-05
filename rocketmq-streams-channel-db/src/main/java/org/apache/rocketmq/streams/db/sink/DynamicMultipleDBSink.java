@@ -32,7 +32,7 @@ public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAf
     String logicTableName;
     String fieldName;
 
-    public DynamicMultipleDBSink(){
+    public DynamicMultipleDBSink() {
     }
 
     public String getLogicTableName() {
@@ -63,21 +63,21 @@ public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAf
     }
 
     @Override
-    protected ISplit getSplitFromMessage(IMessage message) {
+    protected ISplit<?, ?> getSplitFromMessage(IMessage message) {
         return this.multiTableSplitFunction.createSplit(message);
     }
-
 
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
 
-        if(this.multiTableSplitFunction == null){
+        if (this.multiTableSplitFunction == null) {
 
             this.multiTableSplitFunction = new MultiTableSplitFunction<IMessage>() {
                 @Override
-                public ISplit createSplit(IMessage message) {
+                public ISplit<?, ?> createSplit(IMessage message) {
                     return new DynamicMultipleDBSplit(message.getMessageBody().getString(fieldName), logicTableName);
                 }
+
                 @Override
                 public String createTableFromSplitId(String splitId) {
                     return splitId;
@@ -85,7 +85,6 @@ public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAf
             };
 
         }
-
 
     }
 }

@@ -23,10 +23,20 @@ public class DataSyncConstants {
      */
     public static final String RULE_UP_TOPIC = "dipper.console.topic.up";
 
+   /**
+     * rocketmq-stream更新模块对应的topic
+     */
+    public static final String RULE_UP_TAG = "dipper.console.topic.up.tags";
+
     /**
      * rocketmq-stream更新模块对应的topic
      */
     public static final String RULE_DOWN_TOPIC = "dipper.console.topic.down";
+
+    /**
+     * rocketmq-stream更新模块对应的topic
+     */
+    public static final String RULE_DOWN_TAG = "dipper.console.topic.down.tags";
 
     /**
      * rocketmq-stream更新模块对应的tag

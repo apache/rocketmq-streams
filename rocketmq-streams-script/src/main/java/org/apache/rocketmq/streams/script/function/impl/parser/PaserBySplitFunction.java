@@ -28,6 +28,7 @@ import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
@@ -37,14 +38,13 @@ public class PaserBySplitFunction {
 
     @FunctionMethod(value = "paserByComma", comment = "根据英文逗号分割字符串")
     public JSONObject paserByComma(IMessage message, FunctionContext context,
-                                   @FunctionParamter(value = "string", comment = "代表字符串的字段名") String fieldName,
-                                   @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... keyNames) {
+                                   @FunctionParamter(value = "string", comment = "代表字符串的字段名") String fieldName) {
         String log = FunctionUtils.getValueString(message, context, fieldName);
         Map<String, String> flags = (Map<String, String>)context.get(CONST_MAP_KEY);
         if (flags == null) {
             flags = new HashMap<>();
         }
-        return parseBySplit(message, context, log, fieldName, ",", flags, keyNames);
+        return parseBySplit(message, context, log, fieldName, ",", flags);
     }
 
     /**
@@ -53,21 +53,19 @@ public class PaserBySplitFunction {
      * @param message
      * @param context
      * @param asciiDec 十进制的ascii码
-     * @param keyNames
      * @return
      */
-    @FunctionMethod(value = "paserByAsciiSplit", comment = "根据char分割字符串，其中char通过ascii码转换过来，常用于使用不可见字符做分割")
+    @FunctionMethod(value = "paserBySign", comment = "根据char分割字符串，其中char通过ascii码转换过来，常用于使用不可见字符做分割")
     public JSONObject paserByAsciiSplit(IMessage message, FunctionContext context,
                                         @FunctionParamter(value = "string", comment = "代表字符串的字段名") String fieldName,
-                                        @FunctionParamter(value = "string", comment = "代表分割符") String asciiDec,
-                                        @FunctionParamter(value = "string", comment = "预计的字段名称") String... keyNames) {
+                                        @FunctionParamter(value = "string", comment = "代表分割符") String asciiDec) {
         char splitSign = (char)Integer.parseInt(asciiDec);
         String log = FunctionUtils.getValueString(message, context, fieldName);
         Map<String, String> flags = (Map<String, String>)context.get(CONST_MAP_KEY);
         if (flags == null) {
             flags = new HashMap<>();
         }
-        return parseBySplit(message, context, log, fieldName, String.valueOf(splitSign), flags, keyNames);
+        return parseBySplit(message, context, log, fieldName, String.valueOf(splitSign), flags);
     }
 
     @FunctionMethod(value = "split", alias = "paserBySplit", comment = "通过分割符来进行日志解析")
@@ -76,8 +74,7 @@ public class PaserBySplitFunction {
                                   @FunctionParamter(value = "boolean", comment = "是否需要预先处理带括号的数据") boolean needBacket,
                                   @FunctionParamter(value = "boolean", comment = "是否预先处理时间类型的数据") boolean needDate,
                                   @FunctionParamter(value = "string", comment = "代表字符串的字段名") String fieldName,
-                                  @FunctionParamter(value = "string", comment = "代表分割符") String sign,
-                                  @FunctionParamter(value = "string", comment = "预计的字段名称") String... names) {
+                                  @FunctionParamter(value = "string", comment = "代表分割符") String sign) {
         Map<String, String> flags = new HashMap<>();
         fieldName = FunctionUtils.getValueString(message, context, fieldName);
         String log = FunctionUtils.getValueString(message, context, fieldName);
@@ -91,21 +88,20 @@ public class PaserBySplitFunction {
             log = LogParserUtil.parseDate(log, flags);
         }
         sign = FunctionUtils.getValueString(message, context, sign);
-        return parseBySplit(message, context, log, fieldName, sign, flags, names);
+        return parseBySplit(message, context, log, fieldName, sign, flags);
     }
 
     @FunctionMethod(value = "split", alias = "paserBySplit", comment = "通过分割符来进行日志解析")
     public JSONObject parseBySign(IMessage message, FunctionContext context,
                                   @FunctionParamter(value = "string", comment = "代表字符串的字段名") String fieldName,
-                                  @FunctionParamter(value = "string", comment = "代表分割符") String sign,
-                                  @FunctionParamter(value = "string", comment = "预计的字段名称") String... names) {
-        sign = FunctionUtils.getValueString(message, context, sign);
-        String log = FunctionUtils.getValueString(message, context, fieldName);
+                                  @FunctionParamter(value = "string", comment = "代表分割符") String sign) {
+        sign = FunctionUtils.getConstant(sign);
+        String log = FunctionUtils.getValueString(message,context,fieldName);
         Map<String, String> flags = (Map<String, String>)context.get(CONST_MAP_KEY);
         if (flags == null) {
             flags = new HashMap<>();
         }
-        return parseBySplit(message, context, log, fieldName, sign, flags, names);
+        return parseBySplit(message, context, log, fieldName, sign, flags);
     }
 
     /**
@@ -135,28 +131,16 @@ public class PaserBySplitFunction {
      * @param fieldName 字段名称
      * @param sign      分割符号
      * @param flags     常量和原始值的映射
-     * @param names     预计的字段名称，这里的名称未做常量处理
      * @return
      */
-    private JSONObject parseBySplit(IMessage message, FunctionContext context, String log, String fieldName, String sign, Map<String, String> flags, String... names) {
+    private JSONObject parseBySplit(IMessage message, FunctionContext context, String log, String fieldName, String sign, Map<String, String> flags) {
         if (signs.containsKey(sign)) {
             sign = signs.get(sign);
         }
         String[] values = log.split(sign);
         Map jsonObject = new HashMap();
         for (int i = 0; i < values.length; i++) {
-            String name = null;
-            if (names != null && names.length > i) {
-                name = names[i];
-                if (StringUtil.isEmpty(name)) {
-                    name = fieldName + i;
-                } else {
-                    name = FunctionUtils.getValueString(message, context, name);
-                }
-
-            } else {
-                name = fieldName + i;
-            }
+            String name = FunctionType.UDTF.getName() +i;
             String value = values[i];
             String tmp = flags.get(value);
             if (StringUtil.isNotEmpty(tmp)) {

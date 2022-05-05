@@ -165,7 +165,7 @@ public class BasedConfigurable extends AbstractConfigurable {
             }
             DataType dataType = DataTypeUtil.createFieldDataType(this, field.getName());
             String fieldJsonStr = jsonObject.getString(field.getName());
-            fieldJsonStr = getENVParamter(field, fieldJsonStr);
+            fieldJsonStr = getENVParameter(field, fieldJsonStr);
             Object fieldValue = dataType.getData(fieldJsonStr);
             if (fieldValue != null) {
                 ReflectUtil.setBeanFieldValue(this, field.getName(), fieldValue);
@@ -183,7 +183,7 @@ public class BasedConfigurable extends AbstractConfigurable {
      * @param fieldValue
      * @return
      */
-    protected String getENVParamter(Field field, String fieldValue) {
+    protected String getENVParameter(Field field, String fieldValue) {
         ENVDependence dependence = field.getAnnotation(ENVDependence.class);
         if (dependence == null) {
             return fieldValue;

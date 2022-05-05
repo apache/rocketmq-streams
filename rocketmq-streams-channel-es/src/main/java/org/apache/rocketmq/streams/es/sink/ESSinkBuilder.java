@@ -70,6 +70,7 @@ public class ESSinkBuilder extends AbstractSupportShuffleChannelBuilder {
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndexType", "esindextype");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "host", "endpoint");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esMsgId", "es_msg_id");
         return formatProperties;
     }
 

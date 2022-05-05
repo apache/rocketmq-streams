@@ -119,12 +119,13 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     /**
      * 做checkpoint的管理
      */
-    protected transient CheckPointManager checkPointManager = new CheckPointManager();
+    protected transient CheckPointManager checkPointManager = null;
 
     @Override
     protected boolean initConfigurable() {
         hasStart = new AtomicBoolean(false);
         openMock = false;
+        checkPointManager = new CheckPointManager();
         return super.initConfigurable();
     }
 

@@ -32,7 +32,7 @@ public class JsonCreatorFunction {
     @FunctionMethod(value = "json_merge", alias = "jsonMerge", comment = "根据字段来组合json")
     public String extraJsonByField(IMessage message, FunctionContext context,
                                    @FunctionParamter(value = "json", comment = "字段名列表") String jsonFieldName) {
-        jsonFieldName = FunctionUtils.getValueString(message, context, jsonFieldName);
+        jsonFieldName = FunctionUtils.getConstant( jsonFieldName);
         JSONObject msg = message.getMessageBody().getJSONObject(jsonFieldName);
         message.getMessageBody().putAll(msg);
         return null;
@@ -177,7 +177,7 @@ public class JsonCreatorFunction {
     @FunctionMethod(value = "jsonExpand", alias = "json_expand", comment = "展开一个json中的json")
     public void expandElement(IMessage message, FunctionContext context,
                               @FunctionParamter(value = "array", comment = "代表要移除key的字段名或常量列表") String jsonSubFieldName) {
-        jsonSubFieldName = FunctionUtils.getValueString(message, context, jsonSubFieldName);
+        jsonSubFieldName = FunctionUtils.getConstant(jsonSubFieldName);
         String jsonValue = message.getMessageBody().getString(jsonSubFieldName);
         if (jsonValue == null) {
             return;

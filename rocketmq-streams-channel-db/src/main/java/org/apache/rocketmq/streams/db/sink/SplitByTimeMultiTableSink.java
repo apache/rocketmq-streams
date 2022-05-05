@@ -30,7 +30,7 @@ public class SplitByTimeMultiTableSink extends AbstractMultiTableSink {
     }
 
     @Override
-    protected ISplit getSplitFromMessage(IMessage message) {
+    protected ISplit<?, ?> getSplitFromMessage(IMessage message) {
         return null;
     }
 }
