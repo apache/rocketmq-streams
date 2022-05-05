@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.mqtt.source;
 import com.alibaba.fastjson.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.streams.common.channel.source.AbstractBatchSource;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -29,8 +28,12 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PahoSource extends AbstractSource {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PahoSource.class);
 
     private String url;
     private String clientId;
@@ -79,7 +82,7 @@ public class PahoSource extends AbstractSource {
             this.client.setCallback(new MqttCallback() {
 
                 @Override public void connectionLost(Throwable throwable) {
-                    System.out.println("Reconnecting to broker: " + url);
+                    LOGGER.info("Reconnecting to broker: " + url);
                     while (true) {
                         MqttConnectOptions connOpts = new MqttConnectOptions();
                         if (username != null && password != null) {
@@ -111,13 +114,13 @@ public class PahoSource extends AbstractSource {
                         try {
                             if (!client.isConnected()) {
                                 client.connect(connOpts);
-                                System.out.println("Reconnecting success");
+                                LOGGER.info("Reconnecting success");
                             }
                             client.subscribe(topic);
                             break;
                         } catch (MqttException e) {
                             try {
-                                System.err.println("Reconnecting err: " + e.getMessage());
+                                LOGGER.error("Reconnecting err: " + e.getMessage());
                                 e.printStackTrace();
                                 Thread.sleep(10000);
                             } catch (InterruptedException ex) {
@@ -134,7 +137,7 @@ public class PahoSource extends AbstractSource {
                 }
 
                 @Override public void deliveryComplete(IMqttDeliveryToken token) {
-                    System.out.println("deliveryComplete---------" + token.isComplete());
+                    LOGGER.info("deliveryComplete---------" + token.isComplete());
                 }
             });
 
@@ -165,10 +168,10 @@ public class PahoSource extends AbstractSource {
                 connOpts.setAutomaticReconnect(this.automaticReconnect);
             }
 
-            System.out.println("Connecting to broker: " + url);
+            LOGGER.info("Connecting to broker: " + url);
             if (!this.client.isConnected()) {
                 this.client.connect(connOpts);
-                System.out.println("Connected");
+                LOGGER.info("Connected");
             }
             this.client.subscribe(topic);
             return true;

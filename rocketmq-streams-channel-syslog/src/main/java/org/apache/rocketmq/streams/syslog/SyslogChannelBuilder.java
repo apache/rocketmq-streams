@@ -41,6 +41,8 @@ public class SyslogChannelBuilder implements IChannelBuilder {
     public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
 
         SyslogChannel source = (SyslogChannel) ConfigurableUtil.create(SyslogChannel.class.getName(), namespace, name, createFormatProperty(properties), null);
+        source.createSource();
+        source.setType(ISource.TYPE);
         return source;
     }
 
@@ -52,6 +54,8 @@ public class SyslogChannelBuilder implements IChannelBuilder {
     @Override
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
         SyslogChannel sink = (SyslogChannel) ConfigurableUtil.create(SyslogChannel.class.getName(), namespace, name, createFormatProperty(properties), null);
+        sink.createSink();
+        sink.setType(ISink.TYPE);
         return sink;
     }
 

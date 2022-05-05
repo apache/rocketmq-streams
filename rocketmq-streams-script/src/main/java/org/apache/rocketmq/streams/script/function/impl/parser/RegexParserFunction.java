@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
@@ -36,13 +37,11 @@ public class RegexParserFunction {
     @FunctionMethod(value = "paserByRegex", comment = "通过正则解析实例日志")
     public String paserByRegex(IMessage message, FunctionContext context,
                                @FunctionParamter(value = "string", comment = "代表字符串的字段名") String fieldName,
-                               @FunctionParamter(value = "string", comment = "正则表达式") String regex,
-                               @FunctionParamter(value = "string", comment = "正则表达式中的字段") String... keyNames) {
-        if (message.isJsonMessage()) {
-            return message.getMessageBody().toJSONString();
-        }
+                               @FunctionParamter(value = "string", comment = "正则表达式") String regex) {
+
         String log = FunctionUtils.getValueString(message, context, fieldName);
-        JSONObject jsonObject = parseLog(regex, fieldName, log, keyNames);
+        regex=FunctionUtils.getConstant(regex);
+        JSONObject jsonObject = parseLog(regex, fieldName, log);
         if (jsonObject == null) {
             context.breakExecute();
         }
@@ -54,11 +53,10 @@ public class RegexParserFunction {
      * 解析实例日志
      *
      * @param regex    正则表达式
-     * @param keyNames 正则表达式中的字段
      * @param log      日志
      * @return regex和解析的字段和内容的对应关系
      */
-    public static JSONObject parseLog(String regex, String fieldName, String log, String... keyNames) {
+    public static JSONObject parseLog(String regex, String fieldName, String log) {
         JSONObject result = new JSONObject();
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(log);
@@ -67,15 +65,7 @@ public class RegexParserFunction {
             return null;
         }
         for (int i = 1; i <= matcher.groupCount(); i++) {
-            String name = null;
-            if ((i - 1) < keyNames.length) {
-                name = keyNames[i - 1];
-                if (StringUtil.isEmpty(name)) {
-                    name = fieldName + (i - 1);
-                }
-            } else {
-                name = fieldName + (i - 1);
-            }
+            String name = FunctionType.UDTF.getName()+i;
             result.put(name, matcher.group(i));
         }
         return result;

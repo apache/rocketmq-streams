@@ -96,6 +96,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.isBreak = subContext.isBreak;
         this.quickFilterResult = subContext.quickFilterResult;
         this.homologousResult = subContext.homologousResult;
+        this.isContinue=subContext.isContinue;
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
@@ -109,6 +110,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.isBreak = isBreak;
         subContext.quickFilterResult = quickFilterResult;
         subContext.homologousResult = homologousResult;
+        subContext.isContinue=isContinue;
         return subContext;
     }
 

@@ -79,15 +79,17 @@ public class ConsoleMonitorManager {
                 try {
                     queryValidTraceIds();
                     Map<String, JobStage> jobStageMap = cache;
-                    cache = new ConcurrentHashMap();
+                    synchronized (this) {
+                        cache = new ConcurrentHashMap();
+                    }
                     long current = System.currentTimeMillis();
                     for (JobStage jobStage : jobStageMap.values()) {
                         jobStage.setMachineName("");
-                        JSONObject msgObj = (JSONObject) jobStage.getLastInputMsgObj().clone();
-                        String msg = msgObj.toJSONString();
-                        if (msg != null && !"".equalsIgnoreCase(msg)) {
-                            jobStage.setLastInputMsg(msg);
-                        }
+//                        jobStage.setLastInputMsgObj(new JSONObject());
+//                        String msg = msgObj.toJSONString();
+//                        if (msg != null && !"".equalsIgnoreCase(msg)){
+//                            jobStage.setLastInputMsg(msg);
+//                        }
                         jobStage.setInput(jobStage.getSafeInput().getAndSet(0));
                         jobStage.setOutput(jobStage.getSafeOutput().getAndSet(0));
 
@@ -123,7 +125,7 @@ public class ConsoleMonitorManager {
                     LOG.error("ConsoleMonitorManager report error!", e);
                 }
             }
-        }, 1, 20, TimeUnit.SECONDS);
+        }, 20, 30, TimeUnit.SECONDS);
     }
 
     public Set<String> getValidTraceIds() {
@@ -168,7 +170,7 @@ public class ConsoleMonitorManager {
 //        }
 
         jobStage.getSafeInput().incrementAndGet();
-        jobStage.setLastInputMsgObj(msg);
+//        jobStage.setLastInputMsgObj(msg);
         if (clientTime != 0) {
             jobStage.setLastInputMsgTime(new Date(clientTime));
         } else {
@@ -208,7 +210,8 @@ public class ConsoleMonitorManager {
         JSONObject msg = message.getMessageBody();
         JobStage jobStage = getJobStage(stage.getLabel());
         jobStage.getSafeInput().incrementAndGet();
-        jobStage.setLastInputMsgObj(msg);
+//        jobStage.setLastInputMsgObj(msg);
+//        jobStage.setLastInputMsg(msg.toJSONString());
         jobStage.setLastInputMsgTime(new Date());
 
         String traceId = message.getHeader().getTraceId();
@@ -262,7 +265,7 @@ public class ConsoleMonitorManager {
         }
     }
 
-    public JobStage getJobStage(String uniqKey) {
+    public synchronized JobStage getJobStage(String uniqKey) {
 //        String key = createKey(uniqKey);
         JobStage jobStage = cache.get(uniqKey);
         if (jobStage == null) {

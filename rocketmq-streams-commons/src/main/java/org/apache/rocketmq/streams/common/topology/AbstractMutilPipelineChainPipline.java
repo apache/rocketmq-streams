@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
@@ -31,9 +32,12 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
+import org.apache.rocketmq.streams.common.topology.stages.JoinChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.UnionChainStage;
+import org.apache.rocketmq.streams.common.topology.stages.WindowChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 
 /**
@@ -47,7 +51,7 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
      */
     protected List<String> piplineNames = new ArrayList<>();
     //每个pipline，对应一个消息来源，在消息头上会有消息来源的name，根据name转发数据
-    protected Map<String, String> piplineName2MsgSourceName;
+    protected Map<String, Set<String>> piplineName2MsgSourceName;
 
     /**
      * piplineNames的对象表示
@@ -63,31 +67,34 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
             String msgSourceName = message.getHeader().getMsgRouteFromLable();
             if (piplines.size() > 0) {
                 List<IMessage> messages = new ArrayList<>();
-                Iterator<Entry<String, String>> it = piplineName2MsgSourceName.entrySet().iterator();
+                Iterator<Entry<String, Set<String>>> it = piplineName2MsgSourceName.entrySet().iterator();
                 while (it.hasNext()) {
-                    Entry<String, String> entry = it.next();
+                    Entry<String, Set<String>> entry = it.next();
                     String piplineName = entry.getKey();
-                    String value = entry.getValue();
-                    if (msgSourceName != null && msgSourceName.equals(value)) {//如果来源数据的标签和map中的相同，转发这条消息给对应的pipline
-                        ChainPipeline pipline = piplines.get(piplineName);
-                        IMessage copyMessage = message.deepCopy();
-                        //copyMessage.getMessageBody().put(ORI_MESSAGE_KEY,message.getMessageBody());
-                        // 保留一份最原始的数据，后续对字段的修改不影响这个字段
-                        Context newContext = new Context(copyMessage);
-                        copyMessage.getHeader().setMsgRouteFromLable(msgSourceName);
-                        boolean needReturn = executePipline(pipline, copyMessage, newContext, msgSourceName);
-                        if (needReturn) {
-                            return message;
-                        }
-                        if (newContext.isContinue()) {
-                            if (newContext.isSplitModel()) {
-                                messages.addAll(newContext.getSplitMessages());
-                            } else {
-                                messages.add(copyMessage);
+                    Set<String> values = entry.getValue();
+                    for(String value:values){
+                        if (msgSourceName != null && msgSourceName.equals(value)) {//如果来源数据的标签和map中的相同，转发这条消息给对应的pipline
+                            ChainPipeline pipline = piplines.get(piplineName);
+                            IMessage copyMessage = message.deepCopy();
+                            //copyMessage.getMessageBody().put(ORI_MESSAGE_KEY,message.getMessageBody());
+                            // 保留一份最原始的数据，后续对字段的修改不影响这个字段
+                            Context newContext = new Context(copyMessage);
+                            copyMessage.getHeader().setMsgRouteFromLable(msgSourceName);
+                            boolean needReturn = executePipline(pipline, copyMessage, newContext, msgSourceName);
+                            if (needReturn) {
+                                return message;
                             }
+                            if (newContext.isContinue()) {
+                                if (newContext.isSplitModel()) {
+                                    messages.addAll(newContext.getSplitMessages());
+                                } else {
+                                    messages.add(copyMessage);
+                                }
 
+                            }
                         }
                     }
+
                 }
                 for (IMessage msg : messages) {
                     msg.getHeader().setMsgRouteFromLable(msgSourceName);
@@ -174,6 +181,15 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
             if (chainPipline != null) {
                 piplineMap.put(chainPipline.getConfigureName(), chainPipline);
             }
+            List<AbstractStage<?>>  stages= chainPipline.getStages();
+            for(AbstractStage stage:stages){
+                 if(WindowChainStage.class.isInstance(stage)){
+                    ((WindowChainStage)stage).getWindow().setFireReceiver(getReceiverAfterCurrentNode());
+                }else if(JoinChainStage.class.isInstance(stage)){
+                     ((JoinChainStage)stage).getWindow().setFireReceiver(getReceiverAfterCurrentNode());
+                 }
+            }
+
         }
         this.piplines = piplineMap;
     }
@@ -192,15 +208,18 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
         return piplines;
     }
 
-    public Map<String, String> getPiplineName2MsgSourceName() {
+    public Map<String, Set<String>> getPiplineName2MsgSourceName() {
         return piplineName2MsgSourceName;
+    }
+
+    public void setPiplineName2MsgSourceName(
+        Map<String, Set<String>> piplineName2MsgSourceName) {
+        this.piplineName2MsgSourceName = piplineName2MsgSourceName;
     }
 
     public ChainPipeline getPipeline(String pipelineName){
         return this.piplines.get(pipelineName);
     }
 
-    public void setPiplineName2MsgSourceName(Map<String, String> piplineName2MsgSourceName) {
-        this.piplineName2MsgSourceName = piplineName2MsgSourceName;
-    }
+
 }

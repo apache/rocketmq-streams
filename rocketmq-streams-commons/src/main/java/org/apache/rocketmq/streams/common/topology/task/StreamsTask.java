@@ -18,34 +18,15 @@ package org.apache.rocketmq.streams.common.topology.task;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ServiceLoader;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.Context;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.optimization.IHomologousOptimization;
-import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
-import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
-import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintMetric;
-import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
-import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * run one or multi pipeline's
@@ -56,11 +37,12 @@ public class StreamsTask extends BasedConfigurable implements IAfterConfigurable
     public static final String TYPE = "stream_task";
 
 
-
-
     /**
      * 任务的状态，目前有started，stopped俩种， 任务序列化保存在数据库
      */
+    public static final String STATE_STARTED = "started";
+    public static final String STATE_STOPPED = "stopped";
+
     protected String state = "stopped";
     /**
      * 在当前进程中任务的状态
@@ -71,14 +53,6 @@ public class StreamsTask extends BasedConfigurable implements IAfterConfigurable
      */
     protected transient List<ChainPipeline<?>> pipelines = new ArrayList<>();
     protected List<String> pipelineNames = new ArrayList<>();
-
-
-
-
-
-
-
-
 
     public StreamsTask() {
         setType(TYPE);
@@ -97,7 +71,6 @@ public class StreamsTask extends BasedConfigurable implements IAfterConfigurable
             pipeline.destroy();
         }
     }
-
 
     @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
 
@@ -138,12 +111,6 @@ public class StreamsTask extends BasedConfigurable implements IAfterConfigurable
 
     }
 
-
-
-
-
-
-
     /**
      * start one pipeline
      *
@@ -153,9 +120,6 @@ public class StreamsTask extends BasedConfigurable implements IAfterConfigurable
         Thread thread = new Thread(pipeline::startChannel);
         thread.start();
     }
-
-
-
 
     public List<ChainPipeline<?>> getPipelines() {
         return pipelines;
@@ -169,8 +133,6 @@ public class StreamsTask extends BasedConfigurable implements IAfterConfigurable
         }
         this.pipelineNames = pipelineNames;
     }
-
-
 
     public List<String> getPipelineNames() {
         return pipelineNames;

@@ -132,6 +132,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     public void init() {
         this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
         this.producer = createSink(window.getNameSpace(), window.getConfigureName());
+
         if (this.consumer == null || this.producer == null) {
             autoCreateShuffleChannel(window.getFireReceiver().getPipeline());
         }
@@ -142,12 +143,12 @@ public class ShuffleChannel extends AbstractSystemChannel {
             ((AbstractSource) this.consumer).setJsonData(true);
         }
         if (producer != null && (queueList == null || queueList.size() == 0)) {
+            this.producer.init();
             queueList = producer.getSplitList();
             Map<String, ISplit<?, ?>> tmp = new ConcurrentHashMap<>();
             for (ISplit<?, ?> queue : queueList) {
                 tmp.put(queue.getQueueId(), queue);
             }
-
             this.queueMap = tmp;
         }
         isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");

@@ -53,7 +53,7 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
     protected String keywords;
     protected String ipListStr;
 
-    private transient org.graylog2.syslog4j.SyslogIF syslog;
+    private transient org.graylog2.syslog4j.SyslogIF syslogClient;
 
     public SyslogChannel() {
     }
@@ -74,7 +74,7 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
 
     @Override
     protected ISink createSink() {
-        return new AbstractSink() {
+        this.sink= new AbstractSink() {
             @Override
             protected boolean batchInsert(List<IMessage> messages) {
                 if (messages == null || !syslogClientInit) {
@@ -95,32 +95,36 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
                             encode = abstractSource.getEncoding();
                         }
                         message = URLDecoder.decode(msg.getMessageValue().toString(), encode);
-                        syslog.getConfig().setLocalName(IPUtil.getLocalIP());
-                        syslog.getConfig().setSendLocalTimestamp(true);
-                        syslog.getConfig().setSendLocalName(true);//如果这个值是false，需要确保json数据无空格
-                        //本机测试必须设置，否则ip地址变成了127.0.0.1,如果是远端server，必须注释掉这一行，否则server发生覆盖
-                        //syslog.getConfig().setHost(IPUtil.getLocalIP());
+                        syslogClient.getConfig().setLocalName(IPUtil.getLocalIP());
+                        syslogClient.getConfig().setSendLocalTimestamp(true);
+                        syslogClient.getConfig().setSendLocalName(true);//如果这个值是false，需要确保json数据无空格
+                        if("127.0.0.1".equals(syslogClient.getConfig().getHost())){
+                            //本机测试必须设置，否则ip地址变成了127.0.0.1,如果是远端server，必须注释掉这一行，否则server发生覆盖
+                            syslogClient.getConfig().setHost(IPUtil.getLocalIP());
+                        }
 
                     } catch (Exception e) {
-                        LOG.error("syslog decode message error " + msg.getMessageValue().toString(), e);
+                        LOG.error("syslogClient decode message error " + msg.getMessageValue().toString(), e);
                     }
-                    syslog.log(level, message);
+                    syslogClient.log(level, message);
                 }
-                syslog.flush();
+                syslogClient.flush();
                 return true;
             }
         };
+        return this.sink;
     }
 
     @Override
     protected ISource createSource() {
-        return new AbstractUnreliableSource() {
+         this.source=new AbstractUnreliableSource() {
             @Override
             protected boolean startSource() {
                 SyslogChannelManager.start(protol);
                 return true;
             }
         };
+         return this.source;
     }
 
     @Override
@@ -138,13 +142,12 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
                     ipList.add(value);
                 }
             }
-            syslog = Syslog.getInstance(protol);
-            SyslogConfigIF config = syslog.getConfig();
+            syslogClient = Syslog.getInstance(protol);
+            SyslogConfigIF config = syslogClient.getConfig();
             config.setHost(serverIp);
-            config.setPort(
-                protol == SyslogChannelManager.UDP ? SyslogChannelManager.udpPort : SyslogChannelManager.tcpPort);
+            config.setPort((protol .equals( SyslogChannelManager.UDP) )? SyslogChannelManager.udpPort : SyslogChannelManager.tcpPort);
         } catch (Throwable throwable) {
-            LOG.warn("syslog client init fail " + throwable);
+            LOG.warn("syslogClient client init fail " + throwable);
             syslogClientInit = false;
         }
 

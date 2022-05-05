@@ -165,7 +165,7 @@ public class FileConfigureService extends AbstractConfigurableService {
         String name = getColumnValue(values, 2, "name");
         String jsonValue = getColumnValue(values, 3, "json_value");
         try {
-            //jsonValue = AESUtil.aesDecrypt(jsonValue, ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
+            jsonValue = AESUtil.aesDecrypt(jsonValue, ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
         } catch (Exception e) {
             LOG.error("failed in decrypting the value, reason:\t" + e.getCause());
             throw new RuntimeException(e);
@@ -242,7 +242,7 @@ public class FileConfigureService extends AbstractConfigurableService {
         }
         String theSecretValue = null;
         try {
-            theSecretValue =configure.toJson();AESUtil.aesEncrypt(configure.toJson(), ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
+            theSecretValue = AESUtil.aesEncrypt(configure.toJson(), ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
         } catch (Exception e) {
             LOG.error("failed in encrypting the value, reason:\t" + e.getCause());
             throw new RuntimeException(e);
