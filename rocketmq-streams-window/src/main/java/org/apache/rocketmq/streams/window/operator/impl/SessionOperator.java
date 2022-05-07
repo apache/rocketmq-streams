@@ -141,7 +141,7 @@ public class SessionOperator extends WindowOperator {
                 value2StoreMap.put(groupValue, storeKey);
             }
 
-            List<WindowBaseValue> windowBaseValue =new ArrayList<>();
+            List<WindowBaseValue> windowBaseValue = new ArrayList<>();
 
             RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(instance.getSplitId(),
                     instance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null);
@@ -385,6 +385,7 @@ public class SessionOperator extends WindowOperator {
     @Override
     public int doFireWindowInstance(WindowInstance windowInstance) {
         synchronized (lock) {
+
             String queueId = windowInstance.getSplitId();
 
             RocksdbIterator<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(queueId,
@@ -399,6 +400,7 @@ public class SessionOperator extends WindowOperator {
             }
 
             baseValues.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
+
 
             Long currentFireTime = DateUtil.parse(windowInstance.getFireTime(), SESSION_DATETIME_PATTERN).getTime();
             Long nextFireTime = currentFireTime + 1000 * 60 * 1;
@@ -423,10 +425,7 @@ public class SessionOperator extends WindowOperator {
                 }
 
             }
-
-
             doFire(queueId, windowInstance, toFireValueList, currentFireTime, nextFireTime);
-
             return toFireValueList.size();
         }
 
@@ -445,8 +444,10 @@ public class SessionOperator extends WindowOperator {
         return false;
     }
 
+
     private void doFire(String queueId, WindowInstance instance, List<WindowValue> valueList, Long currentFireTime,
                         Long nextFireTime) {
+
         if (CollectionUtil.isEmpty(valueList)) {
             return;
         }

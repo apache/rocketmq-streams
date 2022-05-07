@@ -26,7 +26,7 @@
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams</artifactId>
-    <version>1.0.1-preview-SNAPSHOT</version>
+    <version>1.0.2-preview-SNAPSHOT</version>
     <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
     <url>https://rocketmq.apache.org/</url>
@@ -123,10 +123,10 @@
         <auto-service.version>1.0-rc5</auto-service.version>
         <mysql-connector.version>5.1.40</mysql-connector.version>
         <fastjson.version>1.2.9</fastjson.version>
-        <quartz.version>2.2.1</quartz.version>
-        <httpclient.version>4.5.2</httpclient.version>
-        <commons-io.version>2.5</commons-io.version>
-        <junit.version>4.12</junit.version>
+        <quartz.version>2.3.2</quartz.version>
+        <httpclient.version>4.5.13</httpclient.version>
+        <commons-io.version>2.7</commons-io.version>
+        <junit.version>4.13.1</junit.version>
         <guava.version>25.1-jre</guava.version>
         <groovy.version>2.1.8</groovy.version>
         <disruptor.version>3.2.0</disruptor.version>
@@ -138,10 +138,10 @@
         <java-grok.version>0.1.9</java-grok.version>
         <jython.version>2.7.0</jython.version>
         <scala-library.version>2.12.4</scala-library.version>
-        <logback-core.version>1.2.3</logback-core.version>
+        <logback-core.version>1.2.9</logback-core.version>
         <minio.version>3.0.10</minio.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
-        <commons-collections.version>3.2.1</commons-collections.version>
+        <commons-collections.version>3.2.2</commons-collections.version>
         <commons-lang.version>2.5</commons-lang.version>
         <elasticsearch.version>7.4.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>

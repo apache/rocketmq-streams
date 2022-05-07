@@ -576,7 +576,7 @@ public class SQLUtil {
         buffer.append(" ");
         for (int index = 0; index < keywordList.size(); index++) {
             Pair<String, String> pair = keywordList.get(index);
-            buffer.append(pair.getKey() + " like '" + pair.getValue() + "'");
+            buffer.append(pair.getKey() + " like '" + pair.getValue() + "%'");
             if (index != (keywordList.size() - 1)) {
                 buffer.append(" or ");
             }
