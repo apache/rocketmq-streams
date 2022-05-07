@@ -385,7 +385,6 @@ public class SessionOperator extends WindowOperator {
     @Override
     public int doFireWindowInstance(WindowInstance windowInstance) {
         synchronized (lock) {
-
             String queueId = windowInstance.getSplitId();
 
             RocksdbIterator<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(queueId,
@@ -400,7 +399,6 @@ public class SessionOperator extends WindowOperator {
             }
 
             baseValues.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
-
 
             Long currentFireTime = DateUtil.parse(windowInstance.getFireTime(), SESSION_DATETIME_PATTERN).getTime();
             Long nextFireTime = currentFireTime + 1000 * 60 * 1;
