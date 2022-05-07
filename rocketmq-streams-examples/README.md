@@ -15,6 +15,9 @@ public class FileSourceExample {
 }
 
 ```
+#### 1.2 代码示例
+
+[代码示例 ProducerFromFile.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/aggregate/ProducerFromFile.java)
 
 
 ### 2、分时间段，统计分组中某字段的和
@@ -40,7 +43,7 @@ public class FileSourceExample {
 
 #### 2.3 代码示例
 
-[代码示例](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/rocketmqsource/RocketmqWindowTest.java)
+[代码示例 RocketMQWindowExample.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/aggregate/RocketMQWindowExample.java)
 
 
 #### 2.4 结果说明
@@ -75,8 +78,8 @@ data.text数据运行的结果部分如下：
 {"userId":"4","eventTime":"1631700120000","method":"POST","url":"page-1"}
 ```
 
-#### 3.1、统计某段时间窗口内用户点击网页次数
-[代码示例](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/pageclick/UsersDimension.java)
+#### 3.2、统计某段时间窗口内用户点击网页次数
+[代码示例 UsersDimensionExample.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/aggregate/UsersDimensionExample.java)
 
 结果：
 ```xml
@@ -113,8 +116,8 @@ data.text数据运行的结果部分如下：
 
 可查看原数据文件，eventTime为时间字段，简单检查后上述结果与预期相符合。
 
-#### 3.2、统计某段时间窗口内，被点击次数最多的网页
-[代码示例](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/pageclick/PageDimension.java)
+#### 3.3、统计某段时间窗口内，被点击次数最多的网页
+[代码示例 PageDimensionExample.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/aggregate/PageDimensionExample.java)
 
 运行结果：
 ```xml
@@ -164,7 +167,7 @@ data.text数据运行的结果部分如下：
 #### 4.1、数据说明
 源数据由[data.txt](./../rocketmq-streams-examples/src/main/resources/data.txt)组成，反复发送100遍，总共生产1000条数据。
 #### 4.2、代码实例
-[代码示例](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/mutilconsumer/MutilStreamsClientTest.java)
+[代码示例 MultiStreamsExample.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/mutilconsumer/MultiStreamsExample.java)
 
 代码中读取data.txt文件反复发送100遍，发送1000条数据。同时，开启两个消费者，每个消费者独立消费数据，然后做window聚合。
 代码目的：
