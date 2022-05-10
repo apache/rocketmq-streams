@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -57,11 +58,9 @@ public class DefaultStorage extends AbstractStorage {
 
     private DefaultMQProducer producer;
     private DefaultLitePullConsumer checkpointConsumer;
-    private DefaultLitePullConsumer loadConsumer;
 
     private static final long pollTimeoutMillis = 50L;
     private Map<Integer, MessageQueue> queueId2MQ = new HashMap<>();
-    private ExecutorService loadExecutor;
     private ExecutorService checkpointExecutor;
 
     public DefaultStorage(String topic, String groupId, String namesrv, int queueNum,
@@ -74,9 +73,7 @@ public class DefaultStorage extends AbstractStorage {
 
 
         if (!isLocalStorageOnly) {
-            this.loadExecutor = Executors.newSingleThreadExecutor();
             this.checkpointExecutor = Executors.newSingleThreadExecutor();
-            ;
 
             try {
                 this.producer = new DefaultMQProducer(groupId);
@@ -89,11 +86,6 @@ public class DefaultStorage extends AbstractStorage {
                 this.checkpointConsumer.setNamesrvAddr(namesrv);
                 this.checkpointConsumer.setAutoCommit(false);
                 this.checkpointConsumer.start();
-
-                this.loadConsumer = new DefaultLitePullConsumer(this.groupId);
-                this.loadConsumer.setNamesrvAddr(namesrv);
-                this.loadConsumer.setAutoCommit(false);
-                this.loadConsumer.start();
             } catch (Throwable t) {
                 throw new RuntimeException("start rocketmq client error.", t);
             }
@@ -101,46 +93,35 @@ public class DefaultStorage extends AbstractStorage {
     }
 
     @Override
-    public Future<?> load(String shuffleId) {
+    public Future<?> load(Set<String> shuffleIds) {
         if (isLocalStorageOnly) {
-            return super.load(shuffleId);
+            return super.load(shuffleIds);
         }
 
-        MessageQueue messageQueue = getMessageQueue(shuffleId);
-        if (messageQueue == null) {
-            throw new RuntimeException("can not find MQ with shuffleId = [" + shuffleId + "]");
+        HashSet<MessageQueue> queues = new HashSet<>();
+
+        for (String shuffleId : shuffleIds) {
+            MessageQueue messageQueue = getMessageQueue(shuffleId);
+            if (messageQueue == null) {
+                throw new RuntimeException("can not find MQ with shuffleId = [" + shuffleId + "]");
+            }
+            queues.add(messageQueue);
         }
 
+        this.checkpointConsumer.assign(queues);
         //从上一offset提交位置，poll到最新数据位置
-        return this.loadExecutor.submit(() -> this.pollToLast(messageQueue, true));
+        return this.checkpointExecutor.submit(() -> this.pollToLast(queues));
     }
 
-    private void pollToLast(MessageQueue messageQueue, boolean replay) {
-        List<MessageQueue> temp = new ArrayList<>();
-        temp.add(messageQueue);
-
+    private void pollToLast(Set<MessageQueue> messageQueue) {
         try {
 
-            if (replay) {
-                //assign 与poll必须原子；
-                synchronized (this.loadConsumer) {
-                    this.loadConsumer.assign(temp);
+            synchronized (this.checkpointConsumer) {
+                this.checkpointConsumer.assign(messageQueue);
 
-                    List<MessageExt> msgs = this.loadConsumer.poll(pollTimeoutMillis);
-                    while (msgs.size() != 0) {
-                        this.replayState(msgs);
-                        msgs = this.loadConsumer.poll(pollTimeoutMillis);
-                    }
-                }
-            } else {
-                //assign 与poll必须原子；
-                synchronized (this.checkpointConsumer) {
-                    this.checkpointConsumer.assign(temp);
-
-                    List<MessageExt> msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
-                    while (msgs.size() != 0) {
-                        msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
-                    }
+                List<MessageExt> msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
+                while (msgs.size() != 0) {
+                    msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
                 }
             }
 
@@ -299,18 +280,18 @@ public class DefaultStorage extends AbstractStorage {
                 successNum += sendSync(queueId);
             }
 
+            //todo 指定messageQueue提交offset
+            HashSet<MessageQueue> set = new HashSet<>();
             //提交上次checkpoint/load时，poll消息的offset
             for (String queueId : queueIdList) {
                 final MessageQueue queue = getMessageQueue(queueId);
-                //todo 指定messageQueue提交offset
-                HashSet<MessageQueue> set = new HashSet<>();
                 set.add(queue);
-
-                this.checkpointConsumer.commit(set, true);
-
-                //poll到最新的checkpoint，为下一次提交offset做准备；
-                this.checkpointExecutor.execute(() -> this.pollToLast(queue, false));
             }
+
+            this.checkpointConsumer.commit(set, true);
+
+            //poll到最新的checkpoint，为下一次提交offset做准备；
+            this.checkpointExecutor.execute(() -> this.pollToLast(set));
 
         } catch (Throwable t) {
             throw new RuntimeException("send data to rocketmq synchronously，error.", t);
@@ -360,10 +341,14 @@ public class DefaultStorage extends AbstractStorage {
         }
     }
 
-    //状态topic的MQ数量与shuffle topic的MQ数量需要相同
+    //状态topic的MQ数量与shuffle topic的MQ数量需要相同,broker;
     private MessageQueue getMessageQueue(String shuffleId) {
         //最后四位为queueId
         String substring = shuffleId.substring(shuffleId.length() - 3);
+        int first = shuffleId.indexOf("_");
+        int last = shuffleId.lastIndexOf("_");
+        String brokerName = shuffleId.substring(first + 1, last);
+
         Integer queueIdNumber = Integer.parseInt(substring);
 
         MessageQueue result = queueId2MQ.get(queueIdNumber);
@@ -375,8 +360,14 @@ public class DefaultStorage extends AbstractStorage {
                     Map<Integer, List<MessageQueue>> temp = mqs.stream().collect(Collectors.groupingBy(MessageQueue::getQueueId));
                     for (Integer queueId : temp.keySet()) {
                         List<MessageQueue> messageQueues = temp.get(queueId);
-                        assert messageQueues.size() == 1;
-                        this.queueId2MQ.put(queueId, messageQueues.get(0));
+                        for (MessageQueue messageQueue : messageQueues) {
+                            if (messageQueue.getBrokerName().equals(brokerName)) {
+                                this.queueId2MQ.put(queueId, messageQueue);
+                                break;
+                            }
+                        }
+
+
                     }
                 }
             } catch (Throwable t) {

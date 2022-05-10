@@ -102,7 +102,9 @@ public class ShuffleCache extends WindowCache {
 
             System.out.println("message wait before state recover:[" + (after - before) + "] ms, queueId=" + queueId);
 
-            hasLoad.put(queueId, true);
+            for (String loadQueueId : loadResult.keySet()) {
+                hasLoad.put(loadQueueId, true);
+            }
         } catch (Throwable t) {
             throw new RuntimeException("check remote with queueId:" + queueId + ",error", t);
         }

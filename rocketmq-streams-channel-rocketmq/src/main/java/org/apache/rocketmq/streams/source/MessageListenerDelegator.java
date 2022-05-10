@@ -22,11 +22,13 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MessageListenerDelegator implements MessageQueueListener {
     private final MessageQueueListener delegator;
-    private Set<MessageQueue> lastDivided = null;
-    private Set<MessageQueue> removingQueue;
+    private final Set<MessageQueue> lastDivided = new HashSet<>();
+    private final Set<MessageQueue> removingQueue = new HashSet<>();
+    private final AtomicBoolean needSync = new AtomicBoolean(false);
 
 
     public MessageListenerDelegator(MessageQueueListener delegator) {
@@ -36,20 +38,19 @@ public class MessageListenerDelegator implements MessageQueueListener {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-
         //上一次分配有，但是这一次没有,需要对这些mq进行状态移除
-        if (lastDivided != null) {
-            this.removingQueue = new HashSet<>();
-            for (MessageQueue last : lastDivided) {
-                if (!mqDivided.contains(last)) {
-                    removingQueue.add(last);
-                }
+        for (MessageQueue last : lastDivided) {
+            if (!mqDivided.contains(last)) {
+                removingQueue.add(last);
             }
         }
 
+        this.lastDivided.clear();
+        this.lastDivided.addAll(mqDivided);
+
         delegator.messageQueueChanged(topic, mqAll, mqDivided);
 
-        lastDivided = mqDivided;
+        needSync.set(true);
     }
 
     public Set<MessageQueue> getLastDivided() {
@@ -58,5 +59,14 @@ public class MessageListenerDelegator implements MessageQueueListener {
 
     public Set<MessageQueue> getRemovingQueue() {
         return Collections.unmodifiableSet(this.removingQueue);
+    }
+
+
+    public boolean needSync() {
+        return this.needSync.get();
+    }
+
+    public void hasSynchronized() {
+        this.needSync.set(false);
     }
 }

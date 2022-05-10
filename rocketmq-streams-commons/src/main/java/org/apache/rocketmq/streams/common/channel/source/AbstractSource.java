@@ -455,6 +455,10 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             return;
         }
         this.checkPointManager.deleteRemovingSplit(splitIds);
+        for (String splitId : splitIds) {
+            this.checkPointManager.addSplit(splitId);
+        }
+
 
         JSONObject msg = new JSONObject();
         Message message = createMessage(msg, null, null, false);

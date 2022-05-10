@@ -20,6 +20,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 
+import java.util.HashMap;
 import java.util.Set;
 
 public class CreateTopicUtil {
@@ -34,6 +35,10 @@ public class CreateTopicUtil {
         topicConfig.setReadQueueNums(queueNum);
         topicConfig.setWriteQueueNums(queueNum);
         topicConfig.setTopicName(topic.trim());
+
+        HashMap<String, String> temp = new HashMap<>();
+        temp.put("+delete.policy", "COMPACTION");
+        topicConfig.setAttributes(temp);
 
         try {
             defaultMQAdminExt.start();

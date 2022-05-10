@@ -227,11 +227,10 @@ public class ShuffleChannel extends AbstractSystemChannel {
     public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
         Set<String> splitIds = newSplitMessage.getSplitIds();
 
+        Future<?> future = this.window.getStorage().load(splitIds);
         for (String splitId : splitIds) {
-            Future<?> future = this.window.getStorage().load(splitId);
-            this.loadResult.put(splitId, future);
+             this.loadResult.put(splitId, future);
         }
-
         window.getFireReceiver().doMessage(message, context);
     }
 
