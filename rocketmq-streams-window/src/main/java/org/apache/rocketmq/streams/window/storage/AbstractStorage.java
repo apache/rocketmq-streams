@@ -22,6 +22,7 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +31,7 @@ import java.util.concurrent.TimeoutException;
 public abstract class AbstractStorage implements IStorage {
 
     @Override
-    public Future<?> load(String shuffleId) {
+    public Future<?> load(Set<String> shuffleIds) {
         return new NullFuture();
     }
 

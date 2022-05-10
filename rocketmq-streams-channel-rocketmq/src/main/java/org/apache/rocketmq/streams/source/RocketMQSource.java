@@ -117,8 +117,8 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         }
     }
 
-    public DefaultLitePullConsumer buildPullConsumer(String topic, String groupName, String namesrv, String tags,
-                                                     RPCHook rpcHook, ConsumeFromWhere consumeFromWhere) throws MQClientException {
+    private DefaultLitePullConsumer buildPullConsumer(String topic, String groupName, String namesrv, String tags,
+                                                      RPCHook rpcHook, ConsumeFromWhere consumeFromWhere) throws MQClientException {
         DefaultLitePullConsumer pullConsumer = new DefaultLitePullConsumer(groupName, rpcHook);
         pullConsumer.setNamesrvAddr(namesrv);
         pullConsumer.setConsumeFromWhere(consumeFromWhere);
@@ -276,18 +276,23 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
             while (!this.isStopped) {
 
-                synchronized (this.pullConsumer) {
-                    Set<MessageQueue> removingQueue = this.delegator.getRemovingQueue();
-                    if (removingQueue != null && removingQueue.size() != 0) {
-                        try {
+                if (this.delegator.needSync()) {
+                    synchronized (this.pullConsumer) {
+                        if (this.delegator.needSync()) {
+                            //if rebalance happen, need block all other thread, wait remove split or load states from new split;
+                            Set<MessageQueue> removingQueue = this.delegator.getRemovingQueue();
+
                             Set<String> splitIds = new HashSet<>();
                             for (MessageQueue mq : removingQueue) {
                                 splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
                             }
 
                             RocketMQSource.this.removeSplit(splitIds);
-                        } finally {
-                            removingQueue.clear();
+
+                            Set<MessageQueue> allQueueInLastRebalance = this.delegator.getLastDivided();
+                            newRebalance(allQueueInLastRebalance);
+
+                            this.delegator.hasSynchronized();
                         }
                     }
                 }
@@ -331,6 +336,16 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         public void shutdown() {
             this.isStopped = true;
         }
+    }
+
+    private void newRebalance(Set<MessageQueue> allQueueInLastRebalance){
+        Set<String> temp = new HashSet<>();
+        for (MessageQueue queue : allQueueInLastRebalance) {
+            String unionQueueId = RocketMQMessageQueue.getQueueId(queue);
+            temp.add(unionQueueId);
+        }
+
+        super.addNewSplit(temp);
     }
 
     public String getTags() {

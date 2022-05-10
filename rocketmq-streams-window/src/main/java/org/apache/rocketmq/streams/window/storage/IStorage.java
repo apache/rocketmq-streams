@@ -20,12 +20,13 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 
 public interface IStorage {
     String SEPARATOR = "@";
 
-    Future<?> load(String shuffleId);
+    Future<?> load(Set<String> shuffleIds);
 
 
     void putWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, WindowInstance windowInstance);
