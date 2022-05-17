@@ -37,10 +37,8 @@ public abstract class AbstractWindowStorage<T extends WindowBaseValue> implement
 //        0L, TimeUnit.MILLISECONDS,
 //        new LinkedBlockingQueue<Runnable>(), new ThreadPoolFactory.DipperThreadFactory("AbstractWindowStorage-"));
 
-    protected transient ExecutorService dataLoaderExecutor = ThreadPoolFactory.createThreadPool(10, 10, 0L, TimeUnit.MILLISECONDS,
-        new LinkedBlockingQueue<Runnable>(), "AbstractWindowStorage");
+    protected transient ExecutorService dataLoaderExecutor = ThreadPoolFactory.createThreadPool(10);
     ;
-
 
     @Override
     public void multiPut(Map<String, T> map, String windowInstanceId, String queueId) {
