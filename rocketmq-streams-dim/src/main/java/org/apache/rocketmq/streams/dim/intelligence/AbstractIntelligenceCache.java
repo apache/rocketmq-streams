@@ -89,8 +89,7 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
 
     public AbstractIntelligenceCache() {
         setType(TYPE);
-        executorService = ThreadPoolFactory.createThreadPool(20, 20,0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(1000), "AbstractIntelligenceCache");
+        executorService = ThreadPoolFactory.createThreadPool(20);
         scheduledExecutorService = new ScheduledThreadPoolExecutor(3);
     }
 

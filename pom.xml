@@ -72,7 +72,6 @@
         <java.version>1.8</java.version>
         <java.encoding>UTF-8</java.encoding>
         <project.build.sourceEncoding>${java.encoding}</project.build.sourceEncoding>
-        <log4j.version>1.2.17</log4j.version>
         <commons-logging.version>1.1</commons-logging.version>
         <spring.version>5.1.14.RELEASE</spring.version>
         <auto-service.version>1.0-rc5</auto-service.version>
