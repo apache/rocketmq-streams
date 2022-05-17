@@ -32,6 +32,7 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.state.kv.rocksdb.RocksDBOperator;
@@ -127,7 +128,7 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
             while (it.hasNext()) {
                 Entry<byte[], byte[]> entry = it.next();
                 String key = getValueFromByte(entry.getKey());
-                T value = (T) SerializeUtil.deserialize(entry.getValue());
+                T value = SerializeUtil.deserialize(entry.getValue(),clazz);
                 jsonables.put(key, value);
             }
             //            for(byte[] bytes:list){
@@ -189,7 +190,7 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
                 for (int index = 0; index < array.size(); index++) {
                     String objectString = array.getString(index);
                     byte[] bytes = Base64Utils.decode(objectString);
-                    T valueObject = SerializeUtil.deserialize(bytes);
+                    T valueObject = SerializeUtil.deserialize(bytes,clazz);
                     valueList.add(valueObject);
                 }
                 resultMap.put(key, valueList);
@@ -276,7 +277,7 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
                 hasNext = false;
                 return null;
             }
-            T windowBaseValue = (T) SerializeUtil.deserialize(iter.value());
+            T windowBaseValue = (T) SerializeUtil.deserialize(iter.value(),clazz);
 //            T windowBaseValue = ReflectUtil.forInstance(clazz);
 //            windowBaseValue.toObject(value);
             if (needKey) {

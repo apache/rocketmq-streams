@@ -93,17 +93,18 @@ public class TraceUtil {
      * @return
      */
     public static boolean hit(String traceId) {
-        String type = ComponentCreator.getProperties().getProperty("dipper.trace.service.switch");
-        if (!RUNNING_MODE.equals(type)) {
-            return false;
-        }
-        for (String white : whiteSet) {
-            if (traceId.startsWith(white)) {
-                return true;
-            }
-        }
-
-        return false;
+//        String type = ComponentCreator.getProperties().getProperty("dipper.trace.service.switch");
+//        if (!RUNNING_MODE.equals(type)) {
+//            return false;
+//        }
+//        for (String white : whiteSet) {
+//            if (traceId.startsWith(white)) {
+//                return true;
+//            }
+//        }
+//
+//        return false;
+        return true;
     }
 
     private static String envelope(String traceId, String[] messages) {

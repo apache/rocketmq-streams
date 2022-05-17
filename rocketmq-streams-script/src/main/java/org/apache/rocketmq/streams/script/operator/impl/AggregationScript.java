@@ -17,8 +17,10 @@
 package org.apache.rocketmq.streams.script.operator.impl;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,7 +47,13 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 public class AggregationScript implements IStreamOperator<IMessage, List<IMessage>> {
 
     private static final Log LOG = LogFactory.getLog(AggregationScript.class);
-
+    private static Set<String> supportQuickStoreModelFunctions=new HashSet<String>(){{
+       add("max");
+       add("min");
+       add("count");
+       add("sum");
+       add("avg");
+    }};
     private static Map<String, Class> aggregationEngineMap = new ConcurrentHashMap<String, Class>() {{
         put("max", MaxAccumulator.class);
         put("min", MinAccumulator.class);
@@ -111,6 +119,11 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
         AggregationScript theClone = new AggregationScript(columnName, functionName, parameterNames);
         theClone.director = this.director;
         return theClone;
+    }
+
+
+    public boolean supportQuickStoreModel(){
+       return supportQuickStoreModelFunctions.contains(this.functionName);
     }
 
     //region setter and getter

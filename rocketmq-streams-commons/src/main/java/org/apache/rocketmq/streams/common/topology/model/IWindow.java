@@ -23,12 +23,13 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.SectionPipeline;
+import org.apache.rocketmq.streams.common.topology.shuffle.IShuffleKeyGenerator;
 
 /**
  * Window Definition 处理数据并输出
  */
 public interface IWindow
-    extends IStreamOperator<IMessage, AbstractContext<IMessage>>, IConfigurable {
+    extends IStreamOperator<IMessage, AbstractContext<IMessage>>, IConfigurable, IShuffleKeyGenerator {
 
     int DEFAULTFIRE_MODE = 0;// fire time=endtime+watermark
     int MULTI_WINDOW_INSTANCE_MODE = 1;//  fire at window size interval， until event time >endtime+watermark, every window result is independent

@@ -16,12 +16,9 @@
  */
 package org.apache.rocketmq.streams.connectors;
 
-/**
- * @description bounded stream interface
- */
-@Deprecated
-public interface IBounded {
+import java.util.Date;
 
-    boolean isFinished();
+public interface IScheduleCallback {
 
+    boolean canFire(Date date);
 }

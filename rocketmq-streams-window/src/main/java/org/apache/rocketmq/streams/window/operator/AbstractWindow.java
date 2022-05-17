@@ -27,14 +27,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import javafx.util.Pair;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.SectionPipeline;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
@@ -73,7 +78,7 @@ import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 /**
  * window definition in the pipeline, created by user's configure in WindowChainStage
  */
-public abstract class AbstractWindow extends BasedConfigurable implements IWindow, IStageBuilder<ChainStage> {
+public abstract class AbstractWindow extends BasedConfigurable implements IAfterConfigurableRefreshListener, IWindow, IStageBuilder<ChainStage> {
 
     protected static final Log LOG = LogFactory.getLog(AbstractWindow.class);
 
@@ -149,6 +154,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected Long emitBeforeValue;//output frequency before window fire
     protected Long emitAfterValue;// output frequency after window fire
     protected Long maxDelay = 60 * 60L;//when emitAfterValue>0, window last delay time after window fired
+
+    protected String contextMsgSinkName;//上下文消息保存sink
     /**
      * 是否支持过期数据的计算 过期：当前时间大于数据所在窗口的触发时间
      */
@@ -157,10 +164,12 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected boolean isLocalStorageOnly = true;//是否只用本地存储，可以提高性能，但不保证可靠性
     protected String reduceSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient IReducer reducer;
+    protected String mapFunctionSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
+    protected transient MapFunction<JSONObject, Pair<WindowInstance, JSONObject>> mapFunction;
     /**
      * the computed column and it's process of computing
      */
-    private transient Map<String, List<FunctionExecutor>> columnExecuteMap = new HashMap<>(16);
+    protected transient Map<String, List<FunctionExecutor>> columnExecuteMap = new HashMap<>(16);
 
     /**
      * used in last part to filter and transfer field in case data lost during firing
@@ -194,6 +203,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     protected transient WindowTrigger windowFireSource;
     protected transient SQLCache sqlCache;
     protected transient EventTimeManager eventTimeManager;
+    protected transient ISink contextMsgSink;
 
     //create and save window instacne max partitionNum and window max eventTime
     protected transient IWindowMaxValueManager windowMaxValueManager;
@@ -231,6 +241,10 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         if (StringUtil.isNotEmpty(this.reduceSerializeValue)) {
             byte[] bytes = Base64Utils.decode(this.reduceSerializeValue);
             reducer = InstantiationUtil.deserializeObject(bytes);
+        }
+        if (StringUtil.isNotEmpty(this.mapFunctionSerializeValue)) {
+            byte[] bytes = Base64Utils.decode(this.mapFunctionSerializeValue);
+            this.mapFunction = InstantiationUtil.deserializeObject(bytes);
         }
         eventTimeManager = new EventTimeManager();
         windowMaxValueManager = new WindowMaxValueManager(this, sqlCache);
@@ -333,9 +347,10 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
      * @param message
      * @return
      */
-    protected String generateShuffleKey(IMessage message) {
+    @Override
+    public String generateShuffleKey(IMessage message) {
         if (StringUtil.isEmpty(groupByFieldName)) {
-            return null;
+            return "globle_window";
         }
         JSONObject msg = message.getMessageBody();
         String[] fieldNames = groupByFieldName.split(";");
@@ -451,6 +466,10 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         return WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust, queueId);
     }
 
+    public List<WindowInstance> queryOrCreateWindowInstanceOnly(IMessage message, String queueId) {
+        return WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust, queueId,true);
+    }
+
     public WindowInstance registerWindowInstance(WindowInstance windowInstance) {
         return registerWindowInstance(windowInstance.createWindowInstanceTriggerId(), windowInstance);
     }
@@ -555,6 +574,10 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
         if (DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()) {
             DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowFire(this, msgs, queueId);
         }
+    }
+
+    @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
+        this.contextMsgSink=configurableService.queryConfigurable(ISink.TYPE,contextMsgSinkName);
     }
 
     @Override
@@ -823,4 +846,44 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
     }
 
     public abstract boolean supportBatchMsgFinish();
+
+    public ISink getContextMsgSink() {
+        return contextMsgSink;
+    }
+
+    public String getContextMsgSinkName() {
+        return contextMsgSinkName;
+    }
+
+    public void setContextMsgSinkName(String contextMsgSinkName) {
+        this.contextMsgSinkName = contextMsgSinkName;
+    }
+
+    public String getMapFunctionSerializeValue() {
+        return mapFunctionSerializeValue;
+    }
+
+    public void setMapFunctionSerializeValue(String mapFunctionSerializeValue) {
+        this.mapFunctionSerializeValue = mapFunctionSerializeValue;
+    }
+
+    public void saveMsgContext(String queueId,WindowInstance windowInstance, List<IMessage> messages) {
+        if(this.mapFunction!=null&&this.contextMsgSink!=null){
+            if(messages!=null){
+                for(IMessage message:messages){
+                    JSONObject msg=message.getMessageBody();
+                    try {
+                        msg=this.mapFunction.map(new Pair(windowInstance,msg));
+                        Message copyMsg=new Message(msg);
+                        copyMsg.getHeader().setQueueId(queueId);
+                        copyMsg.getHeader().setOffset(message.getHeader().getOffset());
+                        this.contextMsgSink.batchAdd(copyMsg);
+                    } catch (Exception e) {
+                        throw new RuntimeException("save window context msg error ",e);
+                    }
+                }
+                this.contextMsgSink.flush();
+            }
+        }
+    }
 }

@@ -148,7 +148,6 @@ public interface ConfigureFileKey {
 
     String WINDOW_SHUFFLE_CHANNEL_PROPERTY_PREFIX = "window.shuffle.channel.";
     String WINDOW_SYSTEM_MESSAGE_CHENNEL_OWNER = "window.system.message.channel.owner";//如果能做消息过滤，只过滤本window的消息，可以配置这个属性，如rocketmq的tags.不支持的会做客户端过滤
-
     /**
      * 通知相关
      */
@@ -162,5 +161,11 @@ public interface ConfigureFileKey {
     String IS_RECOVER_MODE = "isRecover";
 
     String IS_ATOMIC_DB_SINK = "isAtomicDbSink";
+
+    /**
+     * minibatch
+     */
+
+    String WINDOW_MINIBATCH_SWITCH="window.minibatch.switch";//是否启动minibatch
 
 }

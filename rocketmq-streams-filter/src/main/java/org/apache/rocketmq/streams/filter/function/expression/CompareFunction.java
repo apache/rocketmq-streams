@@ -29,7 +29,7 @@ import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public abstract class CompareFunction extends AbstractExpressionFunction {
-    public static String VAR_PREFIX="&&&&##$$%^*";//标识一个表达式的值式一个变量，是一个特殊处理。这个标识会放到值的前面。如变量式uuid，值会变成&&&&##$$%^*uuid
+    public static String VAR_PREFIX="##*^%$#@!*";//标识一个表达式的值式一个变量，是一个特殊处理。这个标识会放到值的前面。如变量式uuid，值会变成&&&&##$$%^*uuid
     private static final Log LOG = LogFactory.getLog(CompareFunction.class);
 
     @Override

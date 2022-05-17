@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -54,6 +55,10 @@ public class JsonableUtil {
     private static Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
     public static String formatJson(JSONObject jsonObject) {
+        String value = gson.toJson(jsonObject);
+        return value;
+    }
+    public static String formatJson(JSONArray jsonObject) {
         String value = gson.toJson(jsonObject);
         return value;
     }

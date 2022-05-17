@@ -18,7 +18,9 @@ package org.apache.rocketmq.streams.common.topology;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -43,17 +45,22 @@ import org.apache.rocketmq.streams.common.monitor.group.MonitorCommander;
 import org.apache.rocketmq.streams.common.optimization.IHomologousOptimization;
 import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
+import org.apache.rocketmq.streams.common.schedule.ScheduleManager;
+import org.apache.rocketmq.streams.common.schedule.ScheduleTask;
+import org.apache.rocketmq.streams.common.topology.metric.StageGroup;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.utils.DipperThreadLocalUtil;
+import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.PipelineHTMLUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * 数据流拓扑结构，包含了source 算子，sink
  */
-public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IAfterConfigurableRefreshListener, Serializable {
+public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IAfterConfigurableRefreshListener, Serializable,Runnable {
 
     private static final long serialVersionUID = -5189371682717444347L;
 
@@ -92,10 +99,20 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
 
     /**
+     * 为了图形化拓扑和监控使用
+     */
+    protected List<StageGroup> stageGroups=new ArrayList<>();
+    protected transient List<StageGroup> rootStageGroups=new ArrayList<>();
+    protected String createTableSQL;
+
+
+    /**
      * 启动一个channel，并给channel应用pipeline
      */
 
     public void startChannel() {
+        //定时生成拓扑页面
+        ScheduleManager.getInstance().regist(new ScheduleTask(0,10,this));
         final String monitorName = createPipelineMonitorName();
         if (isInitSuccess()) {
             if (!hasStart.compareAndSet(false, true)) {
@@ -417,6 +434,14 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         createStageMap();
+        Map<String,StageGroup> stageGroupMap=createStageGroupMap();
+        for(StageGroup stageGroup:this.stageGroups){
+            stageGroup.init(this.stageMap,stageGroupMap);
+            if(stageGroup.getParent()==null&&!this.rootStageGroups.contains(stageGroup)){
+                this.rootStageGroups.add(stageGroup);
+            }
+        }
+
         ISource<?> source = configurableService.queryConfigurable(ISource.TYPE, channelName);
         this.source = source;
         for (AbstractStage<?> stage : getStages()) {
@@ -455,6 +480,14 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             this.duplicateCacheExpirationTime = 86400000;
         }
 
+    }
+
+    private Map<String, StageGroup> createStageGroupMap() {
+        Map<String, StageGroup> map=new HashMap<>();
+        for(StageGroup stageGroup:stageGroups){
+            map.put(stageGroup.getConfigureName(),stageGroup);
+        }
+        return map;
     }
 
     public Map<String, AbstractStage<?>> createStageMap() {
@@ -497,7 +530,11 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
         }
         super.destroy();
     }
-
+    public void addStageGroup(StageGroup stageGroup){
+        if(this.stageGroups!=null){
+            this.stageGroups.add(stageGroup);
+        }
+    }
     public Map<String, AbstractStage<?>> getStageMap() {
         return stageMap;
     }
@@ -520,5 +557,38 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
 
     public void setChannelName(String channelName) {
         this.channelName = channelName;
+    }
+
+    public List<StageGroup> getStageGroups() {
+        return stageGroups;
+    }
+
+    public void setStageGroups(List<StageGroup> stageGroups) {
+        this.stageGroups = stageGroups;
+    }
+
+    public List<StageGroup> getRootStageGroups() {
+        return rootStageGroups;
+    }
+
+    public String getCreateTableSQL() {
+        return createTableSQL;
+    }
+
+    public void setCreateTableSQL(String createTableSQL) {
+        this.createTableSQL = createTableSQL;
+    }
+
+    @Override public void run() {
+        String filePath=FileUtil.getJarPath();
+        if(StringUtil.isEmpty(filePath)){
+            filePath="/tmp";
+        }
+        filePath=filePath+ File.separator+getConfigureName()+".html";
+        String html=PipelineHTMLUtil.createHTML(this);
+        synchronized (this){
+            FileUtil.write(filePath,html);
+            LOG.info(getConfigureName()+" create pipeline html success in "+filePath);
+        }
     }
 }
