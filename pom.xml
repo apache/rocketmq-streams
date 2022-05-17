@@ -58,6 +58,7 @@
         <module>rocketmq-streams-channel-es</module>
         <module>rocketmq-streams-channel-kafka</module>
         <module>rocketmq-streams-channel-mqtt</module>
+        <module>rocketmq-streams-cep</module>
     </modules>
 
     <properties>
@@ -71,20 +72,21 @@
         <java.version>1.8</java.version>
         <java.encoding>UTF-8</java.encoding>
         <project.build.sourceEncoding>${java.encoding}</project.build.sourceEncoding>
+        <log4j.version>1.2.17</log4j.version>
         <commons-logging.version>1.1</commons-logging.version>
         <spring.version>5.1.14.RELEASE</spring.version>
         <auto-service.version>1.0-rc5</auto-service.version>
         <mysql-connector.version>5.1.40</mysql-connector.version>
-        <fastjson.version>1.2.9</fastjson.version>
+        <fastjson.version>1.2.25</fastjson.version>
         <quartz.version>2.2.1</quartz.version>
-        <httpclient.version>4.5.2</httpclient.version>
-        <commons-io.version>2.5</commons-io.version>
-        <junit.version>4.12</junit.version>
+        <httpclient.version>4.5.13</httpclient.version>
+        <commons-io.version>2.7</commons-io.version>
+        <junit.version>4.13.1</junit.version>
         <guava.version>25.1-jre</guava.version>
         <groovy.version>2.1.8</groovy.version>
         <disruptor.version>3.2.0</disruptor.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
-        <rocketmq.version>4.9.2</rocketmq.version>
+        <rocketmq.version>4.9.3</rocketmq.version>
         <hyperscan.version>5.4.0-2.0.0</hyperscan.version>
         <platform.version>3.5.2</platform.version>
         <gson.version>2.8.5</gson.version>
@@ -99,6 +101,8 @@
         <elasticsearch.version>7.4.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>
         <paho.version>1.2.2</paho.version>
+        <kryo.version>5.3.0</kryo.version>
+        <fst.version>2.56</fst.version>
         <slf4j-log4j12.version>1.7.36</slf4j-log4j12.version>
     </properties>
 
@@ -125,7 +129,10 @@
                         <exclude>build_without_test.sh</exclude>
                         <exclude>NOTICE</exclude>
                         <exclude>LICENSE</exclude>
-                        <exclude>*.md</exclude>
+                        <exclude>README.md</exclude>
+                        <exclude>README-chinese.md</exclude>
+                        <exclude>QUICKSTART.md</exclude>
+                        <exclude>quick_start.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
@@ -225,6 +232,11 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-state</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-cep</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -568,6 +580,17 @@
                 <groupId>org.eclipse.paho</groupId>
                 <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
                 <version>${paho.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>de.ruedigermoeller</groupId>
+                <artifactId>fst</artifactId>
+                <version>${fst.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.esotericsoftware</groupId>
+                <artifactId>kryo</artifactId>
+                <version>${kryo.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

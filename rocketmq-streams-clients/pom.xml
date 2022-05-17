@@ -75,6 +75,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-channel-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-connectors</artifactId>
         </dependency>
         <dependency>

@@ -36,6 +36,11 @@
 
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-schedule</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-commons</artifactId>
         </dependency>
     </dependencies>

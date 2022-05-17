@@ -365,10 +365,18 @@ public class DataTypeUtil {
     public static DataType createFieldDataType(Class clazz, String fieldName) {
 
         Method method = ReflectUtil.getGetMethod(clazz, fieldName);
+        Type type =null;
         if (method == null) {
-            System.out.println(clazz.getName() + ":" + fieldName);
+            try {
+                Field field = clazz.getDeclaredField(fieldName);
+                type = field.getType();
+            } catch (NoSuchFieldException e) {
+                throw new RuntimeException(clazz.getName() + "." + fieldName+" not exist get method, please create get/set method for the field");
+            }
+
+        }else {
+            type = method.getGenericReturnType();
         }
-        Type type = method.getGenericReturnType();
         String typeString = type.toString();
         if (typeString.startsWith("class ")) {
             typeString = null;

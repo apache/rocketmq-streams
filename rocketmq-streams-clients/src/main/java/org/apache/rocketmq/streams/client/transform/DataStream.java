@@ -51,8 +51,11 @@ import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.Union;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
+import org.apache.rocketmq.streams.common.topology.stages.ShuffleConsumerChainStage;
+import org.apache.rocketmq.streams.common.topology.stages.ShuffleProducerChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.StageBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.UDFChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.UDFUnionChainStage;
@@ -98,6 +101,25 @@ public class DataStream implements Serializable {
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
     }
+
+
+    public DataStream increaseConcurrencyByShuffle(int shuffleConcurrentCount){
+        if(this.mainPipelineBuilder.getPipeline().getChannelNextStageLabel().size()>0||currentChainStage!=null){
+            throw new RuntimeException("can only set after source");
+        }
+        ChainStage<?> stage = new ShuffleProducerChainStage();
+        ((ShuffleProducerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(),this.mainPipelineBuilder.getPipelineName(),this.mainPipelineBuilder.getPipeline().getChannelName()));
+        ((ShuffleProducerChainStage) stage).setSplitCount(shuffleConcurrentCount);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+
+        this.currentChainStage = stage;
+
+        stage = new ShuffleConsumerChainStage<>();
+        ((ShuffleConsumerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(),this.mainPipelineBuilder.getPipelineName(),this.mainPipelineBuilder.getPipeline().getChannelName()));
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
+    }
+
 
     public DataStream with(Strategy... strategies) {
         Properties properties = new Properties();

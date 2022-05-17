@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
@@ -32,6 +33,8 @@ import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.metric.StageGroup;
+import org.apache.rocketmq.streams.common.topology.metric.StageMetric;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
@@ -80,15 +83,24 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
     protected String ownerSqlNodeTableName;
 
     /**
+     * 主要用于排错，把stage按sql分组，可以快速定位问题
+     */
+    protected String sql;
+    protected StageGroup stageGroup;
+    /**
      * 前置指纹记录
      */
     protected transient PreFingerprint preFingerprint = null;
+
+    //监控信息
+    protected transient StageMetric stageMetric=new StageMetric();
 
     public AbstractStage() {
         setType(TYPE);
     }
 
     @Override public T doMessage(T t, AbstractContext context) {
+        long startTime=stageMetric.startCalculate(t);
         try {
             TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
         } catch (Exception e) {
@@ -99,9 +111,15 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             return t;
         }
         Object result = handle.doMessage(t, context);
+        stageMetric.endCalculate(startTime);
         if (!context.isContinue() || result == null) {
+            if(context.getNotFireReason()!=null){
+                stageMetric.filterCalculate(context.getNotFireReason());
+            }
             return (T) context.breakExecute();
         }
+        stageMetric.outCalculate();
+        context.removeNotFireReason();
         return (T) result;
     }
 
@@ -165,18 +183,22 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         if (StringUtil.isEmpty(routeLabel) && StringUtil.isEmpty(filterLabel)) {
             return this.nextStageLabels;
         }
+
+
         List<String> labels = new ArrayList<>(this.nextStageLabels);
         if (StringUtil.isNotEmpty(routeLabel)) {
+            Set<String> routeLabelSet=t.getHeader().createRouteLableSet(routeLabel);
             labels = new ArrayList<>();
             for (String tempLabel : this.nextStageLabels) {
-                if (routeLabel.equals(tempLabel)) {
+                if (routeLabelSet.contains(tempLabel)) {
                     labels.add(tempLabel);
                 }
             }
         }
         if (StringUtil.isNotEmpty(filterLabel)) {
+            Set<String> routeFilterLabelSet=t.getHeader().createRouteLableSet(filterLabel);
             for (String tempLabel : this.nextStageLabels) {
-                if (filterLabel.equals(label)) {
+                if (routeFilterLabelSet.contains(label)) {
                     labels.remove(tempLabel);
                 }
             }
@@ -310,6 +332,18 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         this.ownerSqlNodeTableName = ownerSqlNodeTableName;
     }
 
+    public StageMetric getStageMetric() {
+        return stageMetric;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
+    public void setSql(String sql) {
+        this.sql = sql;
+    }
+
     public void setNextStageLabels(List<String> nextStageLabels) {
         this.nextStageLabels = nextStageLabels;
     }
@@ -328,5 +362,13 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
 
     public void setPreFingerprint(PreFingerprint preFingerprint) {
         this.preFingerprint = preFingerprint;
+    }
+
+    public StageGroup getStageGroup() {
+        return stageGroup;
+    }
+
+    public void setStageGroup(StageGroup stageGroup) {
+        this.stageGroup = stageGroup;
     }
 }

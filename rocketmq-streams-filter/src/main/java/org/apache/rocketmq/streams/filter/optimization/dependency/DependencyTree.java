@@ -35,9 +35,11 @@ import org.apache.rocketmq.streams.common.utils.CollectionUtil;
  * raverse the pipeline to create a prefix filter fingerprint
  */
 public class DependencyTree {
+
+
+
     protected ChainPipeline chainPipeline;
     protected FingerprintCache fingerprintCache;
-
     public DependencyTree(ChainPipeline pipeline, FingerprintCache fingerprintCache) {
         this.fingerprintCache = fingerprintCache;
         this.chainPipeline = pipeline;
@@ -84,11 +86,17 @@ public class DependencyTree {
      * @param pipeline
      */
     public List<CommonExpression> parseTopology(ChainPipeline pipeline) {
+        if(StateLessDependencyTree.cache.containsKey(pipeline)){
+            return StateLessDependencyTree.cache.get(pipeline);
+        }
         List<String> nextLalbes = pipeline.getChannelNextStageLabel();
         List<CommonExpression> commonExpressions = new ArrayList<>();
         parseTree(null, nextLalbes, pipeline, commonExpressions);
+        StateLessDependencyTree.cache.put(chainPipeline,commonExpressions);
         return commonExpressions;
     }
+
+
 
     /**
      * @param parentTreeNode
@@ -174,7 +182,7 @@ public class DependencyTree {
      *
      * @return
      */
-    private boolean mergeFingerprint(PreFingerprint preview, PreFingerprint current) {
+    protected boolean mergeFingerprint(PreFingerprint preview, PreFingerprint current) {
         Set<String> previewLogFingerFieldNameSet = loadLogFingerFieldNames(preview);
         Set<String> currentLogFingerFieldNameSet = loadLogFingerFieldNames(current);
         boolean inPrew = true;

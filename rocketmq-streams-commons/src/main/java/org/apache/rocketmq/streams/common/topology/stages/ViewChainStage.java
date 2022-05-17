@@ -43,6 +43,8 @@ import org.apache.rocketmq.streams.common.optimization.IHomologousOptimization;
 import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintMetric;
+import org.apache.rocketmq.streams.common.schedule.ScheduleManager;
+import org.apache.rocketmq.streams.common.schedule.ScheduleTask;
 import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
@@ -71,13 +73,13 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
     /**
      * Homologous expression result cache
      */
-    protected int homologousRulesCaseSize = 10000;
-    protected int homologousExpressionCaseSize = 10000;
+    protected int homologousRulesCaseSize = 2000000;
+    protected int homologousExpressionCaseSize = 2000000;
 
     /**
      * Pre fingerprint filtering
      */
-    protected int preFingerprintCaseSize = 10000;
+    protected int preFingerprintCaseSize = 2000000;
     protected int parallelTasks = 4;
     /**
      * fingerprint cache
@@ -261,7 +263,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
             for (ChainPipeline<?> pipeline : newPipelines) {
                 if (!this.pipelines.contains(pipeline)) {
                     isChanged = true;
-                    break;
+                    ScheduleManager.getInstance().regist(new ScheduleTask(0,10,pipeline));
                 }
             }
             for (ChainPipeline<?> pipeline : this.pipelines) {
@@ -281,7 +283,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
         }
 
         if (this.parallelTasks > 0 && executorService == null) {
-            executorService = ThreadPoolFactory.createThreadPool(this.parallelTasks, "ViewChainStage-");
+            executorService = ThreadPoolFactory.createThreadPool(this.parallelTasks);
         }
     }
     @Override

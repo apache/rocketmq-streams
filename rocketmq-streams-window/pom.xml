@@ -50,5 +50,6 @@
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
         </dependency>
+        
     </dependencies>
 </project>

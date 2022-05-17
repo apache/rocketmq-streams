@@ -30,6 +30,7 @@ import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
 import org.apache.rocketmq.streams.common.optimization.FilterResultCache;
 import org.apache.rocketmq.streams.common.optimization.HomologousVar;
+import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public abstract class AbstractContext<T extends IMessage> extends HashMap {
@@ -68,6 +69,9 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
 
     protected Map<String, BitSetCache.BitSet> homologousResult;
 
+    //未触发规则的表达式
+    protected List<String> notFireExpressionMonitor=new ArrayList<>();
+
     public AbstractContext(T message) {
         this.message = message;
     }
@@ -97,6 +101,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.quickFilterResult = subContext.quickFilterResult;
         this.homologousResult = subContext.homologousResult;
         this.isContinue=subContext.isContinue;
+        this.notFireExpressionMonitor=subContext.notFireExpressionMonitor;
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
@@ -111,6 +116,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.quickFilterResult = quickFilterResult;
         subContext.homologousResult = homologousResult;
         subContext.isContinue=isContinue;
+        subContext.notFireExpressionMonitor=notFireExpressionMonitor;
         return subContext;
     }
 
@@ -410,6 +416,19 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         return monitor.createChildren(configurable);
     }
 
+    public NotFireReason getNotFireReason(){
+        return (NotFireReason)this.get("NotFireReason");
+    }
+
+
+    public void setNotFireReason(NotFireReason notFireReason){
+        this.put("NotFireReason",notFireReason);
+    }
+
+
+    public void removeNotFireReason(){
+        this.remove("NotFireReason");
+    }
     public boolean isBreak() {
         return isBreak;
     }
@@ -431,7 +450,16 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.homologousResult = homologousResult;
     }
 
+    public List<String> getNotFireExpressionMonitor() {
+        return notFireExpressionMonitor;
+    }
+
+    public void setNotFireExpressionMonitor(List<String> notFireExpressionMonitor) {
+        this.notFireExpressionMonitor = notFireExpressionMonitor;
+    }
+
     public FilterResultCache getQuickFilterResult() {
         return quickFilterResult;
     }
+
 }
