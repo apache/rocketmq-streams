@@ -1048,4 +1048,31 @@ public class FileUtil {
         }
     }
 
+    public static void downloadNet(String packageUrl, String destPath)  {
+        // 下载网络文件
+        int bytesum = 0;
+        int byteread = 0;
+
+
+
+        try {
+            URL url = new URL(packageUrl);
+            URLConnection conn = url.openConnection();
+            InputStream inStream = conn.getInputStream();
+            FileOutputStream fs = new FileOutputStream(destPath);
+
+            byte[] buffer = new byte[2048];
+            int length;
+            while ((byteread = inStream.read(buffer)) != -1) {
+                bytesum += byteread;
+                System.out.println(bytesum);
+                fs.write(buffer, 0 , byteread);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
