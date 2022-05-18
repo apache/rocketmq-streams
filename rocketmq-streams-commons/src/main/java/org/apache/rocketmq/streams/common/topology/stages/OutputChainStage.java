@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.common.topology.stages;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
@@ -61,38 +62,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
     protected transient IStageHandle handle = new IStageHandle() {
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
-            if (StringUtil.isNotEmpty(closeOutput)) {
-                String tmp = closeOutput.toLowerCase();
-                if ("true".equals(tmp) || "false".equals(tmp)) {
-                    Boolean value = Boolean.valueOf(tmp);
-                    if (value) {
-                        return message;
-                    }
-                } else {
-                    tmp = getENVVar(closeOutput);
-                    if (StringUtil.isNotEmpty(tmp)) {
-                        if ("true".equals(tmp.toLowerCase())) {
-                            return message;
-                        }
-                    }
-                }
-            }
-            boolean isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
-            if (isWindowTest) {
-                System.out.println("output count is " + count.incrementAndGet());
-            }
-            /**
-             * 主要是输出可能影响线上数据，可以通过配置文件的开关，把所有的输出，都指定到一个其他输出中
-             */
-            if (openMockChannel()) {
-                if (mockSink != null) {
-                    mockSink.batchAdd(message);
-                    return message;
-                }
-                return message;
-            }
-            sink.batchAdd(message);
-            return message;
+            return doSink(message,context);
         }
 
         @Override
@@ -100,6 +70,42 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
             return OutputChainStage.class.getName();
         }
     };
+
+
+    protected IMessage doSink(IMessage message, AbstractContext context){
+        if (StringUtil.isNotEmpty(closeOutput)) {
+            String tmp = closeOutput.toLowerCase();
+            if ("true".equals(tmp) || "false".equals(tmp)) {
+                Boolean value = Boolean.valueOf(tmp);
+                if (value) {
+                    return message;
+                }
+            } else {
+                tmp = getENVVar(closeOutput);
+                if (StringUtil.isNotEmpty(tmp)) {
+                    if ("true".equals(tmp.toLowerCase())) {
+                        return message;
+                    }
+                }
+            }
+        }
+        boolean isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
+        if (isWindowTest) {
+            System.out.println("output count is " + count.incrementAndGet());
+        }
+        /**
+         * 主要是输出可能影响线上数据，可以通过配置文件的开关，把所有的输出，都指定到一个其他输出中
+         */
+        if (openMockChannel()) {
+            if (mockSink != null) {
+                mockSink.batchAdd(message);
+                return message;
+            }
+            return message;
+        }
+        sink.batchAdd(message);
+        return message;
+    }
 
     @Override
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
@@ -136,6 +142,17 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
 
     }
 
+
+    @Override public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
+        ISink realSink = null;
+        if (openMockChannel() && mockSink != null) {
+            realSink = mockSink;
+        } else {
+            realSink = sink;
+        }
+        realSink.flush();
+
+    }
     @Override
     protected IStageHandle selectHandle(T t, AbstractContext context) {
         return handle;
@@ -195,7 +212,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         mockSink = getMockChannel(configurableService, sink.getNameSpace());
     }
 
-    private ISink getMockChannel(IConfigurableService configurableService, String nameSpace) {
+    protected ISink getMockChannel(IConfigurableService configurableService, String nameSpace) {
         String type = ComponentCreator.getProperties().getProperty("out.mock.type");
         if (type == null) {
             return null;

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.common.context;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -87,11 +88,6 @@ public class MessageHeader {
     private int loopIndex = -1;
 
     /**
-     * 规则不被触发对应的表达式
-     */
-    protected TopologyFilterMonitor pipelineExecutorMonitor;
-
-    /**
      * 在pipline中消息会被拆分，在有多分支时，会被copy，这个对象会在任何变动时，都保持全局唯一，不允许copy，复制，创建，一个message全局唯一
      */
     protected MessageGlobleTrace messageGlobalTrace;
@@ -116,7 +112,6 @@ public class MessageHeader {
         header.needFlush = needFlush;
         header.isSystemMessage = isSystemMessage;
         header.progress = new BatchMessageOffset();
-        header.pipelineExecutorMonitor = pipelineExecutorMonitor;
         if (progress != null) {
             header.progress.setCurrentMessage(progress.getCurrentMessage());
             header.progress.setOwnerType(progress.getOwnerType());
@@ -135,7 +130,17 @@ public class MessageHeader {
         ReflectUtil.setFieldValue2Object(this, jsonObject);
         return jsonObject;
     }
-
+    public Set<String> createRouteLableSet(String routeLabels){
+        if(routeLabels==null){
+            return null;
+        }
+        String[] lables=MapKeyUtil.splitKey(routeLabels);
+        Set<String> routeLableSet=new HashSet<>();
+        for(String lable:lables){
+            routeLableSet.add(lable);
+        }
+        return routeLableSet;
+    }
     /**
      * 用于路由的标签，标签等于stage的label
      *
@@ -169,6 +174,7 @@ public class MessageHeader {
     public String getRouteLabels() {
         return routeLabels;
     }
+
 
     public String getFilterLabels() {
         return filterLabels;
@@ -231,6 +237,8 @@ public class MessageHeader {
         }
         return routeLabels;
     }
+
+
 
     public boolean isNeedFlush() {
         return needFlush;
@@ -304,14 +312,7 @@ public class MessageHeader {
         isSystemMessage = systemMessage;
     }
 
-    public TopologyFilterMonitor getPipelineExecutorMonitor() {
-        return pipelineExecutorMonitor;
-    }
 
-    public void setPipelineExecutorMonitor(
-        TopologyFilterMonitor pipelineExecutorMonitor) {
-        this.pipelineExecutorMonitor = pipelineExecutorMonitor;
-    }
 
     public MessageGlobleTrace getMessageGlobalTrace() {
         return messageGlobalTrace;

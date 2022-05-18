@@ -79,9 +79,7 @@ public class ConsoleMonitorManager {
                 try {
                     queryValidTraceIds();
                     Map<String, JobStage> jobStageMap = cache;
-                    synchronized (this) {
-                        cache = new ConcurrentHashMap();
-                    }
+                    cache = new ConcurrentHashMap();
                     long current = System.currentTimeMillis();
                     for (JobStage jobStage : jobStageMap.values()) {
                         jobStage.setMachineName("");
@@ -170,7 +168,7 @@ public class ConsoleMonitorManager {
 //        }
 
         jobStage.getSafeInput().incrementAndGet();
-//        jobStage.setLastInputMsgObj(msg);
+        jobStage.setLastInputMsgObj(msg);
         if (clientTime != 0) {
             jobStage.setLastInputMsgTime(new Date(clientTime));
         } else {
@@ -210,8 +208,8 @@ public class ConsoleMonitorManager {
         JSONObject msg = message.getMessageBody();
         JobStage jobStage = getJobStage(stage.getLabel());
         jobStage.getSafeInput().incrementAndGet();
-//        jobStage.setLastInputMsgObj(msg);
-//        jobStage.setLastInputMsg(msg.toJSONString());
+        jobStage.setLastInputMsgObj(msg);
+        jobStage.setLastInputMsg(msg.toJSONString());
         jobStage.setLastInputMsgTime(new Date());
 
         String traceId = message.getHeader().getTraceId();
@@ -265,7 +263,7 @@ public class ConsoleMonitorManager {
         }
     }
 
-    public synchronized JobStage getJobStage(String uniqKey) {
+    public JobStage getJobStage(String uniqKey) {
 //        String key = createKey(uniqKey);
         JobStage jobStage = cache.get(uniqKey);
         if (jobStage == null) {

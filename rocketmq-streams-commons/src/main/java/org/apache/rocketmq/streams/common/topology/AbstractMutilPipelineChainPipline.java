@@ -36,15 +36,13 @@ import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 import org.apache.rocketmq.streams.common.topology.stages.JoinChainStage;
-import org.apache.rocketmq.streams.common.topology.stages.UnionChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.WindowChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 
 /**
- * 如果某个节点有多个pipline构成，可以继承此类，如union，join节点
- *
- * @param <T>
+ * 新的解析已经废弃，主要兼容老的规则数据
  */
+@Deprecated
 public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> extends ChainStage<T> implements IAfterConfigurableRefreshListener {
     /**
      * pipeline name，这是一个汇聚节点，会有多个pipline，这里存的是pipline name
@@ -108,7 +106,7 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
 
         @Override
         public String getName() {
-            return UnionChainStage.class.getName();
+            return AbstractMutilPipelineChainPipline.class.getName();
         }
     };
 
@@ -183,9 +181,11 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
             }
             List<AbstractStage<?>>  stages= chainPipline.getStages();
             for(AbstractStage stage:stages){
+                stage.setPipeline(getPipeline());
                  if(WindowChainStage.class.isInstance(stage)){
                     ((WindowChainStage)stage).getWindow().setFireReceiver(getReceiverAfterCurrentNode());
                 }else if(JoinChainStage.class.isInstance(stage)){
+                     ((JoinChainStage) stage).doProcessAfterRefreshConfigurable(configurableService);
                      ((JoinChainStage)stage).getWindow().setFireReceiver(getReceiverAfterCurrentNode());
                  }
             }

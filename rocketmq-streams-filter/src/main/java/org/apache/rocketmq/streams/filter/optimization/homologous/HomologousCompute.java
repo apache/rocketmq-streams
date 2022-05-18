@@ -313,4 +313,7 @@ public class HomologousCompute {
         }
     }
 
+    public Map<String, SameVarExpressionGroup> getGroupBySourceVarName() {
+        return groupBySourceVarName;
+    }
 }

@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> {
@@ -42,9 +41,7 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
         super(null);
 //        this.executorService = new ThreadPoolExecutor(10, 10,
 //            0L, TimeUnit.MILLISECONDS,
-//            new LinkedBlockingQueue<Runnable>(), new ThreadPoolFactory.DipperThreadFactory("AbstractMultiSplitMessageCache"));
-        this.executorService = ThreadPoolFactory.createThreadPool(10, 10, 0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(), "AbstractMultiSplitMessageCache");
+//            new LinkedBlockingQueue<Runnable>());
         this.flushCallBack = new MessageFlushCallBack(flushCallBack);
     }
 
@@ -56,7 +53,7 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
             synchronized (this) {
                 messageCache = queueMessageCaches.get(queueId);
                 if (messageCache == null) {
-                    messageCache = new MessageCache(flushCallBack);
+                    messageCache = createMessageCache();
                     messageCache.setAutoFlushSize(this.autoFlushSize);
                     messageCache.setAutoFlushTimeGap(this.autoFlushTimeGap);
                     messageCache.setBatchSize(batchSize);
@@ -79,6 +76,10 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
             size = messageCount.get();
         }
         return size;
+    }
+
+    protected MessageCache createMessageCache(){
+       return new MessageCache(flushCallBack);
     }
 
     protected abstract String createSplitId(R msg);

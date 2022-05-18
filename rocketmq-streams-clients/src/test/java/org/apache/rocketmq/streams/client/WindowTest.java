@@ -31,7 +31,9 @@ import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.functions.ForEachFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
+import org.apache.rocketmq.streams.common.functions.ReduceFunction;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
+import org.apache.rocketmq.streams.script.service.IAccumulator;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -43,12 +45,16 @@ public class WindowTest implements Serializable {
             .fromFile("/Users/duheng/project/opensource/sls_100.txt", false)
             .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
             .window(TumblingWindow.of(Time.seconds(5)))
+            .setTimeField("时间字段")
+            .waterMark(10)
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(true)
-            .count("total")
-            .sum("OutFlow", "OutFlow")
-            .sum("InFlow", "InFlow")
-            .toDataSteam()
+            .reduce(new ReduceFunction<IAccumulator, JSONObject>() {
+
+                @Override public IAccumulator reduce(IAccumulator acccumulator, JSONObject msg) {
+                    return null;
+                }
+            })
             .forEach(new ForEachFunction<JSONObject>() {
                 protected int sum = 0;
 

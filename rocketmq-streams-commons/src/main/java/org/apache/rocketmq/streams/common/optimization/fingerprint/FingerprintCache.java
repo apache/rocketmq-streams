@@ -35,7 +35,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 public class FingerprintCache {
     protected static FingerprintCache fingerprintCache;
     protected static int CACHE_SIZE = 5000000;//default cache size，support 3000000 log size
-
+    public static String FIELD_VALUE_SPLIT_SIGN=";;;;;";
     //key: namespace  value:FingerprintMetric
     protected Map<String, FingerprintMetric> metricMap = new HashMap<>();
 
@@ -200,7 +200,7 @@ public class FingerprintCache {
             if (isFirst) {
                 isFirst = false;
             } else {
-                sb.append(";");
+                sb.append(FIELD_VALUE_SPLIT_SIGN);
             }
             sb.append(msgValue);
         }

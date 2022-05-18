@@ -43,7 +43,7 @@ public class RocksdbTest {
     public void testCPUCost() throws UnsupportedEncodingException, RocksDBException {
         RocksDB rocksDB = new RocksDBOperator().getInstance();
         long start = System.currentTimeMillis();
-        int size = 100000000;
+        int size = 10000000;
         for (int i = 0; i < size; i++) {
             JSONObject msg = new JSONObject();
             msg.put("name", "chris" + i);

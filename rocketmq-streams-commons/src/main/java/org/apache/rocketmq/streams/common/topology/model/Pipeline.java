@@ -118,6 +118,13 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
         return t;
     }
 
+    @Override protected boolean initConfigurable() {
+        for(AbstractStage stage:stages){
+            stage.init();
+        }
+        return super.initConfigurable();
+    }
+
     /**
      * regist pre filter Fingerprint
      *

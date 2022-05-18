@@ -30,7 +30,7 @@ import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 public class WindowMaxValueManager implements IWindowMaxValueManager {
     protected AbstractWindow window;
     protected Map<String, WindowMaxValueProcessor> windowMaxValueProcessorMap = new HashMap<>();
-//    protected transient ExecutorService executorService;
+  //  protected transient ExecutorService executorService;
     protected transient SQLCache sqlCache;
 
     public WindowMaxValueManager(AbstractWindow window, SQLCache sqlCache) {

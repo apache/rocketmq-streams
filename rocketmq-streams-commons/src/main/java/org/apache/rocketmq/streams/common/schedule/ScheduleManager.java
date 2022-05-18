@@ -29,7 +29,7 @@ public class ScheduleManager {
     protected List<ScheduleTask> scheduleTasks = new ArrayList<>();
     protected AtomicBoolean isStart = new AtomicBoolean(false);
     protected ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(5);
-    protected ExecutorService executorService = ThreadPoolFactory.createThreadPool(2, 50, "ScheduleManager");
+    protected ExecutorService executorService = ThreadPoolFactory.createThreadPool(2, 50);
     private static ScheduleManager scheduleManager = new ScheduleManager();
 
     public static ScheduleManager getInstance() {
