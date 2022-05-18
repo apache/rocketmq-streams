@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public class NameCreator {
-    private transient AtomicInteger nameCreator = new AtomicInteger(10000);
+    private transient AtomicInteger nameCreator = new AtomicInteger(100000000);
 
     private Map<String, NameCreator> creatorMap = new HashMap<>();
 

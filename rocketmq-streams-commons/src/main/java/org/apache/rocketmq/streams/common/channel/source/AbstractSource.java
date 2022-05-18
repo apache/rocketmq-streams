@@ -105,6 +105,11 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     protected MetaData metaData;
 
     protected List<String> headerFieldNames;
+
+    /**
+     * if set the value，the data will be shuffled to a new topic
+     */
+    protected int shuffleConcurrentCount;
     /**
      * 数据源投递消息的算子，此算子用来接收source的数据，做处理
      */
@@ -696,6 +701,14 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     }
 
+    public int getShuffleConcurrentCount() {
+        return shuffleConcurrentCount;
+    }
+
+    public void setShuffleConcurrentCount(int shuffleConcurrentCount) {
+        this.shuffleConcurrentCount = shuffleConcurrentCount;
+    }
+
     @Override
     public boolean isFinished() {
         return false;
@@ -737,4 +750,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     public void setHeaderFieldNames(List<String> headerFieldNames) {
         this.headerFieldNames = headerFieldNames;
     }
+
+
 }

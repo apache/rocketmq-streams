@@ -24,8 +24,9 @@ import org.apache.rocketmq.streams.common.topology.AbstractMutilPipelineChainPip
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 
 /**
- * 会把消息复制后转给其他的pipeline 主要处理场景是类似blink多任务过滤部分抽取成规则放到一个任务的场景
+ * 新的解析已经废弃，主要兼容老的规则数据
  */
+@Deprecated
 public class UnionChainStage<T extends IMessage> extends AbstractMutilPipelineChainPipline<T> {
 
     private static final long serialVersionUID = -6448769339534974034L;

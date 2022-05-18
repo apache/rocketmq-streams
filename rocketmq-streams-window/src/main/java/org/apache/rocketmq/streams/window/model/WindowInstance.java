@@ -246,7 +246,6 @@ public class WindowInstance extends Entity implements Serializable {
         }
         return occurTime;
     }
-
     /**
      * 查询或者创建Window的实例，滑动窗口有可能返回多个，滚动窗口返回一个
      *
@@ -257,6 +256,18 @@ public class WindowInstance extends Entity implements Serializable {
      */
     public static List<WindowInstance> getOrCreateWindowInstance(AbstractWindow window, Long occurTime,
         int timeUnitAdjust, String queueId) {
+        return getOrCreateWindowInstance(window,occurTime,timeUnitAdjust,queueId,false);
+    }
+    /**
+     * 查询或者创建Window的实例，滑动窗口有可能返回多个，滚动窗口返回一个
+     *
+     * @param window
+     * @param occurTime
+     * @return
+     * @Param isWindowInstance2DB 如果是秒级窗口，可能windowinstacne不必存表，只在内存保存，可以通过这个标志设置
+     */
+    public static List<WindowInstance> getOrCreateWindowInstance(AbstractWindow window, Long occurTime,
+        int timeUnitAdjust, String queueId, boolean isCreateOnly) {
         int windowSlideInterval = window.getSlideInterval();
         int windowSizeInterval = window.getSizeInterval();
         if (windowSlideInterval == 0) {
@@ -272,6 +283,9 @@ public class WindowInstance extends Entity implements Serializable {
         for (Date begin : windowBeginTimeList) {
             Date end = DateUtil.addDate(TimeUnit.SECONDS, begin, windowSizeInterval * timeUnitAdjust);
             Date fire = null;
+            /**
+             * if 这段代码可以忽略，全部用模式0和emit组合实现
+             */
             if (window.getFireMode() != 0) {
                 //非正常触发模式
                 if (maxEventTime == null || maxEventTime - end.getTime() < 0) {
@@ -295,6 +309,7 @@ public class WindowInstance extends Entity implements Serializable {
                 }
                 /**
                  * mode 2 clear window instance in first create window instance
+                 * 已经不再使用，这段代码可以忽略
                  */
                 if (window.getFireMode() == 2 && fire.getTime() == end.getTime() && waterMarkMinute > 0) {
                     Date clearWindowInstanceFireTime = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
@@ -332,7 +347,7 @@ public class WindowInstance extends Entity implements Serializable {
         List<WindowInstance> lostInstanceList = null;
         lostInstanceList = WindowInstance.createWindowInstances(window, lostWindowTimeList, lostFireList, queueId);
         instanceList.addAll(lostInstanceList);
-        if (CollectionUtil.isNotEmpty(lostInstanceList)) {
+        if (CollectionUtil.isNotEmpty(lostInstanceList)&&!isCreateOnly) {
             for (WindowInstance windowInstance : instanceList) {
                 List<WindowInstance> emitInstances = createEmitWindowInstance(window, windowInstance);
                 if (emitInstances != null && emitInstances.size() > 0) {

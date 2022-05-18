@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.threadpool;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -25,37 +24,33 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ThreadPoolFactory {
-    public static ExecutorService createThreadPool(int coreSize, String poolNamePrefix) {
-        ExecutorService executorService = new ThreadPoolExecutor(coreSize, coreSize,
-            1000 * 60L, TimeUnit.MILLISECONDS,
-            new SynchronousQueue<Runnable>(), new DipperThreadFactory(poolNamePrefix), new ThreadPoolExecutor.CallerRunsPolicy());
+    public static ExecutorService createThreadPool(int coreSize){
+        ExecutorService executorService= new ThreadPoolExecutor(coreSize, coreSize,
+            1000*60L, TimeUnit.MILLISECONDS,
+            new SynchronousQueue<Runnable>(), new DipperThreadFactory(), new ThreadPoolExecutor.CallerRunsPolicy());
         return executorService;
     }
 
-    public static ExecutorService createThreadPool(int min, int max, String poolNamePrefix) {
-        ExecutorService executorService = new ThreadPoolExecutor(min, max,
-            1000 * 60L, TimeUnit.MILLISECONDS,
-            new SynchronousQueue<Runnable>(), new DipperThreadFactory(poolNamePrefix), new ThreadPoolExecutor.CallerRunsPolicy());
+
+    public static ExecutorService createThreadPool(int min,int max){
+        ExecutorService executorService= new ThreadPoolExecutor(min, max,
+            1000*60L, TimeUnit.MILLISECONDS,
+            new SynchronousQueue<Runnable>(),new DipperThreadFactory(), new ThreadPoolExecutor.CallerRunsPolicy());
         return executorService;
     }
 
-    public static ExecutorService createThreadPool(int min, int max, long keepAliveTime, TimeUnit timeUnit, BlockingQueue<Runnable> workQueue, String poolNamePrefix) {
-        ExecutorService executorService = new ThreadPoolExecutor(min, max,
-            keepAliveTime, timeUnit,
-            workQueue, new DipperThreadFactory(poolNamePrefix), new ThreadPoolExecutor.CallerRunsPolicy());
-        return executorService;
-    }
-    public static class DipperThreadFactory implements ThreadFactory {
-        private final AtomicInteger poolNumber = new AtomicInteger(1);
+
+    static class DipperThreadFactory implements ThreadFactory {
+        private static final AtomicInteger poolNumber = new AtomicInteger(1);
         private final ThreadGroup group;
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         private final String namePrefix;
 
-        public DipperThreadFactory(String poolNamePrefix) {
+        DipperThreadFactory() {
             SecurityManager s = System.getSecurityManager();
             group = (s != null) ? s.getThreadGroup() :
                 Thread.currentThread().getThreadGroup();
-            namePrefix = poolNamePrefix + "-dipper-" +
+            namePrefix = "dipper-pool-" +
                 poolNumber.getAndIncrement() +
                 "-thread-";
         }

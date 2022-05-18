@@ -76,11 +76,11 @@ public class ScheduleTask {
             initialDelaySecond = -1;
             return true;
         }
-        if (initialDelaySecond > 0 && (System.currentTimeMillis() - lastExecuteTime > initialDelaySecond)) {
+        if (initialDelaySecond > 0 && (System.currentTimeMillis() - lastExecuteTime > initialDelaySecond*1000)) {
             initialDelaySecond = -1;
             return true;
         }
-        if (System.currentTimeMillis() - lastExecuteTime > delaySecond) {
+        if (System.currentTimeMillis() - lastExecuteTime > delaySecond*1000) {
             return true;
         }
         isExecuting.compareAndSet(true, false);

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
@@ -45,6 +46,7 @@ import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
+import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public abstract class AbstractSystemChannel implements IConfigurableIdentification, ISystemMessageProcessor, IStreamOperator {
 
@@ -58,13 +60,38 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
     protected Map<String, String> channelConfig = new HashMap<>();
     protected volatile boolean hasCreateShuffleChannel = false;
 
+    protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
     public void startChannel() {
         if (consumer == null) {
             return;
         }
-        consumer.start(this);
+        if (hasStart.compareAndSet(false, true)) {
+            consumer.start(this);
+        }
+
     }
 
+
+    /**
+     * init shuffle channel
+     */
+    public void init(AbstractWindow window) {
+        this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
+        this.producer = createSink(window.getNameSpace(), window.getConfigureName());
+        if (this.consumer == null || this.producer == null) {
+            autoCreateShuffleChannel(window.getFireReceiver().getPipeline());
+        }
+        if (this.consumer == null) {
+            return;
+        }
+        if (this.consumer instanceof AbstractSource) {
+            ((AbstractSource) this.consumer).setJsonData(true);
+        }
+        if(producer!=null){
+            this.producer.init();
+        }
+
+    }
     /**
      * 如果用户未配置shuffle channel，根据pipeline数据源动态创建
      *

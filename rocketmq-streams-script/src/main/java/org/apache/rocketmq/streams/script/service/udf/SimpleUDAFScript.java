@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.script.service.udf;
 
+import java.io.Serializable;
+
 public class SimpleUDAFScript extends UDAFScript {
 
     public SimpleUDAFScript(){

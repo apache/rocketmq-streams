@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
@@ -37,9 +38,12 @@ import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
+import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -56,6 +60,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
+import org.apache.rocketmq.streams.window.minibatch.MiniBatchMsgCache;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
@@ -116,34 +121,13 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
     }
 
-    protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
-
-    @Override
-    public void startChannel() {
-        if (hasStart.compareAndSet(false, true)) {
-            super.startChannel();
-        }
-
-    }
 
     /**
      * init shuffle channel
      */
     public void init() {
-        this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
-        this.producer = createSink(window.getNameSpace(), window.getConfigureName());
-
-        if (this.consumer == null || this.producer == null) {
-            autoCreateShuffleChannel(window.getFireReceiver().getPipeline());
-        }
-        if (this.consumer == null) {
-            return;
-        }
-        if (this.consumer instanceof AbstractSource) {
-            ((AbstractSource) this.consumer).setJsonData(true);
-        }
+        init(this.window);
         if (producer != null && (queueList == null || queueList.size() == 0)) {
-            this.producer.init();
             queueList = producer.getSplitList();
             Map<String, ISplit<?, ?>> tmp = new ConcurrentHashMap<>();
             for (ISplit<?, ?> queue : queueList) {
@@ -193,7 +177,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         if (!StringUtil.isEmpty(traceId)) {
             TraceUtil.debug(traceId, "shuffle message in", "received message size:" + messages.size());
         }
-
         for (Object obj : messages) {
             IMessage message = new Message((JSONObject) obj);
             message.getHeader().setQueueId(queueId);
@@ -233,7 +216,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
         }
         if (isWindowTest) {
             long count = COUNT.addAndGet(messages.size());
-            System.out.println(window.getConfigureName() + " receive shuffle msg count is " + count);
+            System.out.println(window.getConfigureName() + " receive shuffle msg count is " +  count);
         }
 
         return null;
@@ -323,7 +306,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
             //            if(COUNT.get()!=88121){
             //                throw new RuntimeException("fired before receiver");
             //            }
-            System.out.println("start fire window by fininsh flag " + oriMessage.getHeader().getQueueId());
+
             this.batchMessageFinish(oriMessage, context, (BatchFinishMessage) systemMessage);
         } else {
             throw new RuntimeException("can not support this system message " + systemMessage.getClass().getName());
@@ -537,13 +520,16 @@ public class ShuffleChannel extends AbstractSystemChannel {
     @Override
     public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage batchFinishMessage) {
         if (window.supportBatchMsgFinish()) {
-            shuffleCache.flush(message.getHeader().getQueueId());
-            Set<String> queueIds = new HashSet();
-            queueIds.add(message.getHeader().getQueueId());
-            window.getSqlCache().flush(queueIds);
+           // System.out.println("start fire window by fininsh flag ");
+            long startTime=System.currentTimeMillis();
+            Set<String> splitIds=new HashSet<>();
+            splitIds.add(message.getHeader().getQueueId());
+            shuffleCache.flush(splitIds);
+            window.getSqlCache().flush(splitIds);
             window.getWindowFireSource().fireWindowInstance(message.getHeader().getQueueId());
             IMessage cpMsg = batchFinishMessage.getMsg().copy();
             window.getFireReceiver().doMessage(cpMsg, context);
+            System.out.println("batch message finish cost is "+(System.currentTimeMillis()-startTime));
         }
 
     }
