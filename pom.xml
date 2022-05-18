@@ -128,10 +128,7 @@
                         <exclude>build_without_test.sh</exclude>
                         <exclude>NOTICE</exclude>
                         <exclude>LICENSE</exclude>
-                        <exclude>README.md</exclude>
-                        <exclude>README-chinese.md</exclude>
-                        <exclude>QUICKSTART.md</exclude>
-                        <exclude>quick_start.md</exclude>
+                        <exclude>*.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
