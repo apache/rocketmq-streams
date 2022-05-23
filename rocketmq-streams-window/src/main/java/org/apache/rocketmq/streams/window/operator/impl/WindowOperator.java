@@ -24,15 +24,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
+import org.apache.rocketmq.streams.window.model.FunctionExecutor;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
@@ -50,6 +54,9 @@ public class WindowOperator extends AbstractShuffleWindow {
     public WindowOperator() {
         super();
     }
+
+    protected transient boolean supportQuickStoreModel=false;
+    protected transient List<String> schema=new ArrayList<>();
 
     @Deprecated
     public WindowOperator(String timeFieldName, int windowPeriodMinute) {
@@ -75,13 +82,14 @@ public class WindowOperator extends AbstractShuffleWindow {
     protected transient AtomicInteger shuffleCount = new AtomicInteger(0);
     protected transient AtomicInteger fireCountAccumulator = new AtomicInteger(0);
 
+    protected transient AtomicLong fireCost=new AtomicLong(0);
     @Override
     public int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset) {
         List<WindowValue> windowValues = new ArrayList<>();
         int fireCount = 0;
-        long startTime = System.currentTimeMillis();
-        int sendCost = 0;
-        int currentCount = 0;
+        //long startTime = System.currentTimeMillis();
+        //int sendCost = 0;
+      //  int currentCount = 0;
         //for(String queueId:currentQueueIds){
         WindowBaseValueIterator<WindowBaseValue> it = storage.loadWindowInstanceSplitData(getOrderBypPrefix(), queueId, instance.createWindowInstanceId(), null, getWindowBaseValueClass());
         if (queueId2Offset != null) {
@@ -104,7 +112,7 @@ public class WindowOperator extends AbstractShuffleWindow {
             if (windowValues.size() >= windowCache.getBatchSize()) {
                 long sendFireCost = System.currentTimeMillis();
                 sendFireMessage(windowValues, queueId);
-                sendCost += (System.currentTimeMillis() - sendFireCost);
+                //sendCost += (System.currentTimeMillis() - sendFireCost);
                 fireCount += windowValues.size();
                 windowValues = new ArrayList<>();
             }
@@ -113,19 +121,22 @@ public class WindowOperator extends AbstractShuffleWindow {
         if (windowValues.size() > 0) {
             long sendFireCost = System.currentTimeMillis();
             sendFireMessage(windowValues, queueId);
-            sendCost += (System.currentTimeMillis() - sendFireCost);
+         //   sendCost += (System.currentTimeMillis() - sendFireCost);
             fireCount += windowValues.size();
         }
         clearFire(instance);
         this.sqlCache.addCache(new FiredNotifySQLElement(queueId, instance.createWindowInstanceId()));
+        //long cost= this.fireCost.addAndGet(System.currentTimeMillis()-startTime);
+      //  System.out.println("fire cost is "+cost+"   "+ DateUtil.getCurrentTimeString());
         return fireCount;
     }
 
     protected transient Map<String, Integer> shuffleWindowInstanceId2MsgCount = new HashMap<>();
     protected transient int windowvaluecount = 0;
-
+    protected transient AtomicLong shuffleCost=new AtomicLong(0);
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
+        Long startTime=System.currentTimeMillis();
         DebugWriter.getDebugWriter(getConfigureName()).writeShuffleCalcultateReceveMessage(instance, messages, queueId);
         List<String> sortKeys = new ArrayList<>();
         Map<String, List<IMessage>> groupBy = groupByGroupName(messages, sortKeys);
@@ -172,6 +183,8 @@ public class WindowOperator extends AbstractShuffleWindow {
         }
 
         saveStorage(allWindowValues, instance, queueId);
+        long cost= this.shuffleCost.addAndGet(System.currentTimeMillis()-startTime);
+       // System.out.println("shuffle cost is "+cost+"   "+ DateUtil.getCurrentTimeString());
     }
 
     private Integer getValue(WindowValue windowValue, String fieldName) {

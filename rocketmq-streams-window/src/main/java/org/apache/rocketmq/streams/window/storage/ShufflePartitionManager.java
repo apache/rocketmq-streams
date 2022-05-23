@@ -27,12 +27,12 @@ public class ShufflePartitionManager {
     private static ShufflePartitionManager instance = new ShufflePartitionManager();
     protected Map<String, Boolean> splitId2AllWindowInstanceFinishInit = new HashMap<>();//split是否有效，这个分片下所有的window instacne都完成了初始化
     protected Map<String, Boolean> windowInstanceId2FinishInit = new HashMap<>();//window instance 是否完成初始化
-    private ExecutorService executorService;
+//    private ExecutorService executorService;
 
     private ShufflePartitionManager() {
-        executorService = new ThreadPoolExecutor(10, 10,
-            0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>());
+//        executorService = new ThreadPoolExecutor(10, 10,
+//            0L, TimeUnit.MILLISECONDS,
+//            new LinkedBlockingQueue<Runnable>());
 
     }
 

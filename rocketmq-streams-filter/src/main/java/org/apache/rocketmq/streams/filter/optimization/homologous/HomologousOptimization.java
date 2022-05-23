@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.filter.optimization.homologous;
 import com.alibaba.fastjson.JSONObject;
 import com.google.auto.service.AutoService;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -34,9 +35,10 @@ import org.apache.rocketmq.streams.filter.optimization.dependency.DependencyTree
 @AutoService(IHomologousOptimization.class)
 public class HomologousOptimization implements IHomologousOptimization {
     protected transient HomologousCompute homologousCompute;
+    protected static Map<ChainPipeline,HomologousCompute> homologousComputeCache=new HashMap<>();
 
     @Override
-    public void optimizate(List<ChainPipeline> pipelines, int cacheSize, int preFingerprintCacheSize) {
+    public void optimizate(List<ChainPipeline<?>> pipelines, int cacheSize, int preFingerprintCacheSize) {
         List<CommonExpression> commonExpressions = new ArrayList<>();
         FingerprintCache fingerprintCache = new FingerprintCache(preFingerprintCacheSize);
         for (ChainPipeline<?> pipeline : pipelines) {
@@ -48,7 +50,16 @@ public class HomologousOptimization implements IHomologousOptimization {
             printOptimizatePipeline(pipeline);
         }
         homologousCompute = new HomologousCompute(commonExpressions, cacheSize);
+        for(ChainPipeline chainPipeline:pipelines){
+            homologousComputeCache.put(chainPipeline,homologousCompute);
+        }
     }
+
+
+    public HomologousCompute getHomologousCompute(ChainPipeline chainPipeline){
+        return homologousComputeCache.get(chainPipeline);
+    }
+
 
     @Override
     public void calculate(IMessage message, AbstractContext context) {

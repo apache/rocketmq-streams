@@ -22,7 +22,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
@@ -35,7 +37,7 @@ import org.apache.rocketmq.streams.window.sqlcache.impl.SplitSQLElement;
 /**
  * save receiver messages into cachefilter when checkpoint/autoflush/flush， process cachefilter message
  */
-public class ShuffleCache extends WindowCache {
+public class ShuffleCache extends AbstractSink {
     protected AbstractShuffleWindow window;
 
     public ShuffleCache(AbstractShuffleWindow window) {
@@ -57,8 +59,9 @@ public class ShuffleCache extends WindowCache {
             DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window, messages, windowInstance);
             window.shuffleCalculate(messages, windowInstance, queueId);
             saveSplitProgress(queueId, messages);
+            window.saveMsgContext(queueId,windowInstance,messages);
         }
-        return true;
+            return true;
     }
 
     /**
@@ -71,7 +74,7 @@ public class ShuffleCache extends WindowCache {
         Map<String, String> queueId2OrigOffset = new HashMap<>();
         Boolean isLong = false;
         for (IMessage message : messages) {
-            isLong = message.getMessageBody().getBoolean(ORIGIN_QUEUE_IS_LONG);
+            isLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
             String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
             String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
             queueId2OrigOffset.put(oriQueueId, oriOffset);
@@ -81,10 +84,6 @@ public class ShuffleCache extends WindowCache {
 
     }
 
-    @Override
-    protected String generateShuffleKey(IMessage message) {
-        return null;
-    }
 
     /**
      * 根据message，把message分组到不同的group，分别处理

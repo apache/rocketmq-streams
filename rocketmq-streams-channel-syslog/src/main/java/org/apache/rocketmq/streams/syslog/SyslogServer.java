@@ -82,13 +82,16 @@ public class SyslogServer extends AbstractUnreliableSource {
         SyslogServerSessionEventHandlerIF var5 = new SyslogServerEventHandler();
         var3.addEventHandler(var5);
         setSingleType(true);//单消费者
-        return true;
+        return super.initConfigurable();
     }
 
     @Override public boolean startSource() {
         setReceiver(new IStreamOperator() {
             @Override public Object doMessage(IMessage message, AbstractContext context) {
-                String hostAddress = message.getMessageBody().getString("_hostAddress");
+                String hostAddress = message.getMessageBody().getString("hostAddress");
+                if(hostAddress==null){
+                    return null;
+                }
                 List<SyslogChannel> syslogChannels = cache.get(hostAddress);
                 LOG.info("receive syslog msg, ip is  " + hostAddress + " msg is " + message.getMessageBody());
                 boolean hasMatch = false;
@@ -118,7 +121,7 @@ public class SyslogServer extends AbstractUnreliableSource {
                 return message;
             }
         });
-        org.graylog2.syslog4j.server.SyslogServer.getThreadedInstance(protocol);
+        SyslogServerIF serverIF=org.graylog2.syslog4j.server.SyslogServer.getThreadedInstance(protocol);
         return true;
     }
 
@@ -194,7 +197,7 @@ public class SyslogServer extends AbstractUnreliableSource {
         }
 
         @Override public void event(Object var1, SyslogServerIF var2, SocketAddress var3, SyslogServerEventIF var4) {
-            JSONObject msg = new JSONObject();
+
             String hostAddress = null;
             if (InetSocketAddress.class.isInstance(var3)) {
                 InetSocketAddress address = (InetSocketAddress) var3;
@@ -230,19 +233,17 @@ public class SyslogServer extends AbstractUnreliableSource {
                 }
 
             }
+            JSONObject msg = new JSONObject();
+            msg.put("data",message);
+            msg.put("facility", var4.getFacility());
+            msg.put("hostName", hostName);
+            msg.put("hostAddress", hostAddress);
+            msg.put("level", var4.getLevel());
+            msg.put("log_time", DateUtil.format(date));
+            msg.put("tag", tag);
+            msg.put("pid", pid);
 
-            msg.put("_facility", var4.getFacility());
-            msg.put("_hostName", hostName);
-            msg.put("_hostAddress", hostAddress);
-            msg.put("_level", var4.getLevel());
-            msg.put("_data", message);
-            msg.put("_date", DateUtil.format(date));
-            msg.put("_tag", tag);
-            msg.put("_pid", pid);
-            UserDefinedMessage userDefinedMessage = new UserDefinedMessage(message);
-            userDefinedMessage.putAll(msg);
-            userDefinedMessage.put(IMessage.DATA_KEY, message);
-            doReceiveMessage(userDefinedMessage);
+            doReceiveMessage(msg);
 
         }
 

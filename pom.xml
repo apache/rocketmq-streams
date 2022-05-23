@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -15,7 +15,9 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -26,60 +28,10 @@
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams</artifactId>
-    <version>1.0.2-preview-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
     <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
     <url>https://rocketmq.apache.org/</url>
-
-
-    <scm>
-        <url>git@github.com:apache/rocketmq-streams.git</url>
-        <connection>scm:git:git@github.com:apache/rocketmq-streams.git</connection>
-        <developerConnection>scm:git:git@github.com:apache/rocketmq-streams.git</developerConnection>
-        <tag>1.0.0-preview</tag>
-    </scm>
-
-    <mailingLists>
-        <mailingList>
-            <name>Development List</name>
-            <subscribe>dev-subscribe@rocketmq.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@rocketmq.apache.org</unsubscribe>
-            <post>dev@rocketmq.apache.org</post>
-        </mailingList>
-        <mailingList>
-            <name>User List</name>
-            <subscribe>users-subscribe@rocketmq.apache.org</subscribe>
-            <unsubscribe>users-unsubscribe@rocketmq.apache.org</unsubscribe>
-            <post>users@rocketmq.apache.org</post>
-        </mailingList>
-        <mailingList>
-            <name>Commits List</name>
-            <subscribe>commits-subscribe@rocketmq.apache.org</subscribe>
-            <unsubscribe>commits-unsubscribe@rocketmq.apache.org</unsubscribe>
-            <post>commits@rocketmq.apache.org</post>
-        </mailingList>
-    </mailingLists>
-
-    <developers>
-        <developer>
-            <id>Apache RocketMQ</id>
-            <name>Apache RocketMQ of ASF</name>
-            <url>https://rocketmq.apache.org/</url>
-        </developer>
-    </developers>
-
-    <organization>
-        <name>Apache Software Foundation</name>
-        <url>http://www.apache.org</url>
-    </organization>
-
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
 
     <modules>
         <module>rocketmq-streams-commons</module>
@@ -100,12 +52,11 @@
         <module>rocketmq-streams-channel-http</module>
         <module>rocketmq-streams-state</module>
         <module>rocketmq-streams-examples</module>
-        <module>rocketmq-streams-checkpoint</module>
-        <module>rocketmq-streams-connectors</module>
         <module>rocketmq-streams-channel-syslog</module>
         <module>rocketmq-streams-channel-es</module>
-        <module>rocketmq-streams-runner</module>
+        <module>rocketmq-streams-channel-kafka</module>
         <module>rocketmq-streams-channel-mqtt</module>
+        <module>rocketmq-streams-cep</module>
     </modules>
 
     <properties>
@@ -119,13 +70,13 @@
         <java.version>1.8</java.version>
         <java.encoding>UTF-8</java.encoding>
         <project.build.sourceEncoding>${java.encoding}</project.build.sourceEncoding>
-        <log4j.version>1.2.17</log4j.version>
         <commons-logging.version>1.1</commons-logging.version>
-        <spring.version>3.2.13.RELEASE</spring.version>
+        <spring.version>5.1.14.RELEASE</spring.version>
         <auto-service.version>1.0-rc5</auto-service.version>
         <mysql-connector.version>5.1.40</mysql-connector.version>
         <fastjson.version>1.2.9</fastjson.version>
         <quartz.version>2.3.2</quartz.version>
+
         <httpclient.version>4.5.13</httpclient.version>
         <commons-io.version>2.7</commons-io.version>
         <junit.version>4.13.1</junit.version>
@@ -133,7 +84,7 @@
         <groovy.version>2.1.8</groovy.version>
         <disruptor.version>3.2.0</disruptor.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
-        <rocketmq.version>4.5.2</rocketmq.version>
+        <rocketmq.version>4.9.3</rocketmq.version>
         <hyperscan.version>5.4.0-2.0.0</hyperscan.version>
         <platform.version>3.5.2</platform.version>
         <gson.version>2.8.5</gson.version>
@@ -147,8 +98,10 @@
         <commons-lang.version>2.5</commons-lang.version>
         <elasticsearch.version>7.4.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
         <paho.version>1.2.2</paho.version>
+        <kryo.version>5.3.0</kryo.version>
+        <fst.version>2.56</fst.version>
+        <slf4j-log4j12.version>1.7.36</slf4j-log4j12.version>
     </properties>
 
 
@@ -174,10 +127,7 @@
                         <exclude>build_without_test.sh</exclude>
                         <exclude>NOTICE</exclude>
                         <exclude>LICENSE</exclude>
-                        <exclude>README.md</exclude>
-                        <exclude>README-chinese.md</exclude>
-                        <exclude>QUICKSTART.md</exclude>
-                        <exclude>quick_start.md</exclude>
+                        <exclude>*.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
@@ -186,6 +136,7 @@
                         <exclude>**/*.xml</exclude>
                         <exclude>**/*.sh</exclude>
                         <exclude>**/*.out</exclude>
+                        <exclude>**/*.sql</exclude>
                         <exclude>**/*.properties</exclude>
                         <exclude>docs/**/*</exclude>
                     </excludes>
@@ -206,18 +157,6 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
                 <version>2.2</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.7</version>
-                <configuration>
-                    <formats>
-                        <format>html</format>
-                        <format>xml</format>
-                    </formats>
-                    <check />
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
@@ -288,6 +227,11 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-state</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-cep</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -387,6 +331,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-channel-kafka</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-connectors</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -454,9 +403,9 @@
             </dependency>
 
             <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <version>${log4j.version}</version>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${slf4j-log4j12.version}</version>
             </dependency>
 
             <dependency>
@@ -609,6 +558,12 @@
                 <artifactId>elasticsearch-rest-client</artifactId>
                 <version>${elasticsearch.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.elasticsearch</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_2.12</artifactId>
@@ -620,6 +575,17 @@
                 <groupId>org.eclipse.paho</groupId>
                 <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
                 <version>${paho.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>de.ruedigermoeller</groupId>
+                <artifactId>fst</artifactId>
+                <version>${fst.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.esotericsoftware</groupId>
+                <artifactId>kryo</artifactId>
+                <version>${kryo.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

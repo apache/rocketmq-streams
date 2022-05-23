@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -66,8 +65,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
     public AbstractConfigurableService() {
     }
 
-    @Override
-    public IConfigurable queryConfigurableByIdent(String identification) {
+    @Override public IConfigurable queryConfigurableByIdent(String identification) {
         return name2ConfigurableMap.get(identification);
     }
 
@@ -105,47 +103,44 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         return false;
     }
 
-    @Override
-    public <T extends IConfigurable> List<T> queryConfigurableByType(String type) {
+    @Override public <T extends IConfigurable> List<T> queryConfigurableByType(String type) {
         List<IConfigurable> list = queryConfigurable(type);
         if (list == null) {
             return new ArrayList<T>();
         }
-        List<T> result = new ArrayList<T>();
+        List<T> result = new ArrayList<>();
         for (IConfigurable configurable : list) {
             result.add((T) configurable);
         }
         return result;
     }
 
-    @Override
-    public boolean refreshConfigurable(String namespace) {
-
+    @Override public boolean refreshConfigurable(String namespace) {
         this.namespace = namespace;
         Map<String, List<IConfigurable>> tempType2ConfigurableMap = new HashMap<>();
         Map<String, IConfigurable> tempName2ConfigurableMap = new HashMap<>();
         GetConfigureResult configures = loadConfigurable(namespace);
         if (configures != null && configures.isQuerySuccess() && configures.getConfigurables() != null) {
             List<IConfigurable> configurables = configures.getConfigurables();
-            List<IConfigurable> configurableList = checkAndUpdateConfigurables(configurables, tempType2ConfigurableMap, tempName2ConfigurableMap);
-            for (IConfigurable configurable : configurableList) {
-                if (configurable instanceof IAfterConfigurableRefreshListener) {
-                    ((IAfterConfigurableRefreshListener) configurable).doProcessAfterRefreshConfigurable(this);
+            if (configurables != null && !configurables.isEmpty()) {
+                checkAndUpdateConfigurables(configurables, tempType2ConfigurableMap, tempName2ConfigurableMap);
+                for (IConfigurable configurable : this.name2ConfigurableMap.values()) {
+                    if (configurable instanceof IAfterConfigurableRefreshListener) {
+                        ((IAfterConfigurableRefreshListener) configurable).doProcessAfterRefreshConfigurable(this);
+                    }
                 }
             }
+
             return true;
         }
         return false;
     }
 
-    @Override
-    public <T> T queryConfigurable(String configurableType, String name) {
+    @Override public <T> T queryConfigurable(String configurableType, String name) {
         return (T) queryConfigurableByIdent(configurableType, name);
     }
 
-    protected List<IConfigurable> checkAndUpdateConfigurables(List<IConfigurable> configurables,
-        Map<String, List<IConfigurable>> tempType2ConfigurableMap,
-        Map<String, IConfigurable> tempName2ConfigurableMap) {
+    protected List<IConfigurable> checkAndUpdateConfigurables(List<IConfigurable> configurables, Map<String, List<IConfigurable>> tempType2ConfigurableMap, Map<String, IConfigurable> tempName2ConfigurableMap) {
         List<IConfigurable> configurableList = new ArrayList<>();
         for (IConfigurable configurable : configurables) {
             try {
@@ -164,9 +159,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
     }
 
     private void destroyOldConfigurables(Map<String, IConfigurable> tempName2ConfigurableMap) {
-        Iterator<Map.Entry<String, IConfigurable>> it = this.name2ConfigurableMap.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, IConfigurable> entry = it.next();
+        for (Map.Entry<String, IConfigurable> entry : this.name2ConfigurableMap.entrySet()) {
             String key = entry.getKey();
             IConfigurable value = entry.getValue();
             if (!tempName2ConfigurableMap.containsKey(key)) {
@@ -178,10 +171,9 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
 
     private void destroyOldConfigurable(IConfigurable oldConfigurable) {
         if (oldConfigurable instanceof AbstractConfigurable) {
-            ((AbstractConfigurable) oldConfigurable).destroy();
+            oldConfigurable.destroy();
         }
-        String key = getConfigureKey(oldConfigurable.getNameSpace(), oldConfigurable.getType(),
-            oldConfigurable.getConfigureName());
+        String key = getConfigureKey(oldConfigurable.getNameSpace(), oldConfigurable.getType(), oldConfigurable.getConfigureName());
         configurableMap.remove(key);
     }
 
@@ -190,29 +182,26 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
             AbstractConfigurable abstractConfigurable = (AbstractConfigurable) configurable;
             abstractConfigurable.setConfigurableService(this);
         }
-
         configurable.init();
 
     }
 
     private ScheduledExecutorService scheduledExecutorService;
 
-    @Override
-    public void initConfigurables(final String namespace) {
+    @Override public void initConfigurables(final String namespace) {
         refreshConfigurable(namespace);
         long polingTime = -1;
         if (this.properties != null) {
             String pollingTimeStr = this.properties.getProperty(AbstractComponent.POLLING_TIME);
             if (StringUtil.isNotEmpty(pollingTimeStr)) {
-                polingTime = Long.valueOf(pollingTimeStr);
+                polingTime = Long.parseLong(pollingTimeStr);
             }
         }
         if (polingTime > 0) {
             scheduledExecutorService = new ScheduledThreadPoolExecutor(3);
             scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
 
-                @Override
-                public void run() {
+                @Override public void run() {
                     try {
                         refreshConfigurable(namespace);
                     } catch (Exception e) {
@@ -223,14 +212,12 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         }
     }
 
-    @Override
-    public List<IConfigurable> queryConfigurable(String type) {
+    @Override public List<IConfigurable> queryConfigurable(String type) {
         String key = MapKeyUtil.createKey(type);
         return type2ConfigurableMap.get(key);
     }
 
-    @Override
-    public IConfigurable queryConfigurableByIdent(String type, String name) {
+    @Override public IConfigurable queryConfigurableByIdent(String type, String name) {
         String key = MapKeyUtil.createKey(type, name);
         return name2ConfigurableMap.get(key);
     }
@@ -244,8 +231,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
      */
     protected abstract GetConfigureResult loadConfigurable(String namespace);
 
-    @Override
-    public void update(IConfigurable configurable) {
+    @Override public void update(IConfigurable configurable) {
         updateConfigurable(configurable);
     }
 
@@ -253,8 +239,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
 
     protected abstract void insertConfigurable(IConfigurable configurable);
 
-    protected boolean update(IConfigurable configurable, Map<String, IConfigurable> name2ConfigurableMap,
-        Map<String, List<IConfigurable>> type2ConfigurableMap) {
+    protected boolean update(IConfigurable configurable, Map<String, IConfigurable> name2ConfigurableMap, Map<String, List<IConfigurable>> type2ConfigurableMap) {
         if (configurable == null) {
             return false;
         }
@@ -285,8 +270,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         return isUpdate;
     }
 
-    @Override
-    public void insert(IConfigurable configurable) {
+    @Override public void insert(IConfigurable configurable) {
         insertConfigurable(configurable);
     }
 
@@ -323,16 +307,11 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
      * @param configurable
      */
     protected void put2Map(Map<String, List<IConfigurable>> map, String key, IConfigurable configurable) {
-        List<IConfigurable> list = map.get(key);
-        if (list == null) {
-            list = new ArrayList<IConfigurable>();
-            map.put(key, list);
-        }
+        List<IConfigurable> list = map.computeIfAbsent(key, k -> new ArrayList<>());
         list.add(configurable);
     }
 
-    @Override
-    public Collection<IConfigurable> findAll() {
+    @Override public Collection<IConfigurable> findAll() {
         return name2ConfigurableMap.values();
     }
 
@@ -356,8 +335,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         return configure;
     }
 
-    @Override
-    public <T> Map<String, T> queryConfigurableMapByType(String type) {
+    @Override public <T> Map<String, T> queryConfigurableMapByType(String type) {
         List<IConfigurable> configurables = queryConfigurable(type);
         if (configurables == null) {
             return new HashMap<String, T>();
@@ -426,9 +404,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         String className = null;
         try {
             String jsonString = configure.getJsonValue();
-            IConfigurable configurable =
-                createConfigurableFromJson(configure.getNameSpace(), configure.getType(), configure.getName(),
-                    jsonString);
+            IConfigurable configurable = createConfigurableFromJson(configure.getNameSpace(), configure.getType(), configure.getName(), jsonString);
             if (configurable instanceof Entity) {
                 // add by wangtl 20171110 Configurable接口第三方包也在用，故不能Configurable里加接口，只能加到抽象类里，这里强转下
                 Entity abs = (Entity) configurable;
@@ -453,25 +429,23 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
      *
      * @param configurable
      */
-    @SuppressWarnings("rawtypes")
-    protected void convertPost(IConfigurable configurable) {
+    @SuppressWarnings("rawtypes") protected void convertPost(IConfigurable configurable) {
         if (this.properties == null) {
             return;
         }
-        String identification =
-            MapKeyUtil.createKey(configurable.getNameSpace(), configurable.getType(), configurable.getConfigureName());
+        String identification = MapKeyUtil.createKey(configurable.getNameSpace(), configurable.getType(), configurable.getConfigureName());
         String propertyValue = this.properties.getProperty(identification);
         if (StringUtil.isEmpty(propertyValue)) {
             return;
         }
         String[] fieldName2Values = propertyValue.split(",");
-        if (fieldName2Values == null || fieldName2Values.length == 0) {
+        if (fieldName2Values.length == 0) {
             return;
         }
         for (String fieldName2Value : fieldName2Values) {
             try {
                 String[] fieldName2ValueArray = fieldName2Value.split(":");
-                if (fieldName2ValueArray == null || fieldName2ValueArray.length != 2) {
+                if (fieldName2ValueArray.length != 2) {
                     continue;
                 }
                 String fieldName = fieldName2ValueArray[0];
@@ -486,9 +460,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
 
             } catch (Exception e) {
                 LOG.error("convert post error " + fieldName2Value, e);
-                continue;
             }
-
         }
     }
 
@@ -498,8 +470,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
      * @param className class name
      * @return
      */
-    @SuppressWarnings("rawtypes")
-    protected IConfigurable createConfigurable(String className) {
+    @SuppressWarnings("rawtypes") protected IConfigurable createConfigurable(String className) {
         return ReflectUtil.forInstance(className);
     }
 
@@ -525,8 +496,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         }
     }
 
-    @Override
-    public String getNamespace() {
+    @Override public String getNamespace() {
         return namespace;
     }
 

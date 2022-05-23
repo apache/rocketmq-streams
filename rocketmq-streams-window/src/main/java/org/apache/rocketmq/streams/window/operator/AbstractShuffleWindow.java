@@ -23,6 +23,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.shuffle.IShuffleKeyGenerator;
+import org.apache.rocketmq.streams.window.minibatch.MiniBatchMsgCache;
+import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
@@ -42,20 +45,27 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     public void windowInit() {
-        if (hasCreated.compareAndSet(false, true)) {
-            this.windowFireSource = new WindowTrigger(this);
-            this.windowFireSource.init();
-            this.windowFireSource.start(getFireReceiver());
-            this.shuffleChannel = new ShuffleChannel(this);
-            this.shuffleChannel.init();
-            windowCache.setBatchSize(5000);
-            windowCache.setShuffleChannel(shuffleChannel);
-        }
+
     }
 
     @Override
     public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
-        shuffleChannel.startChannel();
+        if (hasCreated.get()==false||this.shuffleChannel==null) {
+            synchronized (this){
+                if(hasCreated.get()==false||this.shuffleChannel==null){
+                    this.windowFireSource = new WindowTrigger(this);
+                    this.windowFireSource.init();
+                    this.windowFireSource.start(getFireReceiver());
+                    this.shuffleChannel = new ShuffleChannel(this);
+                    this.shuffleChannel.init();
+                    windowCache.setBatchSize(5000);
+                    windowCache.setShuffleChannel(shuffleChannel);
+                    windowCache.initMiniBatch();
+                    shuffleChannel.startChannel();
+                    hasCreated.set(true);
+                }
+            }
+        }
         return super.doMessage(message, context);
     }
 
@@ -64,8 +74,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
         Set<String> splitIds = new HashSet<>();
         splitIds.add(windowInstance.getSplitId());
         shuffleChannel.flush(splitIds);
-        int fireCount = fireWindowInstance(windowInstance, windowInstance.getSplitId(), queueId2Offset);
-        return fireCount;
+        return fireWindowInstance(windowInstance, windowInstance.getSplitId(), queueId2Offset);
     }
 
     /**
@@ -81,8 +90,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
      *
      * @param instance
      */
-    protected abstract int fireWindowInstance(WindowInstance instance, String queueId,
-        Map<String, String> queueId2Offset);
+    protected abstract int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset);
 
     public abstract void clearCache(String queueId);
 }

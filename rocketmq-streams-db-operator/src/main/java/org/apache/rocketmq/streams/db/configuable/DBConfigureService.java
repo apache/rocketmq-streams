@@ -134,11 +134,8 @@ public class DBConfigureService extends AbstractConfigurableService implements I
     @Override
     public List<IConfigurable> queryConfiguableByNamespace(String... namespaces) {
         List<Configure> configures = queryConfigureByNamespace(namespaces);
-        List<IConfigurable> configurables = convert(configures);
-        return configurables;
+        return convert(configures);
     }
-
-
 
     protected void saveOrUpdate(IConfigurable configure) {
         JDBCDriver jdbcDataSource = createResouce();
@@ -194,9 +191,9 @@ public class DBConfigureService extends AbstractConfigurableService implements I
             return null;
         }
         if (java.math.BigInteger.class.isInstance(value)) {
-            return (T)Long.valueOf(value.toString());
+            return (T) Long.valueOf(value.toString());
         }
-        return (T)value;
+        return (T) value;
 
     }
 
@@ -271,7 +268,7 @@ public class DBConfigureService extends AbstractConfigurableService implements I
         List<IConfigurable> configurables = convert(configures);
         List<T> result = new ArrayList<>();
         for (IConfigurable configurable : configurables) {
-            result.add((T)configurable);
+            result.add((T) configurable);
         }
         return result;
     }

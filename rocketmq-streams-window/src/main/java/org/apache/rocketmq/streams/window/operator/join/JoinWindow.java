@@ -63,7 +63,7 @@ public class JoinWindow extends AbstractShuffleWindow {
     protected String joinType;//join类型，值为INNER,LEFT
     protected String expression;//条件表达式。在存在非等值比较时使用
     protected transient DBOperator joinOperator = new DBOperator();
-
+    protected String rightDependentTableName;
     //    @Override
     //    protected void addPropertyToMessage(IMessage oriMessage, JSONObject oriJson){
     //        oriJson.put("AbstractWindow", this);
@@ -90,7 +90,18 @@ public class JoinWindow extends AbstractShuffleWindow {
             Map<String, WindowBaseValue> joinRightStates = new HashMap<>();
             MessageHeader header = JSONObject.parseObject(msg.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
             msg.setHeader(header);
-            String routeLabel = header.getMsgRouteFromLable();
+            String routeLabel = null;
+            String lable = msg.getHeader().getMsgRouteFromLable();
+            if (lable != null) {
+                if (lable.equals(rightDependentTableName)) {
+                    routeLabel = MessageHeader.JOIN_RIGHT;
+                } else {
+                    routeLabel = MessageHeader.JOIN_LEFT;
+                }
+                msg.getHeader().setMsgRouteFromLable(routeLabel);
+            } else {
+                throw new RuntimeException("can not dipatch message, need route label " + toJson());
+            }
             String storeKey = createStoreKey(msg, routeLabel, instance);
             JoinState state = createJoinState(msg, instance, routeLabel);
             if ("left".equalsIgnoreCase(routeLabel)) {
@@ -105,7 +116,6 @@ public class JoinWindow extends AbstractShuffleWindow {
                 storage.multiPut(joinRightStates);
             }
 
-            routeLabel = msg.getHeader().getMsgRouteFromLable();
             String storeKeyPrefix = "";
             Iterator<WindowBaseValue> iterator = null;
             if (LABEL_LEFT.equalsIgnoreCase(routeLabel)) {
@@ -412,8 +422,18 @@ public class JoinWindow extends AbstractShuffleWindow {
     }
 
     @Override
-    protected String generateShuffleKey(IMessage message) {
-        String routeLabel = message.getHeader().getMsgRouteFromLable();
+    public String generateShuffleKey(IMessage message) {
+        String routeLabel =null;
+        String lable = message.getHeader().getMsgRouteFromLable();
+        if (lable != null) {
+            if (lable.equals(rightDependentTableName)) {
+                routeLabel = MessageHeader.JOIN_RIGHT;
+            } else {
+                routeLabel = MessageHeader.JOIN_LEFT;
+            }
+        } else {
+            throw new RuntimeException("can not dipatch message, need route label " + toJson());
+        }
         String messageKey = generateKey(message.getMessageBody(), routeLabel, leftJoinFieldNames, rightJoinFieldNames);
         return messageKey;
     }
@@ -611,4 +631,13 @@ public class JoinWindow extends AbstractShuffleWindow {
     public void setExpression(String expression) {
         this.expression = expression;
     }
+
+    public String getRightDependentTableName() {
+        return rightDependentTableName;
+    }
+
+    public void setRightDependentTableName(String rightDependentTableName) {
+        this.rightDependentTableName = rightDependentTableName;
+    }
+
 }

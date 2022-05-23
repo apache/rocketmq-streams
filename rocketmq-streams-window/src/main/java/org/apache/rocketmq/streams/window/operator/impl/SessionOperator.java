@@ -417,6 +417,7 @@ public class SessionOperator extends WindowOperator {
                     LOG.error("window instance lost, queueId: " + queueId + " ,fire time" + windowInstance.getFireTime());
                 }
             }
+            //
             return toFireValueList.size();
         }
 

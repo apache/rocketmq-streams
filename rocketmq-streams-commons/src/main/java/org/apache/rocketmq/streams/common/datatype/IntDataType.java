@@ -36,7 +36,8 @@ public class IntDataType extends BaseDataType<Integer> {
         if (jsonValue == null || "N/A".equals(jsonValue)) {
             return null;
         }
-        return Integer.valueOf(jsonValue);
+
+        return Double.valueOf(jsonValue).intValue();
     }
 
     @Override

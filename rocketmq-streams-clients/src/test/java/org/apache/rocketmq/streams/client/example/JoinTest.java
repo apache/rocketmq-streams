@@ -81,10 +81,11 @@ public class JoinTest {
     public void testRocketmqJoin() {
 
         DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupA", true, "localhost:9876");
+        left.toPrint().start();
         //DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
-        DataStream right = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupB", true, "localhost:9876");
-
-        left.join(right).on("(ProjectName,=,project)").toDataSteam().toPrint().start();
+//        DataStream right = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupB", true, "localhost:9876");
+//
+//        left.join(right).on("(ProjectName,=,project)").toDataSteam().toPrint().start();
     }
 
 }
