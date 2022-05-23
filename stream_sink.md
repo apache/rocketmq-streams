@@ -54,7 +54,7 @@
 
     String topic=.....; //rocketmq 的topic
     String namesrvAddress=......; //rocketmq的nameserver
-    DataStream dataStream=dataStream.toRocketmq(topic,namesrvAddress);
+    DataStream dataStream=dataStreamSource.toRocketmq(topic,namesrvAddress);
 
 ```
 
@@ -65,7 +65,7 @@
     String topic=.....; //rocketmq 的topic
     String groupName=.....; // rocketmq的消费组
     String namesrvAddress=......; //rocketmq的nameserver
-    DataStream dataStream=dataStream.toRocketmq(topic,groupName,namesrvAddress);
+    DataStream dataStream=dataStreamSource.toRocketmq(topic,groupName,namesrvAddress);
 
 ```
 
@@ -77,7 +77,7 @@
     String groupName=.....; // rocketmq的消费组
     String namesrvAddress=......; //rocketmq的nameserver
     String tags=......; // rocketmq的tag信息
-    DataStream dataStream=dataStream.toRocketmq(topic,tags,groupName,namesrvAddress);
+    DataStream dataStream=dataStreamSource.toRocketmq(topic,tags,groupName,namesrvAddress);
 
 ```
 ## kafka
@@ -95,7 +95,7 @@
     String url=......;
     String clientId=......;
     String topic=......;
-    DataStream dataStream=dataStream.toMqtt(url,cliientId,topic);
+    DataStream dataStream=dataStreamSource.toMqtt(url,cliientId,topic);
 
 ```
 
@@ -108,7 +108,7 @@
     String topic=......;
     String username=......;
     String password=......;
-    DataStream dataStream=dataStream.toMqtt(url,cliientId,topic,username,password);
+    DataStream dataStream=dataStreamSource.toMqtt(url,cliientId,topic,username,password);
 
 ```
 
