@@ -54,7 +54,7 @@
     String groupName = .....; // rocketmq的消费组
     String namesrvAddress = ......; //rocketmq的nameserver
     Boolean isJsonData = true; //是否json     
-    String tags = ......; //rocketmq的tag信息
+    String tags = ......; // rocketmq的tag信息
     DataStream dataStream = dataStreamSource.fromRocketmq(topic, groupName, tags, isJsonData, namesrvAddress);
 
 ```

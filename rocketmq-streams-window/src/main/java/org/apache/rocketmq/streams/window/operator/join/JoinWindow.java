@@ -60,6 +60,7 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     protected String joinType;//join类型，值为INNER,LEFT
     protected String expression;//条件表达式。在存在非等值比较时使用
+    protected String rightDependentTableName;
 
     @Override
     protected int doFireWindowInstance(WindowInstance instance) {
@@ -556,5 +557,13 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     public void setExpression(String expression) {
         this.expression = expression;
+    }
+
+    public String getRightDependentTableName() {
+        return rightDependentTableName;
+    }
+
+    public void setRightDependentTableName(String rightDependentTableName) {
+        this.rightDependentTableName = rightDependentTableName;
     }
 }
