@@ -24,7 +24,7 @@ import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 public abstract class AbstractSupportShuffleChannelBuilder implements IChannelBuilder, IShuffleChannelBuilder {
 
     @Override
-    public ISource copy(ISource pipelineSource) {
+    public ISource<?> copy(ISource<?> pipelineSource) {
         JSONObject jsonObject = JSONObject.parseObject(pipelineSource.toJson());
         return ConfigurableUtil.create(pipelineSource.getNameSpace(), pipelineSource.getConfigureName(), jsonObject, pipelineSource.getClass().getName());
     }

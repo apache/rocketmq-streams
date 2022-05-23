@@ -40,7 +40,7 @@ import org.apache.rocketmq.streams.common.disruptor.DisruptorProducer;
 public abstract class AbstractUnreliableSource extends AbstractBatchSource {
     private static final Log LOG = LogFactory.getLog(AbstractUnreliableSource.class);
 
-    protected Boolean enableAsyncReceive = true;
+    protected Boolean enableAsyncReceive = false;
     protected boolean isSingleType = false;//是否只有单个生产者，如果是，则为true
 
     private transient ExecutorService cachedThreadPool = null;

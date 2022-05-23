@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.window.operator.impl;
 
+
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -29,7 +30,11 @@ import org.apache.rocketmq.streams.window.storage.IteratorWrap;
 import org.apache.rocketmq.streams.window.storage.RocksdbIterator;
 import org.apache.rocketmq.streams.window.storage.WindowType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -88,6 +93,7 @@ public class WindowOperator extends AbstractShuffleWindow {
 
     @Override
     public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
+        Long startTime=System.currentTimeMillis();
         DebugWriter.getDebugWriter(getConfigureName()).writeShuffleCalcultateReceveMessage(instance, messages, queueId);
 
         List<String> sortKeys = new ArrayList<>();

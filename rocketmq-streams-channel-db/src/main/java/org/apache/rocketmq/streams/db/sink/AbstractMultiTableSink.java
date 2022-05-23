@@ -34,7 +34,7 @@ public abstract class AbstractMultiTableSink extends EnhanceDBSink {
     protected transient AtomicLong messageCount = new AtomicLong(0);
     protected transient MultiTableSplitFunction<IMessage> multiTableSplitFunction;
 
-    public AbstractMultiTableSink(){
+    public AbstractMultiTableSink() {
     }
 
     public AbstractMultiTableSink(String url, String userName, String password) {
@@ -44,16 +44,16 @@ public abstract class AbstractMultiTableSink extends EnhanceDBSink {
     }
 
     @Override
-    protected boolean initConfigurable(){
+    protected boolean initConfigurable() {
         Iterator<EnhanceDBSink> it = tableSinks.values().iterator();
-        while(it.hasNext()){
+        while (it.hasNext()) {
             it.next().initConfigurable();
         }
         return true;
     }
 
     @Override
-    public boolean batchAdd(IMessage message, ISplit split) {
+    public boolean batchAdd(IMessage message, ISplit<?, ?> split) {
 
         EnhanceDBSink sink = getOrCreateDBSink(split.getQueueId());
         boolean success = sink.batchAdd(message, split);
@@ -68,7 +68,7 @@ public abstract class AbstractMultiTableSink extends EnhanceDBSink {
 
     @Override
     public boolean batchAdd(IMessage message) {
-        ISplit split = getSplitFromMessage(message);
+        ISplit<?, ?> split = getSplitFromMessage(message);
         return batchAdd(message, split);
     }
 
@@ -142,7 +142,7 @@ public abstract class AbstractMultiTableSink extends EnhanceDBSink {
 
     protected abstract String createTableName(String splitId);
 
-    protected abstract ISplit getSplitFromMessage(IMessage message);
+    protected abstract ISplit<?, ?> getSplitFromMessage(IMessage message);
 
     protected class SingleDBSinkCache extends MessageCache<IMessage> {
 

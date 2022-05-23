@@ -26,12 +26,12 @@ public class RouteFunction {
 
     @FunctionMethod(value = "route", comment = "做条件判断和路径选择")
     public String doRoute(IMessage message, FunctionContext context, String... routeLable) {
-        return message.getHeader().addRouteLable(routeLable);
+        return message.getHeader().addRouteLabel(routeLable);
     }
 
     @FunctionMethod(value = "filter", comment = "做条件判断和路径选择")
     public String doFilter(IMessage message, FunctionContext context, String... routeLable) {
-        return message.getHeader().addFilterLable(routeLable);
+        return message.getHeader().addFilterLabel(routeLable);
     }
 
 }

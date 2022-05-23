@@ -74,7 +74,7 @@ public class HomologousCompute {
         this.commonExpressions = commonExpressions;
         Map<String, SameVarExpressionGroup> groupBySourceVarName = groupBySourceVarName(commonExpressions);
         this.groupBySourceVarName = groupBySourceVarName;
-        registHyperscan(groupBySourceVarName);
+//        registHyperscan(groupBySourceVarName);
         createExpressionIndexAndHomologousVar(groupBySourceVarName);
         fingerprintCache = new FingerprintCache(cacheSize);
     }
@@ -313,4 +313,7 @@ public class HomologousCompute {
         }
     }
 
+    public Map<String, SameVarExpressionGroup> getGroupBySourceVarName() {
+        return groupBySourceVarName;
+    }
 }

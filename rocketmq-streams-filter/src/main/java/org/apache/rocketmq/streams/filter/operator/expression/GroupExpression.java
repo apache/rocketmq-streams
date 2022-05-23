@@ -30,6 +30,7 @@ import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.optimization.RegexEngine;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -57,7 +58,7 @@ public class GroupExpression extends Expression<List<Expression>> {
         this.var = var;
         this.varName = var.getVarName();
         this.isOrRelation = isOrRelation;
-        this.setConfigureName(NameCreator.createNewName("expression.group"));
+        this.setConfigureName(NameCreatorContext.get().createNewName("expression.group"));
         value = new ArrayList<>();
         this.setNameSpace(rule.getNameSpace());
         fingerprintCache = FingerprintCache.getInstance();

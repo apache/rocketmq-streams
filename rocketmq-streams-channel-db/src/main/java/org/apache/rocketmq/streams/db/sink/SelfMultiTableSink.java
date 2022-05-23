@@ -41,7 +41,7 @@ public class SelfMultiTableSink extends AbstractMultiTableSink implements IAfter
     }
 
     @Override
-    protected ISplit getSplitFromMessage(IMessage message) {
+    protected ISplit<?, ?> getSplitFromMessage(IMessage message) {
         return multiTableSplitFunction.createSplit(message);
     }
 

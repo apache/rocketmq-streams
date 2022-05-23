@@ -19,14 +19,20 @@ package org.apache.rocketmq.streams.connectors.source;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.commons.logging.Log;
@@ -36,6 +42,7 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPoint;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.connectors.balance.ISourceBalance;
 import org.apache.rocketmq.streams.connectors.balance.SplitChanged;
@@ -59,8 +66,8 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
     //balance schedule time
     protected int balanceTimeSecond = 10;
     protected long pullIntervalMs;
-    transient CheckPointManager checkPointManager = new CheckPointManager();
-
+    protected transient CheckPointManager checkPointManager = new CheckPointManager();
+    protected transient boolean shutDown=false;
     @Override
     protected boolean startSource() {
         ServiceLoaderComponent serviceLoaderComponent = ServiceLoaderComponent.getInstance(ISourceBalance.class);
@@ -79,7 +86,33 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
                 doSplitChanged(splitChanged);
             }
         }, balanceTimeSecond, balanceTimeSecond, TimeUnit.SECONDS);
+
+        startWorks();
         return true;
+    }
+
+    private void startWorks() {
+        ExecutorService workThreads= ThreadPoolFactory.createThreadPool(maxThread);
+        long start=System.currentTimeMillis();
+        while (!shutDown) {
+            Iterator<Map.Entry<String, ISplitReader>> it = splitReaders.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, ISplitReader> entry=it.next();
+                String splitId=entry.getKey();
+                ISplit split=ownerSplits.get(splitId);
+                ISplitReader reader=entry.getValue();
+                ReaderRunner runner=new ReaderRunner(split,reader);
+                workThreads.execute(runner);
+            }
+            try {
+                long sleepTime=this.pullIntervalMs-(System.currentTimeMillis()-start);
+                if(sleepTime>0){
+                    Thread.sleep(sleepTime);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -124,57 +157,11 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
             reader.seek(loadSplitOffset(split));
             splitReaders.put(split.getQueueId(), reader);
             this.ownerSplits.put(split.getQueueId(), split);
-            logger.info("start next");
-            Thread thread = new Thread(new Runnable() {
-                long mLastCheckTime = System.currentTimeMillis();
-
-                @Override
-                public void run() {
-                    logger.info("start running");
-                    while (reader.isInterrupt() == false) {
-                        if (reader.next()) {
-                            List<PullMessage> messages = reader.getMessage();
-                            if (messages != null) {
-                                for (PullMessage pullMessage : messages) {
-                                    String queueId = split.getQueueId();
-                                    String offset = pullMessage.getOffsetStr();
-                                    JSONObject msg = createJson(pullMessage.getMessage());
-                                    Message message = createMessage(msg, queueId, offset, false);
-                                    message.getHeader().setOffsetIsLong(pullMessage.getMessageOffset().isLongOfMainOffset());
-                                    executeMessage(message);
-                                }
-                            }
-                        }
-                        long curTime = System.currentTimeMillis();
-                        if (curTime - mLastCheckTime > getCheckpointTime()) {
-                            sendCheckpoint(reader.getSplit().getQueueId());
-                            mLastCheckTime = curTime;
-                        }
-                        try {
-                            Thread.sleep(pullIntervalMs);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-
-                    }
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    Set<String> removeSplits = new HashSet<>();
-                    removeSplits.add(reader.getSplit().getQueueId());
-                    removeSplit(removeSplits);
-                    balance.unlockSplit(split);
-                    reader.close();
-                    synchronized (reader) {
-                        reader.notifyAll();
-                    }
-
-                }
-            });
-            thread.setName("reader-task-" + reader.getSplit().getQueueId());
-            thread.start();
+//            logger.info("start next");
+//            Thread thread = new Thread(new Runnable() {
+//
+//            thread.setName("reader-task-" + reader.getSplit().getQueueId());
+//            thread.start();
         }
 
     }
@@ -208,7 +195,9 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
             }
             for (SplitCloseFuture future : closeFutures) {
                 try {
-                    future.get();
+                    if(!future.isDone()){
+                        future.get();
+                    }
                     this.splitReaders.remove(future.getSplit().getQueueId());
                     this.ownerSplits.remove(future.getSplit().getQueueId());
                 } catch (InterruptedException e) {
@@ -220,6 +209,57 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
 
         } finally {
             balance.unLockRemoveSplitLock();
+        }
+
+    }
+
+
+    protected class ReaderRunner implements Runnable{
+        long mLastCheckTime = System.currentTimeMillis();
+        protected ISplit split;
+        protected ISplitReader reader;
+
+        public ReaderRunner(ISplit split,ISplitReader reader){
+            this.split=split;
+            this.reader=reader;
+        }
+
+        @Override
+        public void run() {
+            logger.info("start running");
+            if (reader.isInterrupt() == false) {
+                if (reader.next()) {
+                    List<PullMessage> messages = reader.getMessage();
+                    if (messages != null) {
+                        for (PullMessage pullMessage : messages) {
+                            String queueId = split.getQueueId();
+                            String offset = pullMessage.getOffsetStr();
+                            JSONObject msg = createJson(pullMessage.getMessage());
+                            Message message = createMessage(msg, queueId, offset, false);
+                            message.getHeader().setOffsetIsLong(pullMessage.getMessageOffset().isLongOfMainOffset());
+                            executeMessage(message);
+                        }
+                    }
+                    reader.notifyAll();
+                }
+                long curTime = System.currentTimeMillis();
+                if (curTime - mLastCheckTime > getCheckpointTime()) {
+                    sendCheckpoint(reader.getSplit().getQueueId());
+                    mLastCheckTime = curTime;
+                }
+
+
+            }else {
+                Set<String> removeSplits = new HashSet<>();
+                removeSplits.add(reader.getSplit().getQueueId());
+                removeSplit(removeSplits);
+                balance.unlockSplit(split);
+                reader.close();
+                synchronized (reader) {
+                    reader.notifyAll();
+                }
+            }
+
         }
 
     }

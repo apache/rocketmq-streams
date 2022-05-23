@@ -29,14 +29,11 @@ public interface ISplit<T, Q> extends Comparable<T>, Serializable, IJsonable {
 
     String getQueueId();
 
-
     /**
      * 获取具体的队列 获取具体的队列
      *
-     * @return
+     * @return Q
      */
     Q getQueue();
-
-    //    public T getQueue();
 
 }

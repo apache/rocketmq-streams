@@ -25,9 +25,11 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
+import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
@@ -64,6 +66,7 @@ public class MultiStreamsExample {
 
     private static void runOneStreamsClient(int index) {
         DataStreamSource source = StreamBuilder.dataStream("namespace" + index, "pipeline" + index);
+
         source.fromRocketmq(
                 RMQ_TOPIC,
                 RMQ_CONSUMER_GROUP_NAME,

@@ -36,7 +36,7 @@ public class SinkTest {
             msg.put("name", "chris");
             msg.put("age", 18);
             msg.put("msgId", i);
-            sink.batchAdd(new Message(msg));//插入缓存，当条数>batchSize时，刷新存储
+            sink.batchAdd(new Message(msg), null);//插入缓存，当条数>batchSize时，刷新存储
         }
         sink.flush();//把缓存当数据刷新到存储
     }
@@ -52,7 +52,7 @@ public class SinkTest {
             msg.put("name", "chris");
             msg.put("age", 18);
             msg.put("msgId", i);
-            sink.batchAdd(new Message(msg));//插入缓存，当条数>batchSize时，刷新存储
+            sink.batchAdd(new Message(msg), null);//插入缓存，当条数>batchSize时，刷新存储
         }
         while (true) {
             Thread.sleep(1000);

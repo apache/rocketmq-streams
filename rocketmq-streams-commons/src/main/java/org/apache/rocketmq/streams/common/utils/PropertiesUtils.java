@@ -65,7 +65,7 @@ public class PropertiesUtils {
     public static Properties getResourceProperties(Class clazz, String propertiesPath) {
         URL url = clazz.getClassLoader().getResource(propertiesPath);
         if (url == null) {
-            LOG.error("can not load component's properties file " + propertiesPath);
+           // LOG.error("can not load component's properties file " + propertiesPath);
             return null;
         }
         BufferedReader br = null;

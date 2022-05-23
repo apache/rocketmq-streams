@@ -17,7 +17,10 @@
 package org.apache.rocketmq.streams.filter.engine.impl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -25,16 +28,23 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.monitor.group.MonitorCommander;
+import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.engine.IRuleEngine;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
+import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
+import org.apache.rocketmq.streams.filter.optimization.dependency.CommonExpression;
+import org.apache.rocketmq.streams.filter.optimization.dependency.SimplePipelineTree;
+import org.apache.rocketmq.streams.filter.optimization.dependency.StateLessDependencyTree;
+import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class DefaultRuleEngine implements IRuleEngine {
 
     private static final Log LOG = LogFactory.getLog(DefaultRuleEngine.class);
-
     private static final Log RULEENGINE_MESSAGE_LOG = LogFactory.getLog("ruleengine_message");
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -63,20 +73,13 @@ public class DefaultRuleEngine implements IRuleEngine {
                 return fireRules;
             }
             try {
-                boolean isTrace = TraceUtil.hit(message.getHeader().getTraceId());
                 for (Rule rule : excuteRules) {
-                    RuleContext ruleContext = new RuleContext(message.getMessageBody(), rule);
-                    if (context != null) {
-                        context.syncSubContext(ruleContext);
-                    }
+//                    RuleContext ruleContext = new RuleContext(message.getMessageBody(), rule);
+//                    if (context != null) {
+//                        context.syncSubContext(ruleContext);
+//                    }
                     boolean isFireRule = rule.doMessage(message, context);
-                    if (isFireRule == false && isTrace) {
-                        TopologyFilterMonitor piplineExecutorMonitor = message.getHeader().getPiplineExecutorMonitor();
-                        if (piplineExecutorMonitor != null) {
-                            piplineExecutorMonitor.setNotFireRule(rule.getConfigureName());
-                            piplineExecutorMonitor.setNotFireExpression2DependentFields(ruleContext.getExpressionMonitor().getNotFireExpression2DependentFields());
-                        }
-                    }
+
                     if (isFireRule) {
                         fireRules.add(rule);
 
