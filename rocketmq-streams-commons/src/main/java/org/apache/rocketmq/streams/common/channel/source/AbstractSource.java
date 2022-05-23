@@ -20,6 +20,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -56,12 +58,20 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 public abstract class AbstractSource extends BasedConfigurable implements ISource<AbstractSource>, ILifeCycle {
 
     public static String CHARSET = "UTF-8";
+    /**
+     * 输入的消息是否为json
+     */
+    protected Boolean isJsonData = true;
+    /**
+     * 输入的消息是否为json array
+     */
+    protected Boolean msgIsJsonArray = false;
 
-    protected Boolean isJsonData = true;//输入的消息是否为json
-    protected Boolean msgIsJsonArray = false;//输入的消息是否为json array
     @ENVDependence
-    protected String groupName;//group name
+    protected String groupName;
+
     protected int maxThread = Runtime.getRuntime().availableProcessors();
+
     @ENVDependence
     protected String topic = "";
     /**
@@ -76,13 +86,30 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * 每次拉取的最大条数，多用于消息队列
      */
     protected int maxFetchLogGroupSize = 100;
-    protected List<String> logFingerprintFields;//log fingerprint to filter msg quickly
 
-    protected String encoding = CHARSET;//字节编码方式
-    protected String fieldDelimiter;//如果是分割符分割，分割符
-    protected MetaData metaData;//主要用于分割符拆分字段当场景
+    /**
+     * log fingerprint to filter msg quickly
+     */
+    protected List<String> logFingerprintFields;
+    /**
+     * 字节编码方式
+     */
+    protected String encoding = CHARSET;
+    /**
+     * 如果是分割符分割，分割符
+     */
+    protected String fieldDelimiter;
+    /**
+     * 主要用于分割符拆分字段当场景
+     */
+    protected MetaData metaData;
+
     protected List<String> headerFieldNames;
 
+    /**
+     * if set the value，the data will be shuffled to a new topic
+     */
+    protected int shuffleConcurrentCount;
     /**
      * 数据源投递消息的算子，此算子用来接收source的数据，做处理
      */
@@ -97,12 +124,13 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     /**
      * 做checkpoint的管理
      */
-    protected transient CheckPointManager checkPointManager = new CheckPointManager();
+    protected transient CheckPointManager checkPointManager = null;
 
     @Override
     protected boolean initConfigurable() {
         hasStart = new AtomicBoolean(false);
         openMock = false;
+        checkPointManager = new CheckPointManager();
         return super.initConfigurable();
     }
 
@@ -114,6 +142,12 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             isStartSucess = startSource();
         }
         return isStartSucess;
+    }
+
+    @Override public void destroy() {
+        if (hasStart.compareAndSet(true, false)) {
+            super.destroy();
+        }
     }
 
     /**
@@ -133,11 +167,9 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @param message
      * @return
      */
-    public AbstractContext doReceiveMessage(JSONObject message, boolean needSetCheckPoint, String queueId,
-        String offset) {
+    public AbstractContext doReceiveMessage(JSONObject message, boolean needSetCheckPoint, String queueId, String offset) {
         Message msg = createMessage(message, queueId, offset, needSetCheckPoint);
-        AbstractContext context = executeMessage(msg);
-        return context;
+        return executeMessage(msg);
     }
 
     /**
@@ -258,23 +290,23 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             if (this.fieldDelimiter != null) {
                 String[] values = message.split(this.fieldDelimiter);
 
-                List<MetaDataField> fields = this.metaData.getMetaDataFields();
+                List<MetaDataField<?>> fields = this.metaData.getMetaDataFields();
                 if (values.length != this.metaData.getMetaDataFields().size()) {
                     throw new RuntimeException("expect table column's count equals data size (" + fields.size() + "," + values.length + ")");
                 }
                 for (int i = 0; i < values.length; i++) {
-                    MetaDataField field = fields.get(i);
-                    String fildName = field.getFieldName();
+                    MetaDataField<?> field = fields.get(i);
+                    String fieldName = field.getFieldName();
                     String valueStr = values[i];
                     Object value = field.getDataType().getData(valueStr);
-                    msg.put(fildName, value);
+                    msg.put(fieldName, value);
                 }
                 return msg;
             } else {
                 //单字段场景
-                List<MetaDataField> metaDataFields = this.metaData.getMetaDataFields();
-                MetaDataField metaDataField = null;
-                for (MetaDataField field : metaDataFields) {
+                List<MetaDataField<?>> metaDataFields = this.metaData.getMetaDataFields();
+                MetaDataField<?> metaDataField = null;
+                for (MetaDataField<?> field : metaDataFields) {
                     if (this.headerFieldNames == null) {
                         metaDataField = field;
                         break;
@@ -289,19 +321,17 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
                     return msg;
                 }
             }
+            return msg;
         } else {
             //sdk场景
             if (this.fieldDelimiter != null) {
                 String[] values = message.split(this.fieldDelimiter);
-                List<String> columns = new ArrayList<>();
-                for (String value : values) {
-                    columns.add(value);
-                }
-                return createJson(columns);
+                return createJson(Arrays.asList(values));
+            } else {
+                return createJson(message);
             }
         }
 
-        return createJson(message);
     }
 
     /**
@@ -326,7 +356,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             messageQueueChangedCheck(channelMessage.getHeader());
         }
 
-        boolean needFlush = channelMessage.getHeader().isSystemMessage() == false && channelMessage.getHeader().isNeedFlush();
+        boolean needFlush = !channelMessage.getHeader().isSystemMessage() && channelMessage.getHeader().isNeedFlush();
 
         if (receiver != null) {
             receiver.doMessage(channelMessage, context);
@@ -646,7 +676,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     @Override
     public String createCheckPointName() {
 
-        ISource source = this;
+        ISource<?> source = this;
 
         String namespace = source.getNameSpace();
         String name = source.getConfigureName();
@@ -669,6 +699,14 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         }
         return MapKeyUtil.createKey(namespace, groupName, topic, name);
 
+    }
+
+    public int getShuffleConcurrentCount() {
+        return shuffleConcurrentCount;
+    }
+
+    public void setShuffleConcurrentCount(int shuffleConcurrentCount) {
+        this.shuffleConcurrentCount = shuffleConcurrentCount;
     }
 
     @Override
@@ -712,4 +750,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     public void setHeaderFieldNames(List<String> headerFieldNames) {
         this.headerFieldNames = headerFieldNames;
     }
+
+
 }

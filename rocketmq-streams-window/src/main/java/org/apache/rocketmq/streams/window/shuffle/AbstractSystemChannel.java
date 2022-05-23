@@ -20,11 +20,11 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
@@ -46,6 +46,7 @@ import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
+import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public abstract class AbstractSystemChannel implements IConfigurableIdentification, ISystemMessageProcessor, IStreamOperator {
 
@@ -54,22 +55,45 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
     protected static final String CHANNEL_PROPERTY_KEY_PREFIX = "CHANNEL_PROPERTY_KEY_PREFIX";
     protected static final String CHANNEL_TYPE = "CHANNEL_TYPE";
 
-    protected ISource consumer;
+    protected ISource<?> consumer;
     protected AbstractSupportShuffleSink producer;
     protected Map<String, String> channelConfig = new HashMap<>();
-    ;
-    protected boolean hasCreateShuffleChannel = false;
+    protected volatile boolean hasCreateShuffleChannel = false;
 
+    protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
     public void startChannel() {
         if (consumer == null) {
             return;
         }
-        final AbstractSystemChannel channel = this;
-        consumer.start(this);
+        if (hasStart.compareAndSet(false, true)) {
+            consumer.start(this);
+        }
+
     }
 
+
     /**
-     * 如果用户未配置shuffle channel，根据pipline数据源动态创建
+     * init shuffle channel
+     */
+    public void init(AbstractWindow window) {
+        this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
+        this.producer = createSink(window.getNameSpace(), window.getConfigureName());
+        if (this.consumer == null || this.producer == null) {
+            autoCreateShuffleChannel(window.getFireReceiver().getPipeline());
+        }
+        if (this.consumer == null) {
+            return;
+        }
+        if (this.consumer instanceof AbstractSource) {
+            ((AbstractSource) this.consumer).setJsonData(true);
+        }
+        if(producer!=null){
+            this.producer.init();
+        }
+
+    }
+    /**
+     * 如果用户未配置shuffle channel，根据pipeline数据源动态创建
      *
      * @param pipeline
      */
@@ -77,23 +101,23 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         if (!hasCreateShuffleChannel) {
             synchronized (this) {
                 if (!hasCreateShuffleChannel) {
-                    ISource piplineSource = pipeline.getSource();
+                    ISource<?> pipelineSource = pipeline.getSource();
                     ServiceLoaderComponent serviceLoaderComponent = ComponentCreator.getComponent(IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
 
-                    IChannelBuilder builder = (IChannelBuilder) serviceLoaderComponent.loadService(piplineSource.getClass().getSimpleName());
+                    IChannelBuilder builder = (IChannelBuilder) serviceLoaderComponent.loadService(pipelineSource.getClass().getSimpleName());
                     if (builder == null) {
-                        throw new RuntimeException("can not create shuffle channel, not find channel builder " + piplineSource.toJson());
+                        throw new RuntimeException("can not create shuffle channel, not find channel builder " + pipelineSource.toJson());
                     }
                     if (!(builder instanceof IShuffleChannelBuilder)) {
-                        throw new RuntimeException("can not create shuffle channel, builder not impl IShuffleChannelBuilder " + piplineSource.toJson());
+                        throw new RuntimeException("can not create shuffle channel, builder not impl IShuffleChannelBuilder " + pipelineSource.toJson());
                     }
                     IShuffleChannelBuilder shuffleChannelBuilder = (IShuffleChannelBuilder) builder;
-                    ISink sink = shuffleChannelBuilder.createBySource(piplineSource);
+                    ISink<?> sink = shuffleChannelBuilder.createBySource(pipelineSource);
                     sink.init();
                     if (!(sink instanceof MemoryChannel) && !(sink instanceof AbstractSupportShuffleSink)) {
-                        throw new RuntimeException("can not create shuffle channel, sink not extends AbstractSupportShuffleSink " + piplineSource.toJson());
+                        throw new RuntimeException("can not create shuffle channel, sink not extends AbstractSupportShuffleSink " + pipelineSource.toJson());
                     }
-                    ISource source = null;
+                    ISource<?> source = null;
                     if (sink instanceof MemoryChannel) {
                         MemoryCache memoryCache = new MemoryCache();
                         memoryCache.setNameSpace(createShuffleChannelNameSpace(pipeline));
@@ -135,7 +159,7 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                     shuffleSink.setHasInit(false);
                     shuffleSink.init();//在这里完成shuffle channel的创建
                     if (source == null) {
-                        source = shuffleChannelBuilder.copy(piplineSource);
+                        source = shuffleChannelBuilder.copy(pipelineSource);
                     }
 
                     //修改和window有关的属性，如groupname，tags
@@ -155,7 +179,7 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                     if (shuffleTopic != null && topicFiledName != null) {
                         ReflectUtil.setBeanFieldValue(source, topicFiledName, shuffleTopic);
                     }
-                    if (AbstractSource.class.isInstance(source)) {
+                    if (source instanceof AbstractSource) {
                         AbstractSource abstractSource = (AbstractSource) source;
                         abstractSource.setHasInit(false);
                     }
@@ -206,15 +230,14 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
      *
      * @return
      */
-    protected ISource createSource(String namespace, String name) {
-
+    protected ISource<?> createSource(String namespace, String name) {
         IChannelBuilder builder = createBuilder();
         if (builder == null) {
             return null;
         }
         Properties properties = createChannelProperties(namespace);
-        ISource source = builder.createSource(namespace, name, properties, null);
-        if (MemorySource.class.isInstance(source)) {
+        ISource<?> source = builder.createSource(namespace, name, properties, null);
+        if (source instanceof MemorySource) {
             MemorySource memorySource = (MemorySource) source;
             MemoryCache memoryCache = new MemoryCache();
             memorySource.setMemoryCache(memoryCache);
@@ -237,13 +260,13 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         }
         Properties properties = createChannelProperties(namespace);
 
-        ISink sink = builder.createSink(namespace, name, properties, null);
-        if (!AbstractSupportShuffleSink.class.isInstance(sink)) {
+        ISink<?> sink = builder.createSink(namespace, name, properties, null);
+        if (!(sink instanceof AbstractSupportShuffleSink)) {
             throw new RuntimeException("can not support shuffle " + sink.toJson());
         }
-        if (MemorySink.class.isInstance(sink)) {
+        if (sink instanceof MemorySink) {
             MemorySink memorySink = (MemorySink) sink;
-            if (!MemorySource.class.isInstance(this.consumer)) {
+            if (!(this.consumer instanceof MemorySource)) {
                 throw new RuntimeException("shuffle cosumer need memory, real is " + this.consumer);
             }
             MemorySource memorySource = (MemorySource) this.consumer;
@@ -252,7 +275,6 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
         }
 
         sink.init();
-
         return (AbstractSupportShuffleSink) sink;
     }
 
@@ -267,20 +289,17 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
             return null;
         }
         ServiceLoaderComponent serviceLoaderComponent = ComponentCreator.getComponent(IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
-        IChannelBuilder builder = (IChannelBuilder) serviceLoaderComponent.loadService(type);
-        return builder;
+        return (IChannelBuilder) serviceLoaderComponent.loadService(type);
     }
 
     /**
      * 根据属性文件配置
      *
-     * @return
+     * @return 资源文件
      */
     protected Properties createChannelProperties(String namespace) {
         Properties properties = new Properties();
-        Iterator<Map.Entry<Object, Object>> it = ComponentCreator.getProperties().entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Object, Object> entry = it.next();
+        for (Map.Entry<Object, Object> entry : ComponentCreator.getProperties().entrySet()) {
             String key = (String) entry.getKey();
             String value = (String) entry.getValue();
             if (key.startsWith(getChannelConfig().get(CHANNEL_PROPERTY_KEY_PREFIX))) {
@@ -293,11 +312,9 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
                         properties.put(channelKey, value);
                     }
                 }
-
             }
-
         }
-        Set<String> mutilPropertySet = new HashSet<>();
+        Set<String> multiPropertySet = new HashSet<>();
         String dynamicProperty = properties.getProperty("dynamic.property");
         if (dynamicProperty != null) {
 
@@ -306,28 +323,28 @@ public abstract class AbstractSystemChannel implements IConfigurableIdentificati
 
             for (String properyKey : mutilPropertys) {
                 properties.put(properyKey, dynamicPropertyValue);
-                mutilPropertySet.add(properyKey);
+                multiPropertySet.add(properyKey);
             }
 
         }
-        putDynamicPropertyValue(mutilPropertySet, properties);
+        putDynamicPropertyValue(multiPropertySet, properties);
         return properties;
     }
 
     /**
      * 如果需要额外的动态属性，可以在子类添加
      *
-     * @param dynamiPropertySet
+     * @param dynamicPropertySet 资源集
      */
-    protected void putDynamicPropertyValue(Set<String> dynamiPropertySet, Properties properties) {
+    protected void putDynamicPropertyValue(Set<String> dynamicPropertySet, Properties properties) {
 
     }
 
-    public ISource getConsumer() {
+    public ISource<?> getConsumer() {
         return consumer;
     }
 
-    public ISink getProducer() {
+    public ISink<?> getProducer() {
         return producer;
     }
 

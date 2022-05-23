@@ -74,8 +74,8 @@ public class MemorySink extends AbstractSupportShuffleSink implements IAfterConf
     }
 
     @Override
-    public List<ISplit> getSplitList() {
-        List<ISplit> splits = new ArrayList<>();
+    public List<ISplit<?,?>> getSplitList() {
+        List<ISplit<?,?>> splits = new ArrayList<>();
         splits.add(new MemorySplit());
         return splits;
     }

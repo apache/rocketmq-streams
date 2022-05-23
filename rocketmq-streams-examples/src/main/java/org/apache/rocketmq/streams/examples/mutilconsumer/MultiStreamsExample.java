@@ -71,9 +71,9 @@ public class MultiStreamsExample {
                     JSONObject.parseObject((String) message);
                 } catch (Throwable t) {
                     // if can not convert to json, discard it.because all operator are base on json.
-                    return false;
+                    return true;
                 }
-                return true;
+                return false;
             })
             //must convert message to json.
             .map(message -> JSONObject.parseObject((String) message))

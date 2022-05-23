@@ -20,7 +20,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
@@ -33,12 +33,13 @@ import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.metric.StageGroup;
+import org.apache.rocketmq.streams.common.topology.metric.StageMetric;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 
-public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable
-    implements IStreamOperator<T, T>, ISystemMessageProcessor {
+public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable implements IStreamOperator<T, T>, ISystemMessageProcessor {
     protected String filterFieldNames;
 
     private static final Log LOG = LogFactory.getLog(AbstractStage.class);
@@ -47,12 +48,14 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
 
     protected transient String name;
 
-    //是否关闭拆分模式，多条日志会合并在一起，字段名为splitDataFieldName
+    /**
+     * 是否关闭拆分模式，多条日志会合并在一起，字段名为splitDataFieldName
+     */
     protected boolean closeSplitMode = false;
 
     protected String splitDataFieldName;
 
-    protected transient Pipeline pipeline;
+    protected transient Pipeline<?> pipeline;
 
     /**
      * 设置路由label，当需要做路由选择时需要设置
@@ -79,30 +82,44 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      */
     protected String ownerSqlNodeTableName;
 
+    /**
+     * 主要用于排错，把stage按sql分组，可以快速定位问题
+     */
+    protected String sql;
+    protected StageGroup stageGroup;
+    /**
+     * 前置指纹记录
+     */
+    protected transient PreFingerprint preFingerprint = null;
+
+    //监控信息
+    protected transient StageMetric stageMetric=new StageMetric();
+
     public AbstractStage() {
         setType(TYPE);
     }
 
-    protected transient AtomicLong TOTAL = new AtomicLong(0);
-    protected transient AtomicLong FILTER = new AtomicLong(0);
-    protected transient Long lastUpdateTime = null;
-
-    @Override
-    public T doMessage(T t, AbstractContext context) {
+    @Override public T doMessage(T t, AbstractContext context) {
+        long startTime=stageMetric.startCalculate(t);
         try {
             TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
         } catch (Exception e) {
             LOG.error("t.getMessageBody() parse error", e);
         }
-        IStageHandle handle = selectHandle(t, context);
+        IStageHandle<T> handle = selectHandle(t, context);
         if (handle == null) {
             return t;
         }
         Object result = handle.doMessage(t, context);
-        //
+        stageMetric.endCalculate(startTime);
         if (!context.isContinue() || result == null) {
+            if(context.getNotFireReason()!=null){
+                stageMetric.filterCalculate(context.getNotFireReason());
+            }
             return (T) context.breakExecute();
         }
+        stageMetric.outCalculate();
+        context.removeNotFireReason();
         return (T) result;
     }
 
@@ -118,8 +135,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      *
      * @return
      */
-    // public abstract AbstractStage copy();
-    protected abstract IStageHandle selectHandle(T t, AbstractContext context);
+    protected abstract IStageHandle<T> selectHandle(T t, AbstractContext context);
 
     public String getName() {
         return name;
@@ -160,42 +176,46 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
     }
 
     public List<String> doRoute(T t) {
-        String routeLabel = t.getHeader().getRouteLables();
-        String filterLabel = t.getHeader().getFilterLables();
+        String routeLabel = t.getHeader().getRouteLabels();
+        String filterLabel = t.getHeader().getFilterLabels();
+        t.getHeader().setRouteLabels(null);
+        t.getHeader().setFilterLabels(null);
         if (StringUtil.isEmpty(routeLabel) && StringUtil.isEmpty(filterLabel)) {
             return this.nextStageLabels;
         }
-        List<String> lables = new ArrayList<>();
-        lables.addAll(this.nextStageLabels);
-        if (StringUtil.isNotEmpty(routeLabel)) {
-            lables = new ArrayList<>();
-            for (String tempLabel : this.nextStageLabels) {
-                if (tempLabel != null && routeLabel.indexOf(tempLabel) != -1) {
-                    lables.add(tempLabel);
-                }
-            }
-        }
 
-        if (StringUtil.isNotEmpty(filterLabel)) {
+
+        List<String> labels = new ArrayList<>(this.nextStageLabels);
+        if (StringUtil.isNotEmpty(routeLabel)) {
+            Set<String> routeLabelSet=t.getHeader().createRouteLableSet(routeLabel);
+            labels = new ArrayList<>();
             for (String tempLabel : this.nextStageLabels) {
-                if (label != null && filterLabel.indexOf(label) != 1) {
-                    lables.remove(tempLabel);
+                if (routeLabelSet.contains(tempLabel)) {
+                    labels.add(tempLabel);
                 }
             }
         }
-        return lables;
+        if (StringUtil.isNotEmpty(filterLabel)) {
+            Set<String> routeFilterLabelSet=t.getHeader().createRouteLableSet(filterLabel);
+            for (String tempLabel : this.nextStageLabels) {
+                if (routeFilterLabelSet.contains(label)) {
+                    labels.remove(tempLabel);
+                }
+            }
+        }
+        return labels;
     }
 
     /**
      * 从配置文件加载日志指纹信息，如果存在做指纹优化
      */
     protected PreFingerprint loadLogFinger() {
-        ChainPipeline pipline = (ChainPipeline) getPipeline();
+        ChainPipeline<?> pipeline = (ChainPipeline<?>) getPipeline();
         String filterName = getLabel();
-        if (pipline.isTopology() == false) {
-            List<AbstractStage> stages = pipline.getStages();
+        if (!pipeline.isTopology()) {
+            List<AbstractStage<?>> stages = pipeline.getStages();
             int i = 0;
-            for (AbstractStage stage : stages) {
+            for (AbstractStage<?> stage : stages) {
                 if (stage == this) {
                     break;
                 }
@@ -203,16 +223,16 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
             filterName = i + "";
         }
-        String stageIdentification = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), filterName);
+        String stageIdentification = MapKeyUtil.createKeyBySign(".", pipeline.getNameSpace(), pipeline.getConfigureName(), filterName);
         if (this.filterFieldNames == null) {
             this.filterFieldNames = ComponentCreator.getProperties().getProperty(stageIdentification);
         }
         if (this.filterFieldNames == null) {
             return null;
         }
-        PreFingerprint preFingerprint = createPreFinerprint(stageIdentification);
+        PreFingerprint preFingerprint = createPreFingerprint(stageIdentification);
         if (preFingerprint != null) {
-            pipline.registPreFingerprint(preFingerprint);
+            pipeline.registPreFingerprint(preFingerprint);
         }
         return preFingerprint;
     }
@@ -223,59 +243,56 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      * @return
      */
 
-    protected PreFingerprint createPreFinerprint(String stageIdentification) {
-        ChainPipeline pipline = (ChainPipeline) getPipeline();
-        String sourceLable = null;
-        String nextLable = null;
-        if (pipline.isTopology()) {
-            Map<String, AbstractStage> stageMap = pipline.createStageMap();
-            AbstractStage currentStage = this;
-            List<String> prewLables = currentStage.getPrevStageLabels();
-            while (prewLables != null && prewLables.size() > 0) {
-                if (prewLables.size() > 1) {//union
-                    sourceLable = null;
-                    nextLable = null;
+    protected PreFingerprint createPreFingerprint(String stageIdentification) {
+        ChainPipeline<?> pipeline = (ChainPipeline<?>) getPipeline();
+        String sourceLabel = null;
+        String nextLabel = null;
+        if (pipeline.isTopology()) {
+            Map<String, AbstractStage<?>> stageMap = pipeline.createStageMap();
+            AbstractStage<?> currentStage = this;
+            List<String> preLabels = currentStage.getPrevStageLabels();
+            while (preLabels != null && preLabels.size() > 0) {
+                if (preLabels.size() > 1) {//union
+                    sourceLabel = null;
+                    nextLabel = null;
                     break;
                 }
-                String lable = prewLables.get(0);
-                AbstractStage stage = (AbstractStage) stageMap.get(lable);
+                String lable = preLabels.get(0);
+                AbstractStage<?> stage = stageMap.get(lable);
 
                 if (stage != null) {
                     if (stage.isAsyncNode()) {//window (join,Statistics)
-                        sourceLable = null;
-                        nextLable = null;
+                        sourceLabel = null;
+                        nextLabel = null;
                         break;
                     }
-                    nextLable = currentStage.getLabel();
+                    nextLabel = currentStage.getLabel();
                     currentStage = stage;
-                    sourceLable = currentStage.getLabel();
+                    sourceLabel = currentStage.getLabel();
                     if (stage.getNextStageLabels() != null && stage.getNextStageLabels().size() > 1) {
                         break;
                     }
                 } else {
-                    sourceLable = pipline.getChannelName();
-                    nextLable = currentStage.getLabel();
+                    sourceLabel = pipeline.getChannelName();
+                    nextLabel = currentStage.getLabel();
                     break;
                 }
-                prewLables = currentStage.getPrevStageLabels();
+                preLabels = currentStage.getPrevStageLabels();
             }
-            if (prewLables == null || prewLables.size() == 0) {
-                sourceLable = pipline.getChannelName();
-                nextLable = currentStage.getLabel();
+            if (preLabels == null || preLabels.size() == 0) {
+                sourceLabel = pipeline.getChannelName();
+                nextLabel = currentStage.getLabel();
             }
-            if (sourceLable == null || nextLable == null) {
+            if (sourceLabel == null || nextLabel == null) {
                 return null;
             }
-            PreFingerprint preFingerprint = new PreFingerprint(this.filterFieldNames, stageIdentification, sourceLable, nextLable, -1, this, FingerprintCache.getInstance());
-            return preFingerprint;
+            return new PreFingerprint(this.filterFieldNames, stageIdentification, sourceLabel, nextLabel, -1, this, FingerprintCache.getInstance());
         } else {
-            PreFingerprint preFingerprint = new PreFingerprint(this.filterFieldNames, stageIdentification, "0", "0", -1, this, FingerprintCache.getInstance());
-            return preFingerprint;
+            return new PreFingerprint(this.filterFieldNames, stageIdentification, "0", "0", -1, this, FingerprintCache.getInstance());
         }
     }
 
-    @Override
-    public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
+    @Override public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
 
     }
 
@@ -299,11 +316,11 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         this.msgSourceName = msgSourceName;
     }
 
-    public Pipeline getPipeline() {
+    public Pipeline<?> getPipeline() {
         return pipeline;
     }
 
-    public void setPipeline(Pipeline pipeline) {
+    public void setPipeline(Pipeline<?> pipeline) {
         this.pipeline = pipeline;
     }
 
@@ -313,6 +330,18 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
 
     public void setOwnerSqlNodeTableName(String ownerSqlNodeTableName) {
         this.ownerSqlNodeTableName = ownerSqlNodeTableName;
+    }
+
+    public StageMetric getStageMetric() {
+        return stageMetric;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
+    public void setSql(String sql) {
+        this.sql = sql;
     }
 
     public void setNextStageLabels(List<String> nextStageLabels) {
@@ -325,5 +354,21 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
 
     public void setFilterFieldNames(String filterFieldNames) {
         this.filterFieldNames = filterFieldNames;
+    }
+
+    public PreFingerprint getPreFingerprint() {
+        return preFingerprint;
+    }
+
+    public void setPreFingerprint(PreFingerprint preFingerprint) {
+        this.preFingerprint = preFingerprint;
+    }
+
+    public StageGroup getStageGroup() {
+        return stageGroup;
+    }
+
+    public void setStageGroup(StageGroup stageGroup) {
+        this.stageGroup = stageGroup;
     }
 }

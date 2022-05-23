@@ -29,7 +29,6 @@ import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
-import org.apache.rocketmq.streams.common.topology.stages.UnionChainStage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
@@ -136,10 +135,7 @@ public class PiplineLogFingerprintAnalysis {
 
         } else if (ScriptChainStage.class.isInstance(currentStage)) {
             //continue
-        } else if (UnionChainStage.class.isInstance(currentStage)) {
-            return prewFilterStage;
-
-        } else {
+        }  else {
             return prewFilterStage;
         }
         AbstractStage nextStage = getNextStage(currentStage);

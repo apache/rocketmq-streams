@@ -30,15 +30,15 @@ import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 public class WindowMaxValueManager implements IWindowMaxValueManager {
     protected AbstractWindow window;
     protected Map<String, WindowMaxValueProcessor> windowMaxValueProcessorMap = new HashMap<>();
-    protected transient ExecutorService executorService;
+  //  protected transient ExecutorService executorService;
     protected transient SQLCache sqlCache;
 
     public WindowMaxValueManager(AbstractWindow window, SQLCache sqlCache) {
         this.window = window;
         this.sqlCache = sqlCache;
-        this.executorService = new ThreadPoolExecutor(10, 10,
-            0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>());
+//        this.executorService = new ThreadPoolExecutor(10, 10,
+//            0L, TimeUnit.MILLISECONDS,
+//            new LinkedBlockingQueue<Runnable>());
     }
 
     protected WindowMaxValueProcessor getOrCreate(String queueId) {

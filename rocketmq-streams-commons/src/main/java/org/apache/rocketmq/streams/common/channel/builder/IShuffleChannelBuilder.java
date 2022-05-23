@@ -27,7 +27,7 @@ public interface IShuffleChannelBuilder {
      * @param pipelineSource
      * @return
      */
-    ISource copy(ISource pipelineSource);
+    ISource<?> copy(ISource<?> pipelineSource);
 
     /**
      * 根据数据源source 创建一个source shuffle出来
@@ -35,5 +35,5 @@ public interface IShuffleChannelBuilder {
      * @param pipelineSource
      * @return
      */
-    ISink createBySource(ISource pipelineSource);
+    ISink<?> createBySource(ISource<?> pipelineSource);
 }
