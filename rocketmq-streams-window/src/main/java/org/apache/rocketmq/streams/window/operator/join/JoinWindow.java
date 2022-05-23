@@ -61,7 +61,6 @@ public class JoinWindow extends AbstractShuffleWindow {
     protected String joinType;//join类型，值为INNER,LEFT
     protected String expression;//条件表达式。在存在非等值比较时使用
 
-
     @Override
     protected int doFireWindowInstance(WindowInstance instance) {
         //todo 只是清理吗？
@@ -359,7 +358,7 @@ public class JoinWindow extends AbstractShuffleWindow {
     }
 
     @Override
-    protected String generateShuffleKey(IMessage message) {
+    public String generateShuffleKey(IMessage message) {
         String routeLabel = message.getHeader().getMsgRouteFromLable();
         String messageKey = generateKey(message.getMessageBody(), routeLabel, leftJoinFieldNames, rightJoinFieldNames);
         return messageKey;

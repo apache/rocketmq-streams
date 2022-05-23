@@ -38,14 +38,17 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.FilterComponent;
+import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
 import org.apache.rocketmq.streams.filter.operator.action.impl.SinkAction;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
@@ -55,6 +58,9 @@ import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
 import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.filter.optimization.ExpressionOptimization;
+import org.apache.rocketmq.streams.filter.optimization.dependency.CommonExpression;
+import org.apache.rocketmq.streams.filter.optimization.dependency.StateLessDependencyTree;
+import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class Rule extends AbstractRule implements IAfterConfigurableRefreshListener,
     IStageBuilder<ChainStage> {
@@ -351,7 +357,52 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     @Override
     public Boolean doMessage(IMessage message, AbstractContext context) {
         boolean isTrace = TraceUtil.hit(message.getHeader().getTraceId());
+        context.setNotFireExpressionMonitor(new ArrayList<>());
         boolean isFireRule = processExpress(message, context, isTrace);
+
+        if (isFireRule == false && isTrace) {
+            NotFireReason notFireReason= context.getNotFireReason();
+            if(notFireReason!=null){
+                ChainPipeline chainPipeline=notFireReason.getPipeline();
+                StateLessDependencyTree stateLessDependencyTree=new StateLessDependencyTree(chainPipeline);
+                List<CommonExpression>  commonExpressions=stateLessDependencyTree.parseTopology(chainPipeline);
+                Map<String, List<String>> filterFieldName2ETLScriptList=new HashMap<>();
+                Map<String, String> filterFieldName2OriFieldName=new HashMap<>();
+                for(CommonExpression commonExpression:commonExpressions){
+                    String filterFieldName=commonExpression.getVarName();
+                    String origFieldName=commonExpression.getSourceVarName();
+                    filterFieldName2OriFieldName.put(filterFieldName,origFieldName);
+                    List<String> etlScript=filterFieldName2ETLScriptList.get(filterFieldName);
+                    if(etlScript==null){
+                        etlScript=new ArrayList<>();
+                        filterFieldName2ETLScriptList.put(filterFieldName,etlScript);
+                    }
+                    for(IScriptExpression scriptExpression:commonExpression.getScriptExpressions()){
+                        if(!etlScript.contains(scriptExpression.toString())){
+                            etlScript.add(scriptExpression.toString());
+                        }
+                    }
+                }
+                List<String> filterFieldNames=new ArrayList<>();
+                List<String> expressions=new ArrayList<>();
+                List<String> expressionNames=context.getNotFireExpressionMonitor();
+                for(String expressionName:expressionNames){
+                    Expression expression=this.getExpressionMap().get(expressionName);
+                    if(expression==null){
+                        expressions.add(expressionName);
+                    }else if(RelationExpression.class.isInstance(expression)){
+                        expressions.add(expression.toExpressionString(this.getExpressionMap()));
+                        filterFieldNames.addAll(expression.getDependentFields(this.expressionMap));
+                    }else {
+                        filterFieldNames.add(expression.getVarName());
+                        expressions.add(expression.toExpressionString(this.getExpressionMap()));
+                    }
+                }
+                notFireReason.analysis(message,filterFieldName2ETLScriptList,filterFieldName2OriFieldName,expressions,filterFieldNames);
+                context.setNotFireReason(notFireReason);
+            }
+
+        }
 
         return isFireRule;
 
@@ -402,6 +453,10 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             sb.append(line);
         }
         return sb.toString();
+    }
+
+    @Override public String toString() {
+        return createOptimizationRule().toExpressionString(this.expressionMap);
     }
 
     public boolean isFinishVarAndExpression() {
@@ -564,6 +619,9 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             }
 
             boolean match = expression.doMessage(message, context);
+            if(!RelationExpression.class.isInstance(expression)){
+                RuleContext.addNotFireExpressionMonitor(expression,context);
+            }
             if (!match) {
                 return false;
             }

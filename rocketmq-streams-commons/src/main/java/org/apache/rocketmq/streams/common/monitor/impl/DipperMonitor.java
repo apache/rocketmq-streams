@@ -418,7 +418,7 @@ public class DipperMonitor implements IMonitor {
             }
             try {
                 if (channel != null) {
-                    channel.batchAdd(new Message(result));
+                    channel.batchAdd(new Message(result),null);
                 }
 
             } catch (Exception e) {

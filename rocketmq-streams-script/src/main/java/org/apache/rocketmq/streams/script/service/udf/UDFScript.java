@@ -76,7 +76,8 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
     @Override
     protected boolean initConfigurable() {
         registFunctionSerivce(scriptComponent.getFunctionService());
-        FunctionConfigure functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), this.initParameters);
+        FunctionConfigure functionConfigure =
+            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), this.initParameters);
         if (functionConfigure == null) {
             return true;
         }
@@ -147,14 +148,23 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
      * @return
      */
     protected boolean initBeanClass(IFunctionService iFunctionService) {
+
+        ClassLoader classLoader = this.getClass().getClassLoader();
+        Class clazz;
         try {
-            ClassLoader classLoader = this.getClass().getClassLoader();
+            clazz = classLoader.loadClass(fullClassName);
+            instance = clazz.newInstance();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
             String jarUrl = getValue();
-            if (StringUtil.isEmpty(jarUrl)) {
-                Class clazz = classLoader.loadClass(fullClassName);
-                instance = clazz.newInstance();
-                return true;
-            }
+//            if (StringUtil.isEmpty(jarUrl)) {
+//                clazz = classLoader.loadClass(fullClassName);
+//                instance = clazz.newInstance();
+//                return true;
+//            }
             URL url = null;
             if (isURL) {
                 url = new URL(getValue());
@@ -178,7 +188,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
             URLClassLoader urlClassLoader = new URLClassLoader(urls, classLoader);
             classLoader = urlClassLoader;
 
-            Class clazz = classLoader.loadClass(fullClassName);
+            clazz = classLoader.loadClass(fullClassName);
             instance = clazz.newInstance();
 
         } catch (Exception e) {

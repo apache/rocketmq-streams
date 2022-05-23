@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
-
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
@@ -36,7 +36,7 @@ import org.apache.rocketmq.streams.window.storage.IStorage;
 /**
  * save receiver messages into cachefilter when checkpoint/autoflush/flush， process cachefilter message
  */
-public class ShuffleCache extends WindowCache {
+public class ShuffleCache extends AbstractSink {
     protected AbstractShuffleWindow window;
     private HashMap<String, Boolean> hasLoad = new HashMap<>();
 
@@ -77,8 +77,9 @@ public class ShuffleCache extends WindowCache {
 
             //保存处理进度
             saveSplitProgress(queueId, messages);
+            window.saveMsgContext(queueId,windowInstance,messages);
         }
-        return true;
+            return true;
     }
 
     private void stateMustLoad(String queueId) {
@@ -125,7 +126,7 @@ public class ShuffleCache extends WindowCache {
         Map<String, String> queueId2OrigOffset = new HashMap<>();
         Boolean isLong = false;
         for (IMessage message : messages) {
-            isLong = message.getMessageBody().getBoolean(ORIGIN_QUEUE_IS_LONG);
+            isLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
             String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
             String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
             queueId2OrigOffset.put(oriQueueId, oriOffset);
@@ -142,11 +143,6 @@ public class ShuffleCache extends WindowCache {
         }
     }
 
-
-    @Override
-    protected String generateShuffleKey(IMessage message) {
-        return null;
-    }
 
     /**
      * 根据message，把message分组到不同的group，分别处理

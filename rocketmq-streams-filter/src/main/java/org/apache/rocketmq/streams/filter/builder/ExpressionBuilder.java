@@ -28,6 +28,7 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.utils.ContantsUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -73,8 +74,7 @@ public class ExpressionBuilder {
         return rule;
     }
 
-    public static boolean executeExecute(String namespace, String expressionStr, IMessage message,
-        AbstractContext context) {
+    public static boolean executeExecute(String namespace, String expressionStr, IMessage message, AbstractContext context) {
         Rule rule = null;
         String key = expressionStr;
         rule = cache.get(key);
@@ -320,8 +320,8 @@ public class ExpressionBuilder {
             expressionStr = ContantsUtil.doConstantReplace(expressionStr, flag2ExpressionStr, 1);
         }
         String relationStr = expressionStr;
-        NameCreator nameCreator = NameCreator.createOrGet(ruleName);
-        if (expressionStr.indexOf("(") == -1) {
+        NameCreator nameCreator = NameCreatorContext.get().createOrGet(ruleName);
+        if (!expressionStr.contains("(")) {
             relationStr = creator.createExpression(namespace, ruleName, expressionStr, expressions, containsContant, flag2ExpressionStr, nameCreator, relationStr);
             return relationStr;
         }
@@ -339,27 +339,6 @@ public class ExpressionBuilder {
             }
         }
         return relationStr;
-        //        for (int i = 0; i < expressionStr.length(); i++) {
-        //            String word = expressionStr.substring(i, i + 1);
-        //
-        //            if ("(".equals(word) ) {
-        //                startExpression = true;
-        //                continue;
-        //            }
-        //            if (")".equals(word)) {
-        //                if (startExpression) {
-        //                    String expresionStr = expressionSb.toString();
-        //                    relationStr=creator.createExpression(namespace,ruleName,expresionStr,expressions,containsContant,flag2ExpressionStr,nameCreator,relationStr);
-        //                    expressionSb = new StringBuilder();
-        //                }
-        //                startExpression = false;
-        //                continue;
-        //            }
-        //            if (startExpression) {
-        //                expressionSb.append(word);
-        //            }
-        //        }
-        //        return relationStr;
     }
 
     /**
@@ -374,7 +353,7 @@ public class ExpressionBuilder {
         if (endIndex == -1) {
             return relationStr;
         }
-        if (relationStr.indexOf(",") == -1) {
+        if (!relationStr.contains(",")) {
             return relationStr;
         }
         for (int i = endIndex; i > 0; i--) {
@@ -382,13 +361,13 @@ public class ExpressionBuilder {
             if (word.equals("(")) {
                 String expressionStr = relationStr.substring(i, endIndex);
                 String oriStr = "(" + expressionStr + ")";
-                if (expressionStr.indexOf(",") != -1) {
+                if (expressionStr.contains(",")) {
                     relationStr = creator.createExpression(namespace, ruleName, expressionStr, expressions, containsContant, contantsFlags, nameCreator, relationStr);
                     relationStr = parseExpression(namespace, ruleName, relationStr, expressions, flag2ExpressionStr, creator, containsContant, nameCreator, contantsFlags);
                     return relationStr;
                 } else {
 
-                    String relationFlag = NameCreator.createNewName("relation");
+                    String relationFlag = NameCreatorContext.get().createNewName("relation");
                     flag2ExpressionStr.put(relationFlag, oriStr);
                     relationStr = relationStr.replace(oriStr, relationFlag);
                     return parseExpression(namespace, ruleName, relationStr, expressions, flag2ExpressionStr, creator, containsContant, nameCreator, contantsFlags);
@@ -399,19 +378,13 @@ public class ExpressionBuilder {
     }
 
     interface IRuleExpressionCreator {
-
-        String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions,
-            boolean containsContant,
-            Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr);
+        String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions, boolean containsConstant, Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr);
     }
 
     protected static IRuleExpressionCreator ruleExpressionCreator = new IRuleExpressionCreator() {
         @Override
-        public String createExpression(String namespace, String ruleName, String expresionStr,
-            List<Expression> expressions, boolean containsContant, Map<String, String> flag2ExpressionStr,
-            NameCreator nameCreator, String relationStr) {
-            String[] values = ExpressionBuilder.createElement(expresionStr, containsContant, flag2ExpressionStr);
-            //expresionStr= ContantsUtil.restore(expresionStr,flag2ExpressionStr);
+        public String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions, boolean containsConstant, Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr) {
+            String[] values = ExpressionBuilder.createElement(expresionStr, containsConstant, flag2ExpressionStr);
             String expressionName = nameCreator.createName(ruleName);
 
             SimpleExpression expression = null;
@@ -428,7 +401,7 @@ public class ExpressionBuilder {
             if (expression != null) {
                 expression.setNameSpace(namespace);
                 expression.setConfigureName(expressionName);
-                if (relationStr.indexOf("(") == -1) {
+                if (!relationStr.contains("(")) {
                     relationStr = relationStr.replace(expresionStr, expressionName);
                 } else {
                     relationStr = relationStr.replace("(" + expresionStr + ")", expressionName);

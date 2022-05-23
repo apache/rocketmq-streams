@@ -287,7 +287,6 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             }
         });
         for (WindowInstance windowInstance : windowInstanceList) {
-            System.out.println("fire by finish flag");
             fireWindowInstance(windowInstance);
         }
     }

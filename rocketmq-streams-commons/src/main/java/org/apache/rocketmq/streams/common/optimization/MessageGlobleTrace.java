@@ -35,7 +35,7 @@ public class MessageGlobleTrace {
      * @return
      */
     public static Boolean existFinishBranch(IMessage message) {
-        MessageGlobleTrace trace = message.getHeader().getMessageGloableTrace();
+        MessageGlobleTrace trace = message.getHeader().getMessageGlobalTrace();
         if (trace == null) {
             return null;
         }
@@ -48,7 +48,7 @@ public class MessageGlobleTrace {
      * @param message
      */
     public static void finishPipeline(IMessage message) {
-        MessageGlobleTrace trace = message.getHeader().getMessageGloableTrace();
+        MessageGlobleTrace trace = message.getHeader().getMessageGlobalTrace();
         if (trace == null) {
             return;
         }
@@ -63,17 +63,17 @@ public class MessageGlobleTrace {
      */
     public static MessageGlobleTrace joinMessage(IMessage message) {
         MessageHeader messageHeader = message.getHeader();
-        if (messageHeader.getMessageGloableTrace() == null) {
-            messageHeader.setMessageGloableTrace(new MessageGlobleTrace());
+        if (messageHeader.getMessageGlobalTrace() == null) {
+            messageHeader.setMessageGlobalTrace(new MessageGlobleTrace());
         }
-        return messageHeader.getMessageGloableTrace();
+        return messageHeader.getMessageGlobalTrace();
     }
 
     public static void clear(IMessage message) {
         MessageHeader messageHeader = message.getHeader();
-        if (messageHeader.getMessageGloableTrace() == null) {
-            messageHeader.setMessageGloableTrace(new MessageGlobleTrace());
+        if (messageHeader.getMessageGlobalTrace() == null) {
+            messageHeader.setMessageGlobalTrace(new MessageGlobleTrace());
         }
-        messageHeader.getMessageGloableTrace().existFinishBranch = false;
+        messageHeader.getMessageGlobalTrace().existFinishBranch = false;
     }
 }

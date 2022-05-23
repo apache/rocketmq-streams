@@ -21,11 +21,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.BloomFilter;
+import org.rocksdb.Cache;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
+import org.rocksdb.Filter;
+import org.rocksdb.LRUCache;
 import org.rocksdb.Options;
+import org.rocksdb.RateLimiter;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.Statistics;
 import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
+import org.rocksdb.util.SizeUnit;
 
 public class RocksDBOperator {
 
@@ -61,9 +72,33 @@ public class RocksDBOperator {
                                         dir.delete();
                                     }
                                     dir.mkdirs();
+ //                                   final Filter bloomFilter = new BloomFilter(10);
+//                                    final ReadOptions readOptions = new ReadOptions().setFillCache(false);
+//                                    final Statistics stats = new Statistics();
+//                                    final RateLimiter rateLimiter = new RateLimiter(10000000, 10000, 10);
+//
+//                                    options.setCreateIfMissing(true)
+//                                      //  .setStatistics(stats)
+//                                        .setWriteBufferSize(64*1024 * SizeUnit.KB)
+//                                        .setMaxWriteBufferNumber(3);
+//                                        .setMaxBackgroundJobs(10)
+//                                        .setCompressionType(CompressionType.SNAPPY_COMPRESSION)
+//                                        .setCompactionStyle(CompactionStyle.UNIVERSAL);
+//
+//                                  final BlockBasedTableConfig table_options = new BlockBasedTableConfig();
+//                                   Cache cache = new LRUCache(10 * 1024, 6);
+//                                    table_options.setBlockCache(cache)
+//                                        .setFilterPolicy(bloomFilter);
+//                                        .setBlockSizeDeviation(5)
+//                                        .setBlockRestartInterval(10)
+//                                        .setCacheIndexAndFilterBlocks(true);
+//                                    //    .setBlockCacheCompressed(new LRUCache(64 * 1000, 10));
+//                                   options.setTableFormatConfig(table_options);
+//
+//                                    options.setRateLimiter(rateLimiter);
                                     final TtlDB db = TtlDB.open(options, rocksdbFilePath, 10800, false);
                                     RocksDBOperator.rocksDB = db;
-                                    writeOptions.setSync(true);
+                                    writeOptions.setSync(false);
                                 } catch (RocksDBException e) {
                                     throw new RuntimeException("create rocksdb error " + e.getMessage());
                                 }

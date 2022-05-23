@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
@@ -73,11 +74,16 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
         create();
         if (sourceValue != null) {
             source = InstantiationUtil.deserializeObject(Base64Utils.decode(sourceValue));
-            source.init();
+            if(source!=null){
+                source.init();
+            }
+
         }
         if (sinkValue != null) {
             sink = InstantiationUtil.deserializeObject(Base64Utils.decode(sinkValue));
-            sink.init();
+            if(sink!=null){
+                sink.init();
+            }
         }
 
     }
@@ -150,7 +156,7 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     }
 
     @Override
-    public boolean batchAdd(IMessage fieldName2Value, ISplit split) {
+    public boolean batchAdd(IMessage fieldName2Value,  ISplit split) {
         return sink.batchAdd(fieldName2Value, split);
     }
 
@@ -253,5 +259,7 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     public void atomicSink(ISystemMessage message){
 
     }
+
+
 
 }

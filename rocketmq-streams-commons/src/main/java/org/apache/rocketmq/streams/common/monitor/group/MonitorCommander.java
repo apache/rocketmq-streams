@@ -117,11 +117,11 @@ public class MonitorCommander {
                     result.put("errorCount", gmi.getErrorCount());
                     result.put("slowCount", gmi.getSlowCount());
                     //本地打印
-                    loggerOutputDataSource.batchAdd(new Message(result));
+                    loggerOutputDataSource.batchAdd(new Message(result),null);
                     loggerOutputDataSource.flush();
                     //远程输出
                     for (ISink source : outputDataSourceList) {
-                        source.batchAdd(new Message(result));
+                        source.batchAdd(new Message(result),null);
                     }
                 }
                 //flush出去

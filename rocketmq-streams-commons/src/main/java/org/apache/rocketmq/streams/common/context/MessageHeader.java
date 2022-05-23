@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.common.context;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -38,7 +39,7 @@ public class MessageHeader {
      * 因为是字符串比较，需要有一个固定位数
      */
     public static final int SPLIT_OFFST_INIT = 10000000;
-    protected String piplineName;
+    protected String pipelineName;
 
     /**
      * 当前消息的channel信息
@@ -47,11 +48,11 @@ public class MessageHeader {
     /**
      * 路由用到的路由标签，标签的值是stage的label，用于路由stage，可以多个label
      */
-    private String routeLables;
+    private String routeLabels;
     /**
      * 路由用到的路由标签，标签的值是stage的label，用于路由stage,主要用于过滤，可以多个label
      */
-    private String filterLables;
+    private String filterLabels;
     /**
      * 消息所属的queue id
      */
@@ -87,14 +88,9 @@ public class MessageHeader {
     private int loopIndex = -1;
 
     /**
-     * 规则不被触发对应的表达式
-     */
-    protected TopologyFilterMonitor piplineExecutorMonitor;
-
-    /**
      * 在pipline中消息会被拆分，在有多分支时，会被copy，这个对象会在任何变动时，都保持全局唯一，不允许copy，复制，创建，一个message全局唯一
      */
-    protected MessageGlobleTrace messageGloableTrace;
+    protected MessageGlobleTrace messageGlobalTrace;
 
     /**
      * trace id of every message
@@ -108,20 +104,19 @@ public class MessageHeader {
     public MessageHeader copy() {
         MessageHeader header = new MessageHeader();
         header.setSource(source);
-        header.routeLables = routeLables;
-        header.filterLables = filterLables;
+        header.routeLabels = routeLabels;
+        header.filterLabels = filterLabels;
         header.queueId = queueId;
         header.messageOffset = new MessageOffset(messageOffset.getOffsetStr(), messageOffset.isLongOfMainOffset());
         header.sendTime = sendTime;
         header.needFlush = needFlush;
         header.isSystemMessage = isSystemMessage;
         header.progress = new BatchMessageOffset();
-        header.piplineExecutorMonitor = piplineExecutorMonitor;
         if (progress != null) {
             header.progress.setCurrentMessage(progress.getCurrentMessage());
             header.progress.setOwnerType(progress.getOwnerType());
         }
-        header.messageGloableTrace = messageGloableTrace;//这里不必复制，会保持全局唯一
+        header.messageGlobalTrace = messageGlobalTrace;//这里不必复制，会保持全局唯一
         header.traceId = traceId;
         header.msgRouteFromLable = msgRouteFromLable;
         header.logFingerprintValue = logFingerprintValue;
@@ -135,21 +130,33 @@ public class MessageHeader {
         ReflectUtil.setFieldValue2Object(this, jsonObject);
         return jsonObject;
     }
-
+    public Set<String> createRouteLableSet(String routeLabels){
+        if(routeLabels==null){
+            return null;
+        }
+        String[] lables=MapKeyUtil.splitKey(routeLabels);
+        Set<String> routeLableSet=new HashSet<>();
+        for(String lable:lables){
+            routeLableSet.add(lable);
+        }
+        return routeLableSet;
+    }
     /**
-     * 用于路由的标签，标签等于stage的lable
+     * 用于路由的标签，标签等于stage的label
      *
      * @param labels
      */
-    public String addRouteLable(String... labels) {
-        return createLables(routeLables, labels);
+    public String addRouteLabel(String... labels) {
+        this.routeLabels = createLables(routeLabels, labels);
+        return this.routeLabels;
     }
 
     /**
-     * 用于路由的标签，标签等于stage的lable
+     * 用于路由的标签，标签等于stage的label
      */
-    public String addFilterLable(String... labels) {
-        return createLables(filterLables, labels);
+    public String addFilterLabel(String... labels) {
+        this.filterLabels = createLables(filterLabels, labels);
+        return this.filterLabels;
     }
 
     public void setQueueId(String queueId) {
@@ -164,12 +171,13 @@ public class MessageHeader {
         this.source = source;
     }
 
-    public String getRouteLables() {
-        return routeLables;
+    public String getRouteLabels() {
+        return routeLabels;
     }
 
-    public String getFilterLables() {
-        return filterLables;
+
+    public String getFilterLabels() {
+        return filterLabels;
     }
 
     public String getQueueId() {
@@ -230,6 +238,8 @@ public class MessageHeader {
         return routeLabels;
     }
 
+
+
     public boolean isNeedFlush() {
         return needFlush;
     }
@@ -238,12 +248,12 @@ public class MessageHeader {
         this.needFlush = needFlush;
     }
 
-    public void setRouteLables(String routeLables) {
-        this.routeLables = routeLables;
+    public void setRouteLabels(String routeLabels) {
+        this.routeLabels = routeLabels;
     }
 
-    public void setFilterLables(String filterLables) {
-        this.filterLables = filterLables;
+    public void setFilterLabels(String filterLabels) {
+        this.filterLabels = filterLabels;
     }
 
     public void setSendTime(long sendTime) {
@@ -302,21 +312,14 @@ public class MessageHeader {
         isSystemMessage = systemMessage;
     }
 
-    public TopologyFilterMonitor getPiplineExecutorMonitor() {
-        return piplineExecutorMonitor;
+
+
+    public MessageGlobleTrace getMessageGlobalTrace() {
+        return messageGlobalTrace;
     }
 
-    public void setPiplineExecutorMonitor(
-        TopologyFilterMonitor piplineExecutorMonitor) {
-        this.piplineExecutorMonitor = piplineExecutorMonitor;
-    }
-
-    public MessageGlobleTrace getMessageGloableTrace() {
-        return messageGloableTrace;
-    }
-
-    public void setMessageGloableTrace(MessageGlobleTrace messageGloableTrace) {
-        this.messageGloableTrace = messageGloableTrace;
+    public void setMessageGlobalTrace(MessageGlobleTrace messageGlobalTrace) {
+        this.messageGlobalTrace = messageGlobalTrace;
     }
 
     public String getMsgRouteFromLable() {
@@ -349,11 +352,11 @@ public class MessageHeader {
         messageOffset.isLongOfMainOffset = true;
     }
 
-    public String getPiplineName() {
-        return piplineName;
+    public String getPipelineName() {
+        return pipelineName;
     }
 
-    public void setPiplineName(String piplineName) {
-        this.piplineName = piplineName;
+    public void setPipelineName(String pipelineName) {
+        this.pipelineName = pipelineName;
     }
 }

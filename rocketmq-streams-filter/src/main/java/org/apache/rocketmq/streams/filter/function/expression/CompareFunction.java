@@ -20,6 +20,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
@@ -27,7 +29,7 @@ import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 public abstract class CompareFunction extends AbstractExpressionFunction {
-
+    public static String VAR_PREFIX="##*^%$#@!*";//标识一个表达式的值式一个变量，是一个特殊处理。这个标识会放到值的前面。如变量式uuid，值会变成&&&&##$$%^*uuid
     private static final Log LOG = LogFactory.getLog(CompareFunction.class);
 
     @Override
@@ -39,6 +41,7 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
         String varName = expression.getVarName();
         Var var =expression.getVar();
         varValue = var.doMessage(message, context);
+
         /**
          * 两个数字比较的情况
          */
@@ -61,9 +64,16 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
         if (basicValue == null || basicVarValue == null) {
             return false;
         }
+        DataType dataType=expression.getDataType();
+        if(String.class.isInstance(basicValue)&&basicValue.toString().startsWith(VAR_PREFIX)){
+            String valueVarName=basicValue.toString().replace(VAR_PREFIX,"");
+            basicValue=message.getMessageBody().get(valueVarName);
+            dataType= DataTypeUtil.getDataTypeFromClass(varValue.getClass());
+            basicVarValue=dataType.getData(varValue.toString());
+        }
 
-        Class varClass = basicVarValue == null ? expression.getDataType().getDataClass() : basicVarValue.getClass();
-        Class valueClass = basicValue == null ? expression.getDataType().getDataClass() : basicValue.getClass();
+        Class varClass = basicVarValue == null ? dataType.getDataClass() : basicVarValue.getClass();
+        Class valueClass = basicValue == null ? dataType.getDataClass() : basicValue.getClass();
         try {
             match = (Boolean) ReflectUtil.invoke(this, "compare",
                 new Class[] {varClass, valueClass},

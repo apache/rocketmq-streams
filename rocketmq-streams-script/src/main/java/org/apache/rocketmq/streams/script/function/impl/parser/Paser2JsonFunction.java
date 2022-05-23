@@ -28,6 +28,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class Paser2JsonFunction {
@@ -40,23 +41,25 @@ public class Paser2JsonFunction {
      * @param context
      */
     @FunctionMethod(value = "spread_json", alias = "autoJson", comment = "原始数据是嵌套json或jsonArray调用此方法会自动展开成单层")
-    public void spread2Json(IMessage message, FunctionContext context) {
-        JSONObject jsonObject = null;
-        if (message.isJsonMessage()) {
-            jsonObject = message.getMessageBody();
-        }
+    public void spread2Json(IMessage message, FunctionContext context,String fieldName) {
+        fieldName= FunctionUtils.getConstant(fieldName);
+
+        JSONObject jsonObject = message.getMessageBody().getJSONObject(fieldName);
+//        if (message.isJsonMessage()) {
+//            jsonObject = message.getMessageBody();
+//        }
         List<String> jsonArrayNames = new ArrayList<>();
         jsonObject = spreadJson(jsonObject, jsonArrayNames);
         if (jsonArrayNames.size() > 0) {
             List<JSONObject> jsonObjects = spreadJsonArray(jsonObject, jsonArrayNames);
             for (JSONObject tmp : jsonObjects) {
                 IMessage copyMessage = message.copy();
-                copyMessage.setMessageBody(tmp);
+                copyMessage.getMessageBody().putAll(tmp);
                 context.getSplitMessages().add(copyMessage);
             }
             context.openSplitModel();
         } else {
-            message.setMessageBody(jsonObject);
+            message.getMessageBody().putAll(jsonObject);
         }
     }
 

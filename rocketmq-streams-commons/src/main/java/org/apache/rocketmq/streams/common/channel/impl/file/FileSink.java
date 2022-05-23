@@ -74,9 +74,9 @@ public class FileSink extends AbstractSupportShuffleSink {
     }
 
     @Override
-    public List<ISplit> getSplitList() {
+    public List<ISplit<?,?>> getSplitList() {
         File file = new File(filePath);
-        List<ISplit> splits = new ArrayList<>();
+        List<ISplit<?,?>> splits = new ArrayList<>();
         splits.add(new FileSplit(file));
         return splits;
     }

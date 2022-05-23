@@ -23,6 +23,7 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
@@ -36,18 +37,18 @@ public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>,
     /**
      * 根据channel推断 meta，或者不需要meta，如消息对垒
      *
-     * @param fieldName2Value
+     * @param message
      * @return
      */
-    boolean batchAdd(IMessage fieldName2Value, ISplit split);
+    boolean batchAdd(IMessage message, ISplit<?,?> split);
 
     /**
      * 根据channel推断 meta，或者不需要meta，如消息对垒
      *
-     * @param fieldName2Value
+     * @param context
      * @return
      */
-    boolean batchAdd(IMessage fieldName2Value);
+    boolean batchAdd(IMessage message);
 
     /**
      * 直接存储存储，不过缓存

@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.junit.Test;
@@ -49,13 +50,29 @@ public class FunctionTest {
         message.put("from", "2019-07-14 00:00:00");
         message.put("last", "2019-07-14 01:00:00");
         message.put("event_type", "alert");
-        String scriptValue = "now=now();nowhh=datefirst(now,'hh');from=dateAdd(last,'hh',-1);";
+        String scriptValue = "now=now();x =concat(from,last)";
         List<IMessage> list = ScriptComponent.getInstance().getService().executeScript(message, scriptValue);
         for (int i = 0; i < list.size(); i++) {
             assertTrue(list.get(i).getMessageBody().getString("from").equals("2019-07-14 00:00:00"));
             System.out.println(list.get(i).getMessageBody());
         }
 
+    }
+    @Test
+    public void testJSON(){
+        JSONObject jsonObject=new JSONObject();
+        JSONObject person=new JSONObject();
+        person.put("name","chris");
+        person.put("age",18);
+        jsonObject.put("persion",person);
+        JSONArray jsonArray=new JSONArray();
+        for(int i=0;i<3;i++){
+            JSONObject jsonObject1=new JSONObject();
+            jsonObject1.put("address","address"+i);
+            jsonArray.add(jsonObject1);
+        }
+        jsonObject.put("addresses",jsonArray);
+        System.out.println(JsonableUtil.formatJson(jsonObject));
     }
 
     /**

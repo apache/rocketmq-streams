@@ -27,8 +27,9 @@ import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
 
 /**
- * 会在解析时，增加一个script（_join_flag='true'），在rigth/left pipline加一个window对应的stage
+ * 新的解析已经废弃，主要兼容老的规则数据
  */
+@Deprecated
 public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
 
     protected String leftPipelineName;
