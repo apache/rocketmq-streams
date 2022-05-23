@@ -679,6 +679,7 @@ public class ReflectUtil {
             DataType dataType = DataTypeUtil.getDataTypeFromClass(fieldValue.getClass());
             Object convertFieldValue = dataType.convert(fieldValue);
             if (method != null) {
+                method.setAccessible(true);
                 method.invoke(object, convertFieldValue);
             } else {
                 Field field = object.getClass().getDeclaredField(modelFieldName);
@@ -753,6 +754,7 @@ public class ReflectUtil {
             if (method == null) {
                 throw new RuntimeException("can not get " + fieldName + "'s value, the method is not exist");
             }
+            method.setAccessible(true);
             return (T) method.invoke(bean);
         } catch (Exception e) {
             throw new RuntimeException("can not get " + fieldName + "'s value", e);

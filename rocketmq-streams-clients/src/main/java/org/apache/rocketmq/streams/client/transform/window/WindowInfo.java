@@ -27,8 +27,7 @@ public class WindowInfo {
     public static int HOPPING_WINDOW = 1;//滑动窗口
     public static int TUMBLING_WINDOW = 2;//滚动窗口
     public static int SESSION_WINDOW = 3;
-    public static int OVER_WINDOW = 4;
-    public static int SHUFFLE_OVER_WINDOW = 5;
+
     protected int type;//window类型 hopping，Tumbling
     protected Time windowSize;//窗口大小
     protected Time windowSlide;//滑动大小
