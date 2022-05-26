@@ -46,7 +46,6 @@ import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
-import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.FilterComponent;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
@@ -70,7 +69,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     @Deprecated
     private transient Map<String, Action> actionMap = new HashMap<>();
     private transient Map<String, MetaData> metaDataMap = new HashMap<>();
-    private transient volatile Map<String, JDBCDriver> dataSourceMap = new HashMap<>();
     private String expressionStr;//表达式
     protected transient Expression rootExpression;
 
@@ -90,7 +88,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         this.actionMap = rule.getActionMap();
         this.expressionMap = rule.getExpressionMap();
         this.metaDataMap = rule.getMetaDataMap();
-        this.dataSourceMap = rule.getDataSourceMap();
         this.setMsgMetaDataName(rule.getMsgMetaDataName());
         this.setExpressionStr(rule.getExpressionStr());
         this.setVarNames(rule.getVarNames());
@@ -110,7 +107,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         rule.expressionMap = expressionMap;
         rule.actionMap = actionMap;
         rule.metaDataMap = metaDataMap;
-        rule.dataSourceMap = dataSourceMap;
         rule.setActionNames(actionNames);
         rule.setVarNames(varNames);
         rule.setExpressionName(expressionName);
@@ -128,11 +124,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
 
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-
-        if (isFinishVarAndExpression == false) {
-            this.dataSourceMap = configurableService.queryConfigurableMapByType(ISink.TYPE);
-
-        }
         initVar(configurableService);
         initExpression(configurableService);
         initAction(configurableService);
@@ -153,7 +144,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             }
         }
         for (Action action : this.actionMap.values()) {
-            action.setDataSourceMap(this.dataSourceMap);
             action.setMetaDataMap(this.metaDataMap);
         }
     }
@@ -277,8 +267,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             actionMap.put(configurable.getConfigureName(), (Action) configurable);
         } else if (MetaData.TYPE.equals(type)) {
             metaDataMap.put(configurable.getConfigureName(), (MetaData) configurable);
-        } else if (ISink.TYPE.equals(type)) {
-            dataSourceMap.put(configurable.getConfigureName(), (JDBCDriver) configurable);
         }
     }
 
@@ -306,9 +294,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         if (metaDataMap != null) {
             configurableList.addAll(metaDataMap.values());
         }
-        if (dataSourceMap != null) {
-            configurableList.addAll(dataSourceMap.values());
-        }
+
         return configurableList;
     }
 
@@ -344,13 +330,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         this.metaDataMap = metaDataMap;
     }
 
-    public Map<String, JDBCDriver> getDataSourceMap() {
-        return dataSourceMap;
-    }
-
-    public void setDataSourceMap(Map<String, JDBCDriver> dataSourceMap) {
-        this.dataSourceMap = dataSourceMap;
-    }
 
     private transient static FilterComponent filterComponent = FilterComponent.getInstance();
 
@@ -495,9 +474,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         }
         if (metaDataMap.values() != null) {
             pipelineBuilder.addConfigurables(metaDataMap.values());
-        }
-        if (dataSourceMap.values() != null) {
-            pipelineBuilder.addConfigurables(dataSourceMap.values());
         }
     }
 

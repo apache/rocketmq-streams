@@ -63,8 +63,6 @@ import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.db.sink.DBSink;
 import org.apache.rocketmq.streams.db.sink.DynamicMultipleDBSink;
 import org.apache.rocketmq.streams.db.sink.EnhanceDBSink;
-import org.apache.rocketmq.streams.dim.model.DBDim;
-import org.apache.rocketmq.streams.dim.model.FileDim;
 import org.apache.rocketmq.streams.filter.operator.FilterOperator;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.mqtt.sink.PahoSink;
@@ -392,116 +390,7 @@ public class DataStream implements Serializable {
         return new SplitStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
 
-    /**
-     * 维表join,mysql场景，不需要指定jdbcdriver
-     *
-     * @param url
-     * @param userName
-     * @param password
-     * @param sqlOrTableName
-     * @return
-     */
-    @Deprecated
-    public JoinStream join(String url, String userName, String password, String sqlOrTableName,
-        long pollingTimeMintue) {
-        return join(url, userName, password, sqlOrTableName, null, pollingTimeMintue);
-    }
 
-    /**
-     * 维表join
-     *
-     * @param url
-     * @param userName
-     * @param password
-     * @param sqlOrTableName
-     * @return
-     */
-    @Deprecated
-    public JoinStream join(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
-        long pollingTimeMinute) {
-        DBDim dbDim = new DBDim();
-        dbDim.setUrl(url);
-        dbDim.setUserName(userName);
-        dbDim.setPassword(password);
-        dbDim.setSql(sqlOrTableName);
-        dbDim.setPollingTimeMinute(pollingTimeMinute);
-        dbDim.setJdbcdriver(jdbcDriver);
-        this.mainPipelineBuilder.addConfigurables(dbDim);
-        return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true);
-    }
-
-    public JoinStream dimJoin(String url, String userName, String password, String sqlOrTableName,
-        Long pollingTimeMinute) {
-        return dimJoin(url, userName, password, sqlOrTableName, "com.mysql.jdbc.Driver", pollingTimeMinute);
-    }
-
-    public JoinStream dimJoin(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
-        Long pollingTimeMinute) {
-        return dimJoin(url, userName, password, sqlOrTableName, jdbcDriver, pollingTimeMinute, JoinStream.JoinType.INNER_JOIN);
-    }
-
-    public JoinStream dimJoin(String filePath, Long pollingTimeMinute) {
-        return dimJoin(filePath, pollingTimeMinute, JoinStream.JoinType.INNER_JOIN);
-    }
-
-    public JoinStream dimLeftJoin(String url, String userName, String password, String sqlOrTableName,
-        Long pollingTimeMinute) {
-        return dimLeftJoin(url, userName, password, sqlOrTableName, "com.mysql.jdbc.Driver", pollingTimeMinute);
-    }
-
-    public JoinStream dimLeftJoin(String url, String userName, String password, String sqlOrTableName,
-        String jdbcDriver, Long pollingTimeMinute) {
-        return dimJoin(url, userName, password, sqlOrTableName, jdbcDriver, pollingTimeMinute, JoinStream.JoinType.LEFT_JOIN);
-    }
-
-    public JoinStream dimLeftJoin(String filePath, Long pollingTimeMinute) {
-        return dimJoin(filePath, pollingTimeMinute, JoinStream.JoinType.LEFT_JOIN);
-    }
-
-    protected JoinStream dimJoin(String filePath, Long pollingTimeMinute, JoinStream.JoinType joinType) {
-        FileDim fileDim = new FileDim();
-        fileDim.setFilePath(filePath);
-        fileDim.setPollingTimeMinute(pollingTimeMinute);
-        this.mainPipelineBuilder.addConfigurables(fileDim);
-        return new JoinStream(fileDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true, joinType);
-    }
-
-    protected JoinStream dimJoin(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
-        Long pollingTimeMinute, JoinStream.JoinType joinType) {
-        DBDim dbDim = new DBDim();
-        dbDim.setUrl(url);
-        dbDim.setUserName(userName);
-        dbDim.setPassword(password);
-        dbDim.setSql(sqlOrTableName);
-        dbDim.setPollingTimeMinute(pollingTimeMinute);
-        dbDim.setJdbcdriver(jdbcDriver);
-        this.mainPipelineBuilder.addConfigurables(dbDim);
-        return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true, joinType);
-    }
-
-    /**
-     * 维表join
-     *
-     * @param filePath
-     * @return
-     */
-    @Deprecated
-    public JoinStream join(String filePath, long pollingTimeMinute) {
-        FileDim fileDim = new FileDim();
-        fileDim.setFilePath(filePath);
-        fileDim.setPollingTimeMinute(pollingTimeMinute);
-        this.mainPipelineBuilder.addConfigurables(fileDim);
-        return new JoinStream(fileDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true);
-    }
-
-    @Deprecated
-    public JoinStream innerJoin(String filePath, long pollingTimeMinute) {
-        FileDim fileDim = new FileDim();
-        fileDim.setFilePath(filePath);
-        fileDim.setPollingTimeMinute(pollingTimeMinute);
-        this.mainPipelineBuilder.addConfigurables(fileDim);
-        return new JoinStream(fileDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true);
-    }
 
     /**
      * 遍历所有数据

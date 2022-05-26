@@ -36,7 +36,6 @@ import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
-import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
@@ -422,8 +421,7 @@ public class JoinWindow extends AbstractShuffleWindow {
     }
 
     protected List<Map<String, Object>> matchRows(JSONObject msg, List<Map<String, Object>> rows) {
-
-        return AbstractDim.matchExpressionByLoop(rows.iterator(), expression, msg, true);
+        return ExpressionMatcher.matchExpressionByLoop(rows.iterator(), expression, msg, true);
     }
 
     private List<Map<String, Object>> converToMapFromList(List<WindowBaseValue> rows) {
