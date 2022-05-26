@@ -39,6 +39,11 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-clients</artifactId>
         </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.19</version>
+        </dependency>
     </dependencies>
     <packaging>jar</packaging>
 
