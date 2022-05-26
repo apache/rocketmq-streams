@@ -38,7 +38,7 @@ public class CreateTopicUtil {
 
         HashMap<String, String> temp = new HashMap<>();
         temp.put("+delete.policy", "COMPACTION");
-        topicConfig.setAttributes(temp);
+//        topicConfig.setAttributes(temp);
 
         try {
             defaultMQAdminExt.start();
