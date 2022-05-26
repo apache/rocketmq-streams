@@ -83,14 +83,11 @@
 
     <modules>
         <module>rocketmq-streams-commons</module>
-        <module>rocketmq-streams-dim</module>
         <module>rocketmq-streams-transport-minio</module>
         <module>rocketmq-streams-script</module>
         <module>rocketmq-streams-configurable</module>
         <module>rocketmq-streams-serviceloader</module>
         <module>rocketmq-streams-filter</module>
-        <module>rocketmq-streams-schedule</module>
-        <module>rocketmq-streams-lease</module>
         <module>rocketmq-streams-db-operator</module>
         <module>rocketmq-streams-window</module>
         <module>rocketmq-streams-clients</module>
@@ -99,10 +96,8 @@
         <module>rocketmq-streams-channel-http</module>
         <module>rocketmq-streams-state</module>
         <module>rocketmq-streams-examples</module>
-        <module>rocketmq-streams-connectors</module>
         <module>rocketmq-streams-channel-syslog</module>
         <module>rocketmq-streams-channel-es</module>
-        <module>rocketmq-streams-runner</module>
         <module>rocketmq-streams-channel-mqtt</module>
     </modules>
 
@@ -319,16 +314,7 @@
                 <artifactId>rocketmq-streams-filter</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-lease</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-schedule</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-script</artifactId>
@@ -379,11 +365,7 @@
                 <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-connectors</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-examples</artifactId>

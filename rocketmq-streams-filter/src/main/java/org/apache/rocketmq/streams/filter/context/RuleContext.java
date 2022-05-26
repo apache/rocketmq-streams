@@ -18,6 +18,22 @@ package org.apache.rocketmq.streams.filter.context;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.monitor.IMonitor;
+import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
+import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
+import org.apache.rocketmq.streams.filter.operator.Rule;
+import org.apache.rocketmq.streams.filter.operator.action.Action;
+import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.var.Var;
+import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
+import org.apache.rocketmq.streams.script.function.service.impl.ScanFunctionService;
+
 import java.io.Serializable;
 import java.util.Properties;
 import java.util.Vector;
@@ -28,24 +44,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.common.metadata.MetaDataAdapter;
-import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
-import org.apache.rocketmq.streams.db.driver.JDBCDriver;
-import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
-import org.apache.rocketmq.streams.filter.operator.Rule;
-import org.apache.rocketmq.streams.filter.operator.action.Action;
-import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.filter.operator.var.Var;
-import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
-import org.apache.rocketmq.streams.script.function.service.impl.ScanFunctionService;
 
 public class RuleContext extends AbstractContext<Message> implements Serializable {
 
@@ -233,33 +231,7 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
 
     }
 
-    public MetaData getMetaData(String name) {
-        MetaData metaData = rule.getMetaDataMap().get(name);
-        return metaData;
-    }
 
-    public JDBCDriver getDataSource(String name) {
-        return rule.getDataSourceMap().get(name);
-    }
-
-    /**
-     * @param name
-     * @return
-     */
-    public MetaDataAdapter getMetaDataAdapter(String name) {
-        MetaData md = getMetaData(name);
-        JDBCDriver dataSource = this.getDataSource(md.getDataSourceName());
-        MetaDataAdapter mda = new MetaDataAdapter(md, dataSource);
-        return mda;
-
-    }
-
-    public boolean containsVarName(String varName) {
-        if (varValueMap.containsKey(varName)) {
-            return true;
-        }
-        return false;
-    }
 
     /**
      * 获取变量值,内部使用，不能直接使用，获取变量的值需要用var.getVarValue()

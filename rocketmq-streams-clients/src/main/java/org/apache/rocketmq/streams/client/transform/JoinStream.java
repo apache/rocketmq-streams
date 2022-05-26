@@ -28,7 +28,6 @@ import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.function.expression.Equals;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
@@ -40,9 +39,6 @@ public class JoinStream {
 
     private static final String INNER_VAR_NAME_PREFIX = "___";
     protected JoinWindow joinWindow;//完成join 条件的添加
-    protected boolean isDimJoin = false;//是否是维表join
-
-    protected AbstractDim dim;//维度表对象
     protected String onCondition;//条件
     protected JoinType joinType;//连接类型
 
@@ -77,41 +73,6 @@ public class JoinStream {
     }
 
     /**
-     * 维表join 场景
-     *
-     * @param pipelineBuilder
-     * @param pipelineBuilders
-     * @param currentChainStage
-     */
-    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage) {
-        this.dim = dim;
-        this.pipelineBuilder = pipelineBuilder;
-        this.otherPipelineBuilders = pipelineBuilders;
-        this.currentChainStage = currentChainStage;
-        this.isDimJoin = true;
-    }
-
-    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage, Boolean isDimJoin) {
-        this.dim = dim;
-        this.pipelineBuilder = pipelineBuilder;
-        this.otherPipelineBuilders = pipelineBuilders;
-        this.currentChainStage = currentChainStage;
-        this.isDimJoin = isDimJoin;
-    }
-
-    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage, Boolean isDimJoin, JoinType joinType) {
-        this.pipelineBuilder = pipelineBuilder;
-        this.otherPipelineBuilders = pipelineBuilders;
-        this.currentChainStage = currentChainStage;
-        this.dim = dim;
-        this.isDimJoin = isDimJoin;
-        this.joinType = joinType;
-    }
-
-    /**
      * 设置join的类型， 推荐直接使用DataStream中的特定join来实现
      *
      * @param joinType
@@ -130,11 +91,6 @@ public class JoinStream {
      * @return
      */
     public JoinStream window(Time time) {
-
-        //维表join 不需要设置
-        if (isDimJoin) {
-            throw new RuntimeException("can not support this method");
-        }
         joinWindow.setTimeUnitAdjust(1);
         joinWindow.setSizeInterval(time.getValue());
         joinWindow.setSlideInterval(time.getValue());
@@ -166,38 +122,10 @@ public class JoinStream {
     }
 
     public DataStream toDataSteam() {
-        if (isDimJoin) {
-            return doDimJoin();
-        } else {
-            return doJoin();
-        }
-
+        return doJoin();
     }
 
-    /**
-     * 维度表join的场景
-     */
-    protected DataStream doDimJoin() {
-        if (StringUtil.isNotEmpty(this.onCondition)) {
-            this.dim.createIndexByJoinCondition(this.onCondition, new AbstractDim.IDimField() {
-                @Override
-                public boolean isDimField(Object fieldName) {
-                    return true;
-                }
-            });
-        }
-        String script = null;
-        if (JoinType.INNER_JOIN == joinType) {
-            String data = createName("inner_join");
-            script = data + "=inner_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "', '' ,''," + ");splitArray('" + data + "');rm(" + data + ");";
-        } else if ((JoinType.LEFT_JOIN == joinType)) {
-            String data = createName("left_join");
-            script = data + "=left_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "', '' ,''," + ");if(!null(" + data + ")){splitArray('" + data + "');};rm(" + data + ");";
-        }
-        ChainStage<?> stage = this.pipelineBuilder.createStage(new ScriptOperator(script));
-        this.pipelineBuilder.setTopologyStages(currentChainStage, stage);
-        return new DataStream(pipelineBuilder, otherPipelineBuilders, stage);
-    }
+
 
     /**
      * 双流join的场景
