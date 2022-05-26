@@ -35,14 +35,11 @@
 
     <modules>
         <module>rocketmq-streams-commons</module>
-        <module>rocketmq-streams-dim</module>
         <module>rocketmq-streams-transport-minio</module>
         <module>rocketmq-streams-script</module>
         <module>rocketmq-streams-configurable</module>
         <module>rocketmq-streams-serviceloader</module>
         <module>rocketmq-streams-filter</module>
-        <module>rocketmq-streams-schedule</module>
-        <module>rocketmq-streams-lease</module>
         <module>rocketmq-streams-db-operator</module>
         <module>rocketmq-streams-window</module>
         <module>rocketmq-streams-clients</module>
@@ -51,12 +48,9 @@
         <module>rocketmq-streams-channel-http</module>
         <module>rocketmq-streams-state</module>
         <module>rocketmq-streams-examples</module>
-        <module>rocketmq-streams-connectors</module>
         <module>rocketmq-streams-channel-syslog</module>
         <module>rocketmq-streams-channel-es</module>
-        <module>rocketmq-streams-channel-kafka</module>
         <module>rocketmq-streams-channel-mqtt</module>
-        <module>rocketmq-streams-cep</module>
     </modules>
 
     <properties>
@@ -207,11 +201,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-channel-es</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-channel-mqtt</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -223,11 +212,6 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-state</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-cep</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -257,24 +241,10 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-dim</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-filter</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-lease</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-schedule</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-script</artifactId>
@@ -289,11 +259,6 @@
                         <artifactId>logback-core</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-script-python</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
@@ -327,16 +292,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-channel-kafka</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-connectors</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-examples</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -363,12 +318,6 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-acl</artifactId>
-                <version>${rocketmq.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-tools</artifactId>
                 <version>${rocketmq.version}</version>
             </dependency>
 

@@ -223,7 +223,7 @@ public class ExpressionBuilder {
         addConfigurable2Map(rule.getVarMap(), ruleCreator.getVarList());
         addConfigurable2Map(rule.getExpressionMap(), ruleCreator.getExpressionList());
         addConfigurable2Map(rule.getMetaDataMap(), ruleCreator.getMetaDataList());
-        addConfigurable2Map(rule.getDataSourceMap(), ruleCreator.getDataSourceList());
+
         addConfigurable2Map(rule.getActionMap(), ruleCreator.getActionList());
         ruleCreator.setRootExpression(expression);
         rule = ruleCreator.createRule();
