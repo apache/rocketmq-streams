@@ -50,6 +50,7 @@ import org.apache.rocketmq.common.protocol.body.Connection;
 import org.apache.rocketmq.common.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -79,6 +80,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
     protected String strategyName;
 
+    private RPCHook rpcHook;
     protected transient DefaultMQPushConsumer consumer;
     protected transient ConsumeFromWhere consumeFromWhere;//默认从哪里消费,不会被持久化。不设置默认从尾部消费
     protected transient String consumerOffset;//从哪里开始消费
@@ -86,16 +88,17 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     public RocketMQSource() {
     }
 
-    public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr) {
-        this(topic, tags, groupName, namesrvAddr, STRATEGY_AVERAGE);
+    public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr, RPCHook rpcHook) {
+        this(topic, tags, groupName, namesrvAddr, STRATEGY_AVERAGE, rpcHook);
     }
 
-    public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr, String strategyName) {
+    public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr, String strategyName, RPCHook rpcHook) {
         this.topic = topic;
         this.tags = tags;
         this.groupName = groupName;
         this.namesrvAddr = namesrvAddr;
         this.strategyName = strategyName;
+        this.rpcHook = rpcHook;
     }
 
     @Override
@@ -118,7 +121,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
     protected DefaultMQPushConsumer startConsumer() {
         try {
-            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(groupName);
+            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(null, groupName, this.rpcHook);
             if (pullIntervalMs != null) {
                 consumer.setPullInterval(pullIntervalMs);
             }
@@ -411,4 +414,13 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     public void setConsumerOffset(String consumerOffset) {
         this.consumerOffset = consumerOffset;
     }
+
+    public RPCHook getRpcHook() {
+        return rpcHook;
+    }
+
+    public void setRpcHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
+    }
+
 }
