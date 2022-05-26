@@ -345,9 +345,6 @@ public class DefaultStorage extends AbstractStorage {
     private MessageQueue getMessageQueue(String shuffleId) {
         //最后四位为queueId
         String substring = shuffleId.substring(shuffleId.length() - 3);
-        int first = shuffleId.indexOf("_");
-        int last = shuffleId.lastIndexOf("_");
-        String brokerName = shuffleId.substring(first + 1, last);
 
         Integer queueIdNumber = Integer.parseInt(substring);
 
@@ -361,7 +358,7 @@ public class DefaultStorage extends AbstractStorage {
                     for (Integer queueId : temp.keySet()) {
                         List<MessageQueue> messageQueues = temp.get(queueId);
                         for (MessageQueue messageQueue : messageQueues) {
-                            if (messageQueue.getBrokerName().equals(brokerName)) {
+                            if (shuffleId.contains(messageQueue.getBrokerName())) {
                                 this.queueId2MQ.put(queueId, messageQueue);
                                 break;
                             }
