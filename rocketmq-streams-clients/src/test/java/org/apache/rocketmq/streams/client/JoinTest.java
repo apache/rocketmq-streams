@@ -62,22 +62,5 @@ public class JoinTest implements Serializable {
 
     }
 
-    @Test
-    public void testDim() {
-        DataStream stream = (StreamBuilder.dataStream("namespace", "name")
-            .fromFile("/Users/junjie.cheng/workspace/rocketmq-streams-apache/rocketmq-streams-clients/src/test/resources/window_msg_10.txt")
-            .filter((FilterFunction<JSONObject>) value -> {
-                if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
-                    return true;
-                }
-                return false;
-            }))
-            .join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5)
-            .setCondition("(name,==,name)")
-            .toDataSteam()
-            .selectFields("name", "age", "address")
-            .toPrint();
-        stream.start();
 
-    }
 }
