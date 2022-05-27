@@ -97,7 +97,6 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             destroyConsumer();
 
             this.pullConsumer = buildPullConsumer(topic, groupName, namesrvAddr, tags, rpcHook, consumeFromWhere);
-            this.pullConsumer.start();
 
             if (this.executorService == null) {
                 this.executorService = new ThreadPoolExecutor(userPullThreadNum, userPullThreadNum, 0, TimeUnit.MILLISECONDS,
@@ -109,6 +108,8 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
                 pullTasks[i] = new PullTask(this.pullConsumer, pullTimeout, commitInternalMs);
                 this.executorService.execute(pullTasks[i]);
             }
+
+            this.pullConsumer.start();
 
             return true;
         } catch (MQClientException e) {
@@ -271,28 +272,41 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             this.commitInternalMs = commitInternalMs;
         }
 
+        private void afterRebalance() {
+            //if rebalance happen, need block all other thread, wait remove split or load states from new split;
+            Set<MessageQueue> removingQueue = this.delegator.getRemovingQueue();
+
+            Set<String> splitIds = new HashSet<>();
+            for (MessageQueue mq : removingQueue) {
+                splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
+            }
+
+            RocketMQSource.this.removeSplit(splitIds);
+
+            Set<MessageQueue> allQueueInLastRebalance = this.delegator.getLastDivided();
+            newRebalance(allQueueInLastRebalance);
+
+            this.delegator.hasSynchronized();
+        }
+
         @Override
         public void run() {
+
+            try {
+                //wait rebalance
+                synchronized (this.delegator.getMutex()) {
+                    this.delegator.getMutex().wait();
+                }
+                afterRebalance();
+            } catch (InterruptedException ignored) {
+            }
 
             while (!this.isStopped) {
 
                 if (this.delegator.needSync()) {
                     synchronized (this.pullConsumer) {
                         if (this.delegator.needSync()) {
-                            //if rebalance happen, need block all other thread, wait remove split or load states from new split;
-                            Set<MessageQueue> removingQueue = this.delegator.getRemovingQueue();
-
-                            Set<String> splitIds = new HashSet<>();
-                            for (MessageQueue mq : removingQueue) {
-                                splitIds.add(new RocketMQMessageQueue(mq).getQueueId());
-                            }
-
-                            RocketMQSource.this.removeSplit(splitIds);
-
-                            Set<MessageQueue> allQueueInLastRebalance = this.delegator.getLastDivided();
-                            newRebalance(allQueueInLastRebalance);
-
-                            this.delegator.hasSynchronized();
+                            afterRebalance();
                         }
                     }
                 }
