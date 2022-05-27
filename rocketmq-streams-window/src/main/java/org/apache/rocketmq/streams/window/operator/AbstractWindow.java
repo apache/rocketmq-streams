@@ -707,7 +707,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IWindo
 
     public void removeInstanceFromMap(WindowInstance windowInstance) {
         this.windowInstanceMap.remove(windowInstance.getWindowInstanceId());
-
     }
 
     @Override
