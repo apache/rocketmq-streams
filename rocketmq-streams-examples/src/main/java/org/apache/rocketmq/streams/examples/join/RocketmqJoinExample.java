@@ -23,7 +23,7 @@ public class RocketmqJoinExample {
     public static void main(String[] args) {
         DataStream left = StreamBuilder.dataStream("tmp", "tmp")
             .fromRocketmq("TopicTest", "groupA", true, "localhost:9876");
-        DataStream right = StreamBuilder.dataStream("tmp", "tmp")
+        DataStream right = StreamBuilder.dataStream("tmp", "tmp22")
             .fromRocketmq("TopicTest", "groupB", true, "localhost:9876");
 
         left.join(right)
