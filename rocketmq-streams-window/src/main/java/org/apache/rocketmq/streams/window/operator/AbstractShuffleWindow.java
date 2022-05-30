@@ -86,7 +86,6 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
                     this.shuffleChannel.init();
                     windowCache.setBatchSize(5000);
                     windowCache.setShuffleChannel(shuffleChannel);
-                    windowCache.initMiniBatch();
                     shuffleChannel.startChannel();
                     hasCreated.set(true);
                 }
