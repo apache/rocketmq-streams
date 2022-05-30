@@ -730,7 +730,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
 
     public void removeInstanceFromMap(WindowInstance windowInstance) {
         this.windowInstanceMap.remove(windowInstance.getWindowInstanceId());
-
     }
 
     @Override
