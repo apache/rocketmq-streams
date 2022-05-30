@@ -23,13 +23,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MessageListenerDelegator implements MessageQueueListener {
     private final MessageQueueListener delegator;
     private final Set<MessageQueue> lastDivided = new HashSet<>();
     private final Set<MessageQueue> removingQueue = new HashSet<>();
     private final AtomicBoolean needSync = new AtomicBoolean(false);
-
+    private final Object mutex = new Object();
 
     public MessageListenerDelegator(MessageQueueListener delegator) {
         this.delegator = delegator;
@@ -48,9 +49,12 @@ public class MessageListenerDelegator implements MessageQueueListener {
         this.lastDivided.clear();
         this.lastDivided.addAll(mqDivided);
 
+        needSync.set(true);
         delegator.messageQueueChanged(topic, mqAll, mqDivided);
 
-        needSync.set(true);
+        synchronized (this.mutex) {
+            this.mutex.notifyAll();
+        }
     }
 
     public Set<MessageQueue> getLastDivided() {
@@ -68,5 +72,9 @@ public class MessageListenerDelegator implements MessageQueueListener {
 
     public void hasSynchronized() {
         this.needSync.set(false);
+    }
+
+    public Object getMutex() {
+        return mutex;
     }
 }
