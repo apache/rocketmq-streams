@@ -241,30 +241,22 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     }
 
     @Override
-    public List<ISplit<?, ?>> getSplitList() {
+    public List<ISplit<?,?>> getSplitList() {
         initProducer();
-        List<ISplit<?, ?>> messageQueues = new ArrayList<>();
-        List<MessageQueue> metaqQueueSet = new ArrayList<>();
+        List<ISplit<?,?>> messageQueues = new ArrayList<>();
         try {
 
-            if (messageQueues == null || messageQueues.size() == 0) {
-                try {
-                    metaqQueueSet = producer.fetchPublishMessageQueues(topic);
-                }catch (Exception e) {
-                    producer.send(new Message(topic, "test", "test".getBytes(StandardCharsets.UTF_8)));
-                    metaqQueueSet = producer.fetchPublishMessageQueues(topic);
-                }
-                List<ISplit<?, ?>> queueList = new ArrayList<>();
-                for (MessageQueue queue : metaqQueueSet) {
-                    RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
-                    queueList.add(rocketMQMessageQueue);
+            List<MessageQueue> messageQueueSet = producer.fetchPublishMessageQueues(topic);
+            List<ISplit<?,?>> queueList = new ArrayList<>();
+            for (MessageQueue queue : messageQueueSet) {
+                RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
+                queueList.add(rocketMQMessageQueue);
 
-                }
-                queueList.sort((Comparator<ISplit>) Comparable::compareTo);
-                messageQueues = queueList;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            queueList.sort((Comparator<ISplit>) Comparable::compareTo);
+            messageQueues = queueList;
+        } catch (MQClientException e) {
+            return messageQueues;
         }
 
         return messageQueues;
