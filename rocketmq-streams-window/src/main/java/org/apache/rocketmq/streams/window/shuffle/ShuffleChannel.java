@@ -60,6 +60,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.rocketmq.streams.window.model.WindowCache.ORIGIN_MESSAGE_TRACE_ID;
@@ -110,6 +111,14 @@ public class ShuffleChannel extends AbstractSystemChannel {
 
     }
 
+    protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
+
+    @Override
+    public void startChannel() {
+        if (hasStart.compareAndSet(false, true)) {
+            super.startChannel();
+        }
+    }
 
     /**
      * init shuffle channel

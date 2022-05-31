@@ -50,10 +50,6 @@ public class KryoUtil {
             //不强制要求注册类（注册行为无法保证多个 JVM 内同一个类的注册编号相同；而且业务系统中大量的 Class 也难以一一注册）
             kryo.setRegistrationRequired(false); //默认值就是 false，添加此行的目的是为了提醒维护者，不要改变这个配置
 
-            //Fix the NPE bug when deserializing Collections.
-//            ((Kryo.DefaultInstantiatorStrategy) kryo.getInstantiatorStrategy())
-//                .setFallbackInstantiatorStrategy(new StdInstantiatorStrategy());
-
             return kryo;
         }
     };
