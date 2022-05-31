@@ -121,6 +121,7 @@ public class DefaultStorage extends AbstractStorage {
 
                 List<MessageExt> msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
                 while (msgs.size() != 0) {
+                    replayState(msgs);
                     msgs = this.checkpointConsumer.poll(pollTimeoutMillis);
                 }
             }
