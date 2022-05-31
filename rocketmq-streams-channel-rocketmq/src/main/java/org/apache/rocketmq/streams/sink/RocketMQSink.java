@@ -32,6 +32,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
@@ -57,6 +58,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     private Long pullIntervalMs;
     private String namesrvAddr;
+    private RPCHook rpcHook;
 
     public RocketMQSink() {
     }
@@ -147,7 +149,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
             synchronized (this) {
                 if (producer == null) {
                     destroy();
-                    producer = new DefaultMQProducer(groupName + "producer", true, null);
+                    producer = new DefaultMQProducer(null, groupName + "producer", rpcHook,false, null);
                     try {
                         //please not use the code，the name srv addr may be empty in jmenv
 //                        if (this.namesrvAddr == null || "".equals(this.namesrvAddr)) {
@@ -345,5 +347,13 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     public void setOrder(boolean order) {
         this.order = order;
+    }
+
+    public RPCHook getRpcHook() {
+        return rpcHook;
+    }
+
+    public void setRpcHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
     }
 }
