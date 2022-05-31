@@ -26,7 +26,6 @@ public class RocketmqJoinExample {
         DataStream right = StreamBuilder.dataStream("tmp", "tmp22")
             .fromRocketmq("TopicTestJoin", "groupB", true, "localhost:9876");
 
-
         left.join(right)
             .on("(ProjectName,=,ProjectName)")
             .toDataSteam()
