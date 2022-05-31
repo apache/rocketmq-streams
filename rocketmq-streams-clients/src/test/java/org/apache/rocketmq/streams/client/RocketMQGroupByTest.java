@@ -31,7 +31,7 @@ public class RocketMQGroupByTest implements Serializable {
     @Test
     public void testRocketMq() throws Exception {
         DataStreamSource.create("tmp", "tmp")
-            .fromRocketmq("dipper_test_write_merge5", "dipper_group", true, "localhost:9876")
+            .fromRocketmq("dipper_test_write_merge5", "dipper_group", true, "localhost:9876", null)
             .window(TumblingWindow.of(Time.seconds(5)))
             .groupBy("host_uuid", "cmdline")
             .count("c")

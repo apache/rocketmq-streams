@@ -36,6 +36,8 @@ package org.apache.rocketmq.streams.client.source;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
 import java.util.Set;
+
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.CollectionSource;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
@@ -93,16 +95,21 @@ public class DataStreamSource {
     }
 
     public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress) {
-        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress);
+        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress, null);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress) {
+    public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress, RPCHook rpcHook) {
+        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress, rpcHook);
+    }
+
+    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress, RPCHook rpcHook) {
         RocketMQSource rocketMQSource = new RocketMQSource();
         rocketMQSource.setTopic(topic);
         rocketMQSource.setTags(tags);
         rocketMQSource.setGroupName(groupName);
         rocketMQSource.setJsonData(isJson);
         rocketMQSource.setNamesrvAddr(namesrvAddress);
+        rocketMQSource.setRpcHook(rpcHook);
         this.mainPipelineBuilder.setSource(rocketMQSource);
         return new DataStream(this.mainPipelineBuilder, null);
     }

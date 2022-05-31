@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.client.strategy.LogFingerprintStrategy;
 import org.apache.rocketmq.streams.client.strategy.Strategy;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
@@ -497,19 +498,23 @@ public class DataStream implements Serializable {
     }
 
     public DataStream toRocketmq(String topic, String nameServerAddress) {
-        return toRocketmq(topic, "*", null, -1, nameServerAddress, null, false);
+        return toRocketmq(topic, null, nameServerAddress);
     }
 
     public DataStream toRocketmq(String topic, String groupName, String nameServerAddress) {
-        return toRocketmq(topic, "*", groupName, -1, nameServerAddress, null, false);
+        return toRocketmq(topic, "*", groupName,  nameServerAddress);
     }
 
     public DataStream toRocketmq(String topic, String tags, String groupName, String nameServerAddress) {
-        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, null, false);
+        return toRocketmq(topic, tags, groupName, nameServerAddress, null);
+    }
+
+    public DataStream toRocketmq(String topic, String tags, String groupName, String nameServerAddress, RPCHook rpcHook) {
+        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, null, false, rpcHook);
     }
 
     public DataStream toRocketmq(String topic, String tags, String groupName, int batchSize, String nameServerAddress,
-        String clusterName, boolean order) {
+                                 String clusterName, boolean order, RPCHook rpcHook) {
         RocketMQSink rocketMQSink = new RocketMQSink();
         if (StringUtils.isNotBlank(topic)) {
             rocketMQSink.setTopic(topic);
@@ -530,6 +535,8 @@ public class DataStream implements Serializable {
             rocketMQSink.setBatchSize(batchSize);
         }
         rocketMQSink.setOrder(order);
+        rocketMQSink.setRpcHook(rpcHook);
+
         ChainStage<?> output = this.mainPipelineBuilder.createStage(rocketMQSink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
