@@ -33,7 +33,6 @@ import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.interfaces.ISerialize;
-import org.nustaq.serialization.FSTConfiguration;
 
 public class SerializeUtil {
     private static final Log LOG = LogFactory.getLog(SerializeUtil.class);
@@ -44,11 +43,6 @@ public class SerializeUtil {
      * @return
      */
     public static byte[] serialize(Object object) {
-        if(ISerialize.class.isInstance(object)){
-//        byte[] bytes = conf.asByteArray(object);
-//        return bytes;
-           return KryoUtil.writeObjectToByteArray(object);
-        }
         DataType dataType = DataTypeUtil.getDataTypeFromClass(object.getClass());
         if (ArrayDataType.class.isInstance(dataType)) {
             int length = Array.getLength(object);

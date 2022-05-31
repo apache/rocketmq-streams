@@ -76,21 +76,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
-        if (hasCreated.get()==false||this.shuffleChannel==null) {
-            synchronized (this){
-                if(hasCreated.get()==false||this.shuffleChannel==null){
-                    this.windowFireSource = new WindowTrigger(this);
-                    this.windowFireSource.init();
-                    this.windowFireSource.start(getFireReceiver());
-                    this.shuffleChannel = new ShuffleChannel(this);
-                    this.shuffleChannel.init();
-                    windowCache.setBatchSize(5000);
-                    windowCache.setShuffleChannel(shuffleChannel);
-                    shuffleChannel.startChannel();
-                    hasCreated.set(true);
-                }
-            }
-        }
+        shuffleChannel.startChannel();
         return super.doMessage(message, context);
     }
 
@@ -99,6 +85,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
         Set<String> splitIds = new HashSet<>();
         splitIds.add(windowInstance.getSplitId());
         shuffleChannel.flush(splitIds);
+
         return doFireWindowInstance(windowInstance);
     }
 
