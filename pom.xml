@@ -124,7 +124,7 @@
         <spring.version>3.2.13.RELEASE</spring.version>
         <auto-service.version>1.0-rc5</auto-service.version>
         <mysql-connector.version>5.1.40</mysql-connector.version>
-        <fastjson.version>1.2.9</fastjson.version>
+        <fastjson.version>1.2.25.sec10</fastjson.version>
         <quartz.version>2.3.2</quartz.version>
         <httpclient.version>4.5.13</httpclient.version>
         <commons-io.version>2.7</commons-io.version>
