@@ -48,7 +48,8 @@ public class RemoteCheckpointExample {
     static  {
         ComponentCreator.getProperties().put(ConfigureFileKey.CONNECT_TYPE, "DB");
         ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL, URL);
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_DRIVER, DEFALUT_JDBC_DRIVER);
+        //if you mysql version large than 8.0, use com.mysql.cj.jdbc.Driver as a driver.
+        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_DRIVER, "com.mysql.cj.jdbc.Driver");
         ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME, USER_NAME);
         ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD, PASSWORD);
     }
