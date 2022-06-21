@@ -105,7 +105,6 @@ public abstract class WindowCache extends
             JSONObject jsonObject=shuffleChannel.createMsg(allMsgs,split);
 //            JSONObject zipJsonObject = new JSONObject();
 //            zipJsonObject.put(COMPRESSION_MSG_DATA, CompressUtil.gZip(jsonObject.toJSONString()));
-//            zipJsonObject.put(IS_COMPRESSION_MSG, true);
             shuffleChannel.getProducer().batchAdd(new Message(jsonObject), split);
             shuffleChannel.getProducer().flush(split.getQueueId());
             long cost=System.currentTimeMillis()-start;
