@@ -42,7 +42,7 @@ DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1-preview</version>
 </dependency>
 ```
 
@@ -123,7 +123,7 @@ DataStream实现了一系列常见的流计算算子
 
 #### Strategy
 
-策略机制主要用来控制计算引擎运行过程中的底层逻辑，如checkpoint，state的存储方式等，后续还会增加对窗口、双流join等的控制；所有的控制策略通过```with```算子传入，可以同时传入多个策略类型；
+策略机制主要用来控制计算引擎运行过程中的底层逻辑，如window存储方式，后续还会增加对state、双流join等的控制；所有的控制策略通过```with```算子传入，可以同时传入多个策略类型；
 
 ```java
 //指定checkpoint的存储策略
@@ -131,7 +131,7 @@ source
     .fromRocketmq("TSG_META_INFO","")
     .map(message->message+"--")
     .toPrint(1)
-    .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
+    .with(WindowStrategy.highPerformance())
     .start();
 ```
 
