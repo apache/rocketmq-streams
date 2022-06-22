@@ -9,36 +9,12 @@
 
 ## [中文文档](./README-chinese.md)
 
-## [Quick Start](./quick_start.md)
+## [Quick Start](docs/quick_start/quick_start.md)
 
 ## Features
 
 * Lightweight deployment: RocketMQ Streams can be deployed separately or in cluster mode.
 * Various types of data input and output: source supports [RocketMQ](https://github.com/apache/rocketmq) while sink supports databases and RocketMQ, etc.
-
-## DataStream Example
-
-```java
-import org.apache.rocketmq.streams.client.transform.DataStream;
-
-DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
-    source
-    .fromFile("～/admin/data/text.txt",false)
-    .map(message->message)
-    .toPrint(1)
-    .start();
-```
-
-## Maven Repository
-
-```xml
-
-<dependency>
-    <groupId>org.apache.rocketmq</groupId>
-    <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.1-preview</version>
-</dependency>
-```
 
 # Core API
 
@@ -46,10 +22,9 @@ RocketMQ Streams implements a series of advanced APIs, allowing users to write s
 
 ## StreamBuilder
 
-StreamBuilder is used to build the source of stream tasks. It contains two methods: ```dataStream()``` and ```tableStream()```, which return two sources, DataStreamSource and TableStreamSource, respectively.
+StreamBuilder is used to build the source of stream tasks.
 
 + [dataStream(nameSpaceName,pipelineName)]() returns an instance of DataStreamSource, used for segmented programming to achieve stream computing tasks.
-+ [tableStream(nameSpaceName,pipelineName)]() returns an instance of TableStreamSource, used for script programming to achieve stream computing tasks.
 
 ## DataStream API
 
@@ -121,3 +96,57 @@ source
     .start();
 ```
 
+# Run local project
+
+## environment
+- JDK 1.8+
+- Maven 3.2+
+- Install RocketMQ in local，[intall doc](https://rocketmq.apache.org/docs/quick-start/)
+
+## Install Rocketmq-streams
+
+```shell
+git clone https://github.com/apache/rocketmq-streams.git
+cd rocketmq-streams
+mvn clean -DskipTests install -U
+```
+
+## pom
+
+```xml
+ <dependencies>
+    <dependency>
+        <groupId>org.apache.rocketmq</groupId>
+        <artifactId>rocketmq-streams-clients</artifactId>
+          <!--Newest version-->
+        <version>${version}</version>
+    </dependency>
+</dependencies>
+
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>3.2.1</version>
+            <executions>
+                <execution>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>shade</goal>
+                    </goals>
+                    <configuration>
+                        <minimizeJar>false</minimizeJar>
+                        <shadedArtifactAttached>true</shadedArtifactAttached>
+                        <artifactSet>
+                            <includes>
+                                <include>org.apache.rocketmq:rocketmq-streams-clients</include>
+                            </includes>
+                        </artifactSet>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
