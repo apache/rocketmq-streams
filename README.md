@@ -36,7 +36,7 @@ DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1-preview</version>
 </dependency>
 ```
 
@@ -109,7 +109,7 @@ DataStream implements a series of common stream calculation operators as follows
 
 # Strategy
 
-The Strategy mechanism is mainly used to control the underlying logic during the operation of the computing engine, such as the storage methods of Checkpoint and state etc. Subsequent controls for windows, dual-stream joins, and so on will be added. All control strategies are transmitted through the ```with``` operator. Multiple policy types can be transmitted at the same time.
+The Strategy mechanism is mainly used to control the underlying logic during the operation of the computing engine, such as the storage methods of window. Subsequent controls for state, dual-stream joins, and so on will be added. All control strategies are transmitted through the ```with``` operator. Multiple policy types can be transmitted at the same time.
 
 ```java
 //Specify the storage strategy for Checkpoint.
@@ -117,7 +117,7 @@ source
     .fromRocketmq("TSG_META_INFO","")
     .map(message->message+"--")
     .toPrint(1)
-    .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
+    .with(WindowStrategy.highPerformance())
     .start();
 ```
 
