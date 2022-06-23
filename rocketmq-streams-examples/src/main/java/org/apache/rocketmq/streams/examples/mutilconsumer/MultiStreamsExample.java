@@ -20,30 +20,31 @@
 package org.apache.rocketmq.streams.examples.mutilconsumer;
 
 import com.alibaba.fastjson.JSONObject;
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class MultiStreamsExample {
     private static ExecutorService producerPool = Executors.newFixedThreadPool(1);
     private static ExecutorService consumerPool = Executors.newCachedThreadPool();
     private static Random random = new Random();
+    private static String topic = "mutilConsumerTopic";
+    private static String groupId = "mutilConsumerGroup";
 
     public static void main(String[] args) {
         //producer
         producerPool.submit(new Runnable() {
             @Override
             public void run() {
-                Producer.produceInLoop("data.txt");
+                Producer.produceInLoop(topic,"data.txt");
             }
         });
 
@@ -62,8 +63,8 @@ public class MultiStreamsExample {
     private static void runOneStreamsClient(int index) {
         DataStreamSource source = StreamBuilder.dataStream("namespace" + index, "pipeline" + index);
         source.fromRocketmq(
-                RMQ_TOPIC,
-                RMQ_CONSUMER_GROUP_NAME,
+                topic,
+                groupId,
                 false,
                 NAMESRV_ADDRESS)
             .filter((message) -> {

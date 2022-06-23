@@ -30,10 +30,7 @@ import org.apache.rocketmq.streams.dbinit.mysql.delegate.DBDelegate;
 import org.apache.rocketmq.streams.dbinit.mysql.delegate.DBDelegateFactory;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
-import static org.apache.rocketmq.streams.db.driver.DriverBuilder.DEFALUT_JDBC_DRIVER;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 
 public class RemoteCheckpointExample {
@@ -44,6 +41,9 @@ public class RemoteCheckpointExample {
     //password of mysql
     private static final String PASSWORD = "";
 
+    private static final String TOPIC_NAME = "mysql_checkpoint_topic";
+
+    private static final String GROUP_NAME = "mysql_checkpoint_group_id";
 
     static  {
         ComponentCreator.getProperties().put(ConfigureFileKey.CONNECT_TYPE, "DB");
@@ -55,7 +55,7 @@ public class RemoteCheckpointExample {
     }
 
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, TOPIC_NAME);
         DBDelegate delegate = DBDelegateFactory.getDelegate();
         delegate.init();
 
@@ -67,8 +67,8 @@ public class RemoteCheckpointExample {
 
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
         source.fromRocketmq(
-                RMQ_TOPIC,
-                RMQ_CONSUMER_GROUP_NAME,
+                TOPIC_NAME,
+                GROUP_NAME,
                 false,
                 NAMESRV_ADDRESS)
                 .filter((message) -> {
