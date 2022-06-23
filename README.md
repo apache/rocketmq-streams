@@ -9,7 +9,7 @@
 
 ## [中文文档](./README-chinese.md)
 
-## [Quick Start](docs/quick_start/quick_start.md)
+## [Quick Start](quick_start.md)
 
 ## Features
 
@@ -119,7 +119,7 @@ mvn clean -DskipTests install -U
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams-clients</artifactId>
           <!--Newest version-->
-        <version>${version}</version>
+        <version>1.0.2-preview-SNAPSHOT</version>
     </dependency>
 </dependencies>
 

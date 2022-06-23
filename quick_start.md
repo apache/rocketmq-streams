@@ -15,6 +15,6 @@ mvn clean -DskipTests install -U
 ```
 
 ### 运行示例
-- 进入[rocketmq-streams-examples](../../rocketmq-streams-examples) 模块运行对应例子；
-- 代码示例详细见[示例说明](../../rocketmq-streams-examples/README.md)
+- 进入[rocketmq-streams-examples](rocketmq-streams-examples) 模块运行对应例子；
+- 代码示例详细见[示例说明](rocketmq-streams-examples/README.md)
 
