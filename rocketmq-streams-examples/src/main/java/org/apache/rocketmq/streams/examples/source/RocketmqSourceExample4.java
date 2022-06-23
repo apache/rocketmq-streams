@@ -23,16 +23,16 @@ import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class RocketmqSourceExample4 {
+    private static String topicName = "joinDataTopic";
+    private static String groupName = "joinDataGroupName";
 
     public static void main(String[] args) {
         System.out.println("send data to rocketmq");
-        ProducerFromFile.produce("joinData-1.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("joinData-1.txt", NAMESRV_ADDRESS, topicName);
 
-        ProducerFromFile.produce("joinData-2.txt", NAMESRV_ADDRESS, RMQ_TOPIC + 2);
+        ProducerFromFile.produce("joinData-2.txt", NAMESRV_ADDRESS, topicName + 2);
 
         try {
             Thread.sleep(1000 * 3);
@@ -41,14 +41,14 @@ public class RocketmqSourceExample4 {
 
         System.out.println("begin streams code");
 
-        DataStream leftStream = StreamBuilder.dataStream("namespace", "name").fromRocketmq(RMQ_TOPIC, RMQ_CONSUMER_GROUP_NAME, true, NAMESRV_ADDRESS).filter((JSONObject value) -> {
+        DataStream leftStream = StreamBuilder.dataStream("namespace", "name").fromRocketmq(topicName, groupName, true, NAMESRV_ADDRESS).filter((JSONObject value) -> {
             if (value.getString("ProjectName") != null && value.getString("LogStore") != null) {
                 return true;
             }
             return false;
         });
 
-        DataStream rightStream = StreamBuilder.dataStream("namespace", "name2").fromRocketmq(RMQ_TOPIC + 2, RMQ_CONSUMER_GROUP_NAME + 2, true, NAMESRV_ADDRESS).filter((JSONObject value) -> {
+        DataStream rightStream = StreamBuilder.dataStream("namespace", "name2").fromRocketmq(topicName + 2, groupName + 2, true, NAMESRV_ADDRESS).filter((JSONObject value) -> {
             if (value.getString("ProjectName") != null && value.getString("LogStore") != null) {
                 return true;
             }

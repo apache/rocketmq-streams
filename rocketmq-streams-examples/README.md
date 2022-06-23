@@ -17,7 +17,7 @@ public class FileSourceExample {
 ```
 #### 1.2 代码示例
 
-[代码示例 ProducerFromFile.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/aggregate/ProducerFromFile.java)
+[代码示例 ProducerFromFile.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/source/FileSourceExample.java)
 
 
 ### 2、分时间段，统计分组中某字段的和

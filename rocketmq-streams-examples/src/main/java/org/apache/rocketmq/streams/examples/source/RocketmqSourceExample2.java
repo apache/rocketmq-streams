@@ -16,21 +16,22 @@
  */
 package org.apache.rocketmq.streams.examples.source;
 
-import java.util.Arrays;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
+import java.util.Arrays;
+
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class RocketmqSourceExample2 {
+    private static String topicName = "topic-2";
+    private static String groupName = "groupName-2";
     /**
      * 1、make sure your rocketmq server has been started.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, topicName);
 
         try {
             Thread.sleep(1000 * 3);
@@ -41,8 +42,8 @@ public class RocketmqSourceExample2 {
 
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
         source.fromRocketmq(
-                RMQ_TOPIC,
-                RMQ_CONSUMER_GROUP_NAME,
+                topicName,
+                groupName,
                 false,
                 NAMESRV_ADDRESS)
             .forEach((message) -> {

@@ -18,24 +18,26 @@
 package org.apache.rocketmq.streams.examples.source;
 
 import com.alibaba.fastjson.JSONObject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class RocketmqSourceExample3 {
+    private static String topicName = "topic-3";
+    private static String groupName = "groupName-3";
+
     /**
      * 1、make sure your rocketmq server has been started.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, topicName);
 
         try {
             Thread.sleep(1000 * 3);
@@ -46,8 +48,8 @@ public class RocketmqSourceExample3 {
 
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
         source.fromRocketmq(
-                RMQ_TOPIC,
-                RMQ_CONSUMER_GROUP_NAME,
+                topicName,
+                groupName,
                 false,
                 NAMESRV_ADDRESS)
             .forEach((message) -> {
