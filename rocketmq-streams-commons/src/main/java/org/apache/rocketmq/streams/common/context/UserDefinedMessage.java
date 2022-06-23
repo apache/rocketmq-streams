@@ -176,9 +176,6 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     @Override
     public byte[] getBytes(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
-        if (msgValue != null && byte[].class.isInstance(msgValue.getClass())) {
-            return (byte[])msgValue;
-        }
         return super.getBytes(key);
     }
 
@@ -301,55 +298,31 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
 
     @Override
     public BigDecimal getBigDecimal(String key) {
-        Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
-        if (msgValue != null && BigDecimal.class.isInstance(msgValue.getClass())) {
-            return (BigDecimal)msgValue;
-        }
         return super.getBigDecimal(key);
     }
 
     @Override
     public BigInteger getBigInteger(String key) {
-        Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
-        if (msgValue != null && BigInteger.class.isInstance(msgValue.getClass())) {
-            return (BigInteger)msgValue;
-        }
         return super.getBigInteger(key);
     }
 
     @Override
     public String getString(String key) {
-        Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
-        if (msgValue != null && String.class.isInstance(msgValue.getClass())) {
-            return (String)msgValue;
-        }
         return super.getString(key);
     }
 
     @Override
     public Date getDate(String key) {
-        Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
-        if (msgValue != null && Date.class.isInstance(msgValue.getClass())) {
-            return (Date)msgValue;
-        }
         return super.getDate(key);
     }
 
     @Override
     public java.sql.Date getSqlDate(String key) {
-        Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
-        if (msgValue != null && java.sql.Date.class.isInstance(msgValue.getClass())) {
-            return (java.sql.Date)msgValue;
-        }
         return super.getSqlDate(key);
     }
 
     @Override
     public Timestamp getTimestamp(String key) {
-        Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
-        if (msgValue != null && Timestamp.class.isInstance(msgValue.getClass())) {
-            return (Timestamp)msgValue;
-        }
         return super.getTimestamp(key);
     }
 
@@ -453,11 +426,11 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
         JSONObject msg = new JSONObject();
         String type = null;
         String data = null;
-        if (isBasic || isList || (isMap && !JSONObject.class.isInstance(messageValue))) {
+        if (isBasic || isList || (isMap && !(messageValue instanceof JSONObject))) {
             DataType dataType = DataTypeUtil.getDataTypeFromClass(messageValue.getClass());
             data = dataType.toDataJson(messageValue);
             type = "datatype";
-        } else if (isMap && JSONObject.class.isInstance(messageValue)) {
+        } else if (isMap) {
             JSONObject jsonObject = (JSONObject)messageValue;
             data = jsonObject.toJSONString();
             type = "json";
