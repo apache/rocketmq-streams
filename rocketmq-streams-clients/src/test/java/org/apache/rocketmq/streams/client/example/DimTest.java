@@ -29,7 +29,7 @@ public class DimTest {
             .join("classpath://dim.txt", 10000)
             .setJoinType(JoinStream.JoinType.INNER_JOIN)
             .setCondition("(ProjectName,=,project)")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
     }
@@ -41,7 +41,7 @@ public class DimTest {
             .join("classpath://dim.txt", 10000)
             .setJoinType(JoinStream.JoinType.LEFT_JOIN)
             .setCondition("(ProjectName,=,project)")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
     }

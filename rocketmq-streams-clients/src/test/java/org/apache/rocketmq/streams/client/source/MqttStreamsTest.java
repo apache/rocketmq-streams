@@ -40,7 +40,7 @@ public class MqttStreamsTest {
             .groupBy("AttributeCode")
             .setLocalStorageOnly(true)
             .avg("Value", "avg_value")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .with(ShuffleStrategy.shuffleWithMemory())
             .start();

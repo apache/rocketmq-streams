@@ -53,7 +53,7 @@ public class UsersDimensionExample {
                 .count("total")
                 .waterMark(1)
                 .setLocalStorageOnly(true)
-                .toDataSteam()
+                .toDataStream()
                 .toPrint(1)
                 .with(WindowStrategy.highPerformance())
                 .start();

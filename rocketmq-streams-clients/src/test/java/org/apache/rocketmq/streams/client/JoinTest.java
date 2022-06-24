@@ -56,7 +56,7 @@ public class JoinTest implements Serializable {
 
         leftStream.join(rightStream).setJoinType(JoinType.INNER_JOIN)
             .setCondition("(ProjectName,==,ProjectName)&(LogStore,==,LogStore)")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
 
@@ -74,7 +74,7 @@ public class JoinTest implements Serializable {
             }))
             .join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5)
             .setCondition("(name,==,name)")
-            .toDataSteam()
+            .toDataStream()
             .selectFields("name", "age", "address")
             .toPrint();
         stream.start();

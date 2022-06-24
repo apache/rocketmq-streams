@@ -61,7 +61,7 @@ public class SplitTest implements Serializable {
 
         DataStream children = splitStream.select("children");
         DataStream adult = splitStream.select("adult");
-        children.union(adult).join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5).setCondition("(name,==,name)").toDataSteam().window(TumblingWindow.of(Time.seconds(5))).groupBy("ProjectName", "LogStore").setLocalStorageOnly(true).count("total").sum("OutFlow", "OutFlow").sum("InFlow", "InFlow").toDataSteam().toPrint().asyncStart();
+        children.union(adult).join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5).setCondition("(name,==,name)").toDataStream().window(TumblingWindow.of(Time.seconds(5))).groupBy("ProjectName", "LogStore").setLocalStorageOnly(true).count("total").sum("OutFlow", "OutFlow").sum("InFlow", "InFlow").toDataStream().toPrint().asyncStart();
         while (true) {
             Thread.sleep(1000);
         }
@@ -79,7 +79,7 @@ public class SplitTest implements Serializable {
                 }
                 return false;
             }
-        })).join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5).setCondition("(name,==,name)").toDataSteam().selectFields("name", "age", "address").toPrint();
+        })).join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5).setCondition("(name,==,name)").toDataStream().selectFields("name", "age", "address").toPrint();
         stream.start();
 
     }

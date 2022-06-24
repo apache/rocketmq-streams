@@ -76,7 +76,7 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .count("total")
             .sum("OutFlow", "OutFlow")
             .sum("InFlow", "inflow")
-            .toDataSteam()
+            .toDataStream()
             .forEach(new ForEachFunction<JSONObject>() {
                 AtomicInteger sum = new AtomicInteger(0) ;
                 @Override
@@ -120,7 +120,7 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .count("total")
             .sum("OutFlow", "OutFlow")
             .sum("InFlow", "InFlow")
-            .toDataSteam()
+            .toDataStream()
             .forEach(new ForEachFunction<JSONObject>() {
 
 
@@ -161,7 +161,7 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .count("total")
             .sum("OutFlow", "OutFlow")
             .sum("InFlow", "InFlow")
-            .toDataSteam()
+            .toDataStream()
             .map(new MapFunction<JSONObject, JSONObject>() {
                 long time=new Date().getTime();
                 @Override
@@ -178,7 +178,7 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .setTimeField("time")
             .sum("total","sum_total")
             .setLocalStorageOnly(true)
-            .toDataSteam()
+            .toDataStream()
             .forEach(new ForEachFunction<JSONObject>() {
                 AtomicInteger sum = new AtomicInteger(0) ;
                 Map<String,Integer> map=new HashMap<>();
