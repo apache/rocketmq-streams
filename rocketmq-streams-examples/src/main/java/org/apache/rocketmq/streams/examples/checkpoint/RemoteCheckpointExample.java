@@ -89,7 +89,7 @@ public class RemoteCheckpointExample {
                 .count("total")
                 .waterMark(5)
                 .setLocalStorageOnly(false)
-                .toDataSteam()
+                .toDataStream()
                 .toPrint(1)
                 .start();
     }

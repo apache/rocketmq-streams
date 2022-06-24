@@ -72,7 +72,7 @@ public class UnionTest implements Serializable {
             }))
             .join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5)
             .setCondition("(name,==,name)")
-            .toDataSteam()
+            .toDataStream()
             .selectFields("name", "age", "address")
             .toPrint();
 

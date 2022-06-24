@@ -33,7 +33,7 @@ public class CountFromFileTest {
             .fromFile("window_msg_88121.txt", true)
             .window(TumblingWindow.of(Time.seconds(5)))
             .count("count_result")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
     }
@@ -46,7 +46,7 @@ public class CountFromFileTest {
             .fromFile("window_msg_10000.txt", true)
             .window(HoppingWindow.of(Time.seconds(10), Time.seconds(5)))
             .count("count_result")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
     }

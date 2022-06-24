@@ -85,7 +85,7 @@ public class MultiStreamsExample {
             .count("total")
             .waterMark(5)
             .setLocalStorageOnly(true)
-            .toDataSteam()
+            .toDataStream()
             .toPrint(1)
             .with(WindowStrategy.highPerformance())
             .start();
