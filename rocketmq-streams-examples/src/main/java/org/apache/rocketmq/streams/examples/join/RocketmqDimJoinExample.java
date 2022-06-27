@@ -25,7 +25,7 @@ public class RocketmqDimJoinExample {
             .fromRocketmq("TopicTest", "groupA", true, "localhost:9876")
             .dimJoin("classpath://dim.txt", 10000L)
             .on("ProjectName, =, project")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
     }

@@ -98,7 +98,7 @@ public class DataStreamTest implements Serializable {
             .groupBy("name", "age")
             .count("c")
             .sum("score", "scoreValue")
-            .toDataSteam()
+            .toDataStream()
             .toPrint(1)
             .with(WindowStrategy.exactlyOnce("", "", ""))
             .start();

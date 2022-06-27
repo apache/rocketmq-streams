@@ -33,7 +33,7 @@ public class MqttSourceExample {
             .groupBy("AttributeCode")
             .setLocalStorageOnly(true)
             .avg("Value", "avg_value")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .with(ShuffleStrategy.shuffleWithMemory())
             .start();

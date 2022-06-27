@@ -55,7 +55,7 @@ public class RocketmqSourceExample4 {
             return false;
         });
 
-        leftStream.leftJoin(rightStream).setCondition("(ProjectName,==,ProjectName)&(LogStore,==,LogStore)").toDataSteam().toPrint(1).start();
+        leftStream.leftJoin(rightStream).setCondition("(ProjectName,==,ProjectName)&(LogStore,==,LogStore)").toDataStream().toPrint(1).start();
 
         System.out.println("consumer end");
     }
