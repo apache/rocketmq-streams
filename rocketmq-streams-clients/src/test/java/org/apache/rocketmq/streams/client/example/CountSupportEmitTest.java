@@ -34,7 +34,7 @@ public class CountSupportEmitTest {
             .window(TumblingWindow.of(Time.minutes(10)))
             .emitBeforeFire(Time.seconds(5))
             .count("count_result")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
         ;
@@ -48,7 +48,7 @@ public class CountSupportEmitTest {
             .fromFile("window_msg_10000.txt", true)
             .window(HoppingWindow.of(Time.seconds(10), Time.seconds(5)))
             .count("count_result")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
         ;
