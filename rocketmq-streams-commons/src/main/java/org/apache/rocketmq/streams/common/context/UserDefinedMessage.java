@@ -317,12 +317,12 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     }
 
     @Override
-    public java.sql.Date getSqlDate(String key) {
+    public Object getSqlDate(String key) {
         return super.getSqlDate(key);
     }
 
     @Override
-    public Timestamp getTimestamp(String key) {
+    public Object getTimestamp(String key) {
         return super.getTimestamp(key);
     }
 
