@@ -35,7 +35,7 @@ public class RocketMQGroupByTest implements Serializable {
             .window(TumblingWindow.of(Time.seconds(5)))
             .groupBy("host_uuid", "cmdline")
             .count("c")
-            .toDataSteam()
+            .toDataStream()
             .forEachMessage(new ForEachMessageFunction() {
                 protected AtomicLong COUNT = new AtomicLong(0);
                 protected Long start = null;
