@@ -33,7 +33,7 @@ public class ShuffleOverWindowTest {
             .topN("rowNum", 10000, "city")
             .addOrderByFieldName("name", true)
             .addOrderByFieldName("age", false)
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
     }

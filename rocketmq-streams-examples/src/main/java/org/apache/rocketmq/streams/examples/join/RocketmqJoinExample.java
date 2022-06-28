@@ -28,7 +28,7 @@ public class RocketmqJoinExample {
 
         left.join(right)
             .on("(ProjectName,=,ProjectName)")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
     }

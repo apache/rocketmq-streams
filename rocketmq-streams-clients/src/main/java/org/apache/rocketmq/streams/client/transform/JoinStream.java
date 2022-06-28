@@ -121,7 +121,7 @@ public class JoinStream {
         return this;
     }
 
-    public DataStream toDataSteam() {
+    public DataStream toDataStream() {
         return doJoin();
     }
 

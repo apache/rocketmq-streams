@@ -56,11 +56,10 @@ public class JoinTest implements Serializable {
 
         leftStream.join(rightStream).setJoinType(JoinType.INNER_JOIN)
             .setCondition("(ProjectName,==,ProjectName)&(LogStore,==,LogStore)")
-            .toDataSteam()
+            .toDataStream()
             .toPrint()
             .start();
 
     }
-
 
 }
