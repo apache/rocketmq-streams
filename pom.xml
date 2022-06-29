@@ -83,16 +83,12 @@
 
     <modules>
         <module>rocketmq-streams-commons</module>
-        <module>rocketmq-streams-dim</module>
         <module>rocketmq-streams-transport-minio</module>
         <module>rocketmq-streams-script</module>
         <module>rocketmq-streams-configurable</module>
         <module>rocketmq-streams-serviceloader</module>
         <module>rocketmq-streams-filter</module>
-        <module>rocketmq-streams-schedule</module>
-        <module>rocketmq-streams-lease</module>
         <module>rocketmq-streams-db-operator</module>
-        <module>rocketmq-streams-dbinit</module>
         <module>rocketmq-streams-window</module>
         <module>rocketmq-streams-clients</module>
         <module>rocketmq-streams-channel-rocketmq</module>
@@ -100,11 +96,8 @@
         <module>rocketmq-streams-channel-http</module>
         <module>rocketmq-streams-state</module>
         <module>rocketmq-streams-examples</module>
-        <module>rocketmq-streams-checkpoint</module>
-        <module>rocketmq-streams-connectors</module>
         <module>rocketmq-streams-channel-syslog</module>
         <module>rocketmq-streams-channel-es</module>
-        <module>rocketmq-streams-runner</module>
         <module>rocketmq-streams-channel-mqtt</module>
     </modules>
 
@@ -133,7 +126,7 @@
         <groovy.version>2.1.8</groovy.version>
         <disruptor.version>3.2.0</disruptor.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
-        <rocketmq.version>4.5.2</rocketmq.version>
+        <rocketmq.version>4.9.4</rocketmq.version>
         <hyperscan.version>5.4.0-2.0.0</hyperscan.version>
         <platform.version>3.5.2</platform.version>
         <gson.version>2.8.9</gson.version>
@@ -189,6 +182,7 @@
                         <exclude>**/*.sql</exclude>
                         <exclude>**/*.properties</exclude>
                         <exclude>docs/**/*</exclude>
+                        <exclude>**/*.sql</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -278,11 +272,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-dbinit</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-clients</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -326,16 +315,7 @@
                 <artifactId>rocketmq-streams-filter</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-lease</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-schedule</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-script</artifactId>
@@ -386,11 +366,7 @@
                 <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-connectors</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-examples</artifactId>
@@ -419,6 +395,12 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-acl</artifactId>
+                <version>${rocketmq.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-tools</artifactId>
                 <version>${rocketmq.version}</version>
             </dependency>
 
@@ -506,12 +488,6 @@
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-jdbc</artifactId>
                 <version>${spring.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>${mysql-connector.version}</version>
             </dependency>
 
             <dependency>

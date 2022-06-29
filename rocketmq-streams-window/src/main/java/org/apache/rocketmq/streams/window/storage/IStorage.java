@@ -1,3 +1,4 @@
+package org.apache.rocketmq.streams.window.storage;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -13,68 +14,62 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package org.apache.rocketmq.streams.window.storage;
+ */
 
-import java.util.Collection;
-import java.util.Iterator;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+
 import java.util.List;
-import java.util.Map;
-import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
+import java.util.Set;
+import java.util.concurrent.Future;
 
-public interface IStorage<T> {
+public interface IStorage {
+    String SEPARATOR = "@";
+
+    Future<?> load(Set<String> shuffleIds);
 
 
-    /**
-     * 支持单个key value的存储
-     * @param key
-     * @param value
-     */
-    void put(String key, T value);
+    void putWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, WindowInstance windowInstance);
 
-    //多组key value批量存储
-    void mutilPut(Map<String, T> keyValue);
-
-    //获取单个key的值
-    T get(Class<T> clazz, IKeyGenerator keyGenerator, String key);
-
-    //获取多个key的值
-    Map<String,T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, String... keyValues);
-    //获取多个key的值
-    Map<String,T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, List<String> keys);
+    <T> RocksdbIterator<T> getWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName);
 
     /**
-     * remove keys
-     * @param keys
+     * WindowInstance的唯一索引字段
+     *
+     * @param windowInstanceId
      */
-    void removeKeys(IKeyGenerator keyGenerator, Collection<String> keys);
+    void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceId);
 
-    /**
-     * remove keys by prefix
-     * @param keyPrefix
-     */
-    void removeKeyPrefix(IKeyGenerator keyGenerator, String keyPrefix);
+    void putWindowBaseValue(String shuffleId, String windowInstanceId,
+                            WindowType windowType, WindowJoinType joinType,
+                            List<WindowBaseValue> windowBaseValue);
 
-    /*
-        create Iterator by key prefix
-     */
-    Iterator<T> iterateByPrefix(IKeyGenerator keyGenerator, String keyPrefix, Class<T> clazz);
+    void putWindowBaseValueIterator(String shuffleId, String windowInstanceId,
+                                    WindowType windowType, WindowJoinType joinType,
+                                    RocksdbIterator<? extends WindowBaseValue> windowBaseValueIterator);
 
-
-    T putIfAbsent(T t, Class<T> clazz);
+    <T> RocksdbIterator<T> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
 
-    int count(IKeyGenerator keyGenerator, String key);
+    //用windowInstanceId删除所有WindowBaseValue【包括WindowValue、JoinState】
+    void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
-    int incrementAndGet(IKeyGenerator keyGenerator, String key);
+    void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType, String msgKey);
+
+    String getMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId);
+
+    void putMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId, String offset);
+
+    void deleteMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId);
 
 
-    Iterator<T> queryByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator, String keyPrefix, Object startIndexValue,
-        Object endIndexValue, Class<T> clazz);
+    void putMaxPartitionNum(String shuffleId, String windowInstanceId, long maxPartitionNum);
 
+    Long getMaxPartitionNum(String shuffleId, String windowInstanceId);
 
+    void deleteMaxPartitionNum(String shuffleId, String windowInstanceId);
 
-    void loadByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator, String keyPrefix, Object startIndexValue,
-        Object endIndexValue,
-        IRowOperator rowOperator, Class<T> clazz);
+    int flush(List<String> queueId);
 
+    void clearCache(String queueId);
 }

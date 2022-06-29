@@ -23,6 +23,7 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
 /**
  * 消费 rocketmq 中的数据，10s一个窗口，并按照 ProjectName 和 LogStore 两个字段联合分组统计，两个字段的值相同，分为一组。
@@ -38,7 +39,8 @@ public class RocketMQWindowExample {
      * 2、rocketmq allow create topic automatically.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, "windowTopic");
+
+        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, "windowTopic", true);
 
         try {
             Thread.sleep(1000 * 3);
@@ -63,12 +65,12 @@ public class RocketMQWindowExample {
                 })
                 //must convert message to json.
                 .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.seconds(10)))
+                .window(TumblingWindow.of(Time.seconds(5)))
                 .groupBy("ProjectName","LogStore")
                 .sum("OutFlow", "OutFlow")
                 .sum("InFlow", "InFlow")
                 .count("total")
-                .waterMark(5)
+                .waterMark(2)
                 .setLocalStorageOnly(true)
                 .toDataStream()
                 .toPrint(1)

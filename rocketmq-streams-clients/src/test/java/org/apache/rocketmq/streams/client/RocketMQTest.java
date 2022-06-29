@@ -127,7 +127,7 @@ public class RocketMQTest implements Serializable {
     @Test
     public void testConsumer() {
         DataStreamSource.create("tmp", "tmp")
-            .fromRocketmq("dipper_test_write_merge", "dipper_group", true, "localhost:9876")
+            .fromRocketmq("dipper_test_write_merge", "dipper_group", true, "localhost:9876",null)
             .flatMap(new FlatMapFunction<JSONObject, JSONObject>() {
                 @Override public List<JSONObject> flatMap(JSONObject message) throws Exception {
                     JSONArray jsonArray = message.getJSONArray("data");

@@ -1,3 +1,4 @@
+package org.apache.rocketmq.streams.window.storage.rocksdb;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -14,321 +15,374 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.window.storage.rocksdb;
 
-import com.alibaba.fastjson.JSONArray;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.utils.Base64Utils;
-import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.state.kv.rocksdb.RocksDBOperator;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
-import org.apache.rocketmq.streams.window.storage.AbstractWindowStorage;
-import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
-import org.rocksdb.ReadOptions;
+import org.apache.rocketmq.streams.window.state.impl.JoinState;
+import org.apache.rocketmq.streams.window.storage.AbstractStorage;
+import org.apache.rocketmq.streams.window.storage.DataType;
+import org.apache.rocketmq.streams.window.storage.IteratorWrap;
+import org.apache.rocketmq.streams.window.storage.RocksdbIterator;
+import org.apache.rocketmq.streams.window.storage.WindowJoinType;
+import org.apache.rocketmq.streams.window.storage.WindowType;
 import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
-import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
-public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowStorage<T> {
-    protected static String DB_PATH = "/tmp/rocksdb";
-    protected static String UTF8 = "UTF8";
-    protected static AtomicBoolean hasCreate = new AtomicBoolean(false);
-    protected static RocksDB rocksDB = new RocksDBOperator().getInstance();
-    protected WriteOptions writeOptions = new WriteOptions();
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
-    @Override
-    public void removeKeys(Collection<String> keys) {
+public class RocksdbStorage extends AbstractStorage {
+    private RocksDB rocksDB;
+    private WriteOptions writeOptions;
 
-        for (String key : keys) {
-            try {
-                rocksDB.delete(getKeyBytes(key));
-            } catch (RocksDBException e) {
-                throw new RuntimeException("delete error " + key);
-            }
-        }
-
+    public RocksdbStorage() {
+        rocksDB = new RocksDBOperator().getInstance();
+        writeOptions = new WriteOptions();
+        writeOptions.setSync(false);
+        writeOptions.setDisableWAL(true);
     }
 
-    @Override
-    public WindowBaseValueIterator<T> loadWindowInstanceSplitData(String localStorePrefix, String queueId,
-        String windowInstanceId, String key, Class<T> clazz) {
-        String keyPrefix = MapKeyUtil.createKey(queueId, windowInstanceId, key);
-        if (StringUtil.isNotEmpty(localStorePrefix)) {
-            keyPrefix = localStorePrefix + keyPrefix;
-        }
-        return getByKeyPrefix(keyPrefix, clazz, false);
-    }
-
-    @Override public Long getMaxSplitNum(WindowInstance windowInstance, Class<T> clazz) {
-        throw new RuntimeException("can not support this method");
-    }
 
     @Override
-    public void multiPut(Map<String, T> values) {
-        if (values == null) {
+    public void putWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, WindowInstance windowInstance) {
+        if (windowInstance == null) {
             return;
         }
-        try {
-            WriteBatch writeBatch = new WriteBatch();
-            Iterator<Entry<String, T>> it = values.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, T> entry = it.next();
-                String key = entry.getKey();
-                byte[] value = SerializeUtil.serialize(entry.getValue());
-                writeBatch.put(key.getBytes(UTF8), value);
-            }
 
-            WriteOptions writeOptions = new WriteOptions();
-            writeOptions.setSync(false);
-            writeOptions.setDisableWAL(true);
-            rocksDB.write(writeOptions, writeBatch);
-            writeBatch.close();
-            writeOptions.close();
+        //唯一键
+        String windowInstanceId = windowInstance.getWindowInstanceId();
+
+        String key = super.merge(DataType.WINDOW_INSTANCE.getValue(), shuffleId, windowNamespace, windowConfigureName, windowInstanceId);
+
+        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+        byte[] valueBytes = SerializeUtil.serialize(windowInstance);
+
+        try {
+            rocksDB.put(writeOptions, keyBytes, valueBytes);
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("put data to rocksdb error", e);
+            throw new RuntimeException("putWindowInstance to rocksdb error", e);
         }
     }
 
     @Override
-    public Map<String, T> multiGet(Class<T> clazz, List<String> keys) {
-        if (keys == null || keys.size() == 0) {
-            return new HashMap<>();
-        }
-        List<byte[]> keyByteList = new ArrayList<>();
-        List<String> keyStrList = new ArrayList<>();
-        for (String key : keys) {
-            keyByteList.add(getKeyBytes(key));
-            keyStrList.add(key);
-        }
-        try {
-            Map<String, T> jsonables = new HashMap<>();
-            //            List<byte[]>  list=  rocksDB.multiGetAsList(keyByteList);
-            Map<byte[], byte[]> map = rocksDB.multiGet(keyByteList);
-            int i = 0;
-            Iterator<Entry<byte[], byte[]>> it = map.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<byte[], byte[]> entry = it.next();
-                String key = getValueFromByte(entry.getKey());
-                T value = (T) SerializeUtil.deserialize(entry.getValue());
-                jsonables.put(key, value);
-            }
-            //            for(byte[] bytes:list){
-            return jsonables;
-        } catch (RocksDBException e) {
-            throw new RuntimeException("can not get value from rocksdb ", e);
-        }
+    public <T> RocksdbIterator<T> getWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName) {
+        String keyPrefix = super.merge(DataType.WINDOW_INSTANCE.getValue(), shuffleId, windowNamespace, windowConfigureName);
 
+        return new RocksdbIterator<>(keyPrefix, rocksDB);
     }
 
-    @Override public void multiPutList(Map<String, List<T>> elements) {
-        if (CollectionUtil.isEmpty(elements)) {
+    @Override
+    public void deleteWindowInstance(String shuffleId, String windowNamespace, String windowConfigureName, String windowInstanceId) {
+        if (windowInstanceId == null) {
             return;
         }
+
+        String key = super.merge(DataType.WINDOW_INSTANCE.getValue(), shuffleId, windowNamespace, windowConfigureName, windowInstanceId);
+
         try {
-            WriteBatch writeBatch = new WriteBatch();
-            Iterator<Entry<String, List<T>>> it = elements.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, List<T>> entry = it.next();
-                String key = entry.getKey();
-                List<T> valueList = entry.getValue();
-                JSONArray array = new JSONArray();
-                for (T value : valueList) {
-                    array.add(Base64Utils.encode(SerializeUtil.serialize(value)));
-                }
-                writeBatch.put(key.getBytes(UTF8), array.toJSONString().getBytes(UTF8));
-            }
-            WriteOptions writeOptions = new WriteOptions();
-            writeOptions.setSync(false);
-            writeOptions.setDisableWAL(true);
-            rocksDB.write(writeOptions, writeBatch);
-            writeBatch.close();
-            writeOptions.close();
+            byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
+            rocksDB.delete(writeOptions, bytes);
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("put data to rocksdb error", e);
-        }
-    }
-
-    @Override public Map<String, List<T>> multiGetList(Class<T> clazz, List<String> keys) {
-        if (CollectionUtil.isEmpty(keys)) {
-            return new HashMap<>(4);
-        }
-        List<byte[]> keyByteList = new ArrayList<>();
-        for (String key : keys) {
-            keyByteList.add(getKeyBytes(key));
-        }
-        try {
-            Map<String, List<T>> resultMap = new HashMap<>();
-            Map<byte[], byte[]> map = rocksDB.multiGet(keyByteList);
-            int i = 0;
-            Iterator<Entry<byte[], byte[]>> it = map.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<byte[], byte[]> entry = it.next();
-                String key = getValueFromByte(entry.getKey());
-                String value = getValueFromByte(entry.getValue());
-                JSONArray array = JSONArray.parseArray(value);
-                List<T> valueList = new ArrayList<>();
-                for (int index = 0; index < array.size(); index++) {
-                    String objectString = array.getString(index);
-                    byte[] bytes = Base64Utils.decode(objectString);
-                    T valueObject = SerializeUtil.deserialize(bytes);
-                    valueList.add(valueObject);
-                }
-                resultMap.put(key, valueList);
-            }
-            return resultMap;
-        } catch (RocksDBException e) {
-            e.printStackTrace();
-            throw new RuntimeException("can not get multi value from rocksdb! ", e);
+            throw new RuntimeException("deleteWindowInstance from rocksdb error", e);
         }
     }
 
     @Override
-    public void clearCache(ISplit split, Class<T> clazz) {
-        deleteRange(split.getQueueId(), clazz);
+    public void putWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType, List<WindowBaseValue> windowBaseValue) {
+        if (windowBaseValue == null || windowBaseValue.size() == 0) {
+            return;
+        }
+
+
+        for (WindowBaseValue baseValue : windowBaseValue) {
+            doPut(baseValue, shuffleId, windowInstanceId, windowType, joinType);
+        }
+    }
+
+    public void putWindowBaseValueIterator(String shuffleId, String windowInstanceId,
+                                           WindowType windowType, WindowJoinType joinType,
+                                           RocksdbIterator<? extends WindowBaseValue> windowBaseValueIterator) {
+        if (windowBaseValueIterator == null) {
+            return;
+        }
+
+        while (windowBaseValueIterator.hasNext()) {
+            IteratorWrap<? extends WindowBaseValue> next = windowBaseValueIterator.next();
+            WindowBaseValue data = next.getData();
+
+            doPut(data, shuffleId, windowInstanceId, windowType, joinType);
+        }
+    }
+
+
+    private void doPut(WindowBaseValue baseValue, String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+        String key = createKey(shuffleId, windowInstanceId, windowType, joinType, baseValue);
+
+
+        try {
+            byte[] valueBytes;
+
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            valueBytes = SerializeUtil.serialize(baseValue);
+            rocksDB.put(writeOptions, keyBytes, valueBytes);
+        } catch (Throwable t) {
+            throw new RuntimeException("put data to rocksdb error", t);
+        }
+
+    }
+
+
+    @Override
+    public <T> RocksdbIterator<T> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+
+        String keyPrefix = createKey(shuffleId, windowInstanceId, windowType, joinType, null);
+
+        return new RocksdbIterator<>(keyPrefix, rocksDB);
     }
 
     @Override
-    public void delete(String windowInstanceId, String queueId, Class<T> clazz) {
-        //范围删除影响性能，改成了通过removekey删除
-        //String plusWindowInstaceId=null;
-        //  String lastWord=windowInstanceId.substring(windowInstanceId.length()-2,windowInstanceId.length());
-        String firstKey = MapKeyUtil.createKey(queueId, windowInstanceId);
-        deleteRange(firstKey, clazz);
-
-    }
-
-    protected void deleteRange(String startKey, Class<T> clazz) {
+    public void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
         try {
-            // rocksDB.deleteRange(getKeyBytes(startKey),getKeyBytes(endKey));
-            WindowBaseValueIterator<T> iterator = getByKeyPrefix(startKey, clazz, true);
-            Set<String> deleteKeys = new HashSet<>();
-            while (iterator.hasNext()) {
-                WindowBaseValue windowBaseValue = iterator.next();
-                if (windowBaseValue == null) {
+            String keyPrefix = createKey(shuffleId, windowInstanceId, windowType, joinType, null);
+
+            //查询msgKey
+            RocksdbIterator<WindowBaseValue> rocksdbIterator = new RocksdbIterator<>(keyPrefix, rocksDB);
+
+            ArrayList<String> msgKeys = new ArrayList<>();
+            while (rocksdbIterator.hasNext()) {
+                IteratorWrap<WindowBaseValue> baseValue = rocksdbIterator.next();
+                WindowBaseValue data = baseValue.getData();
+                if (data == null) {
                     continue;
                 }
-                deleteKeys.add(windowBaseValue.getMsgKey());
-                if (deleteKeys.size() >= 1000) {
-                    this.removeKeys(deleteKeys);
-                    deleteKeys = new HashSet<>();
-                }
+
+                msgKeys.add(data.getMsgKey());
             }
-            if (deleteKeys.size() > 0) {
-                this.removeKeys(deleteKeys);
+
+            //组合成真正的key后，在挨个删除
+            for (String msgKey : msgKeys) {
+                String key = super.merge(keyPrefix, msgKey);
+                byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
+                rocksDB.delete(writeOptions, bytes);
             }
+
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("deleteWindowBaseValue from rocksdb error", e);
         }
     }
 
-    protected WindowBaseValueIterator<T> getByKeyPrefix(String keyPrefix, Class<? extends T> clazz, boolean needKey) {
-        return new LocalIterator<T>(keyPrefix, clazz, needKey);
+    public void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType, String msgKey) {
+        String key;
+        if (joinType != null) {
+            key = super.merge(shuffleId, windowInstanceId, windowType.name(), joinType.name(), msgKey);
+        } else {
+            key = super.merge(shuffleId, windowInstanceId, windowType.name(), msgKey);
+        }
+
+        try {
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            rocksDB.delete(writeOptions, keyBytes);
+        } catch (Throwable t) {
+            throw new RuntimeException("deleteWindowBaseValue from rocksdb error", t);
+        }
     }
 
-    public static class LocalIterator<T extends WindowBaseValue> extends WindowBaseValueIterator<T> {
-        protected volatile boolean hasNext = true;
-        protected AtomicBoolean hasInit = new AtomicBoolean(false);
-        ReadOptions readOptions = new ReadOptions();
-        private RocksIterator iter;
-        protected String keyPrefix;
-        protected Class<? extends T> clazz;
-        protected boolean needKey;
-
-        public LocalIterator(String keyPrefix, Class<? extends T> clazz, boolean needKey) {
-            readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
-            iter = rocksDB.newIterator(readOptions);
-            this.keyPrefix = keyPrefix;
-            this.clazz = clazz;
-            this.needKey = needKey;
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (hasInit.compareAndSet(false, true)) {
-                iter.seek(keyPrefix.getBytes());
-            }
-            return iter.isValid() && hasNext;
-        }
-
-        @Override
-        public T next() {
-            String key = new String(iter.key());
-            if (!key.startsWith(keyPrefix)) {
-                hasNext = false;
-                return null;
-            }
-            T windowBaseValue = (T) SerializeUtil.deserialize(iter.value());
-//            T windowBaseValue = ReflectUtil.forInstance(clazz);
-//            windowBaseValue.toObject(value);
-            if (needKey) {
-                windowBaseValue.setMsgKey(key);
-            }
-            while (windowBaseValue.getPartitionNum() < this.partitionNum) {
-                iter.next();
-                windowBaseValue = next();
-                if (windowBaseValue == null) {
-                    hasNext = false;
-                    return null;
+    private String createKey(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType, WindowBaseValue baseValue) {
+        String result;
+        switch (windowType) {
+            case SESSION_WINDOW:
+            case NORMAL_WINDOW: {
+                result = super.merge(DataType.WINDOW_BASE_VALUE.getValue(), shuffleId, windowInstanceId, windowType.name());
+                if (baseValue != null) {
+                    result = super.merge(result, baseValue.getMsgKey());
                 }
+
+                break;
             }
-            iter.next();
-            return windowBaseValue;
+            case JOIN_WINDOW: {
+                result = super.merge(DataType.WINDOW_BASE_VALUE.getValue(), shuffleId, windowInstanceId, windowType.name(), joinType.name());
+
+                if (baseValue != null) {
+                    JoinState joinState = (JoinState) baseValue;
+                    result = super.merge(result, joinState.getMessageId());
+                }
+
+                break;
+            }
+            default:
+                throw new RuntimeException("windowType " + windowType + "illegal.");
         }
 
+        return result;
     }
 
-    /**
-     * 把key转化成byte
-     *
-     * @param key
-     * @return
-     */
-    protected byte[] getKeyBytes(String key) {
+    @Override
+    public String getMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId) {
+        String key = super.merge(DataType.MAX_OFFSET.getValue(), shuffleId, windowConfigureName, oriQueueId);
+
         try {
-            if (StringUtil.isEmpty(key)) {
+            byte[] bytes = rocksDB.get(key.getBytes(StandardCharsets.UTF_8));
+            if (bytes == null) {
                 return null;
             }
-            return key.getBytes(UTF8);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("get bytes error ", e);
+
+            String temp = new String(bytes, StandardCharsets.UTF_8);
+
+            List<String> split = super.split(temp);
+
+            return split.get(1);
+        } catch (Exception e) {
+            throw new RuntimeException("getMaxOffset from rocksdb error", e);
         }
     }
 
-    /**
-     * 把byte转化成值
-     *
-     * @param bytes
-     * @return
-     */
-    protected static String getValueFromByte(byte[] bytes) {
+    @Override
+    public void putMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId, String offset) {
+        String key = super.merge(DataType.MAX_OFFSET.getValue(), shuffleId, windowConfigureName, oriQueueId);
+
         try {
-            return new String(bytes, UTF8);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+
+            String mergeOffset = super.merge(getCurrentTimestamp(), offset);
+            byte[] offsetBytes = mergeOffset.getBytes(StandardCharsets.UTF_8);
+            rocksDB.put(writeOptions, keyBytes, offsetBytes);
+        } catch (Exception e) {
+            throw new RuntimeException("put data to rocksdb error", e);
         }
     }
 
-    public static void main(String[] args) {
-        String x = "2012-01-03 00:03:09";
-        System.out.println(x.substring(x.length() - 2, x.length()));
+    @Override
+    public void deleteMaxOffset(String shuffleId, String windowConfigureName, String oriQueueId) {
+        String key = super.merge(DataType.MAX_OFFSET.getValue(), shuffleId, windowConfigureName, oriQueueId);
+
+        try {
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            rocksDB.delete(writeOptions, keyBytes);
+        } catch (Exception e) {
+            throw new RuntimeException("deleteMaxOffset from rocksdb error", e);
+        }
     }
+
+    @Override
+    public void putMaxPartitionNum(String shuffleId, String windowInstanceId, long maxPartitionNum) {
+        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceId);
+
+        try {
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+
+            String mergeMaxPartitionNum = super.merge(getCurrentTimestamp(), String.valueOf(maxPartitionNum));
+
+            byte[] bytes = mergeMaxPartitionNum.getBytes(StandardCharsets.UTF_8);
+            rocksDB.put(writeOptions, keyBytes, bytes);
+        } catch (Exception e) {
+            throw new RuntimeException("put data to rocksdb error", e);
+        }
+    }
+
+    @Override
+    public Long getMaxPartitionNum(String shuffleId, String windowInstanceId) {
+        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceId);
+
+        try {
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = rocksDB.get(keyBytes);
+            if (bytes == null || bytes.length == 0) {
+                return null;
+            }
+
+            String temp = new String(bytes, StandardCharsets.UTF_8);
+            List<String> list = super.split(temp);
+
+            return Long.parseLong(list.get(1));
+        } catch (Exception e) {
+            throw new RuntimeException("get data from rocksdb error", e);
+        }
+    }
+
+    @Override
+    public void deleteMaxPartitionNum(String shuffleId, String windowInstanceId) {
+        String key = super.merge(DataType.MAX_PARTITION_NUM.getValue(), shuffleId, windowInstanceId);
+
+        try {
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            rocksDB.delete(writeOptions, keyBytes);
+        } catch (Exception e) {
+            throw new RuntimeException("deleteMaxPartitionNum from rocksdb error", e);
+        }
+    }
+
+    public void delete(String key) {
+        if (key == null) {
+            return;
+        }
+
+        try {
+            byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
+            rocksDB.delete(writeOptions, bytes);
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+    }
+
+    public byte[] get(String key) {
+        if (key == null) {
+            return null;
+        }
+
+        try {
+            byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
+            return rocksDB.get(bytes);
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+    }
+
+    public void put(String key, byte[] value) {
+        if (key == null) {
+            return;
+        }
+
+        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+        try {
+            rocksDB.put(writeOptions, keyBytes, value);
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+    }
+
+
+    @Override
+    public void clearCache(String queueId) {
+        String keyPrefix;
+        //删除windowInstance缓存
+        for (DataType type : DataType.values()) {
+            keyPrefix = super.merge(type.getValue(), queueId);
+            deleteByKeyPrefix(keyPrefix);
+        }
+    }
+
+    private void deleteByKeyPrefix(String keyPrefix) {
+        RocksdbIterator<Object> data = new RocksdbIterator<>(keyPrefix, rocksDB);
+
+        while (data.hasNext()) {
+            IteratorWrap<Object> iteratorWrap = data.next();
+            String key = iteratorWrap.getKey();
+            try {
+                rocksDB.delete(writeOptions, key.getBytes(StandardCharsets.UTF_8));
+            } catch (Throwable t) {
+                throw new RuntimeException();
+            }
+        }
+    }
+
+    public <T> RocksdbIterator<T> getData(String queueId, DataType type) {
+        String keyPrefix = super.merge(type.getValue(), queueId);
+
+        return new RocksdbIterator<>(keyPrefix, rocksDB);
+    }
+
+
 }

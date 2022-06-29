@@ -18,13 +18,14 @@ package org.apache.rocketmq.streams.window.operator.impl;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
+
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
+import org.apache.rocketmq.streams.window.storage.WindowType;
 
 /**
  * 只支持 时间去重的场景，日志是按系统时间顺序，所以不落盘。需要设置groupByFieldName和rowNumerName字段
@@ -132,9 +133,6 @@ public class OverWindow extends AbstractWindow {
         return true;
     }
 
-    @Override protected Long queryWindowInstanceMaxSplitNum(WindowInstance instance) {
-        return null;
-    }
 
     @Override public boolean supportBatchMsgFinish() {
         return false;
@@ -146,12 +144,7 @@ public class OverWindow extends AbstractWindow {
     }
 
     @Override
-    public Class getWindowBaseValueClass() {
-        return null;
-    }
-
-    @Override
-    public int fireWindowInstance(WindowInstance windowInstance, Map<String, String> queueId2Offsets) {
+    public int fireWindowInstance(WindowInstance windowInstance) {
         return 0;
     }
 

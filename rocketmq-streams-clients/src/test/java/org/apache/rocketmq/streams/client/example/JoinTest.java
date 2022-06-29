@@ -80,9 +80,9 @@ public class JoinTest {
     @Test
     public void testRocketmqJoin() {
 
-        DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupA", true, "localhost:9876");
+        DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupA", true, "localhost:9876", null);
         //DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
-        DataStream right = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupB", true, "localhost:9876");
+        DataStream right = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupB", true, "localhost:9876", null);
 
         left.join(right).on("(ProjectName,=,project)").toDataStream().toPrint().start();
     }

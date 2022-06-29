@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.client.strategy.LogFingerprintStrategy;
 import org.apache.rocketmq.streams.client.strategy.Strategy;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
@@ -61,8 +62,6 @@ import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.apache.rocketmq.streams.db.sink.DBSink;
 import org.apache.rocketmq.streams.db.sink.DynamicMultipleDBSink;
 import org.apache.rocketmq.streams.db.sink.EnhanceDBSink;
-import org.apache.rocketmq.streams.dim.model.DBDim;
-import org.apache.rocketmq.streams.dim.model.FileDim;
 import org.apache.rocketmq.streams.filter.operator.FilterOperator;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.mqtt.sink.PahoSink;
@@ -371,116 +370,7 @@ public class DataStream implements Serializable {
         return new SplitStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
 
-    /**
-     * 维表join,mysql场景，不需要指定jdbcdriver
-     *
-     * @param url
-     * @param userName
-     * @param password
-     * @param sqlOrTableName
-     * @return
-     */
-    @Deprecated
-    public JoinStream join(String url, String userName, String password, String sqlOrTableName,
-        long pollingTimeMintue) {
-        return join(url, userName, password, sqlOrTableName, null, pollingTimeMintue);
-    }
 
-    /**
-     * 维表join
-     *
-     * @param url
-     * @param userName
-     * @param password
-     * @param sqlOrTableName
-     * @return
-     */
-    @Deprecated
-    public JoinStream join(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
-        long pollingTimeMinute) {
-        DBDim dbDim = new DBDim();
-        dbDim.setUrl(url);
-        dbDim.setUserName(userName);
-        dbDim.setPassword(password);
-        dbDim.setSql(sqlOrTableName);
-        dbDim.setPollingTimeMinute(pollingTimeMinute);
-        dbDim.setJdbcdriver(jdbcDriver);
-        this.mainPipelineBuilder.addConfigurables(dbDim);
-        return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true);
-    }
-
-    public JoinStream dimJoin(String url, String userName, String password, String sqlOrTableName,
-        Long pollingTimeMinute) {
-        return dimJoin(url, userName, password, sqlOrTableName, "com.mysql.jdbc.Driver", pollingTimeMinute);
-    }
-
-    public JoinStream dimJoin(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
-        Long pollingTimeMinute) {
-        return dimJoin(url, userName, password, sqlOrTableName, jdbcDriver, pollingTimeMinute, JoinStream.JoinType.INNER_JOIN);
-    }
-
-    public JoinStream dimJoin(String filePath, Long pollingTimeMinute) {
-        return dimJoin(filePath, pollingTimeMinute, JoinStream.JoinType.INNER_JOIN);
-    }
-
-    public JoinStream dimLeftJoin(String url, String userName, String password, String sqlOrTableName,
-        Long pollingTimeMinute) {
-        return dimLeftJoin(url, userName, password, sqlOrTableName, "com.mysql.jdbc.Driver", pollingTimeMinute);
-    }
-
-    public JoinStream dimLeftJoin(String url, String userName, String password, String sqlOrTableName,
-        String jdbcDriver, Long pollingTimeMinute) {
-        return dimJoin(url, userName, password, sqlOrTableName, jdbcDriver, pollingTimeMinute, JoinStream.JoinType.LEFT_JOIN);
-    }
-
-    public JoinStream dimLeftJoin(String filePath, Long pollingTimeMinute) {
-        return dimJoin(filePath, pollingTimeMinute, JoinStream.JoinType.LEFT_JOIN);
-    }
-
-    protected JoinStream dimJoin(String filePath, Long pollingTimeMinute, JoinStream.JoinType joinType) {
-        FileDim fileDim = new FileDim();
-        fileDim.setFilePath(filePath);
-        fileDim.setPollingTimeMinute(pollingTimeMinute);
-        this.mainPipelineBuilder.addConfigurables(fileDim);
-        return new JoinStream(fileDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true, joinType);
-    }
-
-    protected JoinStream dimJoin(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
-        Long pollingTimeMinute, JoinStream.JoinType joinType) {
-        DBDim dbDim = new DBDim();
-        dbDim.setUrl(url);
-        dbDim.setUserName(userName);
-        dbDim.setPassword(password);
-        dbDim.setSql(sqlOrTableName);
-        dbDim.setPollingTimeMinute(pollingTimeMinute);
-        dbDim.setJdbcdriver(jdbcDriver);
-        this.mainPipelineBuilder.addConfigurables(dbDim);
-        return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true, joinType);
-    }
-
-    /**
-     * 维表join
-     *
-     * @param filePath
-     * @return
-     */
-    @Deprecated
-    public JoinStream join(String filePath, long pollingTimeMinute) {
-        FileDim fileDim = new FileDim();
-        fileDim.setFilePath(filePath);
-        fileDim.setPollingTimeMinute(pollingTimeMinute);
-        this.mainPipelineBuilder.addConfigurables(fileDim);
-        return new JoinStream(fileDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true);
-    }
-
-    @Deprecated
-    public JoinStream innerJoin(String filePath, long pollingTimeMinute) {
-        FileDim fileDim = new FileDim();
-        fileDim.setFilePath(filePath);
-        fileDim.setPollingTimeMinute(pollingTimeMinute);
-        this.mainPipelineBuilder.addConfigurables(fileDim);
-        return new JoinStream(fileDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true);
-    }
 
     /**
      * 遍历所有数据
@@ -608,19 +498,23 @@ public class DataStream implements Serializable {
     }
 
     public DataStream toRocketmq(String topic, String nameServerAddress) {
-        return toRocketmq(topic, "*", null, -1, nameServerAddress, null, false);
+        return toRocketmq(topic, null, nameServerAddress);
     }
 
     public DataStream toRocketmq(String topic, String groupName, String nameServerAddress) {
-        return toRocketmq(topic, "*", groupName, -1, nameServerAddress, null, false);
+        return toRocketmq(topic, "*", groupName,  nameServerAddress);
     }
 
     public DataStream toRocketmq(String topic, String tags, String groupName, String nameServerAddress) {
-        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, null, false);
+        return toRocketmq(topic, tags, groupName, nameServerAddress, null);
+    }
+
+    public DataStream toRocketmq(String topic, String tags, String groupName, String nameServerAddress, RPCHook rpcHook) {
+        return toRocketmq(topic, tags, groupName, -1, nameServerAddress, null, false, rpcHook);
     }
 
     public DataStream toRocketmq(String topic, String tags, String groupName, int batchSize, String nameServerAddress,
-        String clusterName, boolean order) {
+                                 String clusterName, boolean order, RPCHook rpcHook) {
         RocketMQSink rocketMQSink = new RocketMQSink();
         if (StringUtils.isNotBlank(topic)) {
             rocketMQSink.setTopic(topic);
@@ -641,6 +535,8 @@ public class DataStream implements Serializable {
             rocketMQSink.setBatchSize(batchSize);
         }
         rocketMQSink.setOrder(order);
+        rocketMQSink.setRpcHook(rpcHook);
+
         ChainStage<?> output = this.mainPipelineBuilder.createStage(rocketMQSink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);

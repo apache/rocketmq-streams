@@ -38,11 +38,9 @@ import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
-import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
@@ -242,7 +240,9 @@ public class WindowValue extends WindowBaseValue implements Serializable {
                 this.maxOffset.put(queueId, offset);
             } else {
                 //如果比最大的offset 小或等于，则直接丢弃掉消息
-                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data " + maxOffsetOfQueue + " " + message.getHeader().getOffset());
+                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data."
+                        + "queueId= " + queueId + ",maxOffsetOfQueue="+ maxOffsetOfQueue
+                        + ",messageOffset=" + message.getHeader().getOffset());
                 return false;
             }
         }
@@ -318,58 +318,6 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         }
     }
 
-    /**
-     * merge different window values into one window value which have the same group by value
-     *
-     * @param window          the window definition
-     * @param windowInstances all window instance which belong to same window and have different group by value
-     * @return
-     */
-    public static List<WindowValue> mergeWindowValues(AbstractWindow window, List<WindowInstance> windowInstances) {
-        if (windowInstances == null || windowInstances.size() == 0) {
-            return new ArrayList<>();
-        }
-        StringBuilder sb = new StringBuilder();
-        boolean isFirst = true;
-        String name = MapKeyUtil.createKey(window.getNameSpace(), window.getConfigureName());
-        for (WindowInstance windowInstance : windowInstances) {
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                sb.append(",");
-            }
-            sb.append("('" + name + "','" + windowInstance.getStartTime() + "','" + windowInstance.getEndTime() + "')");
-        }
-        String inSQL = sb.toString();
-        /**
-         * 分批，内存撑暴 todo
-         */
-        String sql = "select * from " + ORMUtil
-            .getTableName(WindowValue.class) + " where status > 0 && (name, start_time, end_time) in (" + inSQL + ")";
-        Map<String, Object> paras = new HashMap<>(4);
-        List<WindowValue> windowValueList = ORMUtil.queryForList(sql, paras, WindowValue.class);
-        return queryMergeWindowValues(window, windowValueList);
-    }
-
-    public static List<WindowValue> queryMergeWindowValues(AbstractWindow window, List<WindowValue> windowValueList) {
-        Map<String, List<WindowValue>> groupWindowMap = new HashMap<>(64);
-        for (WindowValue value : windowValueList) {
-            String key = MapKeyUtil.createKeyBySign(value.getStartTime(), value.getEndTime(),
-                value.getGroupBy());
-            if (groupWindowMap.containsKey(key)) {
-                groupWindowMap.get(key).add(value);
-            } else {
-                groupWindowMap.put(key, new ArrayList<WindowValue>() {{
-                    add(value);
-                }});
-            }
-        }
-        List<WindowValue> mergedValueList = new ArrayList<>();
-        for (Entry<String, List<WindowValue>> entry : groupWindowMap.entrySet()) {
-            mergedValueList.add(mergeWindowValue(window, entry.getValue()));
-        }
-        return mergedValueList;
-    }
 
     /**
      * merge the group which has the same group by value and different split id
@@ -475,7 +423,6 @@ public class WindowValue extends WindowBaseValue implements Serializable {
         clonedValue.setMsgKey(msgKey);
         clonedValue.setAggColumnMap(aggColumnResult);
         clonedValue.setMaxOffset(getMaxOffset());
-        clonedValue.setWindowInstancePartitionId(windowInstancePartitionId);
         clonedValue.setWindowInstanceId(windowInstanceId);
         clonedValue.setPartition(partition);
         clonedValue.setPartitionNum(partitionNum);

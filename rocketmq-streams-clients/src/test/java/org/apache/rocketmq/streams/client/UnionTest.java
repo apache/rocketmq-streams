@@ -56,27 +56,4 @@ public class UnionTest implements Serializable {
         leftStream.union(rightStream).toPrint().start();
     }
 
-    @Test
-    public void testDim() {
-        DataStream stream = (StreamBuilder.dataStream("namespace", "name")
-            .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
-            .filter(new FilterFunction<JSONObject>() {
-
-                @Override
-                public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
-                        return true;
-                    }
-                    return false;
-                }
-            }))
-            .join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5)
-            .setCondition("(name,==,name)")
-            .toDataStream()
-            .selectFields("name", "age", "address")
-            .toPrint();
-
-        stream.start();
-
-    }
 }

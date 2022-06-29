@@ -72,10 +72,6 @@ public class SourceTest implements Serializable {
         AtomicLong startTime = new AtomicLong(System.currentTimeMillis());
         DataStreamSource.create("tmp", "tmp")
             .fromRocketmq("dipper_test_1", "dipper_group1", true, "localhost:9876")
-//           .window(TumblingWindow.of(Time.seconds(10)))
-//            .count("c")
-//            .groupBy("")
-//            .toDataSteam()
             .forEachMessage(new ForEachMessageFunction() {
                 @Override public void foreach(IMessage message, AbstractContext context) {
                     System.out.println(message.getMessageBody());
@@ -94,19 +90,5 @@ public class SourceTest implements Serializable {
             .start();
     }
 
-    @Test
-    public void testImportMsgFromSource() {
-        DataStreamSource.create("tmp", "tmp")
-            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG", "chris_test", "T_MSG_PROC", true, null)
-            .toFile("/tmp/aegis_proc.txt", true)
-            .start();
-    }
 
-    @Test
-    public void testImportMsgFromNet() {
-        DataStreamSource.create("tmp", "tmp")
-            .fromRocketmq("TOPIC_AEGIS_DETECT_MSG", "chris_test", "T_MSG_NETSTAT", true, null)
-            .toFile("/tmp/aegis_net.txt", true)
-            .start();
-    }
 }

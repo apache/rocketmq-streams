@@ -27,10 +27,12 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
@@ -56,6 +58,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     private Long pullIntervalMs;
     private String namesrvAddr;
+    private RPCHook rpcHook;
 
     public RocketMQSink() {
     }
@@ -146,7 +149,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
             synchronized (this) {
                 if (producer == null) {
                     destroy();
-                    producer = new DefaultMQProducer(groupName + "producer", true, null);
+                    producer = new DefaultMQProducer(null, groupName + "producer", rpcHook,false, null);
                     try {
                         //please not use the code，the name srv addr may be empty in jmenv
 //                        if (this.namesrvAddr == null || "".equals(this.namesrvAddr)) {
@@ -201,6 +204,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         defaultMQAdminExt.setVipChannelEnabled(false);
         defaultMQAdminExt.setNamesrvAddr(this.getNamesrvAddr());
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
+        defaultMQAdminExt.setAdminExtGroup(topic.trim());
         TopicConfig topicConfig = new TopicConfig();
         topicConfig.setReadQueueNums(splitNum);
         topicConfig.setWriteQueueNums(splitNum);
@@ -243,19 +247,17 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         List<ISplit> messageQueues = new ArrayList<>();
         try {
 
-            if (messageQueues == null || messageQueues.size() == 0) {
-                List<MessageQueue> metaqQueueSet = producer.fetchPublishMessageQueues(topic);
-                List<ISplit> queueList = new ArrayList<>();
-                for (MessageQueue queue : metaqQueueSet) {
-                    RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
-                    queueList.add(rocketMQMessageQueue);
+            List<MessageQueue> messageQueueSet = producer.fetchPublishMessageQueues(topic);
+            List<ISplit> queueList = new ArrayList<>();
+            for (MessageQueue queue : messageQueueSet) {
+                RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
+                queueList.add(rocketMQMessageQueue);
 
-                }
-                Collections.sort(queueList);
-                messageQueues = queueList;
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            Collections.sort(queueList);
+            messageQueues = queueList;
+        } catch (MQClientException e) {
+            return messageQueues;
         }
 
         return messageQueues;
@@ -345,5 +347,13 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     public void setOrder(boolean order) {
         this.order = order;
+    }
+
+    public RPCHook getRpcHook() {
+        return rpcHook;
+    }
+
+    public void setRpcHook(RPCHook rpcHook) {
+        this.rpcHook = rpcHook;
     }
 }

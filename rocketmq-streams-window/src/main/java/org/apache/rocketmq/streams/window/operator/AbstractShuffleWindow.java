@@ -16,27 +16,29 @@
  */
 package org.apache.rocketmq.streams.window.operator;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
-import org.apache.rocketmq.streams.window.storage.WindowStorage;
+import org.apache.rocketmq.streams.window.storage.rocketmq.DefaultStorage;
+import org.apache.rocketmq.streams.window.storage.rocksdb.RocksdbStorage;
 import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
 
-public abstract class AbstractShuffleWindow extends AbstractWindow {
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+public abstract class AbstractShuffleWindow extends AbstractWindow {
+    private static final String PREFIX = "windowStates";
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
 
+
     @Override
     protected boolean initConfigurable() {
-        storage = new WindowStorage();
-        storage.setLocalStorageOnly(isLocalStorageOnly);
         return super.initConfigurable();
     }
 
@@ -50,7 +52,26 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
             this.shuffleChannel.init();
             windowCache.setBatchSize(5000);
             windowCache.setShuffleChannel(shuffleChannel);
+
+            initStorage();
         }
+    }
+
+    private void initStorage() {
+        ISource source = this.getFireReceiver().getPipeline().getSource();
+
+        String sourceTopic = source.getTopic();
+        String namesrvAddr = source.getNamesrvAddr();
+
+
+        String stateTopic = createStateTopic(PREFIX, sourceTopic);
+        String groupId = createStr(PREFIX);
+
+        int size = this.shuffleChannel.getQueueList().size();
+
+        RocksdbStorage rocksdbStorage = new RocksdbStorage();
+        this.storage = new DefaultStorage(stateTopic, groupId, namesrvAddr,
+                                            size, isLocalStorageOnly, rocksdbStorage);
     }
 
     @Override
@@ -60,12 +81,12 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
     }
 
     @Override
-    public int fireWindowInstance(WindowInstance windowInstance, Map<String, String> queueId2Offset) {
+    public int fireWindowInstance(WindowInstance windowInstance) {
         Set<String> splitIds = new HashSet<>();
         splitIds.add(windowInstance.getSplitId());
         shuffleChannel.flush(splitIds);
-        int fireCount = fireWindowInstance(windowInstance, windowInstance.getSplitId(), queueId2Offset);
-        return fireCount;
+
+        return doFireWindowInstance(windowInstance);
     }
 
     /**
@@ -81,8 +102,42 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
      *
      * @param instance
      */
-    protected abstract int fireWindowInstance(WindowInstance instance, String queueId,
-        Map<String, String> queueId2Offset);
+    protected abstract int doFireWindowInstance(WindowInstance instance);
 
     public abstract void clearCache(String queueId);
+
+    private String createStateTopic(String prefix, String topic) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(prefix);
+        builder.append("_");
+
+        builder.append(topic);
+        builder.append("_");
+
+        String namespace = this.getNameSpace().replaceAll("\\.", "_");
+        builder.append(namespace);
+        builder.append("_");
+
+        String configureName = this.getConfigureName().replaceAll("\\.", "_").replaceAll(";", "_");
+        builder.append(configureName);
+
+        return builder.toString();
+    }
+
+    private String createStr(String prefix) {
+        String temp = MapKeyUtil.createKey(this.getNameSpace(), this.getConfigureName(), this.getUpdateFlag() + "");
+        String result = temp.replaceAll("\\.", "_").replaceAll(";", "_");
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(prefix);
+        builder.append("_");
+        builder.append(result);
+
+        return builder.toString();
+    }
+
+    public ShuffleChannel getShuffleChannel() {
+        return shuffleChannel;
+    }
+
 }

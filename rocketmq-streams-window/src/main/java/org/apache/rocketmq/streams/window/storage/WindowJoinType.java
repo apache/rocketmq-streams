@@ -1,3 +1,4 @@
+package org.apache.rocketmq.streams.window.storage;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -14,23 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.examples.join;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
-import org.apache.rocketmq.streams.client.transform.DataStream;
-
-public class RocketmqJoinExample {
-    public static void main(String[] args) {
-        DataStream left = StreamBuilder.dataStream("tmp", "tmp")
-            .fromRocketmq("TopicTestJoin", "groupA", true, "localhost:9876", null);
-        DataStream right = StreamBuilder.dataStream("tmp", "tmp22")
-            .fromRocketmq("TopicTestJoin", "groupB", true, "localhost:9876", null);
-
-        left.join(right)
-            .on("(ProjectName,=,ProjectName)")
-            .toDataStream()
-            .toPrint()
-            .start();
-    }
-
+public enum WindowJoinType {
+    left,
+    right
 }

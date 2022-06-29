@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.model.FireMode;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
@@ -36,19 +35,6 @@ import static junit.framework.TestCase.assertTrue;
 
 public class WindowInstanceTest {
 
-    /**
-     * save window instance
-     */
-    @Test
-    public void testWindowInstanceSave() {
-        WindowOperator window = new WindowOperator();
-        window.setNameSpace("namespace_chris");
-        window.setConfigureName("name");
-        WindowInstance windowInstance = window.createWindowInstance("2021-07-09 11:00:00", "2021-07-09 11:10:00", "2021-07-09 11:10:00", "1");
-        ORMUtil.batchReplaceInto(windowInstance);
-        WindowInstance queryWindowInstance = ORMUtil.queryForObject("select * from window_instance where window_instance_key='" + windowInstance.getWindowInstanceKey() + "'", null, WindowInstance.class);
-        assertTrue(queryWindowInstance != null);
-    }
 
     @Test
     public void testWindowInstanceNormalMode() {
