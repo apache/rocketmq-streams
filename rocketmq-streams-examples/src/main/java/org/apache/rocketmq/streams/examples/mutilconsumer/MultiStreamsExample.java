@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -44,7 +45,7 @@ public class MultiStreamsExample {
         producerPool.submit(new Runnable() {
             @Override
             public void run() {
-                Producer.produceInLoop(topic,"data.txt");
+                ProducerFromFile.produceInLoop("data.txt", NAMESRV_ADDRESS, topic, 100);
             }
         });
 
@@ -71,7 +72,6 @@ public class MultiStreamsExample {
                 try {
                     JSONObject.parseObject((String) message);
                 } catch (Throwable t) {
-                    // if can not convert to json, discard it.because all operator are base on json.
                     return false;
                 }
                 return true;

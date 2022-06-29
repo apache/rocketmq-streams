@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 import org.junit.Test;
 
 public class PageDimensionExample {
@@ -37,7 +38,7 @@ public class PageDimensionExample {
      * @param args
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("pageClickData.txt", namesrv, topic);
+        ProducerFromFile.produce("pageClickData.txt", namesrv, topic, true);
 
         try {
             Thread.sleep(1000 * 3);

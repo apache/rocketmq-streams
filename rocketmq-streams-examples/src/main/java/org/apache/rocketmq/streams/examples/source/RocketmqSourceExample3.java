@@ -20,7 +20,7 @@ package org.apache.rocketmq.streams.examples.source;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
-import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +37,8 @@ public class RocketmqSourceExample3 {
      * 1、make sure your rocketmq server has been started.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, topicName);
+        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, topicName, true);
+
 
         try {
             Thread.sleep(1000 * 3);

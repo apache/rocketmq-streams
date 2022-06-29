@@ -36,6 +36,8 @@ package org.apache.rocketmq.streams.client.source;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
 import java.util.Set;
+
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.CollectionSource;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
@@ -43,9 +45,6 @@ import org.apache.rocketmq.streams.common.channel.impl.memory.MemoryCache;
 import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.connectors.source.CycleDynamicMultipleDBScanSource;
-import org.apache.rocketmq.streams.connectors.source.DynamicMultipleDBScanSource;
-import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
 import org.apache.rocketmq.streams.mqtt.source.PahoSource;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
@@ -96,44 +95,26 @@ public class DataStreamSource {
     }
 
     public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress) {
-        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress);
+        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress, null);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress) {
+    public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress, RPCHook rpcHook) {
+        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress, rpcHook);
+    }
+
+    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress, RPCHook rpcHook) {
         RocketMQSource rocketMQSource = new RocketMQSource();
         rocketMQSource.setTopic(topic);
         rocketMQSource.setTags(tags);
         rocketMQSource.setGroupName(groupName);
         rocketMQSource.setJsonData(isJson);
         rocketMQSource.setNamesrvAddr(namesrvAddress);
+        rocketMQSource.setRpcHook(rpcHook);
         this.mainPipelineBuilder.setSource(rocketMQSource);
         return new DataStream(this.mainPipelineBuilder, null);
     }
 
-    public DataStream fromMultipleDB(String url, String userName, String password, String tablePattern) {
-        DynamicMultipleDBScanSource source = new DynamicMultipleDBScanSource();
-        source.setUrl(url);
-        source.setUserName(userName);
-        source.setPassword(password);
-        source.setBatchSize(10);
-        source.setLogicTableName(tablePattern);
-        this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
-    }
 
-    public DataStream fromCycleSource(String url, String userName, String password, String tablePattern,
-        CycleSchedule.Cycle cycle, int balanceSec) {
-        CycleDynamicMultipleDBScanSource source = new CycleDynamicMultipleDBScanSource(cycle);
-        source.setUrl(url);
-        source.setUserName(userName);
-        source.setPassword(password);
-        source.setBatchSize(10);
-        source.setLogicTableName(tablePattern);
-        source.setBalanceTimeSecond(balanceSec);
-
-        this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
-    }
 
     public DataStream fromCollection(JSONObject... elements) {
         CollectionSource source = new CollectionSource();

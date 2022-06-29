@@ -91,4 +91,8 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
      */
     String createCheckPointName();
 
+    String getNamesrvAddr();
+
+    void setNamesrvAddr(String namesrvAddr);
+
 }

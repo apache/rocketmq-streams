@@ -119,7 +119,7 @@ mvn clean -DskipTests install -U
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams-clients</artifactId>
           <!--Newest version-->
-        <version>1.0.2-preview-SNAPSHOT</version>
+        <version>${version}</version>
     </dependency>
 </dependencies>
 

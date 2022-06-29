@@ -16,14 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.builder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -32,7 +24,6 @@ import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.contants.RuleElementType;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
@@ -44,6 +35,14 @@ import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
 import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * 通过这个工具可以快速创建一条规则。这个工具默认消息流的字段名＝metadata的字段名
  */
@@ -54,7 +53,6 @@ public class RuleBuilder {
     private List<MetaData> metaDataList = new ArrayList<>();//包含所有的metadata
     private List<Expression> expressionList = new ArrayList<>();//包含所有的表达式
     private List<Action> actionList = new ArrayList<>();//包含所有的action
-    private List<JDBCDriver> dataSourceList = new ArrayList<>();//包含所有的datasource
     private MetaData metaData;//输入消息的metadata
     private String namespace;//规则的命名空间
     private String ruleName;//规则的名字
@@ -62,8 +60,6 @@ public class RuleBuilder {
     private String ruleCode;
     private String ruleTitle;
     private String ruleDescription;
-    private transient NameCreator actionNameCreator = new NameCreator();
-    private transient NameCreator dataSourceNameCreator = new NameCreator();
     private transient NameCreator metaDataNameCreator = new NameCreator();
 
     /**
@@ -164,8 +160,6 @@ public class RuleBuilder {
             ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.EXPRESSION.getType());
         this.metaDataList = ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.METADATA.getType());
         this.actionList = ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.ACTION.getType());
-        this.dataSourceList =
-            ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.DATASOURCE.getType());
     }
 
     /**
@@ -397,7 +391,6 @@ public class RuleBuilder {
         insertOrUpdate(ruleEngineConfigurableService, varList, Var.TYPE);
         insertOrUpdate(ruleEngineConfigurableService, expressionList, Expression.TYPE);
         insertOrUpdate(ruleEngineConfigurableService, actionList, Action.TYPE);
-        insertOrUpdate(ruleEngineConfigurableService, dataSourceList, ISink.TYPE);
         if (ruleEngineConfigurableService != null) {
             ruleEngineConfigurableService.insert(rule);
         }
@@ -518,10 +511,6 @@ public class RuleBuilder {
 
     public List<Action> getActionList() {
         return actionList;
-    }
-
-    public List<JDBCDriver> getDataSourceList() {
-        return dataSourceList;
     }
 
     public String getNamespace() {

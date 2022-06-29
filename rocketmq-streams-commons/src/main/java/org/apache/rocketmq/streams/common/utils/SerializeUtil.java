@@ -23,8 +23,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
@@ -84,7 +86,16 @@ public class SerializeUtil {
      * @param bytes
      */
     public static <T> T deserialize(byte[] bytes) {
-        return deserialize(bytes, new AtomicInteger(0));
+        T result = null;
+        try {
+            result = deserialize(bytes, new AtomicInteger(0));
+        } catch (NullPointerException npe) {
+            if (bytes != null && bytes.length != 0) {
+                String temp = new String(bytes, StandardCharsets.UTF_8);
+                result = (T) temp;
+            }
+        }
+        return result;
     }
 
     public static byte[] serializeByJava(Object object) {
@@ -110,5 +121,4 @@ public class SerializeUtil {
             return null;
         }
     }
-
 }

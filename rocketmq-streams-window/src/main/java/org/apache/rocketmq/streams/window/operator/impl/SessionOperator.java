@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,13 +37,14 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
-import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
+import org.apache.rocketmq.streams.window.storage.IteratorWrap;
+import org.apache.rocketmq.streams.window.storage.RocksdbIterator;
+import org.apache.rocketmq.streams.window.storage.WindowType;
 
 /**
  * an implementation of session window to save extra memory for different group by window instances
@@ -59,8 +61,6 @@ public class SessionOperator extends WindowOperator {
 
     private static final String SESSION_DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
-    private static final String ORDER_BY_FIRE_TIME_PREFIX = "_order_by_fire_time_";
-
     /**
      * 会话窗口的超时时间，时间单位时秒，默认10分钟
      */
@@ -76,17 +76,9 @@ public class SessionOperator extends WindowOperator {
         this.sessionTimeOut = Optional.ofNullable(timeout).orElse(sessionTimeOut);
     }
 
-    public int getSessionTimeOut() {
-        return sessionTimeOut;
-    }
-
-    public void setSessionTimeOut(int sessionTimeOut) {
-        this.sessionTimeOut = sessionTimeOut;
-    }
 
     @Override
     protected boolean initConfigurable() {
-        //
         return super.initConfigurable();
     }
 
@@ -100,7 +92,7 @@ public class SessionOperator extends WindowOperator {
     @Override
     public List<WindowInstance> queryOrCreateWindowInstance(IMessage message, String queueId) {
         WindowInstance instance = createWindowInstance(SESSION_WINDOW_BEGIN_TIME, SESSION_WINDOW_END_TIME, null, queueId);
-        String windowInstanceId = instance.createWindowInstanceId();
+        String windowInstanceId = instance.getWindowInstanceId();
         WindowInstance existWindowInstance = searchWindowInstance(windowInstanceId);
         if (existWindowInstance == null) {
             Pair<Date, Date> startEndPair = getSessionTime(message);
@@ -123,8 +115,9 @@ public class SessionOperator extends WindowOperator {
         }};
     }
 
-    @Override public WindowInstance registerWindowInstance(WindowInstance windowInstance) {
-        return super.registerWindowInstance(windowInstance.createWindowInstanceId(), windowInstance);
+    @Override
+    public WindowInstance registerWindowInstance(WindowInstance windowInstance) {
+        return super.registerWindowInstance(windowInstance.getWindowInstanceId(), windowInstance);
     }
 
     @Override
@@ -147,8 +140,36 @@ public class SessionOperator extends WindowOperator {
                 String storeKey = createStoreKey(queueId, groupValue, instance);
                 value2StoreMap.put(groupValue, storeKey);
             }
-            Map<String, List<WindowValue>> storeValueMap = storage.multiGetList(WindowValue.class, new ArrayList<>(value2StoreMap.values()));
-            //
+
+            List<WindowBaseValue> windowBaseValue = new ArrayList<>();
+
+            RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(instance.getSplitId(),
+                    instance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+            while (rocksdbIterator.hasNext()) {
+                IteratorWrap<WindowBaseValue> next = rocksdbIterator.next();
+                windowBaseValue.add(next.getData());
+            }
+
+            //1、按照storeKey过滤
+            //2、将WindowBaseValue转化成WindowValue
+            List<String> storeKeys = new ArrayList<>();
+            for (String groupValue : groupBy.keySet()) {
+                String storeKey = createStoreKey(queueId, groupValue, instance);
+                storeKeys.add(storeKey);
+            }
+
+            Map<String, List<WindowValue>> storeValueMap = windowBaseValue.stream()
+                    .map((value) -> (WindowValue) value)
+                    .filter((value) -> {
+                        for (String storeKey : storeKeys) {
+                            if (storeKey.equalsIgnoreCase(value.getMsgKey())) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }).collect(Collectors.groupingBy(WindowValue::getMsgKey));
+
+
             Iterator<Map.Entry<String, List<IMessage>>> iterator = groupBy.entrySet().iterator();
             Map<String, List<WindowValue>> resultMap = new HashMap<>(groupSize);
             while (iterator.hasNext()) {
@@ -162,7 +183,6 @@ public class SessionOperator extends WindowOperator {
                     id2ValueMap.put(value.getPartitionNum(), value);
                 }
                 for (IMessage message : groupMessageList) {
-                    //
                     WindowValue windowValue = queryOrCreateWindowValue(instance, queueId, groupValue, message, valueList, storeKey);
                     windowValue.calculate(this, message);
                     //region trace
@@ -178,7 +198,7 @@ public class SessionOperator extends WindowOperator {
                     //endregion
                     id2ValueMap.put(windowValue.getPartitionNum(), windowValue);
                 }
-                //merge values
+                //merge values,
                 List<WindowValue> groupValueList = mergeWindowValue(new ArrayList<>(id2ValueMap.values()), instance, queueId);
                 resultMap.put(storeKey, groupValueList);
             }
@@ -200,7 +220,11 @@ public class SessionOperator extends WindowOperator {
      * @return
      */
     private WindowValue queryOrCreateWindowValue(WindowInstance windowInstance, String queueId, String groupByValue,
-        IMessage message, List<WindowValue> valueList, String storeKey) {
+                                                 IMessage message, List<WindowValue> valueList, String storeKey) {
+        //
+        if (CollectionUtil.isEmpty(valueList)) {
+            return createWindowValue(queueId, groupByValue, windowInstance, message, storeKey);
+        }
         //put keys to be deleted here and delete them at last
         List<String> deletePrefixKeyList = new ArrayList<>();
         //
@@ -210,35 +234,18 @@ public class SessionOperator extends WindowOperator {
             Pair<Date, Date> startEndPair = getSessionTime(message);
             Date messageBegin = startEndPair.getLeft();
             Date messageEnd = startEndPair.getRight();
-            if (messageBegin.compareTo(sessionBegin) < 0 && messageEnd.compareTo(sessionEnd) <= 0) {
-                sessionBegin = messageBegin;
-                value.setStartTime(DateUtil.format(sessionBegin, SESSION_DATETIME_PATTERN));
-                return value;
-            } else if (messageBegin.compareTo(sessionBegin) >= 0 && messageEnd.compareTo(sessionEnd) <= 0) {
-                return value;
-            } else if (messageBegin.compareTo(sessionBegin) >= 0 && messageBegin.compareTo(sessionEnd) < 0 && messageEnd.compareTo(sessionEnd) > 0) {
+            if (messageBegin.compareTo(sessionBegin) >= 0 && messageBegin.compareTo(sessionEnd) < 0) {
                 sessionEnd = messageEnd;
-                //clean older storage as sort field 'fireTime' changed
-                String existPartitionNumKey = createPrefixKey(value, windowInstance, queueId);
-                deletePrefixKeyList.add(existPartitionNumKey);
-                deletePrefixValue(deletePrefixKeyList);
-                //
                 Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, waterMarkMinute * timeUnitAdjust);
                 value.setEndTime(DateUtil.format(sessionEnd, SESSION_DATETIME_PATTERN));
+                //clean order storage as sort field 'fireTime' changed
+                deleteMergeWindow(windowInstance.getWindowInstanceId(), value.getPartition(), value.getFireTime(), value.getPartitionNum(), value.getGroupBy());
+                //
                 value.setFireTime(DateUtil.format(sessionFire, SESSION_DATETIME_PATTERN));
                 return value;
-            } else if (messageBegin.compareTo(sessionBegin) < 0 && messageEnd.compareTo(sessionEnd) > 0) {
+            } else if (messageBegin.compareTo(sessionBegin) < 0 && messageEnd.compareTo(sessionBegin) > 0) {
                 sessionBegin = messageBegin;
-                sessionEnd = messageEnd;
-                //clean older storage as sort field 'fireTime' changed
-                String existPartitionNumKey = createPrefixKey(value, windowInstance, queueId);
-                deletePrefixKeyList.add(existPartitionNumKey);
-                deletePrefixValue(deletePrefixKeyList);
-                //
                 value.setStartTime(DateUtil.format(sessionBegin, SESSION_DATETIME_PATTERN));
-                value.setEndTime(DateUtil.format(sessionEnd, SESSION_DATETIME_PATTERN));
-                Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, waterMarkMinute * timeUnitAdjust);
-                value.setFireTime(DateUtil.format(sessionFire, SESSION_DATETIME_PATTERN));
                 return value;
             }
         }
@@ -249,7 +256,7 @@ public class SessionOperator extends WindowOperator {
     }
 
     private List<WindowValue> mergeWindowValue(List<WindowValue> allValueList, WindowInstance windowInstance,
-        String queueId) {
+                                               String queueId) {
         if (allValueList.size() <= 1) {
             return allValueList;
         }
@@ -267,7 +274,7 @@ public class SessionOperator extends WindowOperator {
             WindowValue outValue = allValueList.get(outIndex);
             for (int inIndex = outIndex + 1; inIndex < allValueList.size(); inIndex++) {
                 WindowValue inValue = allValueList.get(inIndex);
-                if (inValue.getStartTime().compareTo(outValue.getEndTime()) <= 0) {
+                if (inValue.getFireTime().compareTo(outValue.getEndTime()) <= 0) {
                     deleteValueMap.put(inIndex, outIndex);
                     outValue.setEndTime(outValue.getEndTime().compareTo(inValue.getEndTime()) <= 0 ? inValue.getEndTime() : outValue.getEndTime());
                     outValue.setFireTime(outValue.getFireTime().compareTo(inValue.getFireTime()) <= 0 ? inValue.getFireTime() : outValue.getFireTime());
@@ -288,20 +295,34 @@ public class SessionOperator extends WindowOperator {
             theValue.setAggColumnResult(tempValue.getAggColumnResult());
             resultList.add(theValue);
         }
-        List<String> prefixKeyList = deleteValueMap.keySet().stream().map(index -> createPrefixKey(allValueList.get(index), windowInstance, queueId)).collect(Collectors.toList());
-        deletePrefixValue(prefixKeyList);
+
+        deleteValueMap.keySet().forEach(key -> {
+            WindowValue windowValue = allValueList.get(key);
+            deleteMergeWindow(windowInstance.getWindowInstanceId(), windowValue.getPartition(),
+                    windowValue.getFireTime(), windowValue.getPartitionNum(), windowValue.getGroupBy());
+        });
         return resultList;
     }
 
-    private void deletePrefixValue(List<String> keyList) {
-        if (CollectionUtil.isEmpty(keyList)) {
-            return;
-        }
-        storage.getLocalStorage().removeKeys(keyList);
-    }
 
-    private static String createPrefixKey(WindowValue windowValue, WindowInstance windowInstance, String queueId) {
-        return MapKeyUtil.createKey(getOrderBypPrefix() + queueId, windowInstance.createWindowInstanceId(), windowValue.getFireTime(), String.valueOf(windowValue.getPartitionNum()), windowValue.getGroupBy());
+    private void deleteMergeWindow(String windowInstanceId, String queueId, String fireTime, long partitionNum, String groupBy) {
+        RocksdbIterator<WindowValue> windowBaseValueWrap = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null);
+
+
+        while (windowBaseValueWrap.hasNext()) {
+            IteratorWrap<WindowValue> wrap = windowBaseValueWrap.next();
+            WindowValue windowValue = wrap.getData();
+            if (windowValue.getPartition().equals(queueId) && windowValue.getPartitionNum() == partitionNum
+                    && windowValue.getGroupBy().equals(groupBy) && windowValue.getFireTime().equals(fireTime)) {
+                windowBaseValueWrap.remove();
+            }
+        }
+
+        windowBaseValueWrap = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null);
+
+        if (windowBaseValueWrap.hasNext()) {
+            storage.putWindowBaseValueIterator(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null, windowBaseValueWrap);
+        }
     }
 
     private Pair<Date, Date> getSessionTime(IMessage message) {
@@ -316,26 +337,19 @@ public class SessionOperator extends WindowOperator {
         return Pair.of(occurDate, endDate);
     }
 
-    protected void store(Map<String, List<WindowValue>> key2ValueMap, WindowInstance windowInstance,
-        String queueId) {
-        //
+    protected void store(Map<String, List<WindowValue>> key2ValueMap, WindowInstance windowInstance, String queueId) {
         if (CollectionUtil.isEmpty(key2ValueMap)) {
             return;
         }
-        //
-        storage.multiPutList(key2ValueMap, windowInstance.createWindowInstanceId(), queueId, sqlCache);
-        //
-        Map<String, WindowValue> allValueMap = new HashMap<>();
-        Iterator<Map.Entry<String, List<WindowValue>>> iterator = key2ValueMap.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, List<WindowValue>> entry = iterator.next();
-            List<WindowValue> valueList = entry.getValue();
-            for (WindowValue value : valueList) {
-                String partitionNumKey = createPrefixKey(value, windowInstance, queueId);
-                allValueMap.put(partitionNumKey, value);
-            }
+
+        for (String storeKey : key2ValueMap.keySet()) {
+            List<WindowBaseValue> temp = key2ValueMap.get(storeKey).stream()
+                    .map(value -> (WindowBaseValue) value)
+                    .collect(Collectors.toList());
+
+            storage.putWindowBaseValue(queueId, windowInstance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null, temp);
         }
-        storage.getLocalStorage().multiPut(allValueMap);
+
     }
 
     /**
@@ -347,7 +361,7 @@ public class SessionOperator extends WindowOperator {
      * @return
      */
     protected WindowValue createWindowValue(String queueId, String groupBy, WindowInstance instance, IMessage message,
-        String storeKey) {
+                                            String storeKey) {
         WindowValue value = new WindowValue();
         Pair<Date, Date> startEndPair = getSessionTime(message);
         String startTime = DateUtil.format(startEndPair.getLeft(), SESSION_DATETIME_PATTERN);
@@ -357,43 +371,46 @@ public class SessionOperator extends WindowOperator {
         value.setEndTime(endTime);
         value.setFireTime(fireTime);
         value.setGroupBy(groupBy);
-        value.setMsgKey(StringUtil.createMD5Str(storeKey));
+        value.setMsgKey(storeKey);
         //FIXME shuffleId vs queueId TODO delete assert
         String shuffleId = shuffleChannel.getChannelQueue(groupBy).getQueueId();
         assert shuffleId.equalsIgnoreCase(queueId);
-        value.setPartitionNum(createPartitionNum(value, queueId, instance));
+        value.setPartitionNum(createPartitionNum(queueId, instance));
         value.setPartition(shuffleId);
-        value.setWindowInstancePartitionId(instance.getWindowInstanceKey());
-        value.setWindowInstanceId(instance.getWindowInstanceKey());
+        value.setWindowInstanceId(instance.getWindowInstanceId());
         return value;
     }
 
-    protected static String getOrderBypPrefix() {
-        return ORDER_BY_FIRE_TIME_PREFIX;
-    }
 
-    /**
-     * update session's next fire time
-     *
-     * @param windowInstance
-     * @param queueId
-     * @param queueId2Offset
-     * @return
-     */
     @Override
-    public int fireWindowInstance(WindowInstance windowInstance, String queueId, Map<String, String> queueId2Offset) {
+    public int doFireWindowInstance(WindowInstance windowInstance) {
         synchronized (lock) {
-            //get iterator sorted by fire time
-            WindowBaseValueIterator<WindowValue> it = storage.loadWindowInstanceSplitData(getOrderBypPrefix(), queueId, windowInstance.createWindowInstanceId(), null, getWindowBaseValueClass());
-            //
+            String queueId = windowInstance.getSplitId();
+
+            RocksdbIterator<WindowBaseValue> windowBaseValue = storage.getWindowBaseValue(queueId,
+                    windowInstance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+
+
+            ArrayList<WindowBaseValue> baseValues = new ArrayList<>();
+
+            while (windowBaseValue.hasNext()) {
+                IteratorWrap<WindowBaseValue> next = windowBaseValue.next();
+                baseValues.add(next.getData());
+            }
+
+            baseValues.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
+
             Long currentFireTime = DateUtil.parse(windowInstance.getFireTime(), SESSION_DATETIME_PATTERN).getTime();
             Long nextFireTime = currentFireTime + 1000 * 60 * 1;
             List<WindowValue> toFireValueList = new ArrayList<>();
-            while (it.hasNext()) {
-                WindowValue windowValue = it.next();
+
+
+            for (WindowBaseValue baseValue : baseValues) {
+                WindowValue windowValue = (WindowValue) baseValue;
                 if (windowValue == null) {
                     continue;
                 }
+
                 if (checkFire(queueId, windowValue)) {
                     TraceUtil.debug(String.valueOf(windowValue.getPartitionNum()), "shuffle message fire", windowValue.getStartTime(), windowValue.getEndTime(), windowValue.getComputedColumnResult());
                     toFireValueList.add(windowValue);
@@ -404,19 +421,9 @@ public class SessionOperator extends WindowOperator {
                         break;
                     }
                 }
+
             }
-            doFire(queueId, windowInstance, toFireValueList);
-            //
-            if (!nextFireTime.equals(currentFireTime)) {
-                String instanceId = windowInstance.createWindowInstanceId();
-                WindowInstance existedWindowInstance = searchWindowInstance(instanceId);
-                if (existedWindowInstance != null) {
-                    existedWindowInstance.setFireTime(DateUtil.format(new Date(nextFireTime)));
-                    windowFireSource.registFireWindowInstanceIfNotExist(windowInstance, this);
-                } else {
-                    LOG.error("window instance lost, queueId: " + queueId + " ,fire time" + windowInstance.getFireTime());
-                }
-            }
+            doFire(queueId, windowInstance, toFireValueList, currentFireTime, nextFireTime);
             return toFireValueList.size();
         }
 
@@ -435,57 +442,86 @@ public class SessionOperator extends WindowOperator {
         return false;
     }
 
-    private void doFire(String queueId, WindowInstance instance, List<WindowValue> valueList) {
+
+    private void doFire(String queueId, WindowInstance instance, List<WindowValue> valueList, Long currentFireTime,
+                        Long nextFireTime) {
+
         if (CollectionUtil.isEmpty(valueList)) {
             return;
         }
         valueList.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
         sendFireMessage(valueList, queueId);
         clearWindowValues(valueList, queueId, instance);
+
+        if (!nextFireTime.equals(currentFireTime)) {
+            String instanceId = instance.getWindowInstanceId();
+            WindowInstance existedWindowInstance = searchWindowInstance(instanceId);
+            if (existedWindowInstance != null) {
+                existedWindowInstance.setFireTime(DateUtil.format(new Date(nextFireTime)));
+                windowFireSource.registFireWindowInstanceIfNotExist(instance, this);
+            } else {
+                LOG.error("window instance lost, queueId: " + queueId + " ,fire time" + instance.getFireTime());
+            }
+        }
     }
 
-    /**
-     * clear fired window value
-     *
-     * @param deleteValueList
-     * @param queueId
-     * @param instance
-     */
+
     protected void clearWindowValues(List<WindowValue> deleteValueList, String queueId, WindowInstance instance) {
         if (CollectionUtil.isEmpty(deleteValueList)) {
             return;
         }
+
         Set<String> storeKeySet = new HashSet<>(deleteValueList.size());
         Set<Long> valueIdSet = new HashSet<>(deleteValueList.size());
-        Set<String> prefixKeySet = new HashSet<>(deleteValueList.size());
+
         for (WindowValue windowValue : deleteValueList) {
             String storeKey = createStoreKey(queueId, windowValue.getGroupBy(), instance);
-            String prefixKey = createPrefixKey(windowValue, instance, queueId);
             Long valueId = windowValue.getPartitionNum();
             storeKeySet.add(storeKey);
             valueIdSet.add(valueId);
-            prefixKeySet.add(prefixKey);
+
         }
-        Map<String, List<WindowValue>> storeValueMap = storage.multiGetList(WindowValue.class, new ArrayList<>(storeKeySet));
+
+        RocksdbIterator<WindowBaseValue> rocksdbIterator = storage.getWindowBaseValue(queueId, instance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null);
+        List<WindowBaseValue> temp = new ArrayList<>();
+        while (rocksdbIterator.hasNext()) {
+            IteratorWrap<WindowBaseValue> next = rocksdbIterator.next();
+            temp.add(next.getData());
+        }
+
+        Map<String, List<WindowValue>> storeValueMap = temp.stream()
+                .map((value) -> (WindowValue) value)
+                .filter((value) -> {
+                    for (String storeKey : storeKeySet) {
+                        if (storeKey.equalsIgnoreCase(value.getMsgKey())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }).collect(Collectors.groupingBy(WindowValue::getMsgKey));
+
         Map<String, List<WindowValue>> lastValueMap = new HashMap<>(storeValueMap.size());
-        Iterator<Map.Entry<String, List<WindowValue>>> iterator = storeValueMap.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, List<WindowValue>> entry = iterator.next();
+        for (Map.Entry<String, List<WindowValue>> entry : storeValueMap.entrySet()) {
             String storeKey = entry.getKey();
             List<WindowValue> valueList = entry.getValue();
             valueList = valueList.stream().filter(value -> !valueIdSet.contains(value.getPartitionNum())).collect(Collectors.toList());
             lastValueMap.put(storeKey, valueList);
         }
-        storage.getLocalStorage().removeKeys(prefixKeySet);
+
+        for (WindowValue windowValue : deleteValueList) {
+            storage.deleteWindowBaseValue(queueId, instance.getWindowInstanceId(), WindowType.SESSION_WINDOW, null, windowValue.getMsgKey());
+        }
+
         store(lastValueMap, instance, queueId);
     }
 
+
     @Override
     public long incrementAndGetSplitNumber(WindowInstance instance, String shuffleId) {
-        long number = super.incrementAndGetSplitNumber(instance, shuffleId);
-        if (number > 900000000) {
-            this.getWindowMaxValueManager().resetSplitNum(instance, shuffleId);
+        long numer = super.incrementAndGetSplitNumber(instance, shuffleId);
+        if (numer > 900000000) {
+            this.storage.putMaxPartitionNum(shuffleId, instance.getWindowInstanceId(), numer);
         }
-        return number;
+        return numer;
     }
 }

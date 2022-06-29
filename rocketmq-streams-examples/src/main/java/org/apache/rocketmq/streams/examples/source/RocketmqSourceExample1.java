@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.examples.source;
 
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
-import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
+import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 
@@ -28,7 +28,9 @@ public class RocketmqSourceExample1 {
     private static String groupName = "groupName-1";
 
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, topicName);
+
+        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, topicName, true);
+
 
         try {
             Thread.sleep(1000 * 3);

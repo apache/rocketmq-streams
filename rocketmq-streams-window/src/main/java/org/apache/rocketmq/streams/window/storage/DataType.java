@@ -1,3 +1,4 @@
+package org.apache.rocketmq.streams.window.storage;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -14,27 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.examples.source;
 
-import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.client.StreamBuilder;
-import org.apache.rocketmq.streams.client.source.DataStreamSource;
+public enum DataType {
+    WINDOW_INSTANCE("windowInstance"),
+    WINDOW_BASE_VALUE("windowBaseValue"),
+    MAX_OFFSET("maxOffset"),
+    MAX_PARTITION_NUM("maxPartitionNum");
 
-public class FileSourceExample {
-    public static void main(String[] args) {
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
-        try {
-            Thread.sleep(1000 * 3);
-        } catch (InterruptedException e) {
-        }
-        System.out.println("begin streams code.");
+    private final String value;
 
-        source.fromFile("scores.txt", true)
-                .map(message -> message)
-                .filter(message -> ((JSONObject) message).getInteger("score") > 90)
-                .selectFields("name", "subject")
-                .toPrint()
-                .start();
+    DataType(String value) {
+        this.value = value;
+    }
 
+    public String getValue() {
+        return value;
     }
 }
