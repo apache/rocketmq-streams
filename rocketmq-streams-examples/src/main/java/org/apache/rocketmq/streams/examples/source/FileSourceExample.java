@@ -16,15 +16,25 @@
  */
 package org.apache.rocketmq.streams.examples.source;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
 public class FileSourceExample {
     public static void main(String[] args) {
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
-        source.fromFile("data.txt", false)
-            .map(message -> message)
-            .toPrint(1)
-            .start();
+        try {
+            Thread.sleep(1000 * 3);
+        } catch (InterruptedException e) {
+        }
+        System.out.println("begin streams code.");
+
+        source.fromFile("scores.txt", true)
+                .map(message -> message)
+                .filter(message -> ((JSONObject) message).getInteger("score") > 90)
+                .selectFields("name", "subject")
+                .toPrint()
+                .start();
+
     }
 }

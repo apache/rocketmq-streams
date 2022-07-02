@@ -49,12 +49,10 @@ public class WindowTest implements Serializable {
             .waterMark(10)
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(true)
-            .reduce(new ReduceFunction<IAccumulator, JSONObject>() {
-
-                @Override public IAccumulator reduce(IAccumulator acccumulator, JSONObject msg) {
-                    return null;
-                }
-            })
+            .count("total")
+            .sum("OutFlow", "OutFlow")
+            .sum("InFlow", "InFlow")
+            .toDataSteam()
             .forEach(new ForEachFunction<JSONObject>() {
                 protected int sum = 0;
 
@@ -159,7 +157,7 @@ public class WindowTest implements Serializable {
             .groupBy("user")
             .setLocalStorageOnly(true)
             .sum("flag", "count")
-            .toDataSteam()
+            .toDataStream()
             .toFile(resultFile.getAbsolutePath()).start(true);
 
         try {
@@ -259,7 +257,7 @@ public class WindowTest implements Serializable {
             .count_distinct("page", "uv")
             .count_distinct_large("page", "uv_large")
             .count_distinct_2("page", "uv_2")
-            .toDataSteam()
+            .toDataStream()
             .toFile(resultFile.getAbsolutePath()).start(true);
 
         try {

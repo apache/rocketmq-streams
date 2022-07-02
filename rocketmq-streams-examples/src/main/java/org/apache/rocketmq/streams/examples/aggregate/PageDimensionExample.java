@@ -55,7 +55,7 @@ public class PageDimensionExample {
                 .count("total")
                 .waterMark(1)
                 .setLocalStorageOnly(true)
-                .toDataSteam()
+                .toDataStream()
                 .toFile("/home/result.txt")
                 .with(WindowStrategy.highPerformance())
                 .start();
@@ -72,7 +72,7 @@ public class PageDimensionExample {
                 .max("total")
                 .waterMark(1)
                 .setLocalStorageOnly(true)
-                .toDataSteam()
+                .toDataStream()
                 .toPrint(1)
                 .start();
 

@@ -64,7 +64,7 @@ public class JoinTest {
 
         DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
 
-        left.join(right).on("(ProjectName,=,project)").toDataSteam().toPrint().start();
+        left.join(right).on("(ProjectName,=,project)").toDataStream().toPrint().start();
 
     }
 
@@ -74,18 +74,17 @@ public class JoinTest {
 
         DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
 
-        left.leftJoin(right).on("(ProjectName,=,project)").toDataSteam().toPrint().start();
+        left.leftJoin(right).on("(ProjectName,=,project)").toDataStream().toPrint().start();
     }
 
     @Test
     public void testRocketmqJoin() {
 
-        DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupA", true, "localhost:9876");
-        left.toPrint().start();
+        DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupA", true, "localhost:9876", null);
         //DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
-//        DataStream right = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupB", true, "localhost:9876");
-//
-//        left.join(right).on("(ProjectName,=,project)").toDataSteam().toPrint().start();
+        DataStream right = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupB", true, "localhost:9876", null);
+
+        left.join(right).on("(ProjectName,=,project)").toDataStream().toPrint().start();
     }
 
 }
