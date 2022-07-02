@@ -43,6 +43,8 @@ public class WindowTest implements Serializable {
             .fromFile("/Users/duheng/project/opensource/sls_100.txt", false)
             .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
             .window(TumblingWindow.of(Time.seconds(5)))
+            .setTimeField("时间字段")
+            .waterMark(10)
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(true)
             .count("total")

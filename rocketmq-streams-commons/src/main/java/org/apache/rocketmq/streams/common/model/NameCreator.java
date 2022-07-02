@@ -20,12 +20,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.NameCreatorUtil;
 
 public class NameCreator {
-    private transient AtomicInteger nameCreator = new AtomicInteger(10000);
+    private transient AtomicInteger nameCreator = new AtomicInteger(100000000);
 
-    private static Map<String, NameCreator> creatorMap = new HashMap<>();
+    private Map<String, NameCreator> creatorMap = new HashMap<>();
 
     /**
      * 每个规则一个名字生成器，expression name
@@ -33,13 +32,13 @@ public class NameCreator {
      * @param names
      * @return
      */
-    public static NameCreator createOrGet(String... names) {
+    public NameCreator createOrGet(String... names) {
         String ruleName = MapKeyUtil.createKeyBySign("_", names);
         NameCreator nameCreator = creatorMap.get(ruleName);
         if (nameCreator != null) {
             return nameCreator;
         }
-        synchronized (NameCreatorUtil.class) {
+        synchronized (NameCreator.class) {
             nameCreator = creatorMap.get(ruleName);
             if (nameCreator != null) {
                 return nameCreator;
@@ -50,13 +49,12 @@ public class NameCreator {
         return nameCreator;
     }
 
-    public static String createNewName(String... names) {
+    public String createNewName(String... names) {
         NameCreator nameCreator = createOrGet(names);
         return nameCreator.createName(names);
     }
 
     public String createName(String... namePrefix) {
-        String value = MapKeyUtil.createKeyBySign("_", MapKeyUtil.createKeyBySign("_", namePrefix), nameCreator.incrementAndGet() + "");
-        return value;
+        return MapKeyUtil.createKeyBySign("_", MapKeyUtil.createKeyBySign("_", namePrefix), nameCreator.incrementAndGet() + "");
     }
 }

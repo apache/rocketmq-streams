@@ -35,6 +35,7 @@ import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
@@ -71,18 +72,18 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     }
 
     @Override
-    public boolean batchAdd(IMessage fieldName2Value, ISplit split) {
-        fieldName2Value.getMessageBody().put(TARGET_QUEUE, split);
-        return batchAdd(fieldName2Value);
+    public boolean batchAdd(IMessage message,  ISplit<?,?> split) {
+        message.getMessageBody().put(TARGET_QUEUE, split);
+        return batchAdd(message);
     }
 
-    public ISplit getSplit(IMessage message) {
-        return (ISplit) message.getMessageBody().get(TARGET_QUEUE);
+    public ISplit<?,?> getSplit(IMessage message) {
+        return (ISplit<?,?>) message.getMessageBody().get(TARGET_QUEUE);
     }
 
     @Override
-    public boolean batchAdd(IMessage fieldName2Value) {
-        messageCache.addCache(fieldName2Value);
+    public boolean batchAdd(IMessage message) {
+        messageCache.addCache(message);
         return true;
     }
 
@@ -164,7 +165,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
             if (source == null) {
                 continue;
             }
-            String pipelineName = message.getHeader().getPiplineName();
+            String pipelineName = message.getHeader().getPipelineName();
             String sourceName = CheckPointManager.createSourceName(source, pipelineName);
             SourceState sourceState = this.sourceName2State.get(sourceName);
             if (sourceState == null) {

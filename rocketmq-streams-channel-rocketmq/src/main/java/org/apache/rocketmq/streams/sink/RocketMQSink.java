@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.sink;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -104,7 +105,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
             Map<String, MessageQueue> messageQueueMap = new HashMap<>();//if has queue id in message, save the map for queueid 2 messagequeeue
             String defaultQueueId = "<null>";//message is not contains queue ,use default
             for (IMessage msg : messages) {
-                ISplit<RocketMQMessageQueue, MessageQueue> channelQueue = getSplit(msg);
+                ISplit<RocketMQMessageQueue, MessageQueue> channelQueue = (ISplit<RocketMQMessageQueue, MessageQueue>) getSplit(msg);
                 String queueId = defaultQueueId;
                 if (channelQueue != null) {
                     queueId = channelQueue.getQueueId();
@@ -151,10 +152,6 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                     destroy();
                     producer = new DefaultMQProducer(null, groupName + "producer", rpcHook,false, null);
                     try {
-                        //please not use the code，the name srv addr may be empty in jmenv
-//                        if (this.namesrvAddr == null || "".equals(this.namesrvAddr)) {
-//                            throw new RuntimeException("namesrvAddr can not be null.");
-//                        }
 
                         if (StringUtil.isNotEmpty(this.namesrvAddr)) {
                             producer.setNamesrvAddr(this.namesrvAddr);
@@ -242,19 +239,19 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     }
 
     @Override
-    public List<ISplit> getSplitList() {
+    public List<ISplit<?,?>> getSplitList() {
         initProducer();
-        List<ISplit> messageQueues = new ArrayList<>();
+        List<ISplit<?,?>> messageQueues = new ArrayList<>();
         try {
 
             List<MessageQueue> messageQueueSet = producer.fetchPublishMessageQueues(topic);
-            List<ISplit> queueList = new ArrayList<>();
+            List<ISplit<?,?>> queueList = new ArrayList<>();
             for (MessageQueue queue : messageQueueSet) {
                 RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
                 queueList.add(rocketMQMessageQueue);
 
             }
-            Collections.sort(queueList);
+            queueList.sort((Comparator<ISplit>) Comparable::compareTo);
             messageQueues = queueList;
         } catch (MQClientException e) {
             return messageQueues;
@@ -265,7 +262,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
 
     @Override
     public int getSplitNum() {
-        List<ISplit> splits = getSplitList();
+        List<ISplit<?,?>> splits = getSplitList();
         if (splits == null || splits.size() == 0) {
             return 0;
         }

@@ -48,6 +48,8 @@ public class BasedConfigurable extends AbstractConfigurable {
 
     protected String version = "1.0";
 
+    protected long updateFlag = 0;//通过它来触发更新，其他字段变更都不会触发更新
+
     @Override
     public String getNameSpace() {
         return nameSpace;
@@ -163,7 +165,7 @@ public class BasedConfigurable extends AbstractConfigurable {
             }
             DataType dataType = DataTypeUtil.createFieldDataType(this, field.getName());
             String fieldJsonStr = jsonObject.getString(field.getName());
-            fieldJsonStr = getENVParamter(field, fieldJsonStr);
+            fieldJsonStr = getENVParameter(field, fieldJsonStr);
             Object fieldValue = dataType.getData(fieldJsonStr);
             if (fieldValue != null) {
                 ReflectUtil.setBeanFieldValue(this, field.getName(), fieldValue);
@@ -181,7 +183,7 @@ public class BasedConfigurable extends AbstractConfigurable {
      * @param fieldValue
      * @return
      */
-    protected String getENVParamter(Field field, String fieldValue) {
+    protected String getENVParameter(Field field, String fieldValue) {
         ENVDependence dependence = field.getAnnotation(ENVDependence.class);
         if (dependence == null) {
             return fieldValue;
@@ -249,4 +251,11 @@ public class BasedConfigurable extends AbstractConfigurable {
         this.version = version;
     }
 
+    public long getUpdateFlag() {
+        return updateFlag;
+    }
+
+    public void setUpdateFlag(long updateFlag) {
+        this.updateFlag = updateFlag;
+    }
 }

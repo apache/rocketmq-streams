@@ -35,9 +35,11 @@ import org.apache.rocketmq.streams.common.utils.CollectionUtil;
  * raverse the pipeline to create a prefix filter fingerprint
  */
 public class DependencyTree {
+
+
+
     protected ChainPipeline chainPipeline;
     protected FingerprintCache fingerprintCache;
-
     public DependencyTree(ChainPipeline pipeline, FingerprintCache fingerprintCache) {
         this.fingerprintCache = fingerprintCache;
         this.chainPipeline = pipeline;
@@ -61,7 +63,7 @@ public class DependencyTree {
         for (Map<String, PreFingerprint> fingerprintMap : preFingerprintMap) {
             for (PreFingerprint fingerprint : fingerprintMap.values()) {
                 fingerprint.getFilterChainStage().setPreFingerprint(fingerprint);
-                for (FilterChainStage previewFilterChainStage : fingerprint.getAllPreviewFilterChainStage()) {
+                for (AbstractStage<?> previewFilterChainStage : fingerprint.getAllPreviewFilterChainStage()) {
                     previewFilterChainStage.setPreFingerprint(fingerprint);
                 }
             }
@@ -84,11 +86,17 @@ public class DependencyTree {
      * @param pipeline
      */
     public List<CommonExpression> parseTopology(ChainPipeline pipeline) {
+        if(StateLessDependencyTree.cache.containsKey(pipeline)){
+            return StateLessDependencyTree.cache.get(pipeline);
+        }
         List<String> nextLalbes = pipeline.getChannelNextStageLabel();
         List<CommonExpression> commonExpressions = new ArrayList<>();
         parseTree(null, nextLalbes, pipeline, commonExpressions);
+        StateLessDependencyTree.cache.put(chainPipeline,commonExpressions);
         return commonExpressions;
     }
+
+
 
     /**
      * @param parentTreeNode
@@ -144,7 +152,7 @@ public class DependencyTree {
      * @return
      */
     protected boolean mergePreFingerprint(PreFingerprint fingerprint, ChainPipeline pipeline) {
-        String sourceLable = fingerprint.getSourceStageLable();
+        String sourceLable = fingerprint.getSourceStageLabel();
         if (sourceLable == null) {
             sourceLable = pipeline.getChannelName();
         }
@@ -152,11 +160,11 @@ public class DependencyTree {
         Map<String, PreFingerprint> preFingerprintMap = preFingerprintExecutor.get(sourceLable);
         if (preFingerprintMap == null) {
             preFingerprintMap = new HashMap<>();
-            preFingerprintMap.put(fingerprint.getNextStageLable(), fingerprint);
+            preFingerprintMap.put(fingerprint.getNextStageLabel(), fingerprint);
             preFingerprintExecutor.put(sourceLable, preFingerprintMap);
             return true;
         }
-        PreFingerprint previewPreFingerprint = preFingerprintMap.get(fingerprint.getNextStageLable());
+        PreFingerprint previewPreFingerprint = preFingerprintMap.get(fingerprint.getNextStageLabel());
         if (previewPreFingerprint != null && !mergeFingerprint(previewPreFingerprint, fingerprint)) {
             return false;
         }
@@ -164,7 +172,7 @@ public class DependencyTree {
             fingerprint.addPreviwFilterChainStage(previewPreFingerprint.getAllPreviewFilterChainStage());
             fingerprint.addPreviwFilterChainStage(previewPreFingerprint.getFilterChainStage());
         }
-        preFingerprintMap.put(fingerprint.getNextStageLable(), fingerprint);
+        preFingerprintMap.put(fingerprint.getNextStageLabel(), fingerprint);
         return true;
     }
 
@@ -174,7 +182,7 @@ public class DependencyTree {
      *
      * @return
      */
-    private boolean mergeFingerprint(PreFingerprint preview, PreFingerprint current) {
+    protected boolean mergeFingerprint(PreFingerprint preview, PreFingerprint current) {
         Set<String> previewLogFingerFieldNameSet = loadLogFingerFieldNames(preview);
         Set<String> currentLogFingerFieldNameSet = loadLogFingerFieldNames(current);
         boolean inPrew = true;

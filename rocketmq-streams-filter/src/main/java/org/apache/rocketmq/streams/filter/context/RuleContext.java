@@ -25,16 +25,18 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.function.service.impl.ScanFunctionService;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -101,7 +103,7 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
 
     private static volatile boolean initflag = false;
 
-    protected TopologyFilterMonitor expressionMonitor = new TopologyFilterMonitor();
+
 
     public static void initSuperRuleContext(ContextConfigure contextConfigure) {
         if (!initflag) {
@@ -366,11 +368,27 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
         this.ruleMonitor = ruleMonitor;
     }
 
-    public TopologyFilterMonitor getExpressionMonitor() {
-        return expressionMonitor;
-    }
+    public static void addNotFireExpressionMonitor(
+        Object expression,AbstractContext context) {
 
-    public void setExpressionMonitor(TopologyFilterMonitor expressionMonitor) {
-        this.expressionMonitor = expressionMonitor;
+        if(RelationExpression.class.isInstance(expression)){
+            List<String> notFireExpressionMonitor=new ArrayList<>();
+            RelationExpression relationExpression=(RelationExpression) expression;
+            for(String expressionName:notFireExpressionMonitor){
+                if(!relationExpression.getValue().contains(expressionName)){
+                    notFireExpressionMonitor.add(expressionName);
+                }
+            }
+            notFireExpressionMonitor.add(relationExpression.getConfigureName());
+            context.setNotFireExpressionMonitor(notFireExpressionMonitor);
+        }else if(Expression.class.isInstance(expression)) {
+            Expression e=(Expression)expression;
+            context.getNotFireExpressionMonitor().add(e.getConfigureName());
+        }else if(String.class.isInstance(expression)){
+            context.getNotFireExpressionMonitor().add((String)expression);
+        }else {
+            LOG.warn("can not support the express "+expression);
+        }
+
     }
 }

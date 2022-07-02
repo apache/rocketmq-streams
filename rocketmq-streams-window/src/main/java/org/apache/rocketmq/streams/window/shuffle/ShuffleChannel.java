@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.window.shuffle;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
@@ -27,9 +28,12 @@ import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
+import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -71,16 +75,21 @@ public class ShuffleChannel extends AbstractSystemChannel {
     protected static final String SHUFFLE_QUEUE_ID = "SHUFFLE_QUEUE_ID";
     public static final String SHUFFLE_OFFSET = "SHUFFLE_OFFSET";
     protected static final String SHUFFLE_MESSAGES = "SHUFFLE_MESSAGES";
-    protected String MSG_OWNER = "MSG_OWNER";//消息所属的window
+    /**
+     * 消息所属的window
+     */
+    protected String MSG_OWNER = "MSG_OWNER";
 
     private static final String SHUFFLE_TRACE_ID = "SHUFFLE_TRACE_ID";
 
     protected ShuffleCache shuffleCache;
 
-    protected Map<String, ISplit> queueMap = new ConcurrentHashMap<>();
-    protected List<ISplit> queueList;//所有的分片
+    protected Map<String, ISplit<?, ?>> queueMap = new ConcurrentHashMap<>();
+    /**
+     * 所有的分片
+     */
+    protected List<ISplit<?, ?>> queueList;
 
-    // protected NotifyChannel notfiyChannel;//负责做分片的通知管理
     protected AbstractShuffleWindow window;
 
     protected transient boolean isWindowTest = false;
@@ -109,32 +118,19 @@ public class ShuffleChannel extends AbstractSystemChannel {
         if (hasStart.compareAndSet(false, true)) {
             super.startChannel();
         }
-
     }
 
     /**
      * init shuffle channel
      */
     public void init() {
-        this.consumer = createSource(window.getNameSpace(), window.getConfigureName());
-
-        this.producer = createSink(window.getNameSpace(), window.getConfigureName());
-        if (this.consumer == null || this.producer == null) {
-            autoCreateShuffleChannel(window.getFireReceiver().getPipeline());
-        }
-        if (this.consumer == null) {
-            return;
-        }
-        if (this.consumer instanceof AbstractSource) {
-            ((AbstractSource) this.consumer).setJsonData(true);
-        }
+        init(this.window);
         if (producer != null && (queueList == null || queueList.size() == 0)) {
             queueList = producer.getSplitList();
-            Map<String, ISplit> tmp = new ConcurrentHashMap<>();
-            for (ISplit queue : queueList) {
+            Map<String, ISplit<?, ?>> tmp = new ConcurrentHashMap<>();
+            for (ISplit<?, ?> queue : queueList) {
                 tmp.put(queue.getQueueId(), queue);
             }
-
             this.queueMap = tmp;
         }
 //        isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
@@ -179,7 +175,6 @@ public class ShuffleChannel extends AbstractSystemChannel {
         if (!StringUtil.isEmpty(traceId)) {
             TraceUtil.debug(traceId, "shuffle message in", "received message size:" + messages.size());
         }
-
         for (Object obj : messages) {
             IMessage message = new Message((JSONObject) obj);
             message.getHeader().setQueueId(queueId);
@@ -306,12 +301,12 @@ public class ShuffleChannel extends AbstractSystemChannel {
     }
 
     @Override
-    protected void putDynamicPropertyValue(Set<String> dynamiPropertySet, Properties properties) {
+    protected void putDynamicPropertyValue(Set<String> dynamicPropertySet, Properties properties) {
         String groupName = "groupName";
-        if (!dynamiPropertySet.contains(groupName)) {
+        if (!dynamicPropertySet.contains(groupName)) {
             properties.put(groupName, getDynamicPropertyValue());
         }
-        if (!dynamiPropertySet.contains("tags")) {
+        if (!dynamicPropertySet.contains("tags")) {
             properties.put("tags", getDynamicPropertyValue());
         }
     }
@@ -468,7 +463,7 @@ public class ShuffleChannel extends AbstractSystemChannel {
     }
 
 
-    public List<ISplit> getQueueList() {
+    public List<ISplit<?, ?>> getQueueList() {
         return queueList;
     }
 

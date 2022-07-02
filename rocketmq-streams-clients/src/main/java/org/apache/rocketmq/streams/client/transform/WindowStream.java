@@ -17,14 +17,36 @@
 
 package org.apache.rocketmq.streams.client.transform;
 
+import com.alibaba.fastjson.JSONObject;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import javafx.util.Pair;
 import org.apache.rocketmq.streams.client.transform.window.Time;
+import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
+import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.functions.ReduceFunction;
+import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
+import org.apache.rocketmq.streams.common.utils.Base64Utils;
+import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
+import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.apache.rocketmq.streams.script.service.udf.SimpleUDAFScript;
+import org.apache.rocketmq.streams.script.service.udf.UDAFScript;
+import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 /**
@@ -90,10 +112,13 @@ public class WindowStream {
      * @return
      */
     public WindowStream count_distinct(String fieldName, String asName) {
-        String distinctName = "__" + fieldName + "_distinct_" + asName + "__";
-        String prefix = distinctName + "=distinct(" + fieldName + ")";
-        String suffix = asName + "=count(" + distinctName + ")";
-        window.getSelectMap().put(asName, prefix + ";" + suffix);
+        return count_distinct_2(fieldName,asName);
+    }
+
+    public WindowStream addUDAF(IAccumulator accumulator, String asName,String... fieldNames) {
+        AggregationScript.registUDAF(accumulator.getClass().getSimpleName(),accumulator.getClass());
+        String prefix = asName + "="+accumulator.getClass().getSimpleName()+"(" + MapKeyUtil.createKeyBySign(",",fieldNames)+")";
+        window.getSelectMap().put(asName,prefix);
         return this;
     }
 
@@ -102,6 +127,23 @@ public class WindowStream {
         String prefix = distinctName + "=distinct2(" + fieldName + ",HIT_WINDOW_INSTANCE_ID,SHUFFLE_KEY)";
         String suffix = asName + "=count(" + distinctName + ")";
         window.getSelectMap().put(asName, prefix + ";" + suffix);
+        return this;
+    }
+
+    public WindowStream saveWindowMsg(MapFunction<JSONObject, Pair<WindowInstance, JSONObject>> mapFunction ,String sinkType, Properties properties) {
+        ServiceLoaderComponent<?> serviceLoaderComponent = ComponentCreator.getComponent(IChannelBuilder.class.getName(), ServiceLoaderComponent.class);
+        IChannelBuilder builder = (IChannelBuilder) serviceLoaderComponent.loadService(sinkType.toLowerCase());
+
+        if (builder == null) {
+            throw new RuntimeException(
+                "expect channel creator for " + sinkType+ ". but not found");
+        }
+        ISink<?> sink= builder.createSink(pipelineBuilder.getPipelineNameSpace(), window.getConfigureName(), properties, null);
+        this.pipelineBuilder.addConfigurables(sink);
+        this.window.setContextMsgSinkName(sink.getConfigureName());
+        byte[] bytes=InstantiationUtil.serializeObject(mapFunction);
+        String mapFunctionStr = Base64Utils.encode(bytes);
+        this.window.setMapFunctionSerializeValue(mapFunctionStr);
         return this;
     }
 

@@ -32,7 +32,7 @@ import org.apache.rocketmq.streams.client.strategy.Strategy;
 import org.apache.rocketmq.streams.client.transform.window.WindowInfo;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSink;
-import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -54,6 +54,8 @@ import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.model.Union;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
+import org.apache.rocketmq.streams.common.topology.stages.ShuffleConsumerChainStage;
+import org.apache.rocketmq.streams.common.topology.stages.ShuffleProducerChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.StageBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.UDFChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.UDFUnionChainStage;
@@ -96,6 +98,25 @@ public class DataStream implements Serializable {
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
     }
+
+
+    public DataStream increaseConcurrencyByShuffle(int shuffleConcurrentCount){
+        if(this.mainPipelineBuilder.getPipeline().getChannelNextStageLabel().size()>0||currentChainStage!=null){
+            throw new RuntimeException("can only set after source");
+        }
+        ChainStage<?> stage = new ShuffleProducerChainStage();
+        ((ShuffleProducerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(),this.mainPipelineBuilder.getPipelineName(),this.mainPipelineBuilder.getPipeline().getChannelName()));
+        ((ShuffleProducerChainStage) stage).setSplitCount(shuffleConcurrentCount);
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+
+        this.currentChainStage = stage;
+
+        stage = new ShuffleConsumerChainStage<>();
+        ((ShuffleConsumerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(),this.mainPipelineBuilder.getPipelineName(),this.mainPipelineBuilder.getPipeline().getChannelName()));
+        this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
+    }
+
 
     public DataStream with(Strategy... strategies) {
         Properties properties = new Properties();
@@ -177,11 +198,11 @@ public class DataStream implements Serializable {
                     } else {
                         List<IMessage> splitMessages = new ArrayList<>();
                         for (T t : result) {
-                            Message subMessage = null;
+                            Message subMessage = message.deepCopy();
                             if (t instanceof JSONObject) {
-                                subMessage = new Message((JSONObject) t);
+                                subMessage.setMessageBody((JSONObject) t);
                             } else {
-                                subMessage = new Message(new UserDefinedMessage(t));
+                                subMessage.setMessageBody(new UserDefinedMessage(t));
                             }
                             splitMessages.add(subMessage);
                         }
@@ -361,7 +382,7 @@ public class DataStream implements Serializable {
             @Override
             protected <T> T operate(IMessage message, AbstractContext context) {
                 String labelName = splitFunction.split(message.getMessageValue());
-                message.getHeader().addRouteLable(labelName);
+                message.getHeader().addRouteLabel(labelName);
                 return null;
             }
         };
@@ -542,6 +563,13 @@ public class DataStream implements Serializable {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
+//    public DataStream toKafka(String bootstrapServers, String topic) {
+//        KafkaSink kafkaSink = new KafkaSink(bootstrapServers, topic);
+//        ChainStage<?> output = this.mainPipelineBuilder.createStage(kafkaSink);
+//        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
+//        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
+//    }
+
     public DataStream toEnhanceDBSink(String url, String userName, String password, String tableName) {
         EnhanceDBSink sink = new EnhanceDBSink(url, userName, password, tableName);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
@@ -570,7 +598,7 @@ public class DataStream implements Serializable {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-    public DataStream to(ISink<?> sink) {
+    public DataStream to(AbstractSink sink) {
         ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
@@ -620,7 +648,6 @@ public class DataStream implements Serializable {
                     }
                 });
                 thread.start();
-
             }
         } else {
             pipeline.startChannel();
