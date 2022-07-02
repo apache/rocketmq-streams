@@ -90,7 +90,7 @@
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
         <commons-collections.version>3.2.2</commons-collections.version>
         <commons-lang.version>2.5</commons-lang.version>
-        <elasticsearch.version>7.4.0</elasticsearch.version>
+        <elasticsearch.version>7.14.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>
         <paho.version>1.2.2</paho.version>
         <kryo.version>5.3.0</kryo.version>
