@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams</artifactId>
-        <version>1.0.3-preview-SNAPSHOT</version>
+        <version>1.0.2-preview-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

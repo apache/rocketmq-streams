@@ -31,9 +31,7 @@ import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.functions.ForEachFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
-import org.apache.rocketmq.streams.common.functions.ReduceFunction;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.script.service.IAccumulator;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,7 +50,7 @@ public class WindowTest implements Serializable {
             .count("total")
             .sum("OutFlow", "OutFlow")
             .sum("InFlow", "InFlow")
-            .toDataSteam()
+            .toDataStream()
             .forEach(new ForEachFunction<JSONObject>() {
                 protected int sum = 0;
 
