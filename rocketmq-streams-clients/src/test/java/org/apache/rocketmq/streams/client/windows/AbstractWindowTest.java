@@ -75,7 +75,7 @@ public abstract class AbstractWindowTest implements Serializable {
             .setTimeField("time")
             .sum("total", "sum_total")
             .setLocalStorageOnly(isLocalOnly)
-            .toDataSteam()
+            .toDataStream()
             .forEach(new ForEachFunction<JSONObject>() {
                 AtomicInteger sum = new AtomicInteger(0);
                 Map<String, Integer> map = new HashMap<>();
@@ -144,7 +144,7 @@ public abstract class AbstractWindowTest implements Serializable {
             .count("total")
             .sum("OutFlow", "OutFlow")
             .sum("InFlow", "inflow")
-            .toDataSteam()
+            .toDataStream()
             .forEach(new ForEachFunction<JSONObject>() {
                 AtomicInteger sum = new AtomicInteger(0);
 

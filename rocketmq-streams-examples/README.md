@@ -2,22 +2,63 @@
 
 
 ### 1、File source example
-逐行读取文件数据，并打印出来。
+
+#### 1.1 从`scores.txt`逐行读取文件数据
+
+根据分数`score`字段筛选，输出每人大于90分的科目
+
 ```java
 public class FileSourceExample {
     public static void main(String[] args) {
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
-        source.fromFile("data.txt", false)
+        try {
+            Thread.sleep(1000 * 3);
+        } catch (InterruptedException e) {
+        }
+        System.out.println("begin streams code.");
+
+        source.fromFile("scores.txt", true)
                 .map(message -> message)
-                .toPrint(1)
+                .filter(message -> ((JSONObject) message).getInteger("score") > 90)
+                .selectFields("name", "subject")
+                .toFile("./rocketmq-streams-examples/src/main/resources/result.txt")
                 .start();
+
     }
 }
 
 ```
+
+
 #### 1.2 代码示例
 
-[代码示例 ProducerFromFile.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/aggregate/ProducerFromFile.java)
+[代码示例 ProducerFromFile.java](./../rocketmq-streams-examples/src/main/java/org/apache/rocketmq/streams/examples/source/FileSourceExample.java)
+
+#### 1.3 源数据
+
+[源数据 scores.txt](./../rocketmq-streams-examples/src/main/resources/scores.txt)
+
+```text
+{"name":"张三","class":"3","subject":"数学","score":90}
+{"name":"张三","class":"3","subject":"历史","score":81}
+{"name":"张三","class":"3","subject":"英语","score":91}
+{"name":"张三","class":"3","subject":"语文","score":70}
+{"name":"张三","class":"3","subject":"政治","score":84}
+{"name":"张三","class":"3","subject":"地理","score":99}
+{"name":"李四","class":"3","subject":"数学","score":76}
+{"name":"李四","class":"3","subject":"历史","score":83}
+{"name":"李四","class":"3","subject":"英语","score":82}
+{"name":"李四","class":"3","subject":"语文","score":92}
+{"name":"李四","class":"3","subject":"政治","score":97}
+{"name":"李四","class":"3","subject":"地理","score":89}
+{"name":"王五","class":"3","subject":"数学","score":86}
+{"name":"王五","class":"3","subject":"历史","score":88}
+{"name":"王五","class":"3","subject":"英语","score":86}
+{"name":"王五","class":"3","subject":"语文","score":93}
+{"name":"王五","class":"3","subject":"政治","score":99}
+{"name":"王五","class":"3","subject":"地理","score":88}
+
+```
 
 
 ### 2、分时间段，统计分组中某字段的和

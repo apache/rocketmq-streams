@@ -25,9 +25,12 @@ import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.examples.send.ProducerFromFile;
 
+/**
+ * 消费 rocketmq 中的数据，10s一个窗口，并按照 ProjectName 和 LogStore 两个字段联合分组统计，两个字段的值相同，分为一组。
+ *
+ * 分别统计每组的InFlow和OutFlow两字段累计和。
+ */
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
-import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class RocketMQWindowExample {
 
@@ -36,7 +39,8 @@ public class RocketMQWindowExample {
      * 2、rocketmq allow create topic automatically.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC, true);
+
+        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, "windowTopic", true);
 
         try {
             Thread.sleep(1000 * 3);
@@ -46,8 +50,8 @@ public class RocketMQWindowExample {
 
         DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
         source.fromRocketmq(
-                RMQ_TOPIC,
-                RMQ_CONSUMER_GROUP_NAME,
+                "windowTopic",
+                "windowTopicGroup",
                 false,
                 NAMESRV_ADDRESS)
                 .filter((message) -> {
@@ -67,8 +71,8 @@ public class RocketMQWindowExample {
                 .sum("InFlow", "InFlow")
                 .count("total")
                 .waterMark(2)
-                .setLocalStorageOnly(false)
-                .toDataSteam()
+                .setLocalStorageOnly(true)
+                .toDataStream()
                 .toPrint(1)
                 .with(WindowStrategy.highPerformance())
                 .start();

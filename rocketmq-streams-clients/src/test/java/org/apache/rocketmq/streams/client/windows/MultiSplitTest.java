@@ -32,7 +32,7 @@ public class MultiSplitTest extends SingleSplitTest {
     protected DataStream createSourceDataStream() {
 
         return StreamBuilder.dataStream("namespace", "name1")
-            .fromRocketmq(topic, "window_test", true, null);
+            .fromRocketmq(topic, "window_test", true, null, null);
     }
 
     protected int getSourceCount() {

@@ -300,7 +300,7 @@ public class WindowStream {
         return new DataStream(pipelineBuilder, otherPipelineBuilders, currentChainStage);
     }
 
-    public DataStream toDataSteam() {
+    public DataStream toDataStream() {
         return new DataStream(pipelineBuilder, otherPipelineBuilders, currentChainStage);
     }
 }
