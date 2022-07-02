@@ -35,5 +35,10 @@
             <artifactId>rocketmq-streams-commons</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
+        </dependency>
+
     </dependencies>
 </project>
