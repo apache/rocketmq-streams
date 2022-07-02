@@ -51,10 +51,6 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-client</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-streams-commons</artifactId>
-        </dependency>
     </dependencies>
     <packaging>jar</packaging>
 
