@@ -24,6 +24,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.util.HashMap;
+import org.nustaq.serialization.FSTConfiguration;
 
 /**
  * 因为匿名类，不能很好的序列化，目前用java的序列化框架，单写一个序列化方法实现
@@ -31,6 +32,7 @@ import java.util.HashMap;
  * @return
  */
 public class InstantiationUtil {
+    private static FSTConfiguration conf = FSTConfiguration.createAndroidDefaultConfiguration();
 
     /**
      * 因为匿名类，不能很好的序列化，目前用java的序列化框架，单写一个序列化方法实现
@@ -38,14 +40,15 @@ public class InstantiationUtil {
      * @return
      */
     public static byte[] serializeObject(Object o) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             ObjectOutputStream oos = new ObjectOutputStream(baos)) {
-            oos.writeObject(o);
-            oos.flush();
-            return baos.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("serializeAnonymousObject error  ", e);
-        }
+       return conf.asByteArray(o);
+//        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//             ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+//            oos.writeObject(o);
+//            oos.flush();
+//            return baos.toByteArray();
+//        } catch (IOException e) {
+//            throw new RuntimeException("serializeAnonymousObject error  ", e);
+//        }
     }
 
     /**
@@ -58,20 +61,21 @@ public class InstantiationUtil {
      * @throws ClassNotFoundException
      */
     public static <T> T deserializeObject(byte[] bytes) {
-
-        final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        try {
-            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-            ObjectInputStream oois = new ClassLoaderObjectInputStream(in, classLoader);
-            Thread.currentThread().setContextClassLoader(classLoader);
-            return (T)oois.readObject();
-        } catch (IOException e) {
-            throw new RuntimeException("serializeAnonymousObject error  ", e);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("serializeAnonymousObject error  ", e);
-        } finally {
-            Thread.currentThread().setContextClassLoader(classLoader);
-        }
+        return (T)conf.asObject(bytes);
+//
+//        final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+//        try {
+//            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+//            ObjectInputStream oois = new ClassLoaderObjectInputStream(in, classLoader);
+//            Thread.currentThread().setContextClassLoader(classLoader);
+//            return (T)oois.readObject();
+//        } catch (IOException e) {
+//            throw new RuntimeException("serializeAnonymousObject error  ", e);
+//        } catch (ClassNotFoundException e) {
+//            throw new RuntimeException("serializeAnonymousObject error  ", e);
+//        } finally {
+//            Thread.currentThread().setContextClassLoader(classLoader);
+//        }
     }
 
     public static class ClassLoaderObjectInputStream extends ObjectInputStream {

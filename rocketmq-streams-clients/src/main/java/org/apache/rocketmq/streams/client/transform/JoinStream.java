@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -188,7 +189,7 @@ public class JoinStream {
 
     public static String createName(String functionName, String... names) {
         if (names == null || names.length == 0) {
-            return NameCreator.createNewName(INNER_VAR_NAME_PREFIX, functionName);
+            return NameCreatorContext.get().createNewName(INNER_VAR_NAME_PREFIX, functionName);
         }
         String[] values = new String[names.length + 2];
         values[0] = INNER_VAR_NAME_PREFIX;
@@ -196,6 +197,6 @@ public class JoinStream {
         for (int i = 2; i < values.length; i++) {
             values[i] = names[i - 2];
         }
-        return NameCreator.createNewName(values);
+        return NameCreatorContext.get().createNewName(values);
     }
 }

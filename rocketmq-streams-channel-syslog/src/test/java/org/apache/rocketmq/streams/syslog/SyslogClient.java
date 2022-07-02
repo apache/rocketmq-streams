@@ -36,27 +36,35 @@ public class SyslogClient {
         syslogChannel.start(new IStreamOperator() {
             @Override
             public Object doMessage(IMessage message, AbstractContext context) {
-                System.out.println(message.getMessageBody());
+                if(!message.getHeader().isSystemMessage()){
+                    System.out.println(message.getMessageBody());
+                }
                 return null;
             }
         });
-        addData(syslogChannel);
+        System.out.println("start.....");
+        Thread.sleep(3000);
+        sendTestData();
         Thread.sleep(1000000000l);
     }
 
-    private void addData(IChannel channel) {
+
+    @Test
+    public void sendTestData() throws InterruptedException {
+        IChannel channel=createSyslogChannel();
         JSONObject msg = new JSONObject();
         msg.put("name", "chris");
-        //msg.put("host",IPUtil.getLocalIP());
+        msg.put("host",IPUtil.getLocalIP());
         channel.batchAdd(new Message(msg));
         channel.flush();
+        Thread.sleep(3000);
     }
 
     private SyslogChannel createSyslogChannel() {
-        SyslogChannel syslogChannel = new SyslogChannel();
-        syslogChannel.setUDPProtol();
+        SyslogChannel syslogChannel = new SyslogChannel(IPUtil.getLocalIP(),SyslogChannelManager.tcpPort);
+        syslogChannel.setTCPProtol();
         syslogChannel.addIps(IPUtil.getLocalIP());
-        syslogChannel.setServerIp("11.158.144.159");
+        System.out.println(IPUtil.getLocalIP());
         syslogChannel.init();
         return syslogChannel;
     }

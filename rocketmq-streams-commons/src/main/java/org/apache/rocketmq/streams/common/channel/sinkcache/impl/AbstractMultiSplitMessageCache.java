@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> {
     protected ConcurrentHashMap<String, MessageCache<IMessage>> queueMessageCaches = new ConcurrentHashMap();
@@ -38,9 +39,9 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
     public AbstractMultiSplitMessageCache(
         IMessageFlushCallBack<R> flushCallBack) {
         super(null);
-        this.executorService = new ThreadPoolExecutor(10, 10,
-            0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>());
+//        this.executorService = new ThreadPoolExecutor(10, 10,
+//            0L, TimeUnit.MILLISECONDS,
+//            new LinkedBlockingQueue<Runnable>());
         this.flushCallBack = new MessageFlushCallBack(flushCallBack);
     }
 
@@ -52,7 +53,7 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
             synchronized (this) {
                 messageCache = queueMessageCaches.get(queueId);
                 if (messageCache == null) {
-                    messageCache = new MessageCache(flushCallBack);
+                    messageCache = createMessageCache();
                     messageCache.setAutoFlushSize(this.autoFlushSize);
                     messageCache.setAutoFlushTimeGap(this.autoFlushTimeGap);
                     messageCache.setBatchSize(batchSize);
@@ -77,6 +78,10 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
         return size;
     }
 
+    protected MessageCache createMessageCache(){
+       return new MessageCache(flushCallBack);
+    }
+
     protected abstract String createSplitId(R msg);
 
     @Override
@@ -98,7 +103,11 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
             return 0;
         }
         if (splitIds.size() == 1) {
-            IMessageCache cache = queueMessageCaches.get(splitIds.iterator().next());
+            String spiltId = splitIds.iterator().next();
+            if(StringUtil.isEmpty(spiltId)){
+                return 0;
+            }
+            IMessageCache cache = queueMessageCaches.get(spiltId);
             if (cache == null) {
                 return 0;
             }
@@ -108,6 +117,9 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
         }
         CountDownLatch countDownLatch = new CountDownLatch(splitIds.size());
         for (String splitId : splitIds) {
+            if(StringUtil.isEmpty(splitId)){
+                continue;
+            }
             executorService.execute(new Runnable() {
                 @Override public void run() {
                     IMessageCache cache = queueMessageCaches.get(splitId);

@@ -30,7 +30,7 @@ public class UserDefinedSupportShuffleSink extends AbstractSupportShuffleUDFSink
 
     }
 
-    @Override public List<ISplit> getSplitList() {
+    @Override public List<ISplit<?, ?>> getSplitList() {
         return null;
     }
 
@@ -38,7 +38,7 @@ public class UserDefinedSupportShuffleSink extends AbstractSupportShuffleUDFSink
 
     }
 
-    @Override protected void sendMessage2Store(ISplit split, List<IMessage> messageList) {
+    @Override protected void sendMessage2Store(ISplit<?, ?> split, List<IMessage> messageList) {
 
     }
 }

@@ -29,6 +29,7 @@ import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IWindow;
 
@@ -78,7 +79,9 @@ public abstract class AbstractWindowStage<T extends IMessage> extends ChainStage
     @Override
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         window = configurableService.queryConfigurable(IWindow.TYPE, windowName);
-        window.setFireReceiver(getReceiverAfterCurrentNode());
+        if (((ChainPipeline)getPipeline()).isTopology()) {
+            window.setFireReceiver(getReceiverAfterCurrentNode());
+        }
         if (Boolean.TRUE.equals(Boolean.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_RUNNING_STATUS, ConfigureFileKey.DIPPER_RUNNING_STATUS_DEFAULT)))) {
             window.windowInit();
         }

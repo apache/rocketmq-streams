@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.filter.operator.expression;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 
 public class ExpressionRelationParser {
     public static final String OR = "|";
@@ -59,7 +60,7 @@ public class ExpressionRelationParser {
      * @return
      */
     private static RelationExpression createMixRelation(String namespace, String ruleName, String str,
-                                                        List<RelationExpression> groupList) {
+        List<RelationExpression> groupList) {
         if (str.indexOf(OR) == -1) {
             return createSignleRelation(namespace, ruleName, str, AND, groupList);
         }
@@ -83,9 +84,8 @@ public class ExpressionRelationParser {
      * @param sign
      * @return
      */
-    private static RelationExpression createSignleRelation(String namespace, String ruleName, String str, String sign,
-                                                           List<RelationExpression> groupList) {
-        NameCreator nameCreator = NameCreator.createOrGet(ruleName);
+    private static RelationExpression createSignleRelation(String namespace, String ruleName, String str, String sign, List<RelationExpression> groupList) {
+        NameCreator nameCreator = NameCreatorContext.get().createOrGet(ruleName);
         String expressionName = nameCreator.createName(ruleName);
         RelationExpression relationExpression = new RelationExpression();
         relationExpression.setNameSpace(namespace);
@@ -99,7 +99,6 @@ public class ExpressionRelationParser {
             relationExpression.addExpression(value);
         }
         groupList.add(relationExpression);
-
         return relationExpression;
     }
 }

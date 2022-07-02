@@ -524,4 +524,12 @@ public class SessionOperator extends WindowOperator {
         }
         return numer;
     }
+
+    public int getSessionTimeOut() {
+        return sessionTimeOut;
+    }
+
+    public void setSessionTimeOut(int sessionTimeOut) {
+        this.sessionTimeOut = sessionTimeOut;
+    }
 }

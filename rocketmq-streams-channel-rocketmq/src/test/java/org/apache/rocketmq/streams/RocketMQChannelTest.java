@@ -66,7 +66,7 @@ public class RocketMQChannelTest extends AbstractChannelTest {
     @Test
     public void testGetSplit() {
         AbstractSupportShuffleSink sink = (AbstractSupportShuffleSink)createSink();
-        List<ISplit> splits = sink.getSplitList();
+        List<ISplit<?,?>> splits = sink.getSplitList();
         System.out.println(splits.size());
     }
 
