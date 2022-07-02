@@ -80,13 +80,6 @@
     DataStream dataStream=dataStreamSource.toRocketmq(topic,tags,groupName,namesrvAddress);
 
 ```
-## kafka
-```java
-    String bootstrapServers = ......;//kafka的bootstrap server
-    String topic = ......; //kafka的topic
-    DataStream dataStream = dataStream.toKafka(bootstrapServers, topic);
-```
-
 
 # MQTT协议
 
@@ -112,7 +105,7 @@
 
 ```
 
-## 自定义Sink
+## 自定义Source
 
 ````java
     dataStreamSource.to(new ISink<ISource>(){});

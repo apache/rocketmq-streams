@@ -59,34 +59,6 @@
 
 ```
 
-## kafka
-```java
-    String bootstrapServers = ......;//kafka的bootstrap server
-    String topic = ......; //kafka的topic
-    String groupName = ......; //kafka的消费组
-    Boolean isJsonData = true; //是否json
-    Integer maxThread = 1; //客户端线程数
-    DataStream dataStream = dataStreamSource.fromKafka(bootstrapServers, topic, groupName, isJsonData, maxThread);
-```
-或者
-```java
-    String bootstrapServers = ......;//kafka的bootstrap server
-    String topic = ......; //kafka的topic
-    String groupName = ......; //kafka的消费组
-    Boolean isJsonData = true; //是否json
-    DataStream dataStream = dataStreamSource.fromKafka(bootstrapServers, topic, groupName, isJsonData);
-```
-或者
-```java
-    String bootstrapServers = ......;//kafka的bootstrap server
-    String topic = ......; //kafka的topic
-    String groupName = ......; //kafka的消费组
-    DataStream dataStream = dataStreamSource.fromKafka(bootstrapServers, topic, groupName);
-```
-
-
-
-
 # MQTT协议
 ```java
 
