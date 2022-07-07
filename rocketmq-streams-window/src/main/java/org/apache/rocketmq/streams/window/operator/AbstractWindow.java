@@ -18,8 +18,8 @@ package org.apache.rocketmq.streams.window.operator;
 
 import com.alibaba.fastjson.JSONObject;
 
-import javafx.util.Pair;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
@@ -831,7 +831,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
                 for(IMessage message:messages){
                     JSONObject msg=message.getMessageBody();
                     try {
-                        msg=this.mapFunction.map(new Pair(windowInstance,msg));
+                        msg=this.mapFunction.map(Pair.of(windowInstance, msg));
                         Message copyMsg=new Message(msg);
                         copyMsg.getHeader().setQueueId(queueId);
                         copyMsg.getHeader().setOffset(message.getHeader().getOffset());
