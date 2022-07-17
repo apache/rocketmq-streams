@@ -29,10 +29,10 @@
     <packaging>jar</packaging>
     <dependencies>
 
-<!--        <dependency>-->
-<!--            <groupId>org.apache.rocketmq</groupId>-->
-<!--            <artifactId>rocketmq-streams-configurable</artifactId>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-configurable</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
