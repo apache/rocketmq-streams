@@ -31,7 +31,7 @@ import org.apache.rocketmq.streams.common.model.ServiceName;
 @ServiceName(value = CollectionSinkBuilder.TYPE)
 public class CollectionSinkBuilder implements IChannelBuilder {
 
-    public static final String TYPE = "collection";
+    public static final String TYPE = "CollectionSink";
 
     @Override
     public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
