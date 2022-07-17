@@ -24,7 +24,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-streams-commons</artifactId>
+            <artifactId>rocketmq-streams-configurable</artifactId>
         </dependency>
 
         <dependency>
