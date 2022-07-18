@@ -29,7 +29,6 @@
     <name>ROCKETMQ STREAMS :: serviceloader</name>
     <dependencies>
 
-        <!-- 测试依赖 -->
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-commons</artifactId>
