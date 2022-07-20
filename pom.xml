@@ -56,6 +56,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <base.shade.path>org.apache.rocketmq.streams.shaded</base.shade.path>
         <flink.version>1.13.0</flink.version>
         <scala.binary.version>2.11</scala.binary.version>
         <maven.test.skip>false</maven.test.skip>
@@ -195,24 +196,100 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.3.0</version>
-                <configuration>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+                            <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <minimizeJar>false</minimizeJar>
+                            <createSourcesJar>true</createSourcesJar>
+                            <!--这个表示会生成两个jar包，一个原始的，一个shade的-->
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadeSourcesContent>true</shadeSourcesContent>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.alibaba.fastjson</pattern>
+                                    <shadedPattern>${base.shade.path}.com.alibaba.fastjson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.gliwka.hyperscan</pattern>
+                                    <shadedPattern>${base.shade.path}.com.gliwka.hyperscan</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.sun.jna</pattern>
+                                    <shadedPattern>${base.shade.path}.com.sun.jna</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.springframework</pattern>
+                                    <shadedPattern>${base.shade.path}.org.springframework</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.krakens</pattern>
+                                    <shadedPattern>${base.shade.path}.io.krakens</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.codehaus.groovy</pattern>
+                                    <shadedPattern>${base.shade.path}.org.codehaus.groovy</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.python</pattern>
+                                    <shadedPattern>${base.shade.path}.org.python</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.http</pattern>
+                                    <shadedPattern>${base.shade.path}.org.apache.http</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.minio</pattern>
+                                    <shadedPattern>${base.shade.path}.io.minio</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.rocksdb</pattern>
+                                    <shadedPattern>${base.shade.path}.org.rocksdb</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.graylog2</pattern>
+                                    <shadedPattern>${base.shade.path}.org.graylog2</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.graylog2</pattern>
+                                    <shadedPattern>${base.shade.path}.org.graylog2</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.elasticsearch</pattern>
+                                    <shadedPattern>${base.shade.path}.org.elasticsearch</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.eclipse.paho</pattern>
+                                    <shadedPattern>${base.shade.path}.org.eclipse.paho</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.nustaq</pattern>
+                                    <shadedPattern>${base.shade.path}.org.nustaq</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.esotericsoftware</pattern>
+                                    <shadedPattern>${base.shade.path}.com.esotericsoftware</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>net.agkn</pattern>
+                                    <shadedPattern>${base.shade.path}.net.agkn</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.re2j</pattern>
+                                    <shadedPattern>${base.shade.path}.com.google.re2j</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons</pattern>
+                                    <shadedPattern>${base.shade.path}.org.apache.commons</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
