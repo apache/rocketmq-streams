@@ -16,24 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.calssscaner;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.classloader.IsolationClassLoader;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+
+import java.io.*;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 public abstract class AbstractScan {
 
@@ -42,6 +36,14 @@ public abstract class AbstractScan {
     private static final String CLASS_REAR = ".class";
 
     protected Set<String> scanDirs = new HashSet<>();
+
+    protected String decodeUrl(String path) {
+        try {
+            return URLDecoder.decode(path, "UTF-8");
+        } catch (Exception e) {
+            return path;
+        }
+    }
 
     public void scanJarsFromDir(String dir, String packageName) {
         IsolationClassLoader classLoader = new IsolationClassLoader(dir);
@@ -197,10 +199,6 @@ public abstract class AbstractScan {
         } catch (Exception e) {
             LOG.error("ScanFunctionService scanClassInJar error", e);
         }
-
-        // jar:file:/Users/yuanxiaodong/alibaba/rule-engine-feature/5/rules-engine/engine/target/ruleengine
-        // .jar!/com/aliyun/filter/function/expression
-
         String jarUrl = url.toString().replace("jar:file:", "");
         int index = jarUrl.indexOf("!/");
         String packageName = createPackageName(dirName);
@@ -209,21 +207,29 @@ public abstract class AbstractScan {
 
     }
 
-    protected void scanClassInJar(String jarPath, String packageName, ClassLoader classLoader, String functionName) {
+    protected void scanClassInJar(String jarDir, String packageName, ClassLoader classLoader, String functionName) {
         try {
+            String jarPath = decodeUrl(jarDir);
             if (classLoader == null) {
                 classLoader = this.getClass().getClassLoader();
             }
             JarFile jarFile = new JarFile(jarPath);
             Enumeration<JarEntry> entries = jarFile.entries();
-
             while (entries.hasMoreElements()) {
                 String className = entries.nextElement().getName().replace("/", ".");
-                if (className.startsWith(packageName) && className.endsWith(".class")) {
+                if (functionName != null) {
+                    className = className.replace(CLASS_REAR, "");
+                    if (className.equals(packageName)) {
+                        doRegisterFunction(functionName, className, classLoader);
+                    } else {
+                        if (className.contains("$") && className.startsWith(packageName)) {
+                            doRegisterFunction(functionName, className, classLoader);
+                        }
+                    }
+                } else if (className.startsWith(packageName) && className.endsWith(".class")) {
                     className = className.replace(CLASS_REAR, "");
                     doRegisterFunction(functionName, className, classLoader);
                 }
-
             }
         } catch (Exception e) {
             LOG.error("ScanFunctionService scanClassInJar JarFile error", e);
@@ -231,7 +237,6 @@ public abstract class AbstractScan {
     }
 
     protected void scanClassInDir(String dirName) {
-
         InputStream in = this.getClass().getResourceAsStream(dirName);
         if (in == null) {
             return;
