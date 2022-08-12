@@ -60,9 +60,9 @@ public abstract class FileBasedTable extends AbstractMemoryTable {
                 String fieldName = tableSchema.getField(i);
                 String fieldType = tableSchema.getFieldType(i);
                 DataType dataType = DataTypeUtil.getDataType(fieldType);
-                cloumnName2Index.put(fieldName, i);
-                index2ColumnName.put(i, fieldName);
-                cloumnName2DatatType.put(fieldName, dataType);
+                column2Index.put(fieldName, i);
+                index2Column.put(i, fieldName);
+                column2DataType.put(fieldName, dataType);
             }
         }
 

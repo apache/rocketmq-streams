@@ -95,6 +95,11 @@ public class PipelineBuilder implements Serializable {
 
     protected StageGroup parentStageGroup;
 
+    /**
+     * 设置这个值后，后面的所有逻辑都不再继续
+     */
+    protected boolean isBreak = false;
+
     public PipelineBuilder(String namespace, String pipelineName) {
         pipeline.setNameSpace(namespace);
         pipeline.setConfigureName(pipelineName);
@@ -180,6 +185,10 @@ public class PipelineBuilder implements Serializable {
      * @return
      */
     public OutputChainStage<?> addOutput(ISink<?> sink) {
+        if (isBreak) {
+            return null;
+        }
+
         OutputChainStage<?> outputChainStage = new OutputChainStage<>();;
         if(ViewSink.class.isInstance(sink)){
 
@@ -200,6 +209,9 @@ public class PipelineBuilder implements Serializable {
      * @param configurable
      */
     public void addNameList(IConfigurable configurable) {
+        if (isBreak) {
+            return;
+        }
         addConfigurables(configurable);
     }
 
@@ -209,6 +221,9 @@ public class PipelineBuilder implements Serializable {
      * @param stageChainBuilder
      */
     public ChainStage<?> addChainStage(IStageBuilder<ChainStage> stageChainBuilder) {
+        if (isBreak) {
+            return null;
+        }
        return createStage(stageChainBuilder);
     }
 
@@ -226,6 +241,10 @@ public class PipelineBuilder implements Serializable {
      * 保存中间产生的结果
      */
     public void addConfigurables(IConfigurable configurable) {
+        if (isBreak) {
+            return;
+        }
+
         if (configurable != null) {
             if (StringUtil.isEmpty(configurable.getNameSpace())) {
                 configurable.setNameSpace(getPipelineNameSpace());
@@ -244,6 +263,9 @@ public class PipelineBuilder implements Serializable {
     }
 
     public void addConfigurables(Collection<? extends IConfigurable> configurables) {
+        if (isBreak) {
+            return;
+        }
 
         if (configurables != null) {
             for (IConfigurable configurable : configurables) {
@@ -258,6 +280,10 @@ public class PipelineBuilder implements Serializable {
      * @param nextStages
      */
     public void setTopologyStages(ChainStage<?> currentChainStage, List<ChainStage> nextStages) {
+        if (isBreak) {
+            return;
+        }
+
         if (nextStages == null) {
             return;
         }
@@ -282,6 +308,10 @@ public class PipelineBuilder implements Serializable {
      * @param nextStage
      */
     public void setTopologyStages(ChainStage<?> currentChainStage, ChainStage<?> nextStage) {
+        if (isBreak) {
+            return;
+        }
+
         List<ChainStage> stages = new ArrayList<>();
         stages.add(nextStage);
         setTopologyStages(currentChainStage, stages);
@@ -300,9 +330,9 @@ public class PipelineBuilder implements Serializable {
     }
 
     public void setHorizontalStages(ChainStage<?> stage) {
-//        if (isBreak) {
-//            return;
-//        }
+        if (isBreak) {
+            return;
+        }
         List<ChainStage<?>> stages = new ArrayList<>();
         stages.add(stage);
         setHorizontalStages(stages);
@@ -314,6 +344,10 @@ public class PipelineBuilder implements Serializable {
      * @param stages
      */
     public void setHorizontalStages(List<ChainStage<?>> stages) {
+        if (isBreak) {
+            return;
+        }
+
         if (stages == null) {
             return;
         }
@@ -426,5 +460,13 @@ public class PipelineBuilder implements Serializable {
 
     public void setParentStageGroup(StageGroup parentStageGroup) {
         this.parentStageGroup = parentStageGroup;
+    }
+
+    public boolean isBreak() {
+        return isBreak;
+    }
+
+    public void setBreak(boolean aBreak) {
+        isBreak = aBreak;
     }
 }
