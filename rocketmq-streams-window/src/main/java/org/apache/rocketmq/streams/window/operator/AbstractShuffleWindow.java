@@ -20,6 +20,8 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.shuffle.ShuffleChannel;
 import org.apache.rocketmq.streams.window.storage.rocketmq.DefaultStorage;
@@ -36,7 +38,6 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
 
-
     @Override
     protected boolean initConfigurable() {
         return super.initConfigurable();
@@ -44,17 +45,6 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     public void windowInit() {
-        if (hasCreated.compareAndSet(false, true)) {
-            this.windowFireSource = new WindowTrigger(this);
-            this.windowFireSource.init();
-            this.windowFireSource.start(getFireReceiver());
-            this.shuffleChannel = new ShuffleChannel(this);
-            this.shuffleChannel.init();
-            windowCache.setBatchSize(5000);
-            windowCache.setShuffleChannel(shuffleChannel);
-
-            initStorage();
-        }
     }
 
     private void initStorage() {
@@ -71,12 +61,28 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
         RocksdbStorage rocksdbStorage = new RocksdbStorage();
         this.storage = new DefaultStorage(stateTopic, groupId, namesrvAddr,
-                                            size, isLocalStorageOnly, rocksdbStorage);
+                size, isLocalStorageOnly, rocksdbStorage);
     }
 
     @Override
     public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
-        shuffleChannel.startChannel();
+        if (!hasCreated.get() || windowCache == null) {
+            synchronized (this) {
+                if (!hasCreated.get() || windowCache == null) {
+                    this.windowFireSource = new WindowTrigger(this);
+                    this.windowFireSource.init();
+                    this.windowFireSource.start(getFireReceiver());
+                    this.shuffleChannel = new ShuffleChannel(this);
+                    this.shuffleChannel.init();
+                    windowCache.setBatchSize(100);
+                    windowCache.setShuffleChannel(shuffleChannel);
+                    shuffleChannel.startChannel();
+
+                    initStorage();
+                    hasCreated.set(true);
+                }
+            }
+        }
         return super.doMessage(message, context);
     }
 
@@ -94,6 +100,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
      *
      * @param messages
      * @param instance
+     * @param queueId
      */
     public abstract void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId);
 

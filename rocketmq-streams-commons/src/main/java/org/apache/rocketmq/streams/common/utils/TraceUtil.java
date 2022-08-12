@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 
 public class TraceUtil {
 
@@ -93,18 +93,12 @@ public class TraceUtil {
      * @return
      */
     public static boolean hit(String traceId) {
-//        String type = ComponentCreator.getProperties().getProperty("dipper.trace.service.switch");
-//        if (!RUNNING_MODE.equals(type)) {
-//            return false;
-//        }
-//        for (String white : whiteSet) {
-//            if (traceId.startsWith(white)) {
-//                return true;
-//            }
-//        }
-//
-//        return false;
-        return true;
+        for (String white : whiteSet) {
+            if (traceId.startsWith(white)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String envelope(String traceId, String[] messages) {
