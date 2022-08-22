@@ -35,6 +35,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
     private static final String PREFIX = "windowStates";
     protected transient ShuffleChannel shuffleChannel;
     protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
+    protected transient AtomicBoolean hasInitStorage = new AtomicBoolean(false);
 
     @Override
     protected boolean initConfigurable() {
@@ -43,15 +44,7 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
 
     @Override
     public void windowInit() {
-        if (hasCreated.compareAndSet(false, true)) {
-            this.windowFireSource = new WindowTrigger(this);
-            this.windowFireSource.init();
-            this.windowFireSource.start(getFireReceiver());
-            this.shuffleChannel = new ShuffleChannel(this);
-            this.shuffleChannel.init();
-            windowCache.setBatchSize(5000);
-            windowCache.setShuffleChannel(shuffleChannel);
-
+        if (hasInitStorage.compareAndSet(false, true)) {
             initStorage();
         }
     }
@@ -66,16 +59,27 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
         String stateTopic = createStateTopic(PREFIX, sourceTopic);
         String groupId = createStr(PREFIX);
 
-        int size = this.shuffleChannel.getQueueList().size();
-
         RocksdbStorage rocksdbStorage = new RocksdbStorage();
-        this.storage = new DefaultStorage(stateTopic, groupId, namesrvAddr,
-                                            size, isLocalStorageOnly, rocksdbStorage);
+        this.storage = new DefaultStorage(stateTopic, groupId, namesrvAddr, isLocalStorageOnly, rocksdbStorage);
     }
 
     @Override
     public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
-        shuffleChannel.startChannel();
+        if (!hasCreated.get() || windowCache == null) {
+            synchronized (this) {
+                if (!hasCreated.get() || windowCache == null) {
+                    this.windowFireSource = new WindowTrigger(this);
+                    this.windowFireSource.init();
+                    this.windowFireSource.start(getFireReceiver());
+                    this.shuffleChannel = new ShuffleChannel(this);
+                    this.shuffleChannel.init();
+                    windowCache.setBatchSize(100);
+                    windowCache.setShuffleChannel(shuffleChannel);
+                    shuffleChannel.startChannel();
+                    hasCreated.set(true);
+                }
+            }
+        }
         return super.doMessage(message, context);
     }
 

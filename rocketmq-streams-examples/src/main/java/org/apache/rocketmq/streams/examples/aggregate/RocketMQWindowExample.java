@@ -71,7 +71,7 @@ public class RocketMQWindowExample {
                 .sum("InFlow", "InFlow")
                 .count("total")
                 .waterMark(2)
-                .setLocalStorageOnly(true)
+                .setLocalStorageOnly(false)
                 .toDataStream()
                 .toPrint(1)
                 .with(WindowStrategy.highPerformance())
