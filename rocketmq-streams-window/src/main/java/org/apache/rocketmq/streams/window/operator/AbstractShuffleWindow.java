@@ -50,17 +50,23 @@ public abstract class AbstractShuffleWindow extends AbstractWindow {
     }
 
     private void initStorage() {
-        ISource source = this.getFireReceiver().getPipeline().getSource();
-
-        String sourceTopic = source.getTopic();
-        String namesrvAddr = source.getNamesrvAddr();
-
-
-        String stateTopic = createStateTopic(PREFIX, sourceTopic);
-        String groupId = createStr(PREFIX);
-
         RocksdbStorage rocksdbStorage = new RocksdbStorage();
-        this.storage = new DefaultStorage(stateTopic, groupId, namesrvAddr, isLocalStorageOnly, rocksdbStorage);
+
+        if (isLocalStorageOnly) {
+            this.storage = new DefaultStorage(isLocalStorageOnly, rocksdbStorage);
+        } else {
+            ISource source = this.getFireReceiver().getPipeline().getSource();
+
+            String sourceTopic = source.getTopic();
+            String namesrvAddr = source.getNamesrvAddr();
+
+
+            String stateTopic = createStateTopic(PREFIX, sourceTopic);
+            String groupId = createStr(PREFIX);
+
+
+            this.storage = new DefaultStorage(stateTopic, groupId, namesrvAddr, isLocalStorageOnly, rocksdbStorage);
+        }
     }
 
     @Override

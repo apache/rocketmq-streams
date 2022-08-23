@@ -19,6 +19,8 @@ package org.apache.rocketmq.streams.window.operator.join;
 import com.alibaba.fastjson.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -48,6 +50,7 @@ import org.apache.rocketmq.streams.window.storage.RocksdbIterator;
 import org.apache.rocketmq.streams.window.storage.WindowJoinType;
 import org.apache.rocketmq.streams.window.storage.WindowType;
 
+import static org.apache.rocketmq.streams.window.model.WindowCache.SHUFFLE_KEY;
 import static org.apache.rocketmq.streams.window.shuffle.ShuffleChannel.SHUFFLE_OFFSET;
 
 public class JoinWindow extends AbstractShuffleWindow {
@@ -80,7 +83,18 @@ public class JoinWindow extends AbstractShuffleWindow {
         for (IMessage msg : messages) {
             MessageHeader header = JSONObject.parseObject(msg.getMessageBody().getString(WindowCache.ORIGIN_MESSAGE_HEADER), MessageHeader.class);
             msg.setHeader(header);
-            String routeLabel = header.getMsgRouteFromLable();
+        }
+
+        Collections.sort(messages, (IMessage o1, IMessage o2) -> {
+            if ("right".equals(o1.getHeader().getMsgRouteFromLable())) {
+                return -1;
+            } else {
+                return 1;
+            }
+        });
+
+        for (IMessage msg : messages) {
+            String routeLabel = msg.getHeader().getMsgRouteFromLable();
 
             JoinState state = createJoinState(msg, instance, routeLabel);
             List<WindowBaseValue> temp = new ArrayList<>();
@@ -182,24 +196,35 @@ public class JoinWindow extends AbstractShuffleWindow {
         String routeLabel = message.getHeader().getMsgRouteFromLable();
         JSONObject messageBody = message.getMessageBody();
         String traceId = message.getHeader().getTraceId();
+        String shuffleValue = messageBody.getString(SHUFFLE_KEY);
         int index = 1;
         if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
+            //left join（左联接）：返回左表中的所有记录以及和右表中的联接字段相等的记录。
             for (Map<String, Object> raw : rows) {
-                JSONObject object = (JSONObject) messageBody.clone();
-                object.fluentPutAll(addAsName(raw, rightAsName));
+                JSONObject object = messageBody.clone();
+                String shuffleTarget = (String) raw.get(SHUFFLE_KEY);
+                if (shuffleTarget != null && shuffleTarget.equals(shuffleValue)) {
+                    object.fluentPutAll(addAsName(raw, rightAsName));
+                }
                 object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
                 index++;
                 result.add(object);
             }
         } else if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel) && rows.size() <= 0) {
-            JSONObject object = (JSONObject) messageBody.clone();
+            JSONObject object = messageBody.clone();
             object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
             result.add(object);
         } else if (WindowJoinType.right.name().equalsIgnoreCase(routeLabel) && rows.size() > 0) {
+            //right join（右联接）：返回右表中的所有记录以及和左表中的联接字段相等的记录。
             messageBody = addAsName(messageBody, rightAsName);
             for (Map<String, Object> raw : rows) {
-                JSONObject object = (JSONObject) messageBody.clone();
-                object.fluentPutAll(raw);
+                JSONObject object = messageBody.clone();
+
+                String shuffleTarget = (String) raw.get(SHUFFLE_KEY);
+                if (shuffleTarget != null && shuffleTarget.equals(shuffleValue)) {
+                    object.fluentPutAll(raw);
+                }
+
                 object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
                 index++;
                 result.add(object);
@@ -219,25 +244,40 @@ public class JoinWindow extends AbstractShuffleWindow {
         List<JSONObject> result = new ArrayList<>();
         String routeLabel = message.getHeader().getMsgRouteFromLable();
         String traceId = message.getHeader().getTraceId();
+
+        JSONObject messageBody = message.getMessageBody();
+        String shuffleValue = messageBody.getString(SHUFFLE_KEY);
+
         int index = 1;
+
         if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel)) {
-            JSONObject messageBody = message.getMessageBody();
             for (Map<String, Object> raw : rows) {
-                JSONObject object = (JSONObject) messageBody.clone();
-                object.fluentPutAll(addAsName(raw, rightAsName));
-                object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
-                index++;
-                result.add(object);
+                JSONObject object = messageBody.clone();
+
+                String shuffleTarget = (String) raw.get(SHUFFLE_KEY);
+                if (shuffleTarget != null && shuffleTarget.equals(shuffleValue)) {
+                    object.fluentPutAll(addAsName(raw, rightAsName));
+
+                    object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
+                    index++;
+                    result.add(object);
+                }
+
             }
         } else {
-            JSONObject messageBody = message.getMessageBody();
             messageBody = addAsName(messageBody, rightAsName);
             for (Map<String, Object> raw : rows) {
-                JSONObject object = (JSONObject) messageBody.clone();
-                object.fluentPutAll(raw);
-                object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
-                index++;
-                result.add(object);
+                JSONObject object = messageBody.clone();
+
+                String shuffleTarget = (String) raw.get(SHUFFLE_KEY);
+                if (shuffleTarget != null && shuffleTarget.equals(shuffleValue)) {
+                    object.fluentPutAll(raw);
+                    object.put(TraceUtil.TRACE_ID_FLAG, traceId + "-" + index);
+                    index++;
+                    result.add(object);
+                }
+
+
             }
         }
 
@@ -264,7 +304,7 @@ public class JoinWindow extends AbstractShuffleWindow {
      * @return
      */
     protected String createStoreKey(IMessage message, String routeLabel, WindowInstance windowInstance) {
-        String shuffleKey = message.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
+        String shuffleKey = message.getMessageBody().getString(SHUFFLE_KEY);
         String orginQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
         String originOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
         String storeKey = MapKeyUtil.createKey(windowInstance.getWindowInstanceId(), shuffleKey, routeLabel, orginQueueId, originOffset);
@@ -317,7 +357,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         state.setMessageTime(new Date());
         state.setMessageBody(messageBody.toJSONString());
         state.setMsgKey(createStoreKey(message, routeLabel, instance));
-        String shuffleKey = message.getMessageBody().getString(WindowCache.SHUFFLE_KEY);
+        String shuffleKey = message.getMessageBody().getString(SHUFFLE_KEY);
         String shuffleId = shuffleChannel.getChannelQueue(shuffleKey).getQueueId();
         state.setPartition(shuffleId);
         state.setWindowInstanceId(instance.getWindowInstanceId());
@@ -486,7 +526,7 @@ public class JoinWindow extends AbstractShuffleWindow {
         messageBody.remove("HIT_WINDOW_INSTANCE_ID");
         messageBody.remove(TraceUtil.TRACE_ID_FLAG);
         messageBody.remove(WindowCache.ORIGIN_QUEUE_ID);
-        messageBody.remove(WindowCache.SHUFFLE_KEY);
+        messageBody.remove(SHUFFLE_KEY);
         messageBody.remove(WindowCache.ORIGIN_MESSAGE_TRACE_ID);
         messageBody.remove(WindowCache.ORIGIN_OFFSET);
         messageBody.remove(WindowCache.ORIGIN_QUEUE_IS_LONG);
