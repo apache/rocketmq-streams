@@ -53,8 +53,8 @@ public class DefaultStorage extends AbstractStorage {
     private final String clusterName = "DefaultCluster";
 
     //两个streams实例topic可能相同，但是tag不同
-    private final String topic;
-    private final String groupId;
+    private String topic;
+    private String groupId;
 
     private String namesrv;
     private DefaultMQProducer producer;
@@ -64,16 +64,19 @@ public class DefaultStorage extends AbstractStorage {
     private Map<Integer, MessageQueue> queueId2MQ = new HashMap<>();
     private ExecutorService checkpointExecutor;
 
-    public DefaultStorage(String topic, String groupId, String namesrv,
-                          boolean isLocalStorageOnly, RocksdbStorage rocksdbStorage) {
+    public DefaultStorage(boolean isLocalStorageOnly, RocksdbStorage rocksdbStorage) {
         this.isLocalStorageOnly = isLocalStorageOnly;
         this.rocksdbStorage = rocksdbStorage;
+    }
 
-        this.topic = topic;
-        this.groupId = groupId;
-
+    public DefaultStorage(String topic, String groupId, String namesrv,
+                          boolean isLocalStorageOnly, RocksdbStorage rocksdbStorage) {
+        this(isLocalStorageOnly, rocksdbStorage);
 
         if (!isLocalStorageOnly) {
+            this.topic = topic;
+            this.groupId = groupId;
+
             this.checkpointExecutor = Executors.newSingleThreadExecutor();
             this.namesrv = namesrv;
             try {
