@@ -356,8 +356,8 @@ public class MappedByteBufferTable extends FileBasedTable {
             }
             lines.add(sb.toString());
             StringBuilder sb1 = new StringBuilder();
-            Map<Integer, String> index2ColumnName = table.getIndex2ColumnName();
-            Map<String, DataType> columnName2DataType = table.getCloumnName2DatatType();
+            Map<Integer, String> index2ColumnName = table.getIndex2Column();
+            Map<String, DataType> columnName2DataType = table.getColumn2DataType();
             int rowCount = index2ColumnName.size();
             for (int i = 0; i < rowCount; i++) {
                 String columnName = index2ColumnName.get(i);
@@ -569,9 +569,9 @@ public class MappedByteBufferTable extends FileBasedTable {
             table.setFileOffset(meta.totalByteSize);
             table.setColumnsCount(meta.columnsCount);
             table.setFileRowCount(meta.totalRowCount);
-            table.setCloumnName2Index(meta.columnName2Index);
-            table.setIndex2ColumnName(meta.index2ColumnName);
-            table.setCloumnName2DatatType(meta.columns2DataType);
+            table.setColumn2Index(meta.columnName2Index);
+            table.setIndex2Column(meta.index2ColumnName);
+            table.setColumn2DataType(meta.columns2DataType);
             for (int i = 0; i < meta.filePaths.length; i++) {
                 String path = meta.filePaths[i];
                 int limit = meta.limits[i];
