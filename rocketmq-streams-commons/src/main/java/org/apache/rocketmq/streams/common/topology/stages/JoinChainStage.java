@@ -44,8 +44,14 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
             String lable = message.getHeader().getMsgRouteFromLable();
+            String originTable = message.getHeader().getOriginTable();
+
             String joinFlag = null;
             if (lable != null) {
+                if ((lable.equals("left") || lable.equals("right")) && originTable != null) {
+                    lable = originTable;
+                }
+
                 if (lable.equals(rightDependentTableName)) {
                     joinFlag = MessageHeader.JOIN_RIGHT;
                 } else {
@@ -61,9 +67,7 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
             } else {
                 rightPipeline.doMessage(message, context);
             }
-            //if(!MessageGloableTrace.existFinshBranch(message)){
-            //    context.setBreak(true);
-            //}
+
             context.breakExecute();
             return message;
         }
