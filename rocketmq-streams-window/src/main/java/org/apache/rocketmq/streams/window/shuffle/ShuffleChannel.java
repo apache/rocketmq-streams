@@ -229,6 +229,11 @@ public class ShuffleChannel extends AbstractSystemChannel {
         for (String splitId : splitIds) {
              this.loadResult.put(splitId, future);
         }
+
+        if (message.getHeader().isSystemMessage() && window.getFireReceiver() == null) {
+            return;
+        }
+
         window.getFireReceiver().doMessage(message, context);
     }
 

@@ -290,6 +290,7 @@ public class ChainPipeline<T extends IMessage> extends Pipeline<T> implements IA
             //boolean needFlush = needFlush(msg);
             if (StringUtil.isNotEmpty(oriMsgPrewSourceName)) {
                 msg.getHeader().setMsgRouteFromLable(oriMsgPrewSourceName);
+                msg.getHeader().setOriginTable(oriMsgPrewSourceName);
             }
             boolean isContinue = executeStage(stage, msg, copyContext);
 
