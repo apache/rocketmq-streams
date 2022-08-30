@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sinkcache.DataSourceAutoFlushTask;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
+import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.schedule.ScheduleManager;
 import org.apache.rocketmq.streams.common.schedule.ScheduleTask;
 

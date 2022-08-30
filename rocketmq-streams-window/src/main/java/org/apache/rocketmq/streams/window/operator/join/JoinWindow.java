@@ -102,7 +102,6 @@ public class JoinWindow extends AbstractShuffleWindow {
 
             if (WindowJoinType.left.name().equalsIgnoreCase(routeLabel)) {
                 storage.putWindowBaseValue(queueId, windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.left, temp);
-
             } else if (WindowJoinType.right.name().equalsIgnoreCase(routeLabel)) {
                 storage.putWindowBaseValue(queueId, windowInstanceId, WindowType.JOIN_WINDOW, WindowJoinType.right, temp);
             } else {
@@ -490,6 +489,22 @@ public class JoinWindow extends AbstractShuffleWindow {
         if (needFlush) {
             nextMessage.getHeader().setNeedFlush(true);
         }
+
+        String routeLabel = nextMessage.getHeader().getMsgRouteFromLable();
+        if (routeLabel == null) {
+            //嵌套join，内部join后没有routeLabel，需要设置结果的routeLabel
+            String configureName = this.getConfigureName();
+            String[] tempList = configureName.split("_");
+            for (int i = tempList.length -1; i > 0; i--) {
+                if ("left".equalsIgnoreCase(tempList[i]) || "right".equalsIgnoreCase(tempList[i])) {
+                    routeLabel = tempList[i];
+                    System.out.println("nested join, routeLabel=" + routeLabel);
+                    break;
+                }
+            }
+            nextMessage.getHeader().setMsgRouteFromLable(routeLabel);
+        }
+
         AbstractContext context = new Context(nextMessage);
         boolean isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
         if (isWindowTest) {
