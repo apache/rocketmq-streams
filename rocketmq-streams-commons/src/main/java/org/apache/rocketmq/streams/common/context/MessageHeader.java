@@ -99,6 +99,8 @@ public class MessageHeader {
 
     protected String msgRouteFromLable;//消息从哪里来的标签，标记上游节点的标记，主要是通过build table name来标记
 
+    private String originTable;
+
     protected String logFingerprintValue;//日志指纹的值
 
     public MessageHeader copy() {
@@ -358,5 +360,13 @@ public class MessageHeader {
 
     public void setPipelineName(String pipelineName) {
         this.pipelineName = pipelineName;
+    }
+
+    public String getOriginTable() {
+        return originTable;
+    }
+
+    public void setOriginTable(String originTable) {
+        this.originTable = originTable;
     }
 }
