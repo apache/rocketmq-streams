@@ -35,7 +35,7 @@ import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public class SplitEventTimeManager {
     protected static final Log LOG = LogFactory.getLog(SplitEventTimeManager.class);
-    protected static Map<String, Long> messageSplitId2MaxTime = new HashMap<>();
+    protected static final Map<String, Long> messageSplitId2MaxTime = new HashMap<>();
     private AtomicInteger queueIdCount = new AtomicInteger(0);
     protected Long lastUpdateTime;
 
@@ -86,19 +86,23 @@ public class SplitEventTimeManager {
             return null;
         }
         Long min = null;
-        Set<Long> eventTimes = new HashSet<>(messageSplitId2MaxTime.values());
-        for (Long eventTime : eventTimes) {
-            if (eventTime == null) {
-                return null;
-            }
-            if (min == null) {
-                min = eventTime;
-            } else {
-                if (eventTime < min) {
+
+        synchronized (messageSplitId2MaxTime) {
+            Set<Long> eventTimes = new HashSet<>(messageSplitId2MaxTime.values());
+            for (Long eventTime : eventTimes) {
+                if (eventTime == null) {
+                    return null;
+                }
+                if (min == null) {
                     min = eventTime;
+                } else {
+                    if (eventTime < min) {
+                        min = eventTime;
+                    }
                 }
             }
         }
+
         return min;
 
     }
