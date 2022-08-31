@@ -446,6 +446,8 @@ public class ReflectUtil {
                     continue;
                 } else if (Modifier.isNative(field.getModifiers())) {
                     continue;
+                } else if (field.getType().getName().equals(clazz.getName())) {
+                    continue;
                 }
                 fieldProcessor.doProcess(o, field);
             }catch (Exception e){

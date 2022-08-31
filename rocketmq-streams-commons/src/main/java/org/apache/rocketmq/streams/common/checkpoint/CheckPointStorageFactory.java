@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.streams.common.checkpoint;
 
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 import org.apache.commons.logging.Log;
@@ -35,14 +33,6 @@ public class CheckPointStorageFactory {
     private ServiceLoader<ICheckPointStorage> loader;
 
     private CheckPointStorageFactory() {
-        URLClassLoader classLoader = (URLClassLoader) Thread.currentThread().getContextClassLoader();
-        URL[] urls = classLoader.getURLs();
-        for (URL u : urls) {
-            String s = u.toString();
-            if (s.contains("rocketmq-streams")) {
-                logger.debug(String.format("list class : %s", s));
-            }
-        }
         loader = ServiceLoader.load(ICheckPointStorage.class);
     }
 
