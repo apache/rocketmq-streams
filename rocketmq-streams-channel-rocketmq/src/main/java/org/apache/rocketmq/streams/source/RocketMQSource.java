@@ -338,7 +338,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
                 //拉取的批量消息处理完成以后判断是否提交位点；
                 synchronized (this.pullConsumer) {
-                    if (System.currentTimeMillis() - lastCommit >= commitInternalMs || isStopped) {
+                    if (System.currentTimeMillis() - lastCommit >= commitInternalMs && !isStopped) {
                         lastCommit = System.currentTimeMillis();
                         //向broker提交消费位点,todo 从consumer那里拿不到正在消费哪些messageQueue
                         commit(this.delegator.getLastDivided());
@@ -348,6 +348,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         }
 
         public void shutdown() {
+            commit(this.delegator.getLastDivided());
             this.isStopped = true;
         }
     }
