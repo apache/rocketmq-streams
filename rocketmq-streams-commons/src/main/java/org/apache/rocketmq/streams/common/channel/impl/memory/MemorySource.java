@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.memory;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractBatchSource;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 
 public class MemorySource extends AbstractBatchSource implements IAfterConfigurableRefreshListener {
+    private static final Log logger = LogFactory.getLog(MemorySource.class);
 
     protected String cacheName;
     protected transient MemoryCache memoryCache;
@@ -51,8 +54,9 @@ public class MemorySource extends AbstractBatchSource implements IAfterConfigura
                         Thread.sleep(1000);
                     }
 
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                } catch (Throwable t) {
+                    logger.error("MemorySource error:");
+                    t.printStackTrace();
                 }
 
             }
