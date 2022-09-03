@@ -49,14 +49,16 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
+import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
+import org.apache.rocketmq.streams.schema.SchemaConfig;
+import org.apache.rocketmq.streams.schema.SchemaWrapper;
+import org.apache.rocketmq.streams.schema.SchemaWrapperFactory;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 public class RocketMQSource extends AbstractSupportShuffleSource {
 
     protected static final Log LOG = LogFactory.getLog(RocketMQSource.class);
-
-    private static final String STRATEGY_AVERAGE = "average";
 
     @ENVDependence
     private String tags = SubscriptionData.SUB_ALL;
@@ -64,8 +66,12 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     private int userPullThreadNum = 1;
     private long pullTimeout;
     private long commitInternalMs = 1000;
-    private String strategyName;
-    private transient ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET;//默认从哪里消费,不会被持久化。不设置默认从尾部消费
+
+    private SchemaConfig schemaConfig;
+    /**
+     * 默认从哪里消费,不会被持久化。不设置默认从尾部消费
+     */
+    private transient ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET;
     private RPCHook rpcHook;
     private transient DefaultLitePullConsumer pullConsumer;
     private transient ExecutorService executorService;
@@ -75,15 +81,10 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     }
 
     public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr) {
-        this(topic, tags, groupName, namesrvAddr, STRATEGY_AVERAGE);
-    }
-
-    public RocketMQSource(String topic, String tags, String groupName, String namesrvAddr, String strategyName) {
         this.topic = topic;
         this.tags = tags;
         this.groupName = groupName;
         this.namesrvAddr = namesrvAddr;
-        this.strategyName = strategyName;
     }
 
     @Override
@@ -188,20 +189,20 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
         try {
             ConsumerConnection consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
-            Iterator var5 = consumerConnection.getConnectionSet().iterator();
+            Iterator iterator = consumerConnection.getConnectionSet().iterator();
 
-            while (var5.hasNext()) {
-                Connection connection = (Connection) var5.next();
+            while (iterator.hasNext()) {
+                Connection connection = (Connection) iterator.next();
                 String clientId = connection.getClientId();
                 ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(groupName, clientId, false);
-                Iterator var9 = consumerRunningInfo.getMqTable().keySet().iterator();
+                Iterator iterator1 = consumerRunningInfo.getMqTable().keySet().iterator();
 
-                while (var9.hasNext()) {
-                    MessageQueue messageQueue = (MessageQueue) var9.next();
+                while (iterator1.hasNext()) {
+                    MessageQueue messageQueue = (MessageQueue) iterator1.next();
                     results.put(messageQueue, clientId.split("@")[1]);
                 }
             }
-        } catch (Exception var11) {
+        } catch (Exception ex) {
             ;
         }
 
@@ -316,7 +317,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
                 int i = 0;
                 for (MessageExt msg : msgs) {
-                    JSONObject jsonObject = create(msg.getBody(), msg.getProperties());
+                    JSONObject jsonObject = createFromMsg(msg);
 
                     String topic = msg.getTopic();
                     int queueId = msg.getQueueId();
@@ -326,7 +327,8 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
 
 
                     String offset = msg.getQueueOffset() + "";
-                    org.apache.rocketmq.streams.common.context.Message message = createMessage(jsonObject, unionQueueId, offset, false);
+                    org.apache.rocketmq.streams.common.context.Message message =
+                        createMessage(jsonObject, unionQueueId, offset, false);
                     message.getHeader().setOffsetIsLong(true);
 
                     if (i == msgs.size() - 1) {
@@ -350,6 +352,25 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         public void shutdown() {
             this.isStopped = true;
         }
+    }
+
+    /**
+     * 从 rocketmq 消息转为可被后续环节处理的jsonObject
+     * @param messageExt
+     * @return
+     */
+    public JSONObject createFromMsg(MessageExt messageExt) {
+        if (schemaConfig != null) {
+            try {
+                SchemaWrapper schemaWrapper =
+                    SchemaWrapperFactory.createIfAbsent(messageExt.getTopic(), schemaConfig);
+                Object pojo = schemaWrapper.deserialize(messageExt);
+                return new UserDefinedMessage(pojo);
+            } catch (Exception ex) {
+                LOG.error("deserialize with schema failed, try to deserialize directly to json", ex);
+            }
+        }
+        return create(messageExt.getBody(), messageExt.getProperties());
     }
 
     private void newRebalance(Set<MessageQueue> allQueueInLastRebalance){
@@ -378,14 +399,6 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         this.pullTimeout = pullTimeout;
     }
 
-    public String getStrategyName() {
-        return strategyName;
-    }
-
-    public void setStrategyName(String strategyName) {
-        this.strategyName = strategyName;
-    }
-
     public RPCHook getRpcHook() {
         return rpcHook;
     }
@@ -410,5 +423,11 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         this.commitInternalMs = commitInternalMs;
     }
 
+    public SchemaConfig getSchemaConfig() {
+        return schemaConfig;
+    }
 
+    public void setSchemaConfig(SchemaConfig schemaConfig) {
+        this.schemaConfig = schemaConfig;
+    }
 }

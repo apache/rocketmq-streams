@@ -94,7 +94,7 @@ public abstract class AbstractBatchSource extends AbstractSource {
 
     @Override
     public JSONObject createJson(Object message) {
-        if (isJsonData && JSONObject.class.isInstance(message)) {
+        if (isJsonData && message instanceof JSONObject) {
             return (JSONObject) message;
         }
         return super.createJson(message);

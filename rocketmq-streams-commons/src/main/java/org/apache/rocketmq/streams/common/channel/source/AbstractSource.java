@@ -20,9 +20,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -254,7 +252,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         if (!isJsonData) {
             jsonObject = new UserDefinedMessage(message);
             jsonObject.put(IMessage.DATA_KEY, message);
-            jsonObject.put(IMessage.IS_NOT_JSON_MESSAGE, true);
         } else {
             jsonObject = Message.parseObject(message.toString());
         }

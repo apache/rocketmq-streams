@@ -431,9 +431,6 @@ public class ReflectUtil {
             return;
         }
         Field[] fields = clazz.getDeclaredFields();
-        if (fields == null) {
-            return;
-        }
 
         for (Field field : fields) {
             try {

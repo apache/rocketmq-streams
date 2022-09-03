@@ -108,7 +108,7 @@ public class MessageOffset {
      * @return
      */
     public static boolean greateThan(String oriOffset, String dstOffset, boolean isOffsetIsLong) {
-        if (isOffsetIsLong == false) {
+        if (!isOffsetIsLong) {
             return (oriOffset.compareTo(dstOffset) > 0);
         }
         if (StringUtil.isEmpty(dstOffset)) {
@@ -116,34 +116,12 @@ public class MessageOffset {
         }
 
         List<Long> dstOffsetLayers = new ArrayList<>();
-        Long dstMainOffset = Long.valueOf(parseOffset(dstOffset, dstOffsetLayers));
+        long dstMainOffset = Long.parseLong(parseOffset(dstOffset, dstOffsetLayers));
 
         List<Long> oriOffsetLayers = new ArrayList<>();
-        Long oriMainOffset = Long.valueOf(parseOffset(oriOffset, oriOffsetLayers));
+        long oriMainOffset = Long.parseLong(parseOffset(oriOffset, oriOffsetLayers));
 
-        if (oriMainOffset > dstMainOffset) {
-            return true;
-        } else if (oriMainOffset <= dstMainOffset) {
-            return false;
-        }
-
-        for (int i = 0; i < oriOffsetLayers.size(); i++) {
-            Long origLayerOffset = (i < oriOffsetLayers.size()) ? oriOffsetLayers.get(i) : null;
-            Long destLayerOffset = (i < dstOffsetLayers.size()) ? dstOffsetLayers.get(i) : null;
-            if (origLayerOffset != null && destLayerOffset != null) {
-                if (origLayerOffset > destLayerOffset) {
-                    return true;
-                } else if (origLayerOffset <= destLayerOffset) {
-                    return false;
-                }
-                continue;
-            }
-            if (origLayerOffset != null && destLayerOffset == null) {
-                return true;
-            }
-            break;
-        }
-        return false;
+        return oriMainOffset > dstMainOffset;
 
     }
 
