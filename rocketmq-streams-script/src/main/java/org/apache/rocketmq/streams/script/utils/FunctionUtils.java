@@ -154,7 +154,7 @@ public class FunctionUtils {
         if (context == null || message == null) {
             return fieldName;
         }
-        if (IgnoreMessage.class.isInstance(message)) {
+        if (message instanceof IgnoreMessage) {
             return fieldName;
         }
 
