@@ -32,6 +32,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -76,6 +77,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
     private transient DefaultLitePullConsumer pullConsumer;
     private transient ExecutorService executorService;
     private transient PullTask[] pullTasks;
+    private transient volatile AtomicBoolean committing = new AtomicBoolean(false);
 
     public RocketMQSource() {
     }
@@ -113,9 +115,9 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             this.pullConsumer.start();
 
             return true;
-        } catch (MQClientException e) {
+        } catch (Throwable t) {
             setInitSuccess(false);
-            throw new RuntimeException("start rocketmq channel error " + topic, e);
+            throw new RuntimeException("start rocketmq channel error " + topic, t);
         }
     }
 
@@ -243,11 +245,29 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         this.executorService.shutdown();
 
         //关闭消费实例
-        this.pullConsumer.shutdown();
+        try {
+            synchronized (committing) {
+                while (committing.get()) {
+                    committing.wait();
+                }
+            }
+
+            this.pullConsumer.shutdown();
+        } catch (Throwable t) {
+            LOG.error(t);
+        }
+
     }
 
     public void commit(Set<MessageQueue> messageQueues) {
-        this.pullConsumer.commit(messageQueues, true);
+        if (this.pullConsumer.isRunning()) {
+            synchronized (committing) {
+                committing.set(true);
+                this.pullConsumer.commit(messageQueues, true);
+                committing.set(false);
+                committing.notifyAll();
+            }
+        }
     }
 
     @Override
@@ -303,27 +323,27 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
             }
 
             while (!this.isStopped) {
-
-                if (this.delegator.needSync()) {
-                    synchronized (this.pullConsumer) {
-                        if (this.delegator.needSync()) {
-                            afterRebalance();
+                try {
+                    if (this.delegator.needSync()) {
+                        synchronized (this.pullConsumer) {
+                            if (this.delegator.needSync()) {
+                                afterRebalance();
+                            }
                         }
                     }
-                }
 
 
-                List<MessageExt> msgs = pullConsumer.poll(pullTimeout);
+                    List<MessageExt> msgs = pullConsumer.poll(pullTimeout);
 
                 int i = 0;
                 for (MessageExt msg : msgs) {
                     JSONObject jsonObject = createFromMsg(msg);
 
-                    String topic = msg.getTopic();
-                    int queueId = msg.getQueueId();
-                    String brokerName = msg.getBrokerName();
-                    MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
-                    String unionQueueId = RocketMQMessageQueue.getQueueId(queue);
+                        String topic = msg.getTopic();
+                        int queueId = msg.getQueueId();
+                        String brokerName = msg.getBrokerName();
+                        MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
+                        String unionQueueId = RocketMQMessageQueue.getQueueId(queue);
 
 
                     String offset = msg.getQueueOffset() + "";
@@ -331,25 +351,33 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
                         createMessage(jsonObject, unionQueueId, offset, false);
                     message.getHeader().setOffsetIsLong(true);
 
-                    if (i == msgs.size() - 1) {
-                        message.getHeader().setNeedFlush(true);
+                        if (i == msgs.size() - 1) {
+                            message.getHeader().setNeedFlush(true);
+                        }
+                        executeMessage(message);
+                        i++;
                     }
-                    executeMessage(message);
-                    i++;
-                }
 
-                //拉取的批量消息处理完成以后判断是否提交位点；
-                synchronized (this.pullConsumer) {
-                    if (System.currentTimeMillis() - lastCommit >= commitInternalMs || isStopped) {
-                        lastCommit = System.currentTimeMillis();
-                        //向broker提交消费位点,todo 从consumer那里拿不到正在消费哪些messageQueue
-                        commit(this.delegator.getLastDivided());
+                    //拉取的批量消息处理完成以后判断是否提交位点；
+                    synchronized (this.pullConsumer) {
+                        if (System.currentTimeMillis() - lastCommit >= commitInternalMs && !isStopped) {
+                            lastCommit = System.currentTimeMillis();
+                            //向broker提交消费位点,todo 从consumer那里拿不到正在消费哪些messageQueue
+                            commit(this.delegator.getLastDivided());
+                        }
                     }
+                } catch (Throwable t) {
+                    LOG.error(t);
                 }
             }
         }
 
         public void shutdown() {
+            Set<MessageQueue> lastDivided = this.delegator.getLastDivided();
+            if (lastDivided != null && lastDivided.size() != 0) {
+                commit(lastDivided);
+            }
+
             this.isStopped = true;
         }
     }
