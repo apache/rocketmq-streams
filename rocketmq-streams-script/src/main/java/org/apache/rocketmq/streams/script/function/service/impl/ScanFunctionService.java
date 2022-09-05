@@ -67,7 +67,7 @@ public class ScanFunctionService extends DefaultFunctionServiceImpl implements I
         if (scanDipper) {
             scan.scanPackage("org.apache.rocketmq.streams.script.function.impl");
             scan.scanPackage("org.apache.rocketmq.streams.filter.function");
-            scan.scanPackage("org.apache.rocketmq.streams.dim.function");
+//            scan.scanPackage("org.apache.rocketmq.streams.dim.function");
         }
     }
 
