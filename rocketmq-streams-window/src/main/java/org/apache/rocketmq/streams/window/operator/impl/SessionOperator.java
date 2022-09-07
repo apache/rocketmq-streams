@@ -254,7 +254,7 @@ public class SessionOperator extends WindowOperator {
         }
 
         //合并后需要删除的WindowValue
-        Map<Integer, Integer> deleteValueMap = new HashMap<>(allValueList.size());
+        Map<Integer/*被合并的索引*/, Integer/*合并key的索引*/> deleteValueMap = new HashMap<>(allValueList.size());
 
         //
         Map<Integer, List<Integer>> mergeValueMap = new HashMap<>(allValueList.size());
@@ -272,7 +272,9 @@ public class SessionOperator extends WindowOperator {
             WindowValue outValue = allValueList.get(outIndex);
             for (int inIndex = outIndex + 1; inIndex < allValueList.size(); inIndex++) {
                 WindowValue inValue = allValueList.get(inIndex);
-                if (inValue.getFireTime().compareTo(outValue.getEndTime()) <= 0) {
+
+                //新来message的点落在 上一个窗口内,合并这两个点，形成一个窗口
+                if (0 <= inValue.getStartTime().compareTo(outValue.getStartTime()) && inValue.getStartTime().compareTo(outValue.getFireTime()) <= 0) {
                     deleteValueMap.put(inIndex, outIndex);
                     outValue.setEndTime(outValue.getEndTime().compareTo(inValue.getEndTime()) <= 0 ? inValue.getEndTime() : outValue.getEndTime());
                     outValue.setFireTime(outValue.getFireTime().compareTo(inValue.getFireTime()) <= 0 ? inValue.getFireTime() : outValue.getFireTime());
@@ -323,7 +325,7 @@ public class SessionOperator extends WindowOperator {
 
         //删除
         for (WindowValue windowValue : deleteList) {
-            storage.deleteWindowBaseValue(windowValue.getPartition(), windowValue.getWindowInstanceId(),WindowType.SESSION_WINDOW, null, windowValue.getMsgKey());
+            storage.deleteWindowBaseValue(windowValue.getPartition(), windowValue.getWindowInstanceId(), WindowType.SESSION_WINDOW, null, windowValue.getMsgKey());
         }
 
 //        windowBaseValueWrap = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null);
