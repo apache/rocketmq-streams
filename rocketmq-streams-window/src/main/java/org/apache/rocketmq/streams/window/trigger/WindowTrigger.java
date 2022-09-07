@@ -242,6 +242,8 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             maxEventTime = System.currentTimeMillis();
         }
         if (maxEventTime != null && maxEventTime - fireTime.getTime() >= 3000) {
+            System.out.printf("maxEventTime={%s}, fireTime={%s}", maxEventTime, fireTime.getTime());
+            System.out.println("");
             return new FireResult(true, 0);
         }
         Long eventTimeLastUpdateTime = this.eventTimeLastUpdateTime;

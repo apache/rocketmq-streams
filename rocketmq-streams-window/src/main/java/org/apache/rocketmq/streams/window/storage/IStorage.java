@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.window.storage;
 
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 import java.util.List;
 import java.util.Set;
@@ -44,11 +45,13 @@ public interface IStorage {
                             WindowType windowType, WindowJoinType joinType,
                             List<WindowBaseValue> windowBaseValue);
 
-    void putWindowBaseValueIterator(String shuffleId, String windowInstanceId,
-                                    WindowType windowType, WindowJoinType joinType,
-                                    RocksdbIterator<? extends WindowBaseValue> windowBaseValueIterator);
+//    void putWindowBaseValueIterator(String shuffleId, String windowInstanceId,
+//                                    WindowType windowType, WindowJoinType joinType,
+//                                    RocksdbIterator<? extends WindowBaseValue> windowBaseValueIterator);
 
-    <T> RocksdbIterator<T> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+    RocksdbIterator<WindowBaseValue> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
+
+    RocksdbIterator<List<WindowBaseValue>> getWindowBaseValueList(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType);
 
 
     //用windowInstanceId删除所有WindowBaseValue【包括WindowValue、JoinState】
