@@ -61,7 +61,6 @@ public class EventTimeManager {
                         return lastMaxEventTime + (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight());
                     }
                 } else {
-
                     eventTimeIncreasementMap.put(queueId, Pair.of(currentMaxEventTime, System.currentTimeMillis()));
                 }
             } else {

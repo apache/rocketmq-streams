@@ -438,11 +438,11 @@ public class JoinWindow extends AbstractShuffleWindow {
 
     private void deleteFromJoinState(WindowInstance instance, WindowJoinType windowJoinType) {
 
-        RocksdbIterator<JoinState> joinStates = storage.getWindowBaseValue(instance.getSplitId(), instance.getWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
+        RocksdbIterator<WindowBaseValue> joinStates = storage.getWindowBaseValue(instance.getSplitId(), instance.getWindowInstanceId(), WindowType.JOIN_WINDOW, windowJoinType);
         while (joinStates.hasNext()) {
-            IteratorWrap<JoinState> next = joinStates.next();
+            IteratorWrap<WindowBaseValue> next = joinStates.next();
 
-            JoinState joinState = next.getData();
+            JoinState joinState = (JoinState) next.getData();
             Date start = addTime(instance.getStartTime(), TimeUnit.MINUTES, -retainWindowCount * sizeInterval);
 
             if (canDelete(instance, joinState, start)) {
