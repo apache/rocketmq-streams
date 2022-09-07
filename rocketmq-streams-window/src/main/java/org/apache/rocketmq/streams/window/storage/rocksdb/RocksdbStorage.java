@@ -21,6 +21,7 @@ import org.apache.rocketmq.streams.state.kv.rocksdb.RocksDBOperator;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
+import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.AbstractStorage;
 import org.apache.rocketmq.streams.window.storage.DataType;
 import org.apache.rocketmq.streams.window.storage.IteratorWrap;
@@ -32,7 +33,10 @@ import org.rocksdb.WriteOptions;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RocksdbStorage extends AbstractStorage {
     private RocksDB rocksDB;
@@ -96,9 +100,44 @@ public class RocksdbStorage extends AbstractStorage {
             return;
         }
 
+        //将MsgKey（即key）相同的保存在一起
+        switch (windowType) {
+            case SESSION_WINDOW:
+            case NORMAL_WINDOW:{
+                Map<String, List<WindowValue>> groupByMsgKey = windowBaseValue.stream()
+                        .map(value -> (WindowValue)value)
+                        .collect(Collectors.groupingBy(WindowValue::getMsgKey));
+                doPut(groupByMsgKey, shuffleId, windowInstanceId, windowType, joinType);
+                break;
+            }
+            case JOIN_WINDOW:{
+                Map<String, List<JoinState>> groupByMessageId = windowBaseValue.stream()
+                        .map(value -> (JoinState) value)
+                        .collect(Collectors.groupingBy(JoinState::getMessageId));
+                doPut(groupByMessageId, shuffleId, windowInstanceId, windowType, joinType);
+                break;
+            }
+            default:
+                throw new RuntimeException("windowType " + windowType + "illegal.");
+        }
 
-        for (WindowBaseValue baseValue : windowBaseValue) {
-            doPut(baseValue, shuffleId, windowInstanceId, windowType, joinType);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void doPut(Map<String, ?> groupByKeyWindowBaseValue, String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+        for (String msgKey : groupByKeyWindowBaseValue.keySet()) {
+            List<WindowBaseValue> temp = (List<WindowBaseValue>)groupByKeyWindowBaseValue.get(msgKey);
+            String key = createKey(shuffleId, windowInstanceId, windowType, joinType, temp.get(0));
+
+            try {
+                byte[] valueBytes;
+
+                byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+                valueBytes = SerializeUtil.serialize(temp);
+                rocksDB.put(writeOptions, keyBytes, valueBytes);
+            } catch (Throwable t) {
+                throw new RuntimeException("put data to rocksdb error", t);
+            }
         }
     }
 
@@ -131,12 +170,47 @@ public class RocksdbStorage extends AbstractStorage {
         } catch (Throwable t) {
             throw new RuntimeException("put data to rocksdb error", t);
         }
+    }
+
+    /**
+     * 保存的是list，需要再解开list
+     * @param shuffleId
+     * @param windowInstanceId
+     * @param windowType
+     * @param joinType
+     * @return
+     */
+    @Override
+    public RocksdbIterator<WindowBaseValue> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+        RocksdbIterator<List<WindowBaseValue>> windowBaseValueList = getWindowBaseValueList(shuffleId, windowInstanceId, windowType, joinType);
+
+        List<WindowBaseValue> windowBaseValues = new ArrayList<>();
+        while (windowBaseValueList.hasNext()) {
+            IteratorWrap<List<WindowBaseValue>> next = windowBaseValueList.next();
+            List<WindowBaseValue> data = next.getData();
+            windowBaseValues.addAll(data);
+        }
+
+        Iterator<WindowBaseValue> iterator = windowBaseValues.iterator();
+        return new RocksdbIterator<WindowBaseValue>(){
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public IteratorWrap<WindowBaseValue> next() {
+                return new IteratorWrap<>(null, iterator.next(), null);
+            }
+        };
 
     }
 
-
+    /**
+     * 保存的是List，查询list可以直接返回
+     */
     @Override
-    public <T> RocksdbIterator<T> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+    public RocksdbIterator<List<WindowBaseValue>> getWindowBaseValueList(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
 
         String keyPrefix = createKey(shuffleId, windowInstanceId, windowType, joinType, null);
 
@@ -149,17 +223,19 @@ public class RocksdbStorage extends AbstractStorage {
             String keyPrefix = createKey(shuffleId, windowInstanceId, windowType, joinType, null);
 
             //查询msgKey
-            RocksdbIterator<WindowBaseValue> rocksdbIterator = new RocksdbIterator<>(keyPrefix, rocksDB);
+            RocksdbIterator<List<WindowBaseValue>> rocksdbIterator = new RocksdbIterator<>(keyPrefix, rocksDB);
 
             ArrayList<String> msgKeys = new ArrayList<>();
             while (rocksdbIterator.hasNext()) {
-                IteratorWrap<WindowBaseValue> baseValue = rocksdbIterator.next();
-                WindowBaseValue data = baseValue.getData();
+                IteratorWrap<List<WindowBaseValue>> baseValue = rocksdbIterator.next();
+                List<WindowBaseValue> data = baseValue.getData();
                 if (data == null) {
                     continue;
                 }
 
-                msgKeys.add(data.getMsgKey());
+                for (WindowBaseValue value : data) {
+                    msgKeys.add(value.getMsgKey());
+                }
             }
 
             //组合成真正的key后，在挨个删除
@@ -177,9 +253,9 @@ public class RocksdbStorage extends AbstractStorage {
     public void deleteWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType, String msgKey) {
         String key;
         if (joinType != null) {
-            key = super.merge(shuffleId, windowInstanceId, windowType.name(), joinType.name(), msgKey);
+            key = super.merge(DataType.WINDOW_BASE_VALUE.getValue(), shuffleId, windowInstanceId, windowType.name(), joinType.name(), msgKey);
         } else {
-            key = super.merge(shuffleId, windowInstanceId, windowType.name(), msgKey);
+            key = super.merge(DataType.WINDOW_BASE_VALUE.getValue(), shuffleId, windowInstanceId, windowType.name(), msgKey);
         }
 
         try {

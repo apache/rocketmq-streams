@@ -30,6 +30,8 @@ public class RocksdbIterator<T> implements Iterator<IteratorWrap<T>> {
     private RocksIterator rocksIterator;
 
 
+    public RocksdbIterator() {
+    }
 
     public RocksdbIterator(String keyPrefix, RocksDB rocksDB) {
         this.keyPrefix = keyPrefix;

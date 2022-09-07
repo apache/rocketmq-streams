@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.common.utils.CreateTopicUtil;
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
+import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.AbstractStorage;
 import org.apache.rocketmq.streams.window.storage.DataType;
 import org.apache.rocketmq.streams.window.storage.IteratorWrap;
@@ -227,10 +228,15 @@ public class DefaultStorage extends AbstractStorage {
         rocksdbStorage.putWindowBaseValueIterator(shuffleId, windowInstanceId, windowType, joinType, windowBaseValueIterator);
     }
 
+    @Override
+    public RocksdbIterator<WindowBaseValue> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+        return rocksdbStorage.getWindowBaseValue(shuffleId, windowInstanceId, windowType, joinType);
+    }
+
     //读取消息重放，或者查询并存储到内存
     @Override
-    public <T> RocksdbIterator<T> getWindowBaseValue(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
-        return rocksdbStorage.getWindowBaseValue(shuffleId, windowInstanceId, windowType, joinType);
+    public RocksdbIterator<List<WindowBaseValue>> getWindowBaseValueList(String shuffleId, String windowInstanceId, WindowType windowType, WindowJoinType joinType) {
+        return rocksdbStorage.getWindowBaseValueList(shuffleId, windowInstanceId, windowType, joinType);
     }
 
     //按照put key的前缀删除，没有唯一键，删除一批
