@@ -20,7 +20,6 @@ import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.topology.model.IWindow;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.OverWindow;
 import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
 import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
@@ -67,7 +66,7 @@ public class WindowBuilder {
         joinWindow.setRetainWindowCount(getIntValue(ConfigureFileKey.DIPPER_WINDOW_JOIN_RETAIN_WINDOW_COUNT, 6));//join的时间窗口是20分钟
         //  joinWindow.setFireDelaySecond(getIntValue(ConfigureFileKey.DIPPER_WINDOW_DEFAULT_FIRE_DELAY_SECOND,5));//延迟5分钟触发
         joinWindow.setTimeFieldName("");
-        joinWindow.setWaterMarkMinute(0);
+        joinWindow.setWaterMarkMs(0);
         return joinWindow;
     }
 

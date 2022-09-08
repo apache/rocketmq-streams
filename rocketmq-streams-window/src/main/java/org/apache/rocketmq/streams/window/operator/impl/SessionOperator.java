@@ -96,7 +96,7 @@ public class SessionOperator extends WindowOperator {
         WindowInstance existWindowInstance = searchWindowInstance(windowInstanceId);
         if (existWindowInstance == null) {
             Pair<Date, Date> startEndPair = getSessionTime(message);
-            Date fireDate = DateUtil.addDate(TimeUnit.SECONDS, startEndPair.getRight(), waterMarkMinute * timeUnitAdjust);
+            Date fireDate = DateUtil.addDate(TimeUnit.SECONDS, startEndPair.getRight(), (waterMarkMs / 1000) * timeUnitAdjust);
             //out of order data, normal fire mode considered only
             Long maxEventTime = getMaxEventTime(queueId);
             if (maxEventTime == null) {
@@ -229,7 +229,7 @@ public class SessionOperator extends WindowOperator {
             if (messageBegin.compareTo(sessionBegin) >= 0 && messageBegin.compareTo(sessionEnd) < 0) {
                 //已经存储WindowValue窗口包含了新来message，合并窗口
                 sessionEnd = messageEnd;
-                Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, waterMarkMinute * timeUnitAdjust);
+                Date sessionFire = DateUtil.addDate(TimeUnit.SECONDS, sessionEnd, (waterMarkMs / 1000) * timeUnitAdjust);
                 value.setEndTime(DateUtil.format(sessionEnd, SESSION_DATETIME_PATTERN));
                 //clean order storage as sort field 'fireTime' changed
                 //deleteMergeWindow(windowInstance.getWindowInstanceId(), value.getPartition(), value.getFireTime(), value.getPartitionNum(), value.getGroupBy());
@@ -328,18 +328,6 @@ public class SessionOperator extends WindowOperator {
             storage.deleteWindowBaseValue(windowValue.getPartition(), windowValue.getWindowInstanceId(), WindowType.SESSION_WINDOW, null, windowValue.getMsgKey());
         }
 
-//        windowBaseValueWrap = storage.getWindowBaseValue(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null);
-//
-//        ArrayList<WindowValue> storeList = new ArrayList<>();
-//        while (windowBaseValueWrap.hasNext()) {
-//            IteratorWrap<WindowValue> next = windowBaseValueWrap.next();
-//            WindowValue windowValue = next.getData();
-//
-//        }
-//
-//        if (windowBaseValueWrap.hasNext()) {
-//            storage.putWindowBaseValueIterator(queueId, windowInstanceId, WindowType.SESSION_WINDOW, null, windowBaseValueWrap);
-//        }
     }
 
     private Pair<Date, Date> getSessionTime(IMessage message) {
@@ -369,21 +357,14 @@ public class SessionOperator extends WindowOperator {
 
     }
 
-    /**
-     * create new session window value
-     *
-     * @param queueId
-     * @param groupBy
-     * @param instance
-     * @return
-     */
+
     protected WindowValue createWindowValue(String queueId, String groupBy, WindowInstance instance, IMessage message,
                                             String storeKey) {
         WindowValue value = new WindowValue();
         Pair<Date, Date> startEndPair = getSessionTime(message);
         String startTime = DateUtil.format(startEndPair.getLeft(), SESSION_DATETIME_PATTERN);
         String endTime = DateUtil.format(startEndPair.getRight(), SESSION_DATETIME_PATTERN);
-        String fireTime = DateUtil.format(DateUtil.addDate(TimeUnit.SECONDS, startEndPair.getRight(), waterMarkMinute * timeUnitAdjust), SESSION_DATETIME_PATTERN);
+        String fireTime = DateUtil.format(DateUtil.addDate(TimeUnit.SECONDS, startEndPair.getRight(), (waterMarkMs / 1000) * timeUnitAdjust), SESSION_DATETIME_PATTERN);
         value.setStartTime(startTime);
         value.setEndTime(endTime);
         value.setFireTime(fireTime);
@@ -420,47 +401,10 @@ public class SessionOperator extends WindowOperator {
                     .sorted(Comparator.comparingLong(WindowBaseValue::getPartitionNum))
                     .collect(Collectors.toList());
 
-//            Long currentFireTime = DateUtil.parse(windowInstance.getFireTime(), SESSION_DATETIME_PATTERN).getTime();
-//            Long nextFireTime = currentFireTime + 1000 * 60 * 1;
-//            List<WindowValue> toFireValueList = new ArrayList<>();
-
-
-//            for (WindowBaseValue baseValue : baseValues) {
-//                WindowValue windowValue = (WindowValue) baseValue;
-//                if (windowValue == null) {
-//                    continue;
-//                }
-//
-//                if (checkFire(queueId, windowValue)) {
-//                    TraceUtil.debug(String.valueOf(windowValue.getPartitionNum()), "shuffle message fire", windowValue.getStartTime(), windowValue.getEndTime(), windowValue.getComputedColumnResult());
-//                    toFireValueList.add(windowValue);
-//                } else {
-//                    Long itFireTime = DateUtil.parse(windowValue.getFireTime(), SESSION_DATETIME_PATTERN).getTime();
-//                    if (itFireTime > currentFireTime && itFireTime < nextFireTime) {
-//                        nextFireTime = itFireTime;
-//                        break;
-//                    }
-//                }
-//            }
             doFire(queueId, windowInstance, result);
             return baseValues.size();
         }
 
-    }
-
-    private boolean checkFire(String queueId, WindowValue value) {
-        Long maxEventTime = getMaxEventTime(queueId);
-        //set current time if not every queue have arrived
-        if (maxEventTime == null) {
-            maxEventTime = System.currentTimeMillis();
-        }
-        Long fireTime = DateUtil.parse(value.getFireTime(), SESSION_DATETIME_PATTERN).getTime();
-        if (fireTime < maxEventTime) {
-            System.out.printf("fire in sessionOperator: maxEventTime={%s}, fireTime={%s}", maxEventTime, fireTime);
-            System.out.println("");
-            return true;
-        }
-        return false;
     }
 
 
@@ -472,17 +416,7 @@ public class SessionOperator extends WindowOperator {
         valueList.sort(Comparator.comparingLong(WindowBaseValue::getPartitionNum));
         sendFireMessage(valueList, queueId);
         clearWindowValues(valueList, queueId, instance);
-//
-//        if (!nextFireTime.equals(currentFireTime)) {
-//            String instanceId = instance.getWindowInstanceId();
-//            WindowInstance existedWindowInstance = searchWindowInstance(instanceId);
-//            if (existedWindowInstance != null) {
-//                existedWindowInstance.setFireTime(DateUtil.format(new Date(nextFireTime)));
-//                windowFireSource.registFireWindowInstanceIfNotExist(instance, this);
-//            } else {
-//                LOG.error("window instance lost, queueId: " + queueId + " ,fire time" + instance.getFireTime());
-//            }
-//        }
+
     }
 
 

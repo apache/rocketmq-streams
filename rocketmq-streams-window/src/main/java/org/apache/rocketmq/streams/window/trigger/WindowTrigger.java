@@ -169,8 +169,6 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         if (fireResult.isCanFire()) {
             //maybe firimg
             if (firingWindowInstances.containsKey(windowInstanceTriggerId)) {
-                //System.out.println("has firing");
-
                 return true;
             }
             //start firing
@@ -214,12 +212,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         }
     }
 
-    /**
-     * 是否符合触发条件
-     *
-     * @param windowInstance
-     * @return
-     */
+
     protected FireResult canFire(WindowInstance windowInstance) {
         String windowInstanceTriggerId = windowInstance.createWindowInstanceTriggerId();
         if (window == null) {
@@ -227,36 +220,20 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             return new FireResult();
         }
         Date fireTime = DateUtil.parseTime(windowInstance.getFireTime());
-        Boolean isTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
-        if (isTest) {
-            if (System.currentTimeMillis() - fireTime.getTime() > 0) {
-                System.out.println(windowInstance.getWindowName() + " is fired by test timeout");
-                return new FireResult(true, 3);
-            }
-        }
-        /**
-         * 未到触发时间
-         */
+
+        //maxEventTime时间会一点点往前走
         Long maxEventTime = this.window.getMaxEventTime(windowInstance.getSplitId());
         if (window.getTimeFieldName() == null) {
             maxEventTime = System.currentTimeMillis();
         }
         if (maxEventTime != null && maxEventTime - fireTime.getTime() >= 3000) {
-            System.out.printf("maxEventTime={%s}, fireTime={%s}", maxEventTime, fireTime.getTime());
-            System.out.println("");
             return new FireResult(true, 0);
         }
         Long eventTimeLastUpdateTime = this.eventTimeLastUpdateTime;
         if (eventTimeLastUpdateTime == null) {
             return new FireResult();
         }
-        if (isTest) {
-            int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
-            if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
-                LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
-                return new FireResult(true, 1);
-            }
-        }
+
         return new FireResult();
     }
 
