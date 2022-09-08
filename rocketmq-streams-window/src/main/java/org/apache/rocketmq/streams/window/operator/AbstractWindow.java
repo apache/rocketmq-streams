@@ -89,9 +89,9 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
     protected String groupByFieldName;
 
     /**
-     * 意义同blink中，允许最晚的消息到达时间，单位是分钟
+     * 意义同blink中，允许最晚的消息到达时间ms
      */
-    protected int waterMarkMinute = 0;
+    protected int waterMarkMs = 0;
 
     /**
      * size or step of window, unit: minute
@@ -602,12 +602,12 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         this.groupByFieldName = groupByFieldName;
     }
 
-    public int getWaterMarkMinute() {
-        return waterMarkMinute;
+    public int getWaterMarkMs() {
+        return waterMarkMs;
     }
 
-    public void setWaterMarkMinute(int waterMarkMinute) {
-        this.waterMarkMinute = waterMarkMinute;
+    public void setWaterMarkMs(int waterMarkMs) {
+        this.waterMarkMs = waterMarkMs;
     }
 
     public int getSizeInterval() {
