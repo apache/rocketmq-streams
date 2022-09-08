@@ -18,23 +18,17 @@
 package org.apache.rocketmq.streams.client.transform;
 
 import com.alibaba.fastjson.JSONObject;
-import java.util.List;
-import java.util.Map;
+
 import java.util.Properties;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
-import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.functions.ReduceFunction;
-import org.apache.rocketmq.streams.common.model.NameCreator;
-import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
@@ -43,8 +37,6 @@ import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
-import org.apache.rocketmq.streams.script.service.udf.SimpleUDAFScript;
-import org.apache.rocketmq.streams.script.service.udf.UDAFScript;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
@@ -255,11 +247,11 @@ public class WindowStream {
     /**
      * 以哪几个字段做分组，支持多个字段
      *
-     * @param waterMarkSecond
+     * @param waterMarkMs
      * @return
      */
-    public WindowStream waterMark(int waterMarkSecond) {
-        window.setWaterMarkMinute(waterMarkSecond);
+    public WindowStream waterMark(int waterMarkMs) {
+        window.setWaterMarkMs(waterMarkMs);
 
         return this;
     }

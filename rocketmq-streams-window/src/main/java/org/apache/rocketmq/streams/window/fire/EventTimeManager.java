@@ -29,7 +29,7 @@ public class EventTimeManager {
     private Map<String, SplitEventTimeManager> eventTimeManagerMap = new HashMap<>();
     protected ISource source;
 
-    private Map<String, Pair<Long, Long>> eventTimeIncreasementMap = new ConcurrentHashMap<>();
+    private Map<String/*queueId*/, Pair<Long/*eventTime*/, Long/*update Time*/>> eventTimeIncreasementMap = new ConcurrentHashMap<>();
 
     public void updateEventTime(IMessage message, AbstractWindow window) {
         String queueId = message.getHeader().getQueueId();
@@ -46,9 +46,16 @@ public class EventTimeManager {
         splitEventTimeManager.updateEventTime(message, window);
     }
 
+    /**
+     *从splitEventTimeManager中获取当前最大event time，
+     * 如果eventTimeIncreasementMap中有这个最大值，返回 maxEventTime + 当前时间与放入最大值时间差；
+     * 如果没有，放入这个最大值和当前时间戳；并返回这个 maxEventTime
+     */
     public Long getMaxEventTime(String queueId) {
         SplitEventTimeManager splitEventTimeManager = eventTimeManagerMap.get(queueId);
         if (splitEventTimeManager != null) {
+
+            //这个currentMaxEventTime是所有分片中最小的值，基本不会变
             Long currentMaxEventTime = splitEventTimeManager.getMaxEventTime();
             if (currentMaxEventTime == null) {
                 return null;
@@ -58,6 +65,7 @@ public class EventTimeManager {
                 if (lastMaxEventTime != null && lastMaxEventTime.equals(currentMaxEventTime)) {
                     //increase event time as time flies to solve batch data processing issue
                     if (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight() > IWindow.SYS_DELAY_TIME) {
+                        //靠这里一点一点往前走
                         return lastMaxEventTime + (System.currentTimeMillis() - eventTimeIncreasementMap.get(queueId).getRight());
                     }
                 } else {
