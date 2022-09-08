@@ -40,7 +40,7 @@ public class SplitEventTimeManager {
     protected Long lastUpdateTime;
 
     protected volatile Integer allSplitSize;
-    protected volatile Integer workingSplitSize;
+    protected volatile Integer workingSplitSize = 0;
     protected Map<String, List<ISplit>> splitsGroupByInstance;
     protected ISource source;
 
@@ -60,6 +60,8 @@ public class SplitEventTimeManager {
             } else {
                 this.allSplitSize = splits.size();
             }
+        } else {
+            this.allSplitSize = -1;
         }
     }
 
@@ -114,26 +116,11 @@ public class SplitEventTimeManager {
         if (lastUpdateTime == null) {
             lastUpdateTime = System.currentTimeMillis();
         }
-        if (allSplitSize == null && workingSplitSize == null) {
-            if (source == null) {
-                return false;
-            }
-            if (source instanceof AbstractSource) {
-                AbstractSource abstractSource = (AbstractSource) source;
-                List<ISplit> splits = abstractSource.getAllSplits();
-                if (splits == null) {
-                    this.allSplitSize = -1;
-                } else {
-                    this.allSplitSize = splits.size();
-                }
-            }
-        }
+
         if (allSplitSize == -1) {
             return true;
         }
-        if (allSplitSize != -1 && workingSplitSize == null) {
-            workingSplitSize = 0;
-        }
+
         if (allSplitSize != -1 && allSplitSize > workingSplitSize) {
             if (System.currentTimeMillis() - lastUpdateTime > 1000) {
                 workingSplitSize = calcuteWorkingSplitSize();
@@ -142,6 +129,7 @@ public class SplitEventTimeManager {
                     return false;
                 }
             }
+
             if (this.splitsGroupByInstance == null) {
                 return false;
             }
