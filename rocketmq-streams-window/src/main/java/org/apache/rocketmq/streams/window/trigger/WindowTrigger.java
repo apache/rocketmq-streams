@@ -169,8 +169,6 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         if (fireResult.isCanFire()) {
             //maybe firimg
             if (firingWindowInstances.containsKey(windowInstanceTriggerId)) {
-                //System.out.println("has firing");
-
                 return true;
             }
             //start firing
@@ -242,8 +240,6 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             maxEventTime = System.currentTimeMillis();
         }
         if (maxEventTime != null && maxEventTime - fireTime.getTime() >= 3000) {
-            System.out.printf("maxEventTime={%s}, fireTime={%s}", maxEventTime, fireTime.getTime());
-            System.out.println("");
             return new FireResult(true, 0);
         }
         Long eventTimeLastUpdateTime = this.eventTimeLastUpdateTime;
