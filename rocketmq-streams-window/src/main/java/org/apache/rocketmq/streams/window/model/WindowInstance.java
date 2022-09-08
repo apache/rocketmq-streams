@@ -126,7 +126,7 @@ public class WindowInstance extends Entity implements Serializable {
 
 
     public static List<WindowInstance> createWindowInstances(AbstractWindow window,
-        List<Pair<String, String>> startAndEndTimeList, List<String> fireTimeList, String queueId) {
+                                                             List<Pair<String, String>> startAndEndTimeList, List<String> fireTimeList, String queueId) {
         List<WindowInstance> lostInstanceList = new ArrayList<>();
         for (int index = 0; index < startAndEndTimeList.size(); index++) {
             Pair<String, String> pair = startAndEndTimeList.get(index);
@@ -157,6 +157,7 @@ public class WindowInstance extends Entity implements Serializable {
         }
         return occurTime;
     }
+
     /**
      * 查询或者创建Window的实例，滑动窗口有可能返回多个，滚动窗口返回一个
      *
@@ -166,8 +167,9 @@ public class WindowInstance extends Entity implements Serializable {
      * @Param isWindowInstance2DB 如果是秒级窗口，可能windowinstacne不必存表，只在内存保存，可以通过这个标志设置
      */
     public static List<WindowInstance> getOrCreateWindowInstance(AbstractWindow window, Long occurTime, int timeUnitAdjust, String queueId) {
-        return getOrCreateWindowInstance(window,occurTime,timeUnitAdjust,queueId,false);
+        return getOrCreateWindowInstance(window, occurTime, timeUnitAdjust, queueId, false);
     }
+
     /**
      * 查询或者创建Window的实例，滑动窗口有可能返回多个，滚动窗口返回一个
      *
@@ -183,7 +185,7 @@ public class WindowInstance extends Entity implements Serializable {
             windowSlideInterval = windowSizeInterval;
         }
 
-        int waterMarkMinute = window.getWaterMarkMinute();
+        int waterMarkMs = window.getWaterMarkMs();
 
         List<Date> windowBeginTimeList = DateUtil.getWindowBeginTime(occurTime,
                 (long) windowSlideInterval * timeUnitAdjust * 1000,
@@ -214,7 +216,7 @@ public class WindowInstance extends Entity implements Serializable {
                         fire = DateUtil.addDate(TimeUnit.SECONDS, soonBegin, windowSizeInterval * timeUnitAdjust);
                     }
 
-                    if (fire.getTime() - end.getTime() - (long) waterMarkMinute * timeUnitAdjust * 1000 > 0) {
+                    if (fire.getTime() - end.getTime() - (long) waterMarkMs * timeUnitAdjust > 0) {
                         //超过最大watermark，消息需要丢弃
                         break;
                     }
@@ -223,22 +225,19 @@ public class WindowInstance extends Entity implements Serializable {
                  * mode 2 clear window instance in first create window instance
                  * 已经不再使用，这段代码可以忽略
                  */
-                if (window.getFireMode() == 2 && fire.getTime() == end.getTime() && waterMarkMinute > 0) {
-                    Date clearWindowInstanceFireTime = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
+                if (window.getFireMode() == 2 && fire.getTime() == end.getTime() && waterMarkMs > 0) {
+                    Date clearWindowInstanceFireTime = DateUtil.addDate(TimeUnit.SECONDS, end, (waterMarkMs / 1000) * timeUnitAdjust);
                     WindowInstance lastWindowInstance = window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end), DateUtil.format(clearWindowInstanceFireTime), queueId);
                     lastWindowInstance.setCanClearResource(true);
 
-                    //和window.getWindowFireSource().registFireWindowInstanceIfNotExist重复了
-//                    window.registerWindowInstance(lastWindowInstance);
-
                     //保存windowInstance
-                    window.getStorage().putWindowInstance(queueId,window.getNameSpace(), window.getConfigureName(), lastWindowInstance);
+                    window.getStorage().putWindowInstance(queueId, window.getNameSpace(), window.getConfigureName(), lastWindowInstance);
 
                     window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance, window);
                 }
 
             } else {
-                fire = DateUtil.addDate(TimeUnit.SECONDS, end, waterMarkMinute * timeUnitAdjust);
+                fire = DateUtil.addDate(TimeUnit.SECONDS, end, (waterMarkMs / 1000) * timeUnitAdjust);
                 if (window.getEmitAfterValue() != null && window.getEmitAfterValue() > 0 && window.getMaxDelay() != null && window.getMaxDelay() > 0) {
                     fire = DateUtil.addDate(TimeUnit.SECONDS, fire, window.getMaxDelay().intValue());
                 }
@@ -267,7 +266,7 @@ public class WindowInstance extends Entity implements Serializable {
         //todo 这里针对lost的都创建一次
         lostInstanceList = WindowInstance.createWindowInstances(window, lostWindowTimeList, lostFireList, queueId);
         instanceList.addAll(lostInstanceList);
-        if (CollectionUtil.isNotEmpty(lostInstanceList)&&!isCreateOnly) {
+        if (CollectionUtil.isNotEmpty(lostInstanceList) && !isCreateOnly) {
             for (WindowInstance windowInstance : instanceList) {
                 List<WindowInstance> emitInstances = createEmitWindowInstance(window, windowInstance);
                 if (emitInstances != null && emitInstances.size() > 0) {
@@ -302,7 +301,7 @@ public class WindowInstance extends Entity implements Serializable {
     }
 
     protected static List<WindowInstance> createEmitBeforeWindowInstance(AbstractWindow window,
-        WindowInstance windowInstance) {
+                                                                         WindowInstance windowInstance) {
         if (window.getEmitBeforeValue() == null || window.getEmitBeforeValue() == 0) {
             return null;
         }
@@ -324,7 +323,7 @@ public class WindowInstance extends Entity implements Serializable {
     }
 
     private static List<WindowInstance> createEmitAfterWindowInstance(AbstractWindow window,
-        WindowInstance windowInstance) {
+                                                                      WindowInstance windowInstance) {
         if (window.getEmitAfterValue() == null || window.getEmitAfterValue() == 0) {
             return null;
         }
@@ -334,7 +333,7 @@ public class WindowInstance extends Entity implements Serializable {
         List<WindowInstance> windowInstances = new ArrayList<>();
         Date endDate = DateUtil.parse(windowInstance.getEndTime());
         Date fireTime = DateUtil.parse(windowInstance.getFireTime());
-        Date emitFireTime = DateUtil.addDate(TimeUnit.SECONDS, endDate, window.getWaterMarkMinute() * window.getTimeUnitAdjust());
+        Date emitFireTime = DateUtil.addDate(TimeUnit.SECONDS, endDate, (window.getWaterMarkMs() /1000) * window.getTimeUnitAdjust());
         while (emitFireTime.getTime() < fireTime.getTime()) {
             WindowInstance firstWindowInstance = windowInstance.copy();
             firstWindowInstance.setFireTime(DateUtil.format(emitFireTime));

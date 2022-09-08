@@ -45,7 +45,7 @@ public class WindowInstanceTest {
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(5);
+        window.setWaterMarkMs(5);
         window.setEmitAfterValue(60L);
         window.setNameSpace("namespace_chris");
         window.setConfigureName("name");
@@ -62,7 +62,7 @@ public class WindowInstanceTest {
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(1000);
+        window.setWaterMarkMs(1000);
         window.setNameSpace("namespace_chris");
         window.setConfigureName("name");
         JSONObject msg = new JSONObject();
@@ -83,7 +83,7 @@ public class WindowInstanceTest {
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(5);
+        window.setWaterMarkMs(5);
         window.setNameSpace("namespace_chris");
         window.setConfigureName("name");
         JSONObject msg = new JSONObject();
@@ -100,7 +100,7 @@ public class WindowInstanceTest {
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(1000);
+        window.setWaterMarkMs(1000);
         window.setNameSpace("namespace_chris");
         window.setConfigureName("name");
         JSONObject msg = new JSONObject();
@@ -123,7 +123,7 @@ public class WindowInstanceTest {
         if (slideInterval == 0) {
             slideInterval = sizeInterval;
         }
-        int maxLateness = window.getWaterMarkMinute();
+        int maxLateness = window.getWaterMarkMs();
         List<Date> windowBeginTimeList = DateUtil.getWindowBeginTime(occurTime, slideInterval * timeUnitAdjust * 1000,
             sizeInterval * timeUnitAdjust * 1000);
         for (Date begin : windowBeginTimeList) {
@@ -183,7 +183,7 @@ public class WindowInstanceTest {
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(0);
+        window.setWaterMarkMs(0);
         window.setNameSpace("namespace_test");
         window.setConfigureName("window_name");
 
@@ -216,7 +216,7 @@ public class WindowInstanceTest {
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(120);
+        window.setWaterMarkMs(120);
         window.setNameSpace("namespace_test");
         window.setConfigureName("window_name");
 
@@ -248,7 +248,7 @@ public class WindowInstanceTest {
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
         window.setSizeInterval(5);
-        window.setWaterMarkMinute(120);
+        window.setWaterMarkMs(120);
         window.setNameSpace("namespace_test");
         window.setConfigureName("window_name");
 
