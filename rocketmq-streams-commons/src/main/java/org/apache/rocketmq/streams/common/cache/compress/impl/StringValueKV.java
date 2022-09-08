@@ -17,11 +17,8 @@
 package org.apache.rocketmq.streams.common.cache.compress.impl;
 
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.compress.ByteArrayValueKV;
 import org.apache.rocketmq.streams.common.cache.compress.ICacheKV;
-import org.junit.Assert;
 
 /**
  * 支持key是string，value是int的场景，支持size不大于10000000.只支持int，long，boolean，string类型 只能一次行load，不能进行更新
@@ -73,64 +70,6 @@ public class StringValueKV implements ICacheKV<String> {
     @Override
     public int calMemory() {
         return values.calMemory();
-    }
-
-    public static void main(String[] args) throws InterruptedException {
-        int count = 10000000;
-
-        StringValueKV map = new StringValueKV(count);
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < count; i++) {
-            map.put("sdfsdfdds" + i, i + "");
-        }
-        System.out.println("fixed value size: " + map.getSize());
-        //System.out.println("fixed value memory: " + RamUsageEstimator.humanSizeOf(map));
-        System.out.println("fixed value write cost: " + (System.currentTimeMillis() - start));
-
-        start = System.currentTimeMillis();
-        SplitCache splitCache = new SplitCache(count);
-        for (int i = 0; i < count; i++) {
-            splitCache.put("sdfsdfdds" + i, i + "");
-        }
-        System.out.println("free value size: " + splitCache.getSize());
-        // System.out.println("free value memory: " + RamUsageEstimator.humanSizeOf(splitCache));
-        System.out.println("free value cost: " + (System.currentTimeMillis() - start));
-
-        start = System.currentTimeMillis();
-        Map<String, String> originMap = new HashMap<>(count);
-        for (int i = 0; i < count; i++) {
-            originMap.put("sdfsdfdds" + i, i + "");
-        }
-        System.out.println("origin map size: " + originMap.size());
-        // System.out.println("origin map memory: " + RamUsageEstimator.humanSizeOf(originMap));
-        System.out.println("origin map cost: " + (System.currentTimeMillis() - start));
-
-        start = System.currentTimeMillis();
-        for (int i = 0; i < count; i++) {
-            String v = map.get("sdfsdfdds" + i);
-            Assert.assertEquals(v, i + "");
-            v = map.get("asdfasdf" + i);
-            Assert.assertNull(v);
-        }
-        System.out.println("fix value read cost: " + (System.currentTimeMillis() - start));
-
-        start = System.currentTimeMillis();
-        for (int i = 0; i < count; i++) {
-            String v = splitCache.get("sdfsdfdds" + i);
-            Assert.assertEquals(v, i + "");
-            v = splitCache.get("asdfasdf" + i);
-            Assert.assertNull(v);
-        }
-        System.out.println("free value read cost: " + (System.currentTimeMillis() - start));
-
-        start = System.currentTimeMillis();
-        for (int i = 0; i < count; i++) {
-            String v = originMap.get("sdfsdfdds" + i);
-            Assert.assertEquals(v, i + "");
-            v = originMap.get("asdfasdf" + i);
-            Assert.assertNull(v);
-        }
-        System.out.println("origin map read cost: " + (System.currentTimeMillis() - start));
     }
 
 }

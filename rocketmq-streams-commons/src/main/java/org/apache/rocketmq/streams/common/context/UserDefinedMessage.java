@@ -21,7 +21,6 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -39,12 +38,22 @@ import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 public class UserDefinedMessage extends JSONObject implements Serializable {
 
     protected Object messageValue;
-    protected Map<String, Object> fieldMap;//如果messageValue是pojo，这里存储字段名和field信息
+    /**
+     * 如果messageValue是pojo，这里存储字段名和field信息
+     */
+    protected Map<String, Object> fieldMap;
+
     protected boolean isList = false;
+
     protected boolean isBasic = false;
+
     protected boolean isMap = false;
+
     protected boolean isPojo = false;
-    protected List<String> columnNames;//schama的列名，主要针对list场景
+    /**
+     * schema的列名，主要针对list场景
+     */
+    protected List<String> columnNames;
 
     public UserDefinedMessage(Object messageValue) {
         this(messageValue, null);
@@ -347,8 +356,10 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     @Override
     public Set<String> keySet() {
         Set<String> set = super.keySet();
-        set.addAll(fieldMap.keySet());
-        return set;
+        if (!set.isEmpty()) {
+            set.addAll(fieldMap.keySet());
+        }
+        return fieldMap.keySet();
     }
 
     @Override
@@ -369,30 +380,17 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Set<Entry<String, Object>> entrySet() {
         Set<Entry<String, Object>> set = super.entrySet();
 
+        Map<String, Object> map = new HashMap<>();
+        for (Entry<String, Object> entry : set) {
+            map.put(entry.getKey(), entry.getValue());
+        }
         for (String fieldName : fieldMap.keySet()) {
             Object value = getBeanFieldOrJsonValue(messageValue, fieldName);
             if (value != null) {
-                Entry<String, Object> entry = new Entry<String, Object>() {
-
-                    @Override
-                    public String getKey() {
-                        return fieldName;
-                    }
-
-                    @Override
-                    public Object getValue() {
-                        return value;
-                    }
-
-                    @Override
-                    public Object setValue(Object value) {
-                        return null;
-                    }
-                };
-                set.add(entry);
+                map.put(fieldName, value);
             }
         }
-        return set;
+        return map.entrySet();
     }
 
     protected Object getBeanFieldOrJsonValue(Object messageValue, String fieldName) {
@@ -441,14 +439,14 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
         }
 
         msg.put(IMessage.DATA_KEY, data);
-        msg.put("type", type);
+        msg.put(IMessage.TYPE_KEY, type);
         return msg.toJSONString();
     }
 
     protected Object deserializeMessageValue(String userObjectString) {
         JSONObject msg = JSONObject.parseObject(userObjectString);
         String data = msg.getString(IMessage.DATA_KEY);
-        String type = msg.getString("type");
+        String type = msg.getString(IMessage.TYPE_KEY);
         if ("datatype".equals(type)) {
             DataType dataType = DataTypeUtil.getDataTypeFromClass(messageValue.getClass());
             return dataType.getData(data);
