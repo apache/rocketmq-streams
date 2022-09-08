@@ -65,7 +65,6 @@ public class MessageUtil {
             if (!isJsonData) {
                 jsonObject = new JSONObject();
                 jsonObject.put(IMessage.DATA_KEY, data);
-                jsonObject.put(IMessage.IS_NOT_JSON_MESSAGE, true);
             } else {
                 jsonObject = JSON.parseObject(data);
             }
