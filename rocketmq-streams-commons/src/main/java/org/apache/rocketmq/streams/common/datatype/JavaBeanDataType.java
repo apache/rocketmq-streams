@@ -289,10 +289,6 @@ public class JavaBeanDataType extends BaseDataType {
 
         Object object = ReflectUtil.forInstance(clazz);
 
-        if (object == null) {
-            return null;
-        }
-
         ByteDataType byteDataType = new ByteDataType();
         byte b = byteDataType.byteToValue(bytes, index);
         int len = NumberUtils.toInt(b);
