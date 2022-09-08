@@ -23,19 +23,19 @@ public interface IMessage {
     /**
      * 对于非json数据在处理前先转化成json结构，key＝data；value＝实际数据
      */
-    public static final String DATA_KEY = "data";
+    String DATA_KEY = "data";
 
-    String SHUFFLE_MESSAGE_FLAG = "_shuffle_msg";//是否是shuffle msg
+    String TYPE_KEY = "type";
 
     /**
-     * 是否为json格式
+     * 是否是shuffle msg
      */
-    public static final String IS_NOT_JSON_MESSAGE = "isNotJsonMessage";
+    String SHUFFLE_MESSAGE_FLAG = "_shuffle_msg";
 
     /**
      * used when trace id lost
      */
-    public static final String DEFAULT_MESSAGE_TRACE_ID = "00000000-0000-0000-0000-000000000000";
+    String DEFAULT_MESSAGE_TRACE_ID = "00000000-0000-0000-0000-000000000000";
 
     MessageHeader getHeader();
 

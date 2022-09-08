@@ -46,6 +46,7 @@ import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.mqtt.source.PahoSource;
+import org.apache.rocketmq.streams.schema.SchemaConfig;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
 public class DataStreamSource {
@@ -114,7 +115,23 @@ public class DataStreamSource {
         return new DataStream(this.mainPipelineBuilder, null);
     }
 
+    public DataStream fromRocketmq(String topic, String groupName, String namesrvAddress, SchemaConfig schemaConfig) {
+        return fromRocketmq(topic, groupName, "*", namesrvAddress, null, schemaConfig);
+    }
 
+    public DataStream fromRocketmq(String topic, String groupName, String tags, String namesrvAddress, RPCHook rpcHook,
+        SchemaConfig schemaConfig) {
+        RocketMQSource rocketMQSource = new RocketMQSource();
+        rocketMQSource.setTopic(topic);
+        rocketMQSource.setTags(tags);
+        rocketMQSource.setGroupName(groupName);
+        rocketMQSource.setJsonData(false);
+        rocketMQSource.setNamesrvAddr(namesrvAddress);
+        rocketMQSource.setRpcHook(rpcHook);
+        rocketMQSource.setSchemaConfig(schemaConfig);
+        this.mainPipelineBuilder.setSource(rocketMQSource);
+        return new DataStream(this.mainPipelineBuilder, null);
+    }
 
     public DataStream fromCollection(JSONObject... elements) {
         CollectionSource source = new CollectionSource();

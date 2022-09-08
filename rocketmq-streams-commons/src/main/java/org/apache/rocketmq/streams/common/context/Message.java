@@ -23,6 +23,9 @@ import org.apache.rocketmq.streams.common.utils.TraceUtil;
 
 public class Message implements IMessage {
 
+    /**
+     * content of message, can be JsonObject or UserDefinedMessage
+     */
     private JSONObject message;
 
     private boolean isJsonMessage = true;
