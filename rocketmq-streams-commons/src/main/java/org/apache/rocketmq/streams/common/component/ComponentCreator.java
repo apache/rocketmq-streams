@@ -55,7 +55,7 @@ public class ComponentCreator {
     /**
      * blink jar包所在的路径
      */
-    public static final String BLINK_UDF_JAR_PATH = "dipper.blink.udf.jar.path";
+    public static final String CUSTOM_FUNCTION_JAR_PATH = "rsldb.custom.function.jar.path";
     private static final Map<String, IComponent> key2Component = new HashMap<>();
     private static Properties properties;
     public static String propertiesPath;//属性文件位置，便于定期刷新
