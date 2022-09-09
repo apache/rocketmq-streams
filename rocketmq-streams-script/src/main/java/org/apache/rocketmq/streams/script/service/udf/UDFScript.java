@@ -22,7 +22,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.calssscaner.AbstractScan;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
@@ -39,10 +42,8 @@ import org.apache.rocketmq.streams.script.service.IScriptUDFInit;
  * 主要是为了兼容外部的udf，或者把任意java的方法发布成函数
  */
 public class UDFScript extends AbstractScript implements IScriptUDFInit {
-
+    private static final Log LOG = LogFactory.getLog(AbstractScan.class);
     private transient ScriptComponent scriptComponent = ScriptComponent.getInstance();
-
-    private static final org.apache.commons.logging.Log LOG = LogFactory.getLog(UDFScript.class);
 
     protected transient Object instance;
 
@@ -76,8 +77,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
     @Override
     protected boolean initConfigurable() {
         registFunctionSerivce(scriptComponent.getFunctionService());
-        FunctionConfigure functionConfigure =
-            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), this.initParameters);
+        FunctionConfigure functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), this.initParameters);
         if (functionConfigure == null) {
             return true;
         }
@@ -155,16 +155,15 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
             clazz = classLoader.loadClass(fullClassName);
             instance = clazz.newInstance();
             return true;
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            LOG.warn("can not find [" + fullClassName + "] in classpath, may be load in customized path.");
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
+
         try {
             String jarUrl = getValue();
-//            if (StringUtil.isEmpty(jarUrl)) {
-//                clazz = classLoader.loadClass(fullClassName);
-//                instance = clazz.newInstance();
-//                return true;
-//            }
+
             URL url = null;
             if (isURL) {
                 url = new URL(getValue());
@@ -184,13 +183,14 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
                 }
             }
 
-            URL[] urls = new URL[] {url};
+            URL[] urls = new URL[]{url};
             URLClassLoader urlClassLoader = new URLClassLoader(urls, classLoader);
             classLoader = urlClassLoader;
 
             clazz = classLoader.loadClass(fullClassName);
             instance = clazz.newInstance();
 
+            LOG.info("load [" + fullClassName + "] success.");
         } catch (Exception e) {
             LOG.error("加载异常," + e.getMessage(), e);
             return false;
