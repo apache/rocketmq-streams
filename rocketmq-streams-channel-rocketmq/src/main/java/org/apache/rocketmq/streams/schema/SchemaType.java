@@ -36,9 +36,9 @@ public enum SchemaType {
      */
     JSON("JSON"),
     /**
-     * Text type for reserved
+     * String type, for word-count
      */
-    TEXT("TEXT"),
+    STRING("STRING"),
     /**
      * Binlog type for reserved
      */

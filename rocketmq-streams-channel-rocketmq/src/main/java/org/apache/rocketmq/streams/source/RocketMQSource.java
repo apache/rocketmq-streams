@@ -388,7 +388,7 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
      * @return
      */
     public JSONObject createFromMsg(MessageExt messageExt) {
-        if (schemaConfig != null) {
+        if (schemaConfig != null && !isJsonData) {
             try {
                 SchemaWrapper schemaWrapper =
                     SchemaWrapperFactory.createIfAbsent(messageExt.getTopic(), schemaConfig);
