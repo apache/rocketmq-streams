@@ -237,7 +237,7 @@ public class WindowStream {
      * 以消息体本身做分组
      * @return
      */
-    public WindowStream groupByValue() {
+    public WindowStream group() {
         return groupBy(IMessage.DATA_KEY);
     }
 
