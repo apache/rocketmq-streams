@@ -44,40 +44,56 @@ import org.apache.rocketmq.streams.db.driver.JDBCDriver;
  */
 
 public class DBConfigureService extends AbstractConfigurableService implements IPropertyEnable {
-
     private static final Log LOG = LogFactory.getLog(DBConfigureService.class);
-    private String jdbcdriver;
+
+    private String jdbcDriver;
     private String url;
     private String userName;
     private String password;
     private String tableName = "dipper_configure";
-    @Deprecated
-    private boolean isCompatibilityOldRuleEngine = false;//兼容老规则引擎使用，正常场景不需要理会
 
-    public DBConfigureService(String jdbcdriver, String url, String userName, String password) {
-        this(jdbcdriver, url, userName, password, null);
+    private boolean tableCreated = false;
+
+    public DBConfigureService(String jdbcDriver, String url, String userName, String password) {
+        this(jdbcDriver, url, userName, password, null);
     }
 
-    public DBConfigureService(String jdbcdriver, String url, String userName, String password, String tableName) {
+    public DBConfigureService(String jdbcDriver, String url, String userName, String password, String tableName) {
         this.url = url;
-        this.jdbcdriver = jdbcdriver;
+        this.jdbcDriver = jdbcDriver;
         this.userName = userName;
         this.password = password;
         this.tableName = tableName;
-        LOG.info("DBConfigureService resource ,the info is: driver:" + this.jdbcdriver + ",url:" + this.url
+        LOG.info("DBConfigureService resource ,the info is: driver:" + this.jdbcDriver + ",url:" + this.url
             + ",username:" + userName + ",password:" + password);
-        regJdbcDriver(jdbcdriver);
+        regJdbcDriver(jdbcDriver);
     }
 
     public DBConfigureService() {
+        createTableIfNotExist();
     }
 
-    /**
-     * @param properties
-     */
     public DBConfigureService(Properties properties) {
         super(properties);
         initProperty(properties);
+        createTableIfNotExist();
+    }
+
+    private void createTableIfNotExist() {
+        if (tableCreated) {
+            return;
+        }
+
+        synchronized (this) {
+            if (!tableCreated) {
+                JDBCDriver jdbcDriver = createResouce();
+
+                String sql = (Configure.createTableSQL(tableName));
+                jdbcDriver.execute(sql);
+
+                tableCreated = true;
+            }
+        }
     }
 
     @Override
@@ -107,9 +123,7 @@ public class DBConfigureService extends AbstractConfigurableService implements I
         JDBCDriver resource = createResouce();
         try {
             String namespace = "namespace";
-            if (isCompatibilityOldRuleEngine && AbstractComponent.JDBC_COMPATIBILITY_RULEENGINE_TABLE_NAME.equals(tableName)) {
-                namespace = "name_space";
-            }
+
             String sql = "SELECT * FROM `" + tableName + "` WHERE " + namespace + " in (" + SQLUtil.createInSql(namespaces) + ") and status =1";
             if (StringUtil.isNotEmpty(type)) {
                 sql = sql + " and type='" + type + "'";
@@ -198,12 +212,12 @@ public class DBConfigureService extends AbstractConfigurableService implements I
     }
 
     protected JDBCDriver createResouce() {
-        JDBCDriver resource = DriverBuilder.createDriver(this.jdbcdriver, this.url, this.userName, this.password);
+        JDBCDriver resource = DriverBuilder.createDriver(this.jdbcDriver, this.url, this.userName, this.password);
         return resource;
     }
 
-    public void setJdbcdriver(String jdbcdriver) {
-        this.jdbcdriver = jdbcdriver;
+    public void setJdbcDriver(String jdbcDriver) {
+        this.jdbcDriver = jdbcDriver;
     }
 
     public void setUrl(String url) {
@@ -233,21 +247,18 @@ public class DBConfigureService extends AbstractConfigurableService implements I
 
     @Override
     public void initProperty(Properties properties) {
-        this.jdbcdriver = properties.getProperty(AbstractComponent.JDBC_DRIVER);
-        regJdbcDriver(jdbcdriver);
+        this.jdbcDriver = properties.getProperty(AbstractComponent.JDBC_DRIVER);
+        regJdbcDriver(jdbcDriver);
         this.url = properties.getProperty(AbstractComponent.JDBC_URL);
         this.userName = properties.getProperty(AbstractComponent.JDBC_USERNAME);
         this.password = properties.getProperty(AbstractComponent.JDBC_PASSWORD);
         String tableName = properties.getProperty(AbstractComponent.JDBC_TABLE_NAME);
-        String isCompatibilityOldRuleEngine = properties.getProperty(AbstractComponent.JDBC_COMPATIBILITY_OLD_RULEENGINE);
-        if (StringUtil.isNotEmpty(isCompatibilityOldRuleEngine)) {
-            this.isCompatibilityOldRuleEngine = true;
-        }
+
         if (StringUtil.isNotEmpty(tableName)) {
             this.tableName = tableName;
         }
         LOG.info(
-            "Properties resource ,the info is: driver:" + this.jdbcdriver + ",url:" + this.url + ",username:" + userName
+            "Properties resource ,the info is: driver:" + this.jdbcDriver + ",url:" + this.url + ",username:" + userName
                 + ",password:" + password);
     }
 
