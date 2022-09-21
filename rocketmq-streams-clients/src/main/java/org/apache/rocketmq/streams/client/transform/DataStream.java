@@ -563,13 +563,6 @@ public class DataStream implements Serializable {
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
 
-//    public DataStream toKafka(String bootstrapServers, String topic) {
-//        KafkaSink kafkaSink = new KafkaSink(bootstrapServers, topic);
-//        ChainStage<?> output = this.mainPipelineBuilder.createStage(kafkaSink);
-//        this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
-//        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
-//    }
-
     public DataStream toEnhanceDBSink(String url, String userName, String password, String tableName) {
         EnhanceDBSink sink = new EnhanceDBSink(url, userName, password, tableName);
         ChainStage<?> output = this.mainPipelineBuilder.createStage(sink);
