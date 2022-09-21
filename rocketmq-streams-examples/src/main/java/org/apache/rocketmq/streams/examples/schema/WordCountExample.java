@@ -49,7 +49,7 @@ public class WordCountExample {
             NAMESRV_ADDRESS,
             new SchemaConfig(SchemaType.STRING))
             .window(TumblingWindow.of(Time.seconds(5)))
-            .groupByValue()
+            .group()
             .count("total")
             .waterMark(2)
             .setLocalStorageOnly(false)
