@@ -40,6 +40,10 @@ public class SchemaConfig implements Serializable {
     public SchemaConfig() {
     }
 
+    public SchemaConfig(SchemaType schemaType) {
+        this.schemaType = schemaType.name();
+    }
+
     public SchemaConfig(SchemaType schemaType, Class targetClass) {
         this.schemaType = schemaType.name();
         this.className = targetClass.getName();

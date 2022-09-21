@@ -71,6 +71,8 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
             isBasic = true;
             if (columnNames != null && columnNames.size() > 0) {
                 this.fieldMap.put(columnNames.get(0), messageValue);
+            } else {
+                this.fieldMap.put(IMessage.DATA_KEY, messageValue);
             }
         } else if (DataTypeUtil.isList(clazz) || DataTypeUtil.isArray(clazz)) {
             isList = true;
