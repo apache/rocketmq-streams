@@ -27,15 +27,15 @@ public interface ConfigureFileKey {
     /**
      * 数据库url
      */
-    String DB_TYPE = "dipper.rds.jdbc.type";
-    String JDBC_URL = "dipper.rds.jdbc.url";
-    String JDBC_USERNAME = "dipper.rds.jdbc.username";
-    String JDBC_PASSWORD = "dipper.rds.jdbc.password";
+    String DB_TYPE = "jdbc.type";
+    String JDBC_URL = "jdbc.url";
+    String JDBC_USERNAME = "jdbc.username";
+    String JDBC_PASSWORD = "jdbc.password";
     String LEASE_CONSISTENT_HASH_SUFFIX = "dipper.lease.consistent.hash.suffix";
-    String JDBC_DRIVER = "dipper.rds.jdbc.driver";
-    String JDBC_TABLE_NAME = "dipper.rds.table.name";
+    String JDBC_DRIVER = "jdbc.driver";
+    String JDBC_TABLE_NAME = "table.name";
     String SECRECY = "dipper.configure.sec.key";
-    String SECRECY_DEFAULT = "93ea4211-6218-4353-b9cd-1d21618dbf4e";
+    String SECRECY_DEFAULT = "";
 
     /**
      * 情报的连接信息
@@ -68,7 +68,7 @@ public interface ConfigureFileKey {
     /**
      * 如果需要兼容老规则引擎规则，且规则存储在ruleengine_configure中时，设置为true。如果老规则迁移到了dipper_configure, 这个值不需要设置或设置成false即可。兼容老的规则引擎，老规则引擎的namespace 是name_space需要通过这个配置告诉resource做适配。
      */
-    String JDBC_COMPATIBILITY_OLD_RULEENGINE = "dipper.rds.compatibility.old.ruleengine";
+    String JDBC_COMPATIBILITY_OLD_RULEENGINE = "mysql.compatibility.old.ruleengine";
     /**
      *
      */
