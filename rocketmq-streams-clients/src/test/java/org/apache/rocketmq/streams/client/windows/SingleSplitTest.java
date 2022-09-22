@@ -62,7 +62,7 @@ public class SingleSplitTest extends AbstractWindowTest {
     @Test
     public void testFireMode0() throws InterruptedException {
         // ComponentCreator.getProperties().setProperty("window.fire.isTest","true");
-        ComponentCreator.getProperties().setProperty("dipper.configurable.polling.time", "-1");
+        ComponentCreator.getProperties().setProperty("configurable.polling.time", "-1");
         super.executeWindowStream(true, 5, IWindow.DEFAULTFIRE_MODE, 0, 200l);
     }
 
