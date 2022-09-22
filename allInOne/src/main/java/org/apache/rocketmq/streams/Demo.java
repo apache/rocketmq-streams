@@ -26,7 +26,7 @@ public class Demo {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder();
 
-        RStream<String, Integer> rStream = builder.source("sourceTopic");
+        RStream<String> rStream = builder.source("sourceTopic");
 
         //todo 如果使用groupBy需要定义key
         rStream.map(value -> value)

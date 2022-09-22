@@ -17,6 +17,6 @@ package org.apache.rocketmq.streams.function;
  */
 
 @FunctionalInterface
-public interface FilterAction<K, V> {
-    boolean apply(final K key, final V value);
+public interface FilterAction<T> {
+    boolean apply(final T value);
 }

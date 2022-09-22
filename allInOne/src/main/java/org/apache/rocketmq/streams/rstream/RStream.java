@@ -22,17 +22,17 @@ import org.apache.rocketmq.streams.function.FilterAction;
 import org.apache.rocketmq.streams.function.MapperAction;
 import org.apache.rocketmq.streams.function.ValueMapperAction;
 
-public interface RStream<K, V> {
+public interface RStream<T> {
 
-    <OV> RStream<K, OV> map(ValueMapperAction<V, OV> mapperAction);
+    <OUT> RStream<T> map(ValueMapperAction<T, OUT> mapperAction);
 
-    RStream<K, V> filter(FilterAction<K, V> predictor);
+    RStream<T> filter(FilterAction<T> predictor);
 
     <R> GroupedStream<R,V> groupBy(MapperAction<K, V, R> mapperAction);
 
     void print();
 
-    void foreach(ForeachAction<K, V> foreachAction);
+    void foreach(ForeachAction<T> foreachAction);
 
     void sink(String topicName);
 }
