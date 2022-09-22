@@ -17,36 +17,24 @@
 
 package org.apache.rocketmq.streams.schema;
 
-public enum SchemaType {
+import org.apache.rocketmq.common.message.MessageExt;
 
-    /**
-     * Avro type
-     */
-    AVRO("AVRO"),
-    /**
-     * Protobuf type
-     */
-    PROTOBUF("PROTOBUF"),
-    /**
-     * Thrift type
-     */
-    THRIFT("THRIFT"),
-    /**
-     * Json type
-     */
-    JSON("JSON"),
-    /**
-     * String type, for word-count
-     */
-    STRING("STRING"),
-    /**
-     * Binlog type for reserved
-     */
-    BINLOG("BINLOG");
+public class StringSchemaWrapper implements SchemaWrapper {
 
-    private final String value;
+    private SchemaConfig schemaConfig;
 
-    SchemaType(final String value) {
-        this.value = value;
+    public StringSchemaWrapper(SchemaConfig schemaConfig) {
+        this.schemaConfig = schemaConfig;
+    }
+
+    @Override
+    public Object deserialize(MessageExt messageExt) {
+        byte[] msgBody = messageExt.getBody();
+        return new String(msgBody);
+    }
+
+    @Override
+    public SchemaConfig getConfig() {
+        return schemaConfig;
     }
 }
