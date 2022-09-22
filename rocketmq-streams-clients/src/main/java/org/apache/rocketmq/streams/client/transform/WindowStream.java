@@ -26,6 +26,7 @@ import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.functions.ReduceFunction;
@@ -230,6 +231,14 @@ public class WindowStream {
         }
 
         return this;
+    }
+
+    /**
+     * 以消息体本身做分组
+     * @return
+     */
+    public WindowStream group() {
+        return groupBy(IMessage.DATA_KEY);
     }
 
     /**

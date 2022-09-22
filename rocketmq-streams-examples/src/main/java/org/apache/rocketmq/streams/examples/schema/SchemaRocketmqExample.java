@@ -33,7 +33,7 @@ import org.apache.rocketmq.streams.schema.SchemaType;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 
-public class SchemaRocketmqSourceExample1 {
+public class SchemaRocketmqExample {
     private static String topicName = "schema-topic-1";
     private static String groupName = "groupName-1";
 

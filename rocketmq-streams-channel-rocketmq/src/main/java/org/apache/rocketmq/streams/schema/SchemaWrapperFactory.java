@@ -40,6 +40,10 @@ public class SchemaWrapperFactory {
             AvroSchemaWrapper avroSchemaWrapper = new AvroSchemaWrapper(schemaConfig);
             schemaWrapperCache.put(topic, avroSchemaWrapper);
             return avroSchemaWrapper;
+        } else if (SchemaType.STRING.name().equals(schemaConfig.getSchemaType())) {
+            StringSchemaWrapper stringSchemaWrapper = new StringSchemaWrapper(schemaConfig);
+            schemaWrapperCache.put(topic, stringSchemaWrapper);
+            return stringSchemaWrapper;
         } else {
             throw new RuntimeException("scheme type " + schemaConfig.getSchemaType() + " not supported");
         }

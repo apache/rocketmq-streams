@@ -34,6 +34,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
@@ -50,9 +51,11 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
+import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 import org.apache.rocketmq.streams.schema.SchemaConfig;
+import org.apache.rocketmq.streams.schema.SchemaType;
 import org.apache.rocketmq.streams.schema.SchemaWrapper;
 import org.apache.rocketmq.streams.schema.SchemaWrapperFactory;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -388,11 +391,14 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
      * @return
      */
     public JSONObject createFromMsg(MessageExt messageExt) {
-        if (schemaConfig != null) {
+        if (schemaConfig != null && !isJsonData) {
             try {
                 SchemaWrapper schemaWrapper =
                     SchemaWrapperFactory.createIfAbsent(messageExt.getTopic(), schemaConfig);
                 Object pojo = schemaWrapper.deserialize(messageExt);
+                if (SchemaType.STRING.name().equals(schemaConfig.getSchemaType())) {
+                    return new UserDefinedMessage(pojo, Lists.newArrayList(IMessage.DATA_KEY));
+                }
                 return new UserDefinedMessage(pojo);
             } catch (Exception ex) {
                 LOG.error("deserialize with schema failed, try to deserialize directly to json", ex);
