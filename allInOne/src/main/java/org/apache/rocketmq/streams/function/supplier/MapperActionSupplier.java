@@ -24,23 +24,23 @@ import org.apache.rocketmq.streams.running.StreamContext;
 
 import java.util.function.Supplier;
 
-public class MapperActionSupplier<K, V, R> implements Supplier<Processor<K, V, K, R>> {
-    private final MapperAction<K, V, R> mapperAction;
+public class MapperActionSupplier<K, V, NK> implements Supplier<Processor<K, V, NK, V>> {
+    private final MapperAction<K, V, NK> mapperAction;
 
-    public MapperActionSupplier(MapperAction<K, V, R> mapperAction) {
+    public MapperActionSupplier(MapperAction<K, V, NK> mapperAction) {
         this.mapperAction = mapperAction;
     }
 
     @Override
-    public Processor<K, V, K, R> get() {
+    public Processor<K, V, NK, V> get() {
         return new MapperProcessor(mapperAction);
     }
 
-    private class MapperProcessor extends AbstractProcessor<K, V, K, R> {
-        private final MapperAction<K, V, R> mapperAction;
+    private class MapperProcessor extends AbstractProcessor<K, V, NK, V> {
+        private final MapperAction<K, V, NK> mapperAction;
         private StreamContext streamContext;
 
-        public MapperProcessor(MapperAction<K, V, R> mapperAction) {
+        public MapperProcessor(MapperAction<K, V, NK> mapperAction) {
             this.mapperAction = mapperAction;
         }
 
@@ -52,8 +52,8 @@ public class MapperActionSupplier<K, V, R> implements Supplier<Processor<K, V, K
 
         @Override
         public void process(Data<K, V> data) {
-            R convert = mapperAction.convert(data.getKey(), data.getValue());
-            Data<R, V> newData = data.key(convert);
+            NK convert = mapperAction.convert(data.getKey(), data.getValue());
+            Data<NK, V> newData = data.key(convert);
             this.streamContext.forward(newData);
         }
     }

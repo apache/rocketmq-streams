@@ -17,6 +17,6 @@ package org.apache.rocketmq.streams.function;
  */
 
 @FunctionalInterface
-public interface MapperAction<K, V, R> {
-    R convert(K k, V v);
+public interface MapperAction<K, V, NK> {
+    NK convert(K k, V v);
 }

@@ -28,6 +28,7 @@ public class Demo {
 
         RStream<String, Integer> rStream = builder.source("sourceTopic");
 
+        //todo 如果使用groupBy需要定义key
         rStream.map(value -> value)
                 .filter((key, value) -> value != null)
                 .groupBy((key, value) -> (value))

@@ -65,10 +65,10 @@ public class RStreamImpl<K, V> implements RStream<K, V> {
     }
 
     @Override
-    public <R> GroupedStream<R, V> groupBy(MapperAction<K, V, R> mapperAction) {
+    public <NK> GroupedStream<NK, V> groupBy(MapperAction<K, V, NK> mapperAction) {
         String name = OperatorNameMaker.makeName(GROUPBY_PREFIX);
 
-        MapperActionSupplier<K, V, R> mapperActionSupplier = new MapperActionSupplier<>(mapperAction);
+        MapperActionSupplier<K, V, NK> mapperActionSupplier = new MapperActionSupplier<>(mapperAction);
 
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), true, mapperActionSupplier);
 
