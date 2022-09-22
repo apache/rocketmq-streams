@@ -270,7 +270,8 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         return isUpdate;
     }
 
-    @Override public void insert(IConfigurable configurable) {
+    @Override
+    public void insert(IConfigurable configurable) {
         insertConfigurable(configurable);
     }
 

@@ -23,7 +23,7 @@ import org.apache.rocketmq.streams.common.component.ComponentCreator;
  */
 public interface ConfigureFileKey {
 
-    String CONNECT_TYPE = "dipper.configurable.service.type";
+    String CONNECT_TYPE = "configurable.storage.type";
     /**
      * 数据库url
      */
@@ -31,27 +31,11 @@ public interface ConfigureFileKey {
     String JDBC_URL = "jdbc.url";
     String JDBC_USERNAME = "jdbc.username";
     String JDBC_PASSWORD = "jdbc.password";
-    String LEASE_CONSISTENT_HASH_SUFFIX = "dipper.lease.consistent.hash.suffix";
     String JDBC_DRIVER = "jdbc.driver";
     String JDBC_TABLE_NAME = "table.name";
     String SECRECY = "dipper.configure.sec.key";
     String SECRECY_DEFAULT = "";
 
-    /**
-     * 情报的连接信息
-     */
-    String INTELLIGENCE_JDBC_URL = "intelligence.rds.jdbc.url";
-    String INTELLIGENCE_JDBC_USERNAME = "intelligence.rds.jdbc.username";
-    String INTELLIGENCE_JDBC_PASSWORD = "intelligence.rds.jdbc.password";
-    String INTELLIGENCE_SWTICH = "intelligence.switch.open";
-    String INTELLIGENCE_TIP_DB_ENDPOINT = "intelligence.tip.db.endpoint";
-    String INTELLIGENCE_AK = "intelligence_ak";
-    String INTELLIGENCE_SK = "intelligence_sk";
-    String INTELLIGENCE_REGION = "intelligence_region";
-
-    /*
-     * regex engine option, "hyperscan or re2j". when this option not set, use hyperscan default
-     */
     String DIPPER_REGEX_ENGINE = "dipper.regex.engine.option";
 
     /**
@@ -61,26 +45,9 @@ public interface ConfigureFileKey {
 
     String DIPPER_RUNNING_STATUS_DEFAULT = "true";
 
-    /**
-     * 代表常量，不需要在配置文件配置
-     */
-    String JDBC_COMPATIBILITY_RULEENGINE_TABLE_NAME = "ruleengine_configure";
-    /**
-     * 如果需要兼容老规则引擎规则，且规则存储在ruleengine_configure中时，设置为true。如果老规则迁移到了dipper_configure, 这个值不需要设置或设置成false即可。兼容老的规则引擎，老规则引擎的namespace 是name_space需要通过这个配置告诉resource做适配。
-     */
-    String JDBC_COMPATIBILITY_OLD_RULEENGINE = "mysql.compatibility.old.ruleengine";
-    /**
-     *
-     */
+
     String POLLING_TIME = "dipper.configurable.polling.time";
-    /**
-     * 代理dbchannel的class，需要继承JDBCDataSource抽象类。如果配置这个参数，则会给dbchannel增加一层代理，所有需要db访问的，都是通过open api发送sql给代理
-     */
-    String DB_PROXY_CLASS_NAME = ComponentCreator.DB_PROXY_CLASS_NAME;
-    /**
-     * 创建channel的服务
-     */
-    String DIPPER_INSTANCE_CHANNEL_CREATOR_SERVICE_NAME = ComponentCreator.DIPPER_INSTANCE_CHANNEL_CREATOR_SERVICE_NAME;
+
     /**
      * 默认的文件存储transport的name
      */

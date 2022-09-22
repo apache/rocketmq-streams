@@ -20,20 +20,20 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
 public class ConfigurableServiceFactory {
     private static ServiceLoaderComponent<IConfigurableService> configurableServiceLoaderComponent = ServiceLoaderComponent.getInstance(IConfigurableService.class);
-    public static final String CONFIGURABLE_SERVICE_TYPE = "dipper.configurable.service.type";
     private static final Log LOG = LogFactory.getLog(ConfigurableServiceFactory.class);
 
     public static IConfigurableService createConfigurableService(Properties properties) {
         try {
             Properties properties1 = new Properties();
             properties1.putAll(properties);
-            String type = properties1.getProperty(CONFIGURABLE_SERVICE_TYPE);
+            String type = properties1.getProperty(ConfigureFileKey.CONNECT_TYPE);
             if (StringUtil.isEmpty(type)) {
                 type = IConfigurableService.MEMORY_SERVICE_NAME;
             }
