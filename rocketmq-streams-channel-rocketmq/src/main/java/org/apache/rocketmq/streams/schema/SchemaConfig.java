@@ -33,9 +33,14 @@ public class SchemaConfig implements Serializable {
     private String schemaRegistryUrl;
 
     /**
-     * deserialize target class
+     * class name of deserialize target object
      */
-    private String className;
+    private String targetClass;
+
+    /**
+     * class name of deserializer
+     */
+    private String deserializerClass;
 
     public SchemaConfig() {
     }
@@ -46,13 +51,18 @@ public class SchemaConfig implements Serializable {
 
     public SchemaConfig(SchemaType schemaType, Class targetClass) {
         this.schemaType = schemaType.name();
-        this.className = targetClass.getName();
+        this.targetClass = targetClass.getName();
+    }
+
+    public SchemaConfig(Class deserializerClass, Class targetClass) {
+        this.deserializerClass = deserializerClass.getName();
+        this.targetClass = targetClass.getName();
     }
 
     public SchemaConfig(SchemaType schemaType, Class targetClass, String schemaRegistryUrl) {
         this.schemaType = schemaType.name();
         this.schemaRegistryUrl = schemaRegistryUrl;
-        this.className = targetClass.getName();
+        this.targetClass = targetClass.getName();
     }
 
     public String getSchemaType() {
@@ -71,12 +81,20 @@ public class SchemaConfig implements Serializable {
         this.schemaRegistryUrl = schemaRegistryUrl;
     }
 
-    public String getClassName() {
-        return className;
+    public String getTargetClass() {
+        return targetClass;
     }
 
-    public void setClassName(String className) {
-        this.className = className;
+    public void setTargetClass(String targetClass) {
+        this.targetClass = targetClass;
+    }
+
+    public String getDeserializerClass() {
+        return deserializerClass;
+    }
+
+    public void setDeserializerClass(String deserializerClass) {
+        this.deserializerClass = deserializerClass;
     }
 
     @Override
@@ -84,7 +102,8 @@ public class SchemaConfig implements Serializable {
         return "SchemaConfig{" +
             "schemaType='" + schemaType + '\'' +
             ", schemaRegistryUrl='" + schemaRegistryUrl + '\'' +
-            ", className='" + className + '\'' +
+            ", targetClass='" + targetClass + '\'' +
+            ", deserializerClass='" + deserializerClass + '\'' +
             '}';
     }
 
@@ -92,10 +111,13 @@ public class SchemaConfig implements Serializable {
         if (!StringUtils.equals(getSchemaType(), configToCompare.getSchemaType())) {
             return false;
         }
-        if (!StringUtils.equals(getClassName(), configToCompare.getClassName())) {
+        if (!StringUtils.equals(getTargetClass(), configToCompare.getTargetClass())) {
             return false;
         }
         if (!StringUtils.equals(getSchemaRegistryUrl(), configToCompare.getSchemaRegistryUrl())) {
+            return false;
+        }
+        if (!StringUtils.equals(getDeserializerClass(), configToCompare.getDeserializerClass())) {
             return false;
         }
         return true;

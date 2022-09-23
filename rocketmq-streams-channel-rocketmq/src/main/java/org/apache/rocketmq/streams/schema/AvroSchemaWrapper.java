@@ -42,7 +42,7 @@ public class AvroSchemaWrapper implements SchemaWrapper {
             if (schemaConfig.getSchemaRegistryUrl() == null) {
                 avroSerde = new SpecificAvroSerde();
                 Map<String, Object> configs = new HashMap<>();
-                configs.put(AvroSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getClassName()));
+                configs.put(AvroSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getTargetClass()));
                 configs.put(AvroSerializerConfig.SKIP_SCHEMA_REGISTRY, true);
                 avroSerde.configure(configs);
             } else {
@@ -50,7 +50,7 @@ public class AvroSchemaWrapper implements SchemaWrapper {
                     SchemaRegistryClientFactory.newClient(schemaConfig.getSchemaRegistryUrl(), null);
                 avroSerde = new SpecificAvroSerde(schemaRegistryClient);
                 Map<String, Object> configs = new HashMap<>();
-                configs.put(AvroSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getClassName()));
+                configs.put(AvroSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getTargetClass()));
                 avroSerde.configure(configs);
             }
         } catch (Exception e) {

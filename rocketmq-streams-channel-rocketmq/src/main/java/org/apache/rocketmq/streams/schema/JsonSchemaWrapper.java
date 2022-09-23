@@ -45,7 +45,7 @@ public class JsonSchemaWrapper implements SchemaWrapper {
             if (schemaConfig.getSchemaRegistryUrl() == null) {
                 jsonSerde = new JsonSerde();
                 Map<String, Object> configs = new HashMap<>();
-                configs.put(JsonSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getClassName()));
+                configs.put(JsonSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getTargetClass()));
                 configs.put(JsonSerializerConfig.SKIP_SCHEMA_REGISTRY, true);
                 jsonSerde.configure(configs);
             } else {
@@ -53,7 +53,7 @@ public class JsonSchemaWrapper implements SchemaWrapper {
                     SchemaRegistryClientFactory.newClient(schemaConfig.getSchemaRegistryUrl(), null);
                 jsonSerde = new JsonSerde(schemaRegistryClient);
                 Map<String, Object> configs = new HashMap<>();
-                configs.put(JsonSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getClassName()));
+                configs.put(JsonSerializerConfig.DESERIALIZE_TARGET_TYPE, Class.forName(schemaConfig.getTargetClass()));
                 jsonSerde.configure(configs);
             }
         } catch (Exception e) {
