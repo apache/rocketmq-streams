@@ -48,7 +48,7 @@ public class CustomeDeserializerExample {
             topicName,
             groupName,
             NAMESRV_ADDRESS,
-            new SchemaConfig(DataDeserializer.class, Data.class))
+            new SchemaConfig(DataDeserializer.class))
             .forEach(data ->
                 System.out.println("test forEach: " + data.toString()))
             .filter(data -> ((Data)data).getInFlow() > 5)
