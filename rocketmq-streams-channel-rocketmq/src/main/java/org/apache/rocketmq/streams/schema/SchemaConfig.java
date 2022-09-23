@@ -54,9 +54,8 @@ public class SchemaConfig implements Serializable {
         this.targetClass = targetClass.getName();
     }
 
-    public SchemaConfig(Class deserializerClass, Class targetClass) {
+    public SchemaConfig(Class deserializerClass) {
         this.deserializerClass = deserializerClass.getName();
-        this.targetClass = targetClass.getName();
     }
 
     public SchemaConfig(SchemaType schemaType, Class targetClass, String schemaRegistryUrl) {
