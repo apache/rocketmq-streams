@@ -32,6 +32,11 @@ public class SchemaWrapperFactory {
                 return schemaWrapper;
             }
         }
+        if (schemaConfig.getSchemaType() == null && schemaConfig.getDeserializerClass() != null) {
+            CustomSchemaWrapper customSchemaWrapper = new CustomSchemaWrapper(schemaConfig);
+            schemaWrapperCache.put(topic, customSchemaWrapper);
+            return customSchemaWrapper;
+        }
         if (SchemaType.JSON.name().equals(schemaConfig.getSchemaType())) {
             JsonSchemaWrapper jsonSchemaWrapper = new JsonSchemaWrapper(schemaConfig);
             schemaWrapperCache.put(topic, jsonSchemaWrapper);
