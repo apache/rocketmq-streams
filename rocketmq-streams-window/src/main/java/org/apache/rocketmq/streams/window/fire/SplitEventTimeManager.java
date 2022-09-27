@@ -37,17 +37,10 @@ public class SplitEventTimeManager {
     protected static final Log LOG = LogFactory.getLog(SplitEventTimeManager.class);
     protected static final Map<String, Long> messageSplitId2MaxTime = new HashMap<>();
     private AtomicInteger queueIdCount = new AtomicInteger(0);
-    protected Long lastUpdateTime;
 
     protected volatile Integer allSplitSize;
-    protected volatile Integer workingSplitSize = 0;
-    protected Map<String, List<ISplit>> splitsGroupByInstance;
     protected ISource source;
-
-    protected volatile boolean isAllSplitReceived = false;
     protected transient String queueId;
-
-    private static Long splitReadyTime;
 
     public SplitEventTimeManager(ISource source, String queueId) {
         this.source = source;
@@ -83,10 +76,6 @@ public class SplitEventTimeManager {
     }
 
     public Long getMaxEventTime() {
-
-        if (!isSplitsReceiver()) {
-            return null;
-        }
         Long min = null;
 
         synchronized (messageSplitId2MaxTime) {
@@ -109,68 +98,7 @@ public class SplitEventTimeManager {
 
     }
 
-    protected boolean isSplitsReceiver() {
-        if (isAllSplitReceived) {
-            return true;
-        }
-        if (lastUpdateTime == null) {
-            lastUpdateTime = System.currentTimeMillis();
-        }
 
-        if (allSplitSize == -1) {
-            return true;
-        }
-
-        if (allSplitSize != -1 && allSplitSize > workingSplitSize) {
-            if (System.currentTimeMillis() - lastUpdateTime > 1000) {
-                workingSplitSize = calcuteWorkingSplitSize();
-                lastUpdateTime = System.currentTimeMillis();
-                if (allSplitSize > workingSplitSize) {
-                    return false;
-                }
-            }
-
-            if (this.splitsGroupByInstance == null) {
-                return false;
-            }
-            //add time out policy: no necessary waiting for other split
-            if (splitReadyTime == null) {
-                synchronized (this) {
-                    if (splitReadyTime == null) {
-                        splitReadyTime = System.currentTimeMillis();
-                    }
-                }
-            }
-            if (System.currentTimeMillis() - splitReadyTime >= 1000 * 60) {
-                this.isAllSplitReceived = true;
-                return true;
-            }
-        }
-
-        if (workingSplitSize == messageSplitId2MaxTime.size()) {
-            this.isAllSplitReceived = true;
-            return true;
-        }
-        return false;
-    }
-
-    private Integer calcuteWorkingSplitSize() {
-        if (source instanceof AbstractSource) {
-            AbstractSource abstractSource = (AbstractSource) source;
-            Map<String, List<ISplit>> splits = abstractSource.getWorkingSplitsGroupByInstances();
-            if (splits == null) {
-                return 0;
-            }
-            this.splitsGroupByInstance = splits;
-            int count = 0;
-            for (List<ISplit> splitList : splits.values()) {
-                count += splitList.size();
-            }
-            return count;
-        }
-        return 0;
-
-    }
 
     public void setSource(ISource source) {
         this.source = source;
