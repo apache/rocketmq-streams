@@ -159,61 +159,6 @@ public class RocketMQSource extends AbstractSupportShuffleSource {
         }
     }
 
-    //todo 计算正在工作的分片？
-    @Override
-    public Map<String, List<ISplit>> getWorkingSplitsGroupByInstances() {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
-        defaultMQAdminExt.setVipChannelEnabled(false);
-        defaultMQAdminExt.setAdminExtGroup(UUID.randomUUID().toString());
-        defaultMQAdminExt.setInstanceName(this.pullConsumer.getInstanceName());
-        try {
-            defaultMQAdminExt.start();
-            Map<MessageQueue, String> queue2Instances = getMessageQueueAllocationResult(defaultMQAdminExt, this.groupName);
-            Map<String, List<ISplit>> instanceOwnerQueues = new HashMap<>();
-            for (MessageQueue messageQueue : queue2Instances.keySet()) {
-                RocketMQMessageQueue metaqMessageQueue = new RocketMQMessageQueue(new MessageQueue(messageQueue.getTopic(), messageQueue.getBrokerName(), messageQueue.getQueueId()));
-                if (isNotDataSplit(metaqMessageQueue.getQueueId())) {
-                    continue;
-                }
-                String instanceName = queue2Instances.get(messageQueue);
-                List<ISplit> splits = instanceOwnerQueues.computeIfAbsent(instanceName, k -> new ArrayList<>());
-                splits.add(metaqMessageQueue);
-            }
-            return instanceOwnerQueues;
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            defaultMQAdminExt.shutdown();
-        }
-    }
-
-    private Map<MessageQueue, String> getMessageQueueAllocationResult(DefaultMQAdminExt defaultMQAdminExt,
-                                                                      String groupName) {
-        HashMap<MessageQueue, String> results = new HashMap<>();
-
-        try {
-            ConsumerConnection consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName);
-            Iterator iterator = consumerConnection.getConnectionSet().iterator();
-
-            while (iterator.hasNext()) {
-                Connection connection = (Connection) iterator.next();
-                String clientId = connection.getClientId();
-                ConsumerRunningInfo consumerRunningInfo = defaultMQAdminExt.getConsumerRunningInfo(groupName, clientId, false);
-                Iterator iterator1 = consumerRunningInfo.getMqTable().keySet().iterator();
-
-                while (iterator1.hasNext()) {
-                    MessageQueue messageQueue = (MessageQueue) iterator1.next();
-                    results.put(messageQueue, clientId.split("@")[1]);
-                }
-            }
-        } catch (Exception ex) {
-            ;
-        }
-
-        return results;
-    }
-
     @Override
     protected boolean isNotDataSplit(String queueId) {
         return false;
