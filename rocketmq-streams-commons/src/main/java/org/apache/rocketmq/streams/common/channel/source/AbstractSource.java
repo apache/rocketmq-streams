@@ -471,9 +471,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         return null;
     }
 
-    public Map<String, List<ISplit>> getWorkingSplitsGroupByInstances() {
-        return new HashMap<>();
-    }
 
     /**
      * 当新增分片时，需要做的回调
