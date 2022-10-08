@@ -135,15 +135,13 @@ public class ShuffleMessageCache extends MessageCache<Pair<ISplit,IMessage>> {
         return isOpenMiniBatch;
     }
 
-    protected transient AtomicLong SUM=new AtomicLong(0);
+
     protected JSONObject createMsg(String shuffleKey,WindowValue windowValue, MessageHeader messageHeader,JSONObject msgHeader) {
 
         JSONObject message = new JSONObject();
-        long start=System.currentTimeMillis();
         message.put(WindowValue.class.getName(), windowValue);
-       // long sum=SUM.addAndGet(System.currentTimeMillis()-start);
-     //   System.out.println("create msg "+sum);
         message.put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI);
+
         IMessage windowValueMsg=new Message(message);
         windowValueMsg.setHeader(messageHeader);
         ShuffleUtil.createShuffleMsg(windowValueMsg,shuffleKey,msgHeader);
