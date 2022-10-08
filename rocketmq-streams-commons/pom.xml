@@ -30,10 +30,6 @@
     <name>ROCKETMQ STREAMS :: commons</name>
     <packaging>jar</packaging>
     <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-        </dependency>
         <!-- http -->
         <dependency>
             <groupId>org.apache.commons</groupId>

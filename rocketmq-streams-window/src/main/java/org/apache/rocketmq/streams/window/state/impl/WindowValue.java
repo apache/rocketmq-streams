@@ -268,24 +268,15 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
         } catch (Exception e) {
             throw new RuntimeException("failed in window value calculating",e);
         }
-
-        //there is no need writing back to message
-
         return true;
     }
-
-    protected static AtomicInteger SUM=new AtomicInteger(0);
 
     protected void calFunctionColumn(AbstractWindow window, IMessage message) {
         String introduction = (String)message.getMessageBody().getOrDefault(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, "");
         boolean isMultiAccumulate = AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI.equals(introduction);
         if(isMultiAccumulate){
             WindowValue windowValue=message.getMessageBody().getObject(WindowValue.class.getName(),WindowValue.class);
-            try {
-               // windowValue= SerializeUtil.deserialize(windowValueJson,WindowValue.class);
-            }catch (Exception e){
-                throw new RuntimeException("window value deserializeObject error",e);
-            }
+
             List<WindowValue> windowValues=new ArrayList<>();
             windowValues.add(this);
             windowValues.add(windowValue);
@@ -304,6 +295,7 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                     AggregationScript originAccScript = (AggregationScript) executor;
                     AggregationScript windowAccScript = originAccScript.clone();
                     Object accumulator = null;
+
                     if (aggColumnResult.containsKey(executorName)) {
                         accumulator = aggColumnResult.get(executorName);
                     } else {
@@ -312,11 +304,10 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                         accumulator = director.createAccumulator();
                         aggColumnResult.put(executorName, accumulator);
                     }
+
                     windowAccScript.setAccumulator(accumulator);
-                    if(!isMultiAccumulate){
-                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,
-                            AggregationScript.INNER_AGGREGATION_COMPUTE_SINGLE);
-                    }
+                    message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, AggregationScript.INNER_AGGREGATION_COMPUTE_SINGLE);
+
                     FunctionContext context = new FunctionContext(message);
                     windowAccScript.doMessage(message, context);
                 } else if (executor instanceof FunctionScript) {
@@ -324,7 +315,7 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                     ((FunctionScript) executor).doMessage(message, context);
                 }
             }
-            //
+
             computedColumnResult.put(computedColumn, message.getMessageBody().get(computedColumn));
         }
         calProjectColumn(window, message);
@@ -346,9 +337,6 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
     }
 
 
-    /**
-     * merge the group which has the same group by value and different split id
-     */
     public static WindowValue mergeWindowValue(AbstractWindow window, List<WindowValue> valueList) {
         WindowValue lastWindowValue = new WindowValue(valueList.get(0));
         lastWindowValue.setComputedColumnResult(valueList.get(0).getComputedColumnResult());
@@ -363,17 +351,17 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
             for (FunctionExecutor info : executorList) {
                 String column = info.getColumn();
                 IStreamOperator<IMessage, List<IMessage>> engine = info.getExecutor();
+
                 if (engine instanceof AggregationScript) {
                     AggregationScript origin = (AggregationScript) engine;
                     AggregationScript operator = origin.clone();
+
                     if (needMergeComputation) {
-                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,
-                            AggregationScript.INNER_AGGREGATION_COMPUTE_SINGLE);
+                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, AggregationScript.INNER_AGGREGATION_COMPUTE_SINGLE);
                         operator.setAccumulator(operator.getDirector().createAccumulator());
                         operator.doMessage(message, context);
                     } else {
-                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,
-                            AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI);
+                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI);
                         List actors = valueList.stream().map(
                             windowValue -> {
                                 Object accumulator = null;
@@ -394,6 +382,7 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                         operator.doMessage(message, context);
                         needMergeComputation = true;
                     }
+
                 } else if (engine instanceof FunctionScript) {
                     FunctionScript theScript = (FunctionScript) engine;
                     String[] parameters = theScript.getDependentParameters();
@@ -409,11 +398,11 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                     }
                 }
             }
+
             if (message.getMessageBody().containsKey(computedColumn)) {
                 lastWindowValue.computedColumnResult.put(computedColumn, message.getMessageBody().get(computedColumn));
             } else if (!needMergeComputation) {
-                lastWindowValue.computedColumnResult.put(computedColumn,
-                    valueList.get(0).computedColumnResult.get(computedColumn));
+                lastWindowValue.computedColumnResult.put(computedColumn, valueList.get(0).computedColumnResult.get(computedColumn));
             }
         }
         // valueList.stream().map(value -> lastWindowValue.count += value.getCount());

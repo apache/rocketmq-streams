@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -97,12 +99,7 @@ public class ShuffleCache extends AbstractSink {
         }
 
         try {
-            long before = System.currentTimeMillis();
-            future.get();
-            long after = System.currentTimeMillis();
-
-            System.out.println("message wait before state recover:[" + (after - before) + "] ms, queueId=" + queueId);
-
+            future.get(5, TimeUnit.SECONDS);
             for (String loadQueueId : loadResult.keySet()) {
                 hasLoad.put(loadQueueId, true);
             }
@@ -111,15 +108,7 @@ public class ShuffleCache extends AbstractSink {
         }
     }
 
-    /**
-     * save consumer progress（offset）for groupby  source shuffleId
-     * window configName: name_window_10001
-     * shuffleId: shuffle_NormalTestTopic_namespace_name_broker-a_001
-     * oriQueueId: NormalTestTopic2_broker-a_000
-     *
-     * @param shuffleId
-     * @param messages
-     */
+
     protected void saveSplitProgress(String shuffleId, List<IMessage> messages) {
         IStorage delegator = this.window.getStorage();
 
@@ -144,13 +133,7 @@ public class ShuffleCache extends AbstractSink {
     }
 
 
-    /**
-     * 根据message，把message分组到不同的group，分别处理
-     *
-     * @param messageList
-     * @param instance2Messages
-     * @param windowInstanceMap
-     */
+
     protected void groupByWindowInstanceAndQueueId(List<IMessage> messageList,
                                                    Map<Pair<String, String>, List<IMessage>> instance2Messages, Map<String, WindowInstance> windowInstanceMap) {
         for (IMessage message : messageList) {
