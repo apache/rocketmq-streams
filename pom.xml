@@ -76,7 +76,8 @@
     </licenses>
 
     <modules>
-        <module>allInOne</module>
+        <module>core</module>
+        <module>example</module>
     </modules>
 
     <properties>
