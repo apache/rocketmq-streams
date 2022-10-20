@@ -1,4 +1,3 @@
-package org.apache.rocketmq.streams.core.metadata;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,11 +14,12 @@ package org.apache.rocketmq.streams.core.metadata;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.core.util;
 
-public class StreamConfig {
-    public static final String ROCKETMQ_STREAMS_CONSUMER_GROUP = "rocketmq_streams_consumer_group";
 
-    public static final String ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP = "rocketmq_streams_state_consumer_group";
-
-    public static final Integer STREAMS_PARALLEL_THREAD_NUM = Integer.valueOf(System.getProperty("streams_parallel_thread_num","1"));
+public class Utils {
+    public static final String pattern = "%s@%s@%s";
+    public static String buildKey(String brokerName, String topic, int queueId) {
+        return String.format(pattern, brokerName, topic, queueId);
+    }
 }

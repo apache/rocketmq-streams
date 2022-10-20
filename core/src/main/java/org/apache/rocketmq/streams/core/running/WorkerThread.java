@@ -28,10 +28,11 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
-import org.apache.rocketmq.streams.core.state.DefaultStore;
+import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
+import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 import java.util.HashSet;
@@ -64,7 +65,7 @@ public class WorkerThread extends Thread {
         DefaultMQAdminExt mqAdmin = rocketMQClient.getMQAdmin();
 
         RocksDBStore rocksDBStore = new RocksDBStore();
-        DefaultStore store = new DefaultStore(rocksDBStore);
+        RocketMQStore store = new RocketMQStore(producer, rocksDBStore, mqAdmin);
 
         this.planetaryEngine = new PlanetaryEngine<>(unionConsumer, producer, store, mqAdmin, wrapper);
     }
@@ -108,25 +109,30 @@ public class WorkerThread extends Thread {
         }
 
         //todo 恢复状态
-        public void loadState(Set<MessageQueue> addQueues) {
-            this.stateStore.loadState(addQueues);
+        public Throwable loadState(Set<MessageQueue> addQueues) {
+            try {
+                this.stateStore.loadState(addQueues);
+                return null;
+            } catch (Throwable t) {
+                return t;
+            }
         }
 
-        public void removeState(Set<MessageQueue> removeQueues) {
-            this.stateStore.removeState(removeQueues);
+        public Throwable removeState(Set<MessageQueue> removeQueues) {
+            try {
+                this.stateStore.removeState(removeQueues);
+                return null;
+            } catch (Throwable t) {
+                return t;
+            }
         }
 
         //处理
-        void start() {
-            try {
-                this.unionConsumer.start();
-                this.producer.start();
-                this.mqAdmin.start();
-                this.stateStore.init();
-            } catch (MQClientException e) {
-                //todo
-                e.printStackTrace();
-            }
+        void start() throws Throwable {
+            this.unionConsumer.start();
+            this.producer.start();
+            this.mqAdmin.start();
+            this.stateStore.init();
         }
 
         void runInLoop() throws Throwable {
@@ -154,7 +160,7 @@ public class WorkerThread extends Thread {
                     set.add(queue);
 
 
-                    String key = wrapper.buildKey(brokerName, topic, queueId);
+                    String key = Utils.buildKey(brokerName, topic, queueId);
                     SourceSupplier.SourceProcessor<K, V> processor = (SourceSupplier.SourceProcessor<K, V>) wrapper.selectProcessor(key);
 
                     StreamContext<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, messageExt);

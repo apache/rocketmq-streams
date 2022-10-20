@@ -21,6 +21,7 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
+import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,19 +29,18 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 class MessageQueueListenerWrapper implements MessageQueueListener {
     private final static InternalLogger log = ClientLogger.getLog();
-
-    private static final String pattern = "%s%s@%s";
     private final MessageQueueListener originListener;
     private final TopologyBuilder topologyBuilder;
 
     private final ConcurrentHashMap<String, Set<MessageQueue>> ownedMapping = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Processor<?>> mq2Processor = new ConcurrentHashMap<>();
 
-    private Consumer<Set<MessageQueue>> removeQueueHandler;
-    private Consumer<Set<MessageQueue>> addQueueHandler;
+    private Function<Set<MessageQueue>, Throwable> removeQueueHandler;
+    private Function<Set<MessageQueue>, Throwable> addQueueHandler;
 
     MessageQueueListenerWrapper(MessageQueueListener originListener, TopologyBuilder topologyBuilder) {
         this.originListener = originListener;
@@ -68,14 +68,14 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         removeTask(removeQueue);
         ownedQueues.removeAll(removeQueue);
         new Thread(() -> {
-            removeQueueHandler.accept(removeQueue);
+            Throwable error = removeQueueHandler.apply(removeQueue);
             waitPoint.countDown();
         }).start();
 
         buildTask(addQueue);
         ownedQueues.addAll(addQueue);
         new Thread(() -> {
-            addQueueHandler.accept(addQueue);
+            Throwable error = addQueueHandler.apply(addQueue);
             waitPoint.countDown();
         }).start();
 
@@ -106,7 +106,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
 
     private void buildTask(Set<MessageQueue> addQueues) {
         for (MessageQueue messageQueue : addQueues) {
-            String key = buildKey(messageQueue.getBrokerName(), messageQueue.getTopic(), messageQueue.getQueueId());
+            String key = Utils.buildKey(messageQueue.getBrokerName(), messageQueue.getTopic(), messageQueue.getQueueId());
             if (!mq2Processor.containsKey(key)) {
                 Processor<?> processor = topologyBuilder.build(messageQueue.getTopic());
                 this.mq2Processor.put(key, processor);
@@ -116,7 +116,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
 
     private void removeTask(Set<MessageQueue> removeQueues) {
         for (MessageQueue removeQueue : removeQueues) {
-            String key = buildKey(removeQueue.getBrokerName(), removeQueue.getTopic(), removeQueue.getQueueId());
+            String key = Utils.buildKey(removeQueue.getBrokerName(), removeQueue.getTopic(), removeQueue.getQueueId());
             mq2Processor.remove(key);
         }
     }
@@ -126,15 +126,13 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         return (Processor<T>) this.mq2Processor.get(key);
     }
 
-    String buildKey(String brokerName, String topic, int queueId) {
-        return String.format(pattern, brokerName, topic, queueId);
-    }
 
-    public void setRemoveQueueHandler(Consumer<Set<MessageQueue>> removeQueueHandler) {
+
+    public void setRemoveQueueHandler(Function<Set<MessageQueue>, Throwable>  removeQueueHandler) {
         this.removeQueueHandler = removeQueueHandler;
     }
 
-    public void setAddQueueHandler(Consumer<Set<MessageQueue>> addQueueHandler) {
+    public void setAddQueueHandler(Function<Set<MessageQueue>, Throwable>  addQueueHandler) {
         this.addQueueHandler = addQueueHandler;
     }
 }

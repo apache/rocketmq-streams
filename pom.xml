@@ -81,7 +81,7 @@
     </modules>
 
     <properties>
-        <rocketmq.version>4.9.4</rocketmq.version>
+        <rocketmq.version>5.0.0</rocketmq.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
     </properties>
 

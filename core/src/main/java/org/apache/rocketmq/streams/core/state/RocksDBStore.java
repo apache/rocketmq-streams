@@ -69,7 +69,7 @@ public class RocksDBStore extends AbstractStore {
     }
 
     @Override
-    public synchronized void init() {
+    public synchronized void init() throws Throwable {
         if (!created) {
             createRocksDB();
             created = true;
@@ -82,7 +82,7 @@ public class RocksDBStore extends AbstractStore {
     }
 
     @Override
-    public void loadState(Set<MessageQueue> addQueues) {
+    public void loadState(Set<MessageQueue> addQueues) throws Throwable {
 
     }
 
@@ -93,7 +93,7 @@ public class RocksDBStore extends AbstractStore {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <K, V>  V get(K key) {
+    public <K, V> V get(K key) {
         if (key == null) {
             return null;
         }

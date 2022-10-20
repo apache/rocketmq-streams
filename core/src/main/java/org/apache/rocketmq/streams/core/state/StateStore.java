@@ -21,11 +21,11 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import java.util.Set;
 
 public interface StateStore extends AutoCloseable {
-    void init();
+    void init() throws Throwable;
 
     void recover();
 
-    void loadState(Set<MessageQueue> addQueues);
+    void loadState(Set<MessageQueue> addQueues) throws Throwable;
 
     void removeState(Set<MessageQueue> removeQueues);
 

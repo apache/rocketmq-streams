@@ -37,7 +37,7 @@ public class RocketMQClient {
     public DefaultLitePullConsumer pullConsumer(String groupName, Set<String> topics) throws MQClientException {
         DefaultLitePullConsumer pullConsumer = new DefaultLitePullConsumer(groupName);
         pullConsumer.setNamesrvAddr(nameSrvAddr);
-        pullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        pullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         pullConsumer.setAutoCommit(false);
 
 
