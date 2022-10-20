@@ -90,7 +90,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         long start = System.currentTimeMillis();
         log.info("[start] load and clear state for messageQueue, begin time=[{}], messageQueue=[{}], ", topic, start, result);
         try {
-            waitPoint.wait();
+            waitPoint.await();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
