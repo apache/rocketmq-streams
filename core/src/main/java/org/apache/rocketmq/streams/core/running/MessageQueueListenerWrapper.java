@@ -23,13 +23,10 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Utils;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 
 class MessageQueueListenerWrapper implements MessageQueueListener {
     private final static InternalLogger log = ClientLogger.getLog();
@@ -39,8 +36,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
     private final ConcurrentHashMap<String, Set<MessageQueue>> ownedMapping = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Processor<?>> mq2Processor = new ConcurrentHashMap<>();
 
-    private Function<Set<MessageQueue>, Throwable> removeQueueHandler;
-    private Function<Set<MessageQueue>, Throwable> addQueueHandler;
+    private BiConsumer<Set<MessageQueue>, Set<MessageQueue>> recoverHandler;
 
     MessageQueueListenerWrapper(MessageQueueListener originListener, TopologyBuilder topologyBuilder) {
         this.originListener = originListener;
@@ -49,12 +45,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-        //todo 使用线程池，一个topic一个任务，并发进行，防止某个topic加载状态阻塞后面的topic加载状态；
-
-        Set<MessageQueue> ownedQueues = ownedMapping.get(topic);
-        if (ownedQueues == null) {
-            ownedQueues = new HashSet<>();
-        }
+        Set<MessageQueue> ownedQueues = ownedMapping.computeIfAbsent(topic, s -> new HashSet<>());
 
         HashSet<MessageQueue> addQueue = new HashSet<>(mqDivided);
         addQueue.removeAll(ownedQueues);
@@ -62,45 +53,16 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         HashSet<MessageQueue> removeQueue = new HashSet<>(ownedQueues);
         removeQueue.removeAll(mqDivided);
 
+        ownedQueues.addAll(new HashSet<>(addQueue));
+        ownedQueues.removeAll(new HashSet<>(removeQueue));
 
-        CountDownLatch waitPoint = new CountDownLatch(2);
-
-        removeTask(removeQueue);
-        ownedQueues.removeAll(removeQueue);
-        new Thread(() -> {
-            Throwable error = removeQueueHandler.apply(removeQueue);
-            waitPoint.countDown();
-        }).start();
+        this.recoverHandler.accept(addQueue, removeQueue);
 
         buildTask(addQueue);
-        ownedQueues.addAll(addQueue);
-        new Thread(() -> {
-            Throwable error = addQueueHandler.apply(addQueue);
-            waitPoint.countDown();
-        }).start();
-
-        StringBuilder builder = new StringBuilder();
-
-        for (MessageQueue messageQueue : mqDivided) {
-            builder.append(messageQueue.toString());
-            builder.append(";");
-        }
-        String result = builder.substring(0, builder.lastIndexOf(";"));
-
-        long start = System.currentTimeMillis();
-        log.info("[start] load and clear state for messageQueue, begin time=[{}], messageQueue=[{}], ", topic, start, result);
-        try {
-            waitPoint.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            long end = System.currentTimeMillis();
-            log.info("[stop] load and clear state for messageQueue, stop time=[{}], consume time=[{}] messageQueue=[{}], ", end, end - start, result);
-        }
-
         //设计的不太好，移除q，添加消费任务之前，应该加一个状态移除函数;目前这样写的问题是：状态提前移除/加载了，consumer其实仍然在从某个将要移除的q中拉取数据，但是状态却被移除了。
         //也不能把originListener.messageQueueChanged放在loadState/removeState之前，那样会已经在拉取数据了，但是状态没有加载好。
         originListener.messageQueueChanged(topic, mqAll, mqDivided);
+        removeTask(removeQueue);
     }
 
 
@@ -126,13 +88,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         return (Processor<T>) this.mq2Processor.get(key);
     }
 
-
-
-    public void setRemoveQueueHandler(Function<Set<MessageQueue>, Throwable>  removeQueueHandler) {
-        this.removeQueueHandler = removeQueueHandler;
-    }
-
-    public void setAddQueueHandler(Function<Set<MessageQueue>, Throwable>  addQueueHandler) {
-        this.addQueueHandler = addQueueHandler;
+    public void setRecoverHandler(BiConsumer<Set<MessageQueue>, Set<MessageQueue>> handler) {
+        this.recoverHandler = handler;
     }
 }

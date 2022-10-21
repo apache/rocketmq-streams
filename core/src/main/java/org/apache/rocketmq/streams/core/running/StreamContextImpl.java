@@ -84,6 +84,11 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     }
 
     @Override
+    public MessageExt getOriginData() {
+        return this.messageExt;
+    }
+
+    @Override
     public <K> void forward(Context<K, T> context) throws Throwable {
 
         this.key = context.getKey();

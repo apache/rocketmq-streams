@@ -35,6 +35,10 @@ import java.io.ByteArrayOutputStream;
  * | key length| value length  |           |             |
  * +-----------+---------------+-----------+-------------+
  * </pre>
+ *
+ * 废弃
+ *
+ *  avro的Schema只支持特定的种类，不是任意class传入都可以
  */
 public class KVAvroSerializer<K, V> extends ShuffleProtocol implements KeyValueSerializer<K, V> {
     private Schema keySchema;

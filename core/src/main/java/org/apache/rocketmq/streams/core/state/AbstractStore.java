@@ -16,6 +16,14 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.util.Utils;
+import java.util.HashSet;
+import java.util.Set;
+
 public abstract class AbstractStore implements StateStore {
     enum StoreState {
         UNINITIALIZED,
@@ -23,4 +31,51 @@ public abstract class AbstractStore implements StateStore {
         LOADING,
         LOADING_FINISHED
     }
+
+    public final static String STATE_TOPIC_SUFFIX = "-stateTopic";
+
+    protected StoreState state = StoreState.UNINITIALIZED;
+    protected final Object lock = new Object();
+
+    @Override
+    public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
+    }
+
+    protected Set<MessageQueue> convertSourceTopicQueue2StateTopicQueue(Set<MessageQueue> messageQueues) {
+        if (messageQueues == null || messageQueues.size() == 0) {
+            return new HashSet<>();
+        }
+
+        HashSet<MessageQueue> result = new HashSet<>();
+        for (MessageQueue messageQueue : messageQueues) {
+            if (messageQueue.getTopic().endsWith(STATE_TOPIC_SUFFIX)) {
+                continue;
+            }
+            MessageQueue queue = new MessageQueue(messageQueue.getTopic() + STATE_TOPIC_SUFFIX, messageQueue.getBrokerName(), messageQueue.getQueueId());
+            result.add(queue);
+        }
+
+        return result;
+    }
+
+    protected String buildKey(MessageExt messageExt) {
+        return Utils.buildKey(messageExt.getBrokerName(), messageExt.getTopic(), messageExt.getQueueId());
+    }
+
+    protected String buildKey(MessageQueue messageQueue) {
+        return Utils.buildKey(messageQueue.getBrokerName(), messageQueue.getTopic(), messageQueue.getQueueId());
+    }
+
+    protected byte[] object2Byte(Object target) {
+        if (target == null) {
+            return new byte[]{};
+        }
+
+        return JSON.toJSONBytes(target, SerializerFeature.WriteClassName);
+    }
+
+    protected Object byte2Object(byte[] source) {
+        return JSON.parse(source);
+    }
+
 }

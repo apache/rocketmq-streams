@@ -16,8 +16,6 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -28,15 +26,20 @@ import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class RocksDBStore extends AbstractStore {
     private static final String ROCKSDB_PATH = "/tmp/rocksdb";
     private RocksDB rocksDB;
-    private volatile boolean created = false;
     private WriteOptions writeOptions;
 
+    protected final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<Object/*Key*/>> stateTopicQueue2RocksDBKey = new ConcurrentHashMap<>();
 
     private void createRocksDB() {
         try (final Options options = new Options().setCreateIfMissing(true)) {
@@ -70,25 +73,52 @@ public class RocksDBStore extends AbstractStore {
 
     @Override
     public synchronized void init() throws Throwable {
-        if (!created) {
-            createRocksDB();
-            created = true;
+        synchronized (lock) {
+            if (state == StoreState.UNINITIALIZED) {
+                synchronized (lock) {
+                    createRocksDB();
+                    state = StoreState.INITIALIZED;
+                }
+            }
         }
     }
 
     @Override
-    public void recover() {
+    public void waitIfNotReady(MessageQueue messageQueue, Object key) {
+        if (state != StoreState.INITIALIZED) {
+            throw new RuntimeException("RocksDB not ready.");
+        }
 
+        HashSet<MessageQueue> sourceTopicQueue = new HashSet<>();
+        sourceTopicQueue.add(messageQueue);
+        Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(sourceTopicQueue);
+
+        for (MessageQueue queue : stateTopicQueue) {
+            String stateTopicQueueKey = buildKey(queue);
+
+            Set<Object> keySet = this.stateTopicQueue2RocksDBKey.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+            keySet.add(key);
+        }
     }
 
-    @Override
-    public void loadState(Set<MessageQueue> addQueues) throws Throwable {
 
-    }
+    public void removeState(Set<MessageQueue> removeQueues) throws Throwable {
+        if (removeQueues == null || removeQueues.size() == 0) {
+            return;
+        }
+        Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(removeQueues);
 
-    @Override
-    public void removeState(Set<MessageQueue> removeQueues) {
+        Map<String/*brokerName@topic@queueId*/, List<MessageQueue>> groupByUniqueQueue = stateTopicQueue.stream().parallel().collect(Collectors.groupingBy(this::buildKey));
 
+        Set<String> uniqueQueues = groupByUniqueQueue.keySet();
+        for (String uniqueQueue : uniqueQueues) {
+            Set<Object> keys = this.stateTopicQueue2RocksDBKey.get(uniqueQueue);
+            for (Object key : keys) {
+                byte[] keyBytes = this.object2Byte(key);
+                this.rocksDB.delete(keyBytes);
+            }
+            this.stateTopicQueue2RocksDBKey.remove(uniqueQueue);
+        }
     }
 
     @Override
@@ -99,14 +129,14 @@ public class RocksDBStore extends AbstractStore {
         }
 
         try {
-            byte[] bytes = key.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = this.object2Byte(key);
             byte[] valueBytes = rocksDB.get(bytes);
 
             if (valueBytes == null || valueBytes.length == 0) {
                 return null;
             }
 
-            return (V) JSON.parse(valueBytes);
+            return (V) byte2Object(valueBytes);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -115,11 +145,10 @@ public class RocksDBStore extends AbstractStore {
     @Override
     public <K, V> void put(K key, V value) {
         try {
-            byte[] keyBytes = key.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] keyBytes = this.object2Byte(key);
 
-            byte[] valueBytes = JSON.toJSONBytes(value, SerializerFeature.WriteClassName);
+            byte[] valueBytes = this.object2Byte(value);
 
-//            byte[] valueBytes = value.toString().getBytes(StandardCharsets.UTF_8);
             rocksDB.put(writeOptions, keyBytes, valueBytes);
         } catch (Exception e) {
             throw new RuntimeException("putWindowInstance to rocksdb error", e);
@@ -127,12 +156,16 @@ public class RocksDBStore extends AbstractStore {
     }
 
     @Override
-    public void flush() {
+    public void persist(Set<MessageQueue> messageQueue) throws Throwable {
 
     }
 
     @Override
     public void close() throws Exception {
 
+    }
+
+    ConcurrentHashMap<String, Set<Object>> getStateTopicQueue2RocksDBKey() {
+        return stateTopicQueue2RocksDBKey;
     }
 }

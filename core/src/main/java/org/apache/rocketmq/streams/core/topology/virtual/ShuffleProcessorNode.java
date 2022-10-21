@@ -20,6 +20,8 @@ import org.apache.rocketmq.streams.core.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
+import org.apache.rocketmq.streams.core.serialization.deImpl.KVJsonDeserializer;
+import org.apache.rocketmq.streams.core.serialization.serImpl.KVJsonSerializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 
 import java.util.function.Supplier;

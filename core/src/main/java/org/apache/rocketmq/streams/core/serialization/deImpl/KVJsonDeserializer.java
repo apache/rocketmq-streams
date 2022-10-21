@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.topology.virtual;
+package org.apache.rocketmq.streams.core.serialization.deImpl;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.StringUtils;
@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 
-class KVJsonDeserializer<K, V> extends ShuffleProtocol implements KeyValueDeserializer<K, V> {
+public class KVJsonDeserializer<K, V> extends ShuffleProtocol implements KeyValueDeserializer<K, V> {
     private Class<K> keyType;
     private Class<V> valueType;
 

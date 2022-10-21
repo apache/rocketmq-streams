@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.metadata.Context;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
@@ -62,7 +64,12 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
         @Override
         public void preProcess(StreamContext<V> context) throws Throwable {
             super.preProcess(context);
-            this.stateStore =  context.getStateStore();
+            this.stateStore = context.getStateStore();
+
+            //确认状态已经恢复好了。
+            MessageExt originData = context.getOriginData();
+            MessageQueue queue = new MessageQueue(originData.getTopic(), originData.getBrokerName(), originData.getQueueId());
+            this.stateStore.waitIfNotReady(queue, context.getKey());
         }
 
         @Override

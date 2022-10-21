@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.topology.virtual;
+package org.apache.rocketmq.streams.core.serialization.serImpl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 
- class KVJsonSerializer<K, V> extends ShuffleProtocol implements KeyValueSerializer<K, V> {
+public class KVJsonSerializer<K, V> extends ShuffleProtocol implements KeyValueSerializer<K, V> {
     @Override
     public byte[] serialize(K key, V value) throws Throwable {
         byte[] keyBytes;

@@ -54,10 +54,11 @@ public class RocketMQClient {
         return producer;
     }
 
-    public DefaultMQAdminExt getMQAdmin() {
-        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
+    public DefaultMQAdminExt getMQAdmin() throws MQClientException {
+        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(100);
         mqAdminExt.setInstanceName(UUID.randomUUID().toString());
         mqAdminExt.setNamesrvAddr(nameSrvAddr);
+        mqAdminExt.start();
         return mqAdminExt;
     }
 }

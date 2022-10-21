@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
@@ -98,34 +99,21 @@ public class WorkerThread extends Thread {
         private volatile boolean stop = false;
 
         public PlanetaryEngine(DefaultLitePullConsumer unionConsumer, DefaultMQProducer producer, StateStore stateStore,
-                               DefaultMQAdminExt mqAdmin, MessageQueueListenerWrapper wrapper) {
+                               DefaultMQAdminExt mqAdmin, MessageQueueListenerWrapper wrapper){
             this.unionConsumer = unionConsumer;
             this.producer = producer;
             this.mqAdmin = mqAdmin;
             this.stateStore = stateStore;
             this.wrapper = wrapper;
-            this.wrapper.setRemoveQueueHandler(this::removeState);
-            this.wrapper.setAddQueueHandler(this::loadState);
+            this.wrapper.setRecoverHandler((addQueue, removeQueue) -> {
+                try {
+                    PlanetaryEngine.this.stateStore.recover(addQueue, removeQueue);
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
 
-        //todo 恢复状态
-        public Throwable loadState(Set<MessageQueue> addQueues) {
-            try {
-                this.stateStore.loadState(addQueues);
-                return null;
-            } catch (Throwable t) {
-                return t;
-            }
-        }
-
-        public Throwable removeState(Set<MessageQueue> removeQueues) {
-            try {
-                this.stateStore.removeState(removeQueues);
-                return null;
-            } catch (Throwable t) {
-                return t;
-            }
-        }
 
         //处理
         void start() throws Throwable {
@@ -177,8 +165,11 @@ public class WorkerThread extends Thread {
 
                 //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
                 this.unionConsumer.commit(set, true);
+                this.stateStore.persist(set);
+                //todo 提交消费位点、写出sink数据、写出状态、需要保持原子
             }
         }
+
 
 
         public void stop() {
