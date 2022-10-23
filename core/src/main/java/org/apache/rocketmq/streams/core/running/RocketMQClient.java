@@ -39,6 +39,7 @@ public class RocketMQClient {
         pullConsumer.setNamesrvAddr(nameSrvAddr);
         pullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         pullConsumer.setAutoCommit(false);
+        pullConsumer.setPullBatchSize(1000);
 
 
         for (String topic : topics) {

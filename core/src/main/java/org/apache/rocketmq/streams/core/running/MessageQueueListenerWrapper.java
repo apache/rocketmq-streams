@@ -20,6 +20,8 @@ import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Utils;
 
@@ -57,9 +59,12 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         ownedQueues.addAll(new HashSet<>(addQueue));
         ownedQueues.removeAll(new HashSet<>(removeQueue));
 
-        Throwable throwable = this.recoverHandler.apply(addQueue, removeQueue);
-        if (throwable != null) {
-            throw new RuntimeException(throwable);
+        //从shuffle topic中读出的数据才能进行有状态计算。
+        if (topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX)) {
+            Throwable throwable = this.recoverHandler.apply(addQueue, removeQueue);
+            if (throwable != null) {
+                throw new RuntimeException(throwable);
+            }
         }
 
         buildTask(addQueue);

@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class RocksDBStore extends AbstractStore {
@@ -108,6 +107,10 @@ public class RocksDBStore extends AbstractStore {
         Set<String> uniqueQueues = groupByUniqueQueue.keySet();
         for (String uniqueQueue : uniqueQueues) {
             Set<Object> keys = this.stateTopicQueue2RocksDBKey.get(uniqueQueue);
+            if (keys == null) {
+                continue;
+            }
+
             for (Object key : keys) {
                 byte[] keyBytes = this.object2Byte(key);
                 this.rocksDB.delete(keyBytes);

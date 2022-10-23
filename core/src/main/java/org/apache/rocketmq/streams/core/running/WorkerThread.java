@@ -33,6 +33,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
+import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
 import org.apache.rocketmq.streams.core.state.StateStore;
@@ -225,7 +226,7 @@ public class WorkerThread extends Thread {
 
             //create
             for (String topic : notExistShuffleTopic) {
-                TopicConfig topicConfig = new TopicConfig(topic, 4, 4);
+                TopicConfig topicConfig = new TopicConfig(topic, StreamConfig.SHUFFLE_TOPIC_QUEUE_NUM, StreamConfig.SHUFFLE_TOPIC_QUEUE_NUM);
                 for (String brokerAddr : materBrokerAddr) {
                     this.mqAdmin.createAndUpdateTopicConfig(brokerAddr, topicConfig);
                 }

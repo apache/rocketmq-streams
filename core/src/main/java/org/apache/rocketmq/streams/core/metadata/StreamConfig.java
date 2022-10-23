@@ -22,4 +22,7 @@ public class StreamConfig {
     public static final String ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP = "rocketmq_streams_state_consumer_group";
 
     public static final Integer STREAMS_PARALLEL_THREAD_NUM = Integer.valueOf(System.getProperty("streams_parallel_thread_num","1"));
+
+
+    public static final Integer SHUFFLE_TOPIC_QUEUE_NUM = Integer.valueOf(System.getProperty("shuffle_topic_queue_num","4"));
 }

@@ -102,7 +102,7 @@ public class RocketMQStore extends AbstractStore {
         long end = 0;
         try {
             start = System.currentTimeMillis();
-            waitPoint.await(2000, TimeUnit.MILLISECONDS);
+            waitPoint.await(5000, TimeUnit.MILLISECONDS);
             end = System.currentTimeMillis();
         } finally {
             long cost = end - start;
