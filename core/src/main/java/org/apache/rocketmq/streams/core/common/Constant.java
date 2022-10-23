@@ -24,4 +24,9 @@ public class Constant {
 
     public static final String SHUFFLE_VALUE_CLASS_NAME = "shuffle.value.class.name";
 
+
+    public final static String STATE_TOPIC_SUFFIX = "-stateTopic";
+
+    public static final String SHUFFLE_TOPIC_SUFFIX = "-shuffleTopic";
+
 }

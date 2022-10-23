@@ -89,16 +89,11 @@ public class RocksDBStore extends AbstractStore {
             throw new RuntimeException("RocksDB not ready.");
         }
 
-        HashSet<MessageQueue> sourceTopicQueue = new HashSet<>();
-        sourceTopicQueue.add(messageQueue);
-        Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(sourceTopicQueue);
+        MessageQueue stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueue);
+        String stateTopicQueueKey = buildKey(stateTopicQueue);
 
-        for (MessageQueue queue : stateTopicQueue) {
-            String stateTopicQueueKey = buildKey(queue);
-
-            Set<Object> keySet = this.stateTopicQueue2RocksDBKey.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
-            keySet.add(key);
-        }
+        Set<Object> keySet = this.stateTopicQueue2RocksDBKey.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+        keySet.add(key);
     }
 
 

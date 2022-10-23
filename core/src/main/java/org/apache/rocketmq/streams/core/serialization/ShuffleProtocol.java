@@ -41,11 +41,12 @@ public abstract class ShuffleProtocol {
         byte[] bytes = new byte[buf.readableBytes()];
         buf.readBytes(bytes);
 
+        buf.release();
         return bytes;
     }
 
     protected Pair<byte[], byte[]> split(byte[] total) {
-        ByteBuf byteBuf = Unpooled.copiedBuffer(total);
+        ByteBuf byteBuf = Unpooled.wrappedBuffer(total);
 
         int keyLength = byteBuf.readInt();
         int valueLength = byteBuf.readInt();
@@ -58,6 +59,7 @@ public abstract class ShuffleProtocol {
         byte[] valueBytes = new byte[valueByteBuf.readableBytes()];
         valueByteBuf.readBytes(valueBytes);
 
+        byteBuf.release();
         return new Pair<>(keyBytes, valueBytes);
     }
 

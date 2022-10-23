@@ -55,7 +55,7 @@ public class RocketMQClient {
     }
 
     public DefaultMQAdminExt getMQAdmin() throws MQClientException {
-        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(100);
+        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt(1000);
         mqAdminExt.setInstanceName(UUID.randomUUID().toString());
         mqAdminExt.setNamesrvAddr(nameSrvAddr);
         mqAdminExt.start();

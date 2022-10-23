@@ -23,9 +23,14 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.state.RocketMQStore;
@@ -35,11 +40,13 @@ import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.function.BiConsumer;
+
 
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
@@ -55,8 +62,9 @@ public class WorkerThread extends Thread {
 
         RocketMQClient rocketMQClient = new RocketMQClient(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
 
-        Set<String> sourceTopic = topologyBuilder.getSourceTopic();
-        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(ROCKETMQ_STREAMS_CONSUMER_GROUP, sourceTopic);
+        Set<String> topicNames = topologyBuilder.getSourceTopic();
+
+        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(ROCKETMQ_STREAMS_CONSUMER_GROUP, topicNames);
 
         MessageQueueListener originListener = unionConsumer.getMessageQueueListener();
         MessageQueueListenerWrapper wrapper = new MessageQueueListenerWrapper(originListener, topologyBuilder);
@@ -66,7 +74,7 @@ public class WorkerThread extends Thread {
         DefaultMQAdminExt mqAdmin = rocketMQClient.getMQAdmin();
 
         RocksDBStore rocksDBStore = new RocksDBStore();
-        RocketMQStore store = new RocketMQStore(producer, rocksDBStore, mqAdmin);
+        RocketMQStore store = new RocketMQStore(producer, rocksDBStore, mqAdmin, this.properties);
 
         this.planetaryEngine = new PlanetaryEngine<>(unionConsumer, producer, store, mqAdmin, wrapper);
     }
@@ -90,7 +98,7 @@ public class WorkerThread extends Thread {
 
 
     @SuppressWarnings("unchecked")
-    static class PlanetaryEngine<K, V> {
+    class PlanetaryEngine<K, V> {
         private final DefaultLitePullConsumer unionConsumer;
         private final DefaultMQProducer producer;
         private final DefaultMQAdminExt mqAdmin;
@@ -99,7 +107,7 @@ public class WorkerThread extends Thread {
         private volatile boolean stop = false;
 
         public PlanetaryEngine(DefaultLitePullConsumer unionConsumer, DefaultMQProducer producer, StateStore stateStore,
-                               DefaultMQAdminExt mqAdmin, MessageQueueListenerWrapper wrapper){
+                               DefaultMQAdminExt mqAdmin, MessageQueueListenerWrapper wrapper) {
             this.unionConsumer = unionConsumer;
             this.producer = producer;
             this.mqAdmin = mqAdmin;
@@ -108,8 +116,10 @@ public class WorkerThread extends Thread {
             this.wrapper.setRecoverHandler((addQueue, removeQueue) -> {
                 try {
                     PlanetaryEngine.this.stateStore.recover(addQueue, removeQueue);
+                    return null;
                 } catch (Throwable e) {
-                    throw new RuntimeException(e);
+                    System.out.println("error happen.");
+                    return e;
                 }
             });
         }
@@ -117,9 +127,10 @@ public class WorkerThread extends Thread {
 
         //处理
         void start() throws Throwable {
+            createShuffleTopic();
+
             this.unionConsumer.start();
             this.producer.start();
-            this.mqAdmin.start();
             this.stateStore.init();
         }
 
@@ -170,7 +181,56 @@ public class WorkerThread extends Thread {
             }
         }
 
+        void createShuffleTopic() throws Throwable {
+            Set<String> total = WorkerThread.this.topologyBuilder.getSourceTopic();
 
+            List<String> shuffleTopic = new ArrayList<>();
+            List<String> sourceTopic = new ArrayList<>();
+            for (String topic : total) {
+                if (topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX)) {
+                    shuffleTopic.add(topic);
+                } else {
+                    sourceTopic.add(topic);
+                }
+            }
+
+            //检查是否存在shuffle topic
+            ArrayList<String> notExistShuffleTopic = new ArrayList<>();
+            for (String topic : shuffleTopic) {
+                //检查是否存在
+                try {
+                    mqAdmin.examineTopicRouteInfo(topic);
+                } catch (RemotingException | InterruptedException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException("examine state topic route info error.", e);
+                } catch (MQClientException exception) {
+                    if (exception.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
+                        System.out.println("shuffle topic does not exist.");
+                        notExistShuffleTopic.add(topic);
+                    } else {
+                        throw new RuntimeException(exception);
+                    }
+                }
+            }
+
+
+            //只能对同一mq集群中的数据进行计算，找到brokerAddr
+            TopicRouteData topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic.get(0));
+            List<BrokerData> brokerData = topicRouteData.getBrokerDatas();
+            List<String> materBrokerAddr = new ArrayList<>();
+            for (BrokerData broker : brokerData) {
+                String masterBrokerAddr = broker.getBrokerAddrs().get(0L);
+                materBrokerAddr.add(masterBrokerAddr);
+            }
+
+            //create
+            for (String topic : notExistShuffleTopic) {
+                TopicConfig topicConfig = new TopicConfig(topic, 4, 4);
+                for (String brokerAddr : materBrokerAddr) {
+                    this.mqAdmin.createAndUpdateTopicConfig(brokerAddr, topicConfig);
+                }
+            }
+        }
 
         public void stop() {
             this.stop = true;

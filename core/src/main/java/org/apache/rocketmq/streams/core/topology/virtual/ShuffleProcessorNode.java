@@ -17,6 +17,7 @@ package org.apache.rocketmq.streams.core.topology.virtual;
  */
 
 import org.apache.rocketmq.streams.core.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
@@ -30,7 +31,7 @@ import static org.apache.rocketmq.streams.core.OperatorNameMaker.SHUFFLE_SINK_PR
 import static org.apache.rocketmq.streams.core.OperatorNameMaker.SHUFFLE_SOURCE_PREFIX;
 
 public class ShuffleProcessorNode<T> extends ProcessorNode<T> {
-    private static final String SUFFIX = "-shuffle";
+
 
     public ShuffleProcessorNode(String name, String parentName, Supplier<Processor<T>> supplier) {
         super(name, parentName, supplier);
@@ -38,7 +39,7 @@ public class ShuffleProcessorNode<T> extends ProcessorNode<T> {
 
     @Override
     public void addRealNode(TopologyBuilder builder) {
-        String topicName = name + SUFFIX;
+        String topicName = name + Constant.SHUFFLE_TOPIC_SUFFIX;
 
         String shuffleSinkName = OperatorNameMaker.makeName(SHUFFLE_SINK_PREFIX);
         builder.addRealSink(shuffleSinkName, parentName, topicName, new SinkSupplier<>(topicName, new KVJsonSerializer<>()));

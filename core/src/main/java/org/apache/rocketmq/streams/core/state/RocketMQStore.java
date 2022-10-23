@@ -20,8 +20,10 @@ import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.CountDownLatch2;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -41,27 +43,33 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class RocketMQStore extends AbstractStore {
     private final DefaultMQProducer producer;
     private final DefaultMQAdminExt mqAdmin;
     private final RocksDBStore rocksDBStore;
+    private final Properties properties;
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(5);
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private final KVJsonDeserializer<?, ?> kvJsonDeserializer = new KVJsonDeserializer<>();
     private final KVJsonSerializer<Object, Object> kvJsonSerializer = new KVJsonSerializer<>();
 
     private final ConcurrentHashMap<MessageQueue/*messageQueue of state topic*/, CountDownLatch2> recoveringQueueMutex = new ConcurrentHashMap<>();
 
-    public RocketMQStore(DefaultMQProducer producer, RocksDBStore rocksDBStore, DefaultMQAdminExt mqAdmin) {
+    public RocketMQStore(DefaultMQProducer producer, RocksDBStore rocksDBStore, DefaultMQAdminExt mqAdmin, Properties properties) {
         this.producer = producer;
         this.mqAdmin = mqAdmin;
         this.rocksDBStore = rocksDBStore;
+        this.properties = properties;
     }
 
     @Override
@@ -86,8 +94,22 @@ public class RocketMQStore extends AbstractStore {
     public void waitIfNotReady(MessageQueue messageQueue, Object key) throws Throwable {
         this.rocksDBStore.waitIfNotReady(messageQueue, key);
 
-        CountDownLatch2 waitPoint = this.recoveringQueueMutex.get(messageQueue);
-        waitPoint.await();
+
+        MessageQueue stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueue);
+        CountDownLatch2 waitPoint = this.recoveringQueueMutex.get(stateTopicQueue);
+
+        long start = 0;
+        long end = 0;
+        try {
+            start = System.currentTimeMillis();
+            waitPoint.await(2000, TimeUnit.MILLISECONDS);
+            end = System.currentTimeMillis();
+        } finally {
+            long cost = end - start;
+            if (cost > 2000) {
+                System.out.println("recover finish, consume time:" + cost + " ms.");
+            }
+        }
     }
 
 
@@ -96,13 +118,19 @@ public class RocketMQStore extends AbstractStore {
             return;
         }
 
-        this.executor.submit(() -> {
+        Future<?> future = this.executor.submit(() -> {
             DefaultLitePullConsumer consumer = null;
             try {
                 consumer = new DefaultLitePullConsumer(StreamConfig.ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP);
+                consumer.setNamesrvAddr(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
+                consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+                consumer.setAutoCommit(false);
                 consumer.start();
 
                 Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(addQueues);
+                for (MessageQueue messageQueue : stateTopicQueue) {
+                    createStateTopicIfNotExist(messageQueue.getTopic());
+                }
 
                 consumer.assign(stateTopicQueue);
                 for (MessageQueue queue : stateTopicQueue) {
@@ -111,6 +139,8 @@ public class RocketMQStore extends AbstractStore {
 
                 pullToLast(consumer);
             } catch (Throwable e) {
+                e.printStackTrace();
+                //todo 记录日志
                 throw new RuntimeException(e);
             } finally {
                 if (consumer != null) {
@@ -118,10 +148,16 @@ public class RocketMQStore extends AbstractStore {
                 }
             }
         });
+
+        try {
+            future.get(0, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException ignored) {
+        }
+
     }
 
     public void removeState(Set<MessageQueue> removeQueues) throws Throwable {
-        this.executor.submit(() -> {
+        Future<?> future = this.executor.submit(() -> {
             try {
                 this.rocksDBStore.removeState(removeQueues);
 
@@ -130,9 +166,15 @@ public class RocketMQStore extends AbstractStore {
                     this.recoveringQueueMutex.remove(stateMessageQueue);
                 }
             } catch (Throwable e) {
+                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         });
+
+        try {
+            future.get(0, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException ignored) {
+        }
     }
 
     @Override
@@ -251,7 +293,8 @@ public class RocketMQStore extends AbstractStore {
                 return;
             }
 
-            createStateTopicIfNotExist(stateTopicQueue);
+            String stateTopic = stateTopicQueue.getTopic();
+            createStateTopicIfNotExist(stateTopic);
 
             for (Object rocketDBKey : rocketDBKeySet) {
                 Object value = this.rocksDBStore.get(rocketDBKey);
@@ -271,26 +314,25 @@ public class RocketMQStore extends AbstractStore {
 
                 this.producer.send(message, stateTopicQueue);
             }
-
         }
     }
 
-    private final List<String> existTopic = new ArrayList<>();
+    private final List<String> existStateTopic = new ArrayList<>();
 
-    private void createStateTopicIfNotExist(MessageQueue stateTopicMessageQueue) {
-        String sourceTopic = stateTopicMessageQueue.getTopic();
-        String stateTopic = sourceTopic + STATE_TOPIC_SUFFIX;
+    private void createStateTopicIfNotExist(String stateTopic) {
+        String sourceTopic = stateTopic2SourceTopic(stateTopic);
 
-        if (existTopic.contains(stateTopic)) {
+        if (existStateTopic.contains(stateTopic)) {
             return;
         }
 
         //检查是否存在
         try {
             mqAdmin.examineTopicRouteInfo(stateTopic);
-            existTopic.add(stateTopic);
+            existStateTopic.add(stateTopic);
             return;
         } catch (RemotingException | InterruptedException e) {
+            e.printStackTrace();
             throw new RuntimeException("examine state topic route info error.", e);
         } catch (MQClientException exception) {
             if (exception.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
@@ -302,33 +344,37 @@ public class RocketMQStore extends AbstractStore {
 
         //创建
         try {
+
+            //找到brokerAddr
             TopicRouteData topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic);
-            List<QueueData> queueDatas = topicRouteData.getQueueDatas();
-            List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+            List<QueueData> queueData = topicRouteData.getQueueDatas();
+            List<BrokerData> brokerData = topicRouteData.getBrokerDatas();
 
 
             HashMap<String, String> brokerName2MaterBrokerAddr = new HashMap<>();
-            for (BrokerData brokerData : brokerDatas) {
-                String masterBrokerAddr = brokerData.getBrokerAddrs().get(0L);
-                brokerName2MaterBrokerAddr.put(brokerData.getBrokerName(), masterBrokerAddr);
+            for (BrokerData broker : brokerData) {
+                String masterBrokerAddr = broker.getBrokerAddrs().get(0L);
+                brokerName2MaterBrokerAddr.put(broker.getBrokerName(), masterBrokerAddr);
             }
 
-            for (QueueData queueData : queueDatas) {
-                int readQueueNums = queueData.getReadQueueNums();
-                int writeQueueNums = queueData.getWriteQueueNums();
-                String brokerName = queueData.getBrokerName();
+            for (QueueData queue : queueData) {
+                int readQueueNums = queue.getReadQueueNums();
+                int writeQueueNums = queue.getWriteQueueNums();
+                String brokerName = queue.getBrokerName();
 
                 TopicConfig topicConfig = new TopicConfig(stateTopic, readQueueNums, writeQueueNums);
 
                 HashMap<String, String> temp = new HashMap<>();
-                temp.put("+delete.policy", "COMPACTION");
+                //todo 暂时不能支持；
+//                temp.put("+delete.policy", "COMPACTION");
                 topicConfig.setAttributes(temp);
 
                 mqAdmin.createAndUpdateTopicConfig(brokerName2MaterBrokerAddr.get(brokerName), topicConfig);
             }
 
-            existTopic.add(stateTopic);
+            existStateTopic.add(stateTopic);
         } catch (Throwable t) {
+            t.printStackTrace();
             throw new RuntimeException("create state topic error.", t);
         }
 

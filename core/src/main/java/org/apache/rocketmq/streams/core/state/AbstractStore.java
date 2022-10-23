@@ -18,10 +18,14 @@ package org.apache.rocketmq.streams.core.state;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.util.Utils;
+
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public abstract class AbstractStore implements StateStore {
@@ -32,7 +36,6 @@ public abstract class AbstractStore implements StateStore {
         LOADING_FINISHED
     }
 
-    public final static String STATE_TOPIC_SUFFIX = "-stateTopic";
 
     protected StoreState state = StoreState.UNINITIALIZED;
     protected final Object lock = new Object();
@@ -41,6 +44,15 @@ public abstract class AbstractStore implements StateStore {
     public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
     }
 
+    protected MessageQueue convertSourceTopicQueue2StateTopicQueue(MessageQueue messageQueue) {
+        HashSet<MessageQueue> messageQueues = new HashSet<>();
+        messageQueues.add(messageQueue);
+
+        Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueues);
+
+        Iterator<MessageQueue> iterator = stateTopicQueue.iterator();
+        return iterator.next();
+    }
     protected Set<MessageQueue> convertSourceTopicQueue2StateTopicQueue(Set<MessageQueue> messageQueues) {
         if (messageQueues == null || messageQueues.size() == 0) {
             return new HashSet<>();
@@ -48,15 +60,24 @@ public abstract class AbstractStore implements StateStore {
 
         HashSet<MessageQueue> result = new HashSet<>();
         for (MessageQueue messageQueue : messageQueues) {
-            if (messageQueue.getTopic().endsWith(STATE_TOPIC_SUFFIX)) {
+            if (messageQueue.getTopic().endsWith(Constant.STATE_TOPIC_SUFFIX)) {
                 continue;
             }
-            MessageQueue queue = new MessageQueue(messageQueue.getTopic() + STATE_TOPIC_SUFFIX, messageQueue.getBrokerName(), messageQueue.getQueueId());
+            MessageQueue queue = new MessageQueue(messageQueue.getTopic() + Constant.STATE_TOPIC_SUFFIX, messageQueue.getBrokerName(), messageQueue.getQueueId());
             result.add(queue);
         }
 
         return result;
     }
+
+    protected static String stateTopic2SourceTopic(String stateTopic) {
+        if (StringUtils.isEmpty(stateTopic)) {
+            return null;
+        }
+
+        return stateTopic.substring(0, stateTopic.lastIndexOf(Constant.STATE_TOPIC_SUFFIX));
+    }
+
 
     protected String buildKey(MessageExt messageExt) {
         return Utils.buildKey(messageExt.getBrokerName(), messageExt.getTopic(), messageExt.getQueueId());

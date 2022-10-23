@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 class MessageQueueListenerWrapper implements MessageQueueListener {
     private final static InternalLogger log = ClientLogger.getLog();
@@ -36,7 +37,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
     private final ConcurrentHashMap<String, Set<MessageQueue>> ownedMapping = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Processor<?>> mq2Processor = new ConcurrentHashMap<>();
 
-    private BiConsumer<Set<MessageQueue>, Set<MessageQueue>> recoverHandler;
+    private BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> recoverHandler;
 
     MessageQueueListenerWrapper(MessageQueueListener originListener, TopologyBuilder topologyBuilder) {
         this.originListener = originListener;
@@ -56,7 +57,10 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         ownedQueues.addAll(new HashSet<>(addQueue));
         ownedQueues.removeAll(new HashSet<>(removeQueue));
 
-        this.recoverHandler.accept(addQueue, removeQueue);
+        Throwable throwable = this.recoverHandler.apply(addQueue, removeQueue);
+        if (throwable != null) {
+            throw new RuntimeException(throwable);
+        }
 
         buildTask(addQueue);
         //设计的不太好，移除q，添加消费任务之前，应该加一个状态移除函数;目前这样写的问题是：状态提前移除/加载了，consumer其实仍然在从某个将要移除的q中拉取数据，但是状态却被移除了。
@@ -88,7 +92,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         return (Processor<T>) this.mq2Processor.get(key);
     }
 
-    public void setRecoverHandler(BiConsumer<Set<MessageQueue>, Set<MessageQueue>> handler) {
+    public void setRecoverHandler(BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> handler) {
         this.recoverHandler = handler;
     }
 }
