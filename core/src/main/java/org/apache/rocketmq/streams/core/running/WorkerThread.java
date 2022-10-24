@@ -42,7 +42,6 @@ import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -166,6 +165,13 @@ public class WorkerThread extends Thread {
                     StreamContext<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, messageExt);
                     context.getAdditional().put(Constant.SHUFFLE_KEY_CLASS_NAME, keyClassName);
                     context.getAdditional().put(Constant.SHUFFLE_VALUE_CLASS_NAME, valueClassName);
+
+                    if (topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX)) {
+                        //检查source topic queue对应的状态是否准备好, 确认状态已经恢复好了。
+                        MessageExt originData = context.getOriginData();
+                        MessageQueue sourceTopicQueue = new MessageQueue(originData.getTopic(), originData.getBrokerName(), originData.getQueueId());
+                        stateStore.waitIfNotReady(sourceTopicQueue, context.getKey());
+                    }
 
                     processor.preProcess(context);
 

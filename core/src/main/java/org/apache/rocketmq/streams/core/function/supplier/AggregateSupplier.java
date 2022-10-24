@@ -65,11 +65,6 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
         public void preProcess(StreamContext<V> context) throws Throwable {
             super.preProcess(context);
             this.stateStore = context.getStateStore();
-
-            //确认状态已经恢复好了。
-            MessageExt originData = context.getOriginData();
-            MessageQueue queue = new MessageQueue(originData.getTopic(), originData.getBrokerName(), originData.getQueueId());
-            this.stateStore.waitIfNotReady(queue, context.getKey());
         }
 
         @Override
