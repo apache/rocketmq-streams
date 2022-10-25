@@ -17,9 +17,43 @@
 package org.apache.rocketmq.streams.core.util;
 
 
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.common.Constant;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 public class Utils {
     public static final String pattern = "%s@%s@%s";
     public static String buildKey(String brokerName, String topic, int queueId) {
         return String.format(pattern, brokerName, topic, queueId);
     }
+
+
+//    public static MessageQueue convertSourceTopicQueue2StateTopicQueue(MessageQueue messageQueue) {
+//        HashSet<MessageQueue> messageQueues = new HashSet<>();
+//        messageQueues.add(messageQueue);
+//
+//        Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueues);
+//
+//        Iterator<MessageQueue> iterator = stateTopicQueue.iterator();
+//        return iterator.next();
+//    }
+//    public static Set<MessageQueue> convertSourceTopicQueue2StateTopicQueue(Set<MessageQueue> messageQueues) {
+//        if (messageQueues == null || messageQueues.size() == 0) {
+//            return new HashSet<>();
+//        }
+//
+//        HashSet<MessageQueue> result = new HashSet<>();
+//        for (MessageQueue messageQueue : messageQueues) {
+//            if (messageQueue.getTopic().endsWith(Constant.STATE_TOPIC_SUFFIX)) {
+//                continue;
+//            }
+//            MessageQueue queue = new MessageQueue(messageQueue.getTopic() + Constant.STATE_TOPIC_SUFFIX, messageQueue.getBrokerName(), messageQueue.getQueueId());
+//            result.add(queue);
+//        }
+//
+//        return result;
+//    }
 }

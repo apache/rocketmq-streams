@@ -21,7 +21,10 @@ import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.streams.core.RocketMQStream;
+import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
+import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 
@@ -38,6 +41,7 @@ public class Demo {
                         return new Pair<>(null, user);
                     }
                 })
+                .selectTimestamp(value -> null)
                 .keyBy(User::getAge)
                 .count()
                 .toRStream()
@@ -46,7 +50,8 @@ public class Demo {
         TopologyBuilder topologyBuilder = builder.build();
 
         Properties properties = new Properties();
-        properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        properties.put(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        properties.put(Constant.TIME_TYPE, TimeType.EVENT_TIME);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 

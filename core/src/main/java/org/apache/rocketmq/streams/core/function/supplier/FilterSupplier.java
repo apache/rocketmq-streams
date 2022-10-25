@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.streams.core.function.FilterAction;
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 
@@ -50,8 +50,7 @@ public class FilterSupplier<T> implements Supplier<Processor<T>> {
         public  void process(T data) throws Throwable {
             boolean pass = filterAction.apply(data);
             if (pass) {
-                Context<Object, T> result = new Context<>(this.context.getKey(), data);
-                this.context.forward(result);
+                this.context.forward(this.context.getData());
             }
         }
     }

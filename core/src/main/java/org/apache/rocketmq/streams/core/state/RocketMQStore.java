@@ -36,6 +36,7 @@ import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.serialization.deImpl.KVJsonDeserializer;
 import org.apache.rocketmq.streams.core.serialization.serImpl.KVJsonSerializer;
+import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 import java.util.ArrayList;
@@ -91,8 +92,8 @@ public class RocketMQStore extends AbstractStore {
     }
 
     @Override
-    public void waitIfNotReady(MessageQueue messageQueue, Object key) throws Throwable {
-        this.rocksDBStore.waitIfNotReady(messageQueue, key);
+    public void waitIfNotReady(MessageQueue messageQueue) throws Throwable {
+        this.rocksDBStore.waitIfNotReady(messageQueue);
 
 
         MessageQueue stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueue);
@@ -183,8 +184,8 @@ public class RocketMQStore extends AbstractStore {
     }
 
     @Override
-    public <K, V> void put(K k, V v) {
-        this.rocksDBStore.put(k, v);
+    public <K, V> void put(MessageQueue stateTopicMessageQueue, K k, V v) {
+        this.rocksDBStore.put(stateTopicMessageQueue, k, v);
     }
 
 
@@ -244,11 +245,8 @@ public class RocketMQStore extends AbstractStore {
                 Object value = pair.getObject2();
 
                 //放入rocksdb
-                this.rocksDBStore.put(key, value);
-                //放入索引 queue-key的索引
-                ConcurrentHashMap<String, Set<Object>> stateTopicQueue2RocksDBKey = this.rocksDBStore.getStateTopicQueue2RocksDBKey();
-                Set<Object> keySet = stateTopicQueue2RocksDBKey.computeIfAbsent(uniqueQueue, s -> new HashSet<>());
-                keySet.add(key);
+                MessageQueue stateTopicQueue = new MessageQueue(result.getTopic(), result.getBrokerName(), result.getQueueId());
+                this.rocksDBStore.put(stateTopicQueue, key, value);
             }
         }
     }

@@ -23,7 +23,7 @@ import java.util.List;
 
 public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V> {
 
-    public List<Window> calculateWindow(long valueTime, K key) {
+    protected List<Window> calculateWindow(long valueTime, K key) {
 
         return null;
     }

@@ -41,12 +41,12 @@ public interface StateStore extends AutoCloseable {
      * @throws Throwable
      */
     //如果没准备好，会阻塞
-    void waitIfNotReady(MessageQueue messageQueue, Object key) throws Throwable;
+    void waitIfNotReady(MessageQueue messageQueue) throws Throwable;
 
 
     <K, V> V get(K key);
 
-    <K, V> void put(K key, V value);
+    <K, V> void put(MessageQueue messageQueue, K key, V value);
 
     void persist(Set<MessageQueue> messageQueue) throws Throwable;
 }

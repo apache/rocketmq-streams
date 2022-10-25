@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
@@ -65,7 +65,7 @@ public class SourceSupplier<K,V> implements Supplier<Processor<V>> {
 
         @Override
         public void process(V data) throws Throwable {
-            Context<K, V> result = new Context<>(this.context.getKey(), data);
+            Data<K, V> result = this.context.getData();
             this.context.forward(result);
         }
     }

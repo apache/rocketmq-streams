@@ -1,7 +1,7 @@
 package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.streams.core.function.ForeachAction;
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 
@@ -29,9 +29,7 @@ public class ForeachSupplier<T> implements Supplier<Processor<T>> {
         @Override
         public void process(T data) throws Throwable {
             this.foreachAction.apply(data);
-            Context<Object, T> result = new Context<>(this.context.getKey(), data);
-
-            this.context.forward(result);
+            this.context.forward(this.context.getData());
         }
     }
 

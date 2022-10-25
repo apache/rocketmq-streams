@@ -16,36 +16,40 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 
 import java.util.function.Supplier;
 
-public class PrintSupplier<T> implements Supplier<Processor<T>> {
+public class TimestampSelectorSupplier<T> implements Supplier<Processor<T>> {
+    private final ValueMapperAction<T, Long> valueMapperAction;
 
+    public TimestampSelectorSupplier(ValueMapperAction<T, Long> valueMapperAction) {
+        this.valueMapperAction = valueMapperAction;
+    }
 
     @Override
     public Processor<T> get() {
-        return new PrintProcessor<>();
+        return new TimestampSelector<>(valueMapperAction);
     }
 
-    static class PrintProcessor<T> extends AbstractProcessor<T> {
 
+    static class TimestampSelector<T> extends AbstractProcessor<T> {
+        private final ValueMapperAction<T, Long> valueMapperAction;
 
-        public PrintProcessor() {
+        public TimestampSelector(ValueMapperAction<T, Long> valueMapperAction) {
+            this.valueMapperAction = valueMapperAction;
         }
-
 
         @Override
-        public void process(T data) {
-            String template = "(key=%s, value=%s)";
+        public void process(T data) throws Throwable {
+            Long timestamp = this.valueMapperAction.convert(data);
 
-            Data<Object, T> result = this.context.getData();
-            String format = String.format(template, result.getKey(), data.toString());
-
-            System.out.println(format);
+            Data<Object, T> originData = this.context.getData();
+            originData.setTimestamp(timestamp);
+            this.context.forward(originData);
         }
     }
-
 }

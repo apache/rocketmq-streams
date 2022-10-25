@@ -24,6 +24,7 @@ import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 
 public interface RStream<T> {
 
+    RStream<T> selectTimestamp(ValueMapperAction<T, Long> timestampSelector);
     <O> RStream<O> map(ValueMapperAction<T, O> mapperAction);
 
     <VR> RStream<T> flatMapValues(final ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper);

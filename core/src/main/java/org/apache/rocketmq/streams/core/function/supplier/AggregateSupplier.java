@@ -18,8 +18,9 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
@@ -52,6 +53,7 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
         private final Supplier<OV> initAction;
         private final AggregateAction<K, V, OV> aggregateAction;
         private StateStore stateStore;
+        private MessageQueue stateTopicMessageQueue;
 
         public AggregateProcessor(String currentName, String parentName, Supplier<OV> initAction,
                                   AggregateAction<K, V, OV> aggregateAction) {
@@ -64,12 +66,17 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
         @Override
         public void preProcess(StreamContext<V> context) throws Throwable {
             super.preProcess(context);
-            this.stateStore = context.getStateStore();
+            this.stateStore = super.waitStateReplay();
+
+            MessageExt originData = context.getOriginData();
+            String stateTopicName = originData.getTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, originData.getBrokerName(), originData.getQueueId());
         }
 
         @Override
         public void process(V data) throws Throwable {
-            K key = this.context.getKey();
+            Data<K, V> dataWrapper = this.context.getData();
+            K key = dataWrapper.getKey();
             OV value = stateStore.get(key);
             if (value == null) {
                 value = initAction.get();
@@ -77,9 +84,9 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
 
             OV result = aggregateAction.calculate(key, data, value);
 
-            stateStore.put(key, result);
+            stateStore.put(this.stateTopicMessageQueue, key, result);
 
-            Context<K, V> convert = super.convert(new Context<>(key, result));
+            Data<K, V> convert = super.convert(new Data<>(key, result));
 
             this.context.forward(convert);
         }

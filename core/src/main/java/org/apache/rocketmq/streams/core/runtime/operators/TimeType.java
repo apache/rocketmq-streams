@@ -14,20 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.core.runtime.operators;
 
-package org.apache.rocketmq.streams.core.common;
-
-public class Constant {
-    public static final String SHUFFLE_KEY_CLASS_NAME = "shuffle.key.class.name";
-
-    public static final String SHUFFLE_VALUE_CLASS_NAME = "shuffle.value.class.name";
-
-    public final static String STATE_TOPIC_SUFFIX = "-stateTopic";
-
-    public static final String SHUFFLE_TOPIC_SUFFIX = "-shuffleTopic";
-
-    public static final String FIRED_TIME_PREFIX = "fired-time-";
-
-    public static final String TIME_TYPE = "timeType";
-
+public enum TimeType {
+    EVENT_TIME,
+    PROCESS_TIME
 }

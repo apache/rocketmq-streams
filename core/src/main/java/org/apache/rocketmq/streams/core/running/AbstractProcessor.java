@@ -17,7 +17,10 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.metadata.Data;
+import org.apache.rocketmq.streams.core.state.StateStore;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,13 +42,22 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         this.context.init(getChildren());
     }
 
+    protected StateStore waitStateReplay() throws Throwable {
+        MessageExt originData = context.getOriginData();
+        MessageQueue sourceTopicQueue = new MessageQueue(originData.getTopic(), originData.getBrokerName(), originData.getQueueId());
+
+        StateStore stateStore = context.getStateStore();
+        stateStore.waitIfNotReady(sourceTopicQueue);
+        return stateStore;
+    }
+
     protected List<Processor<T>> getChildren() {
         return Collections.unmodifiableList(children);
     }
 
     @SuppressWarnings("unchecked")
-    protected <KEY> Context<KEY, T> convert(Context<?, ?> data) {
-        return (Context<KEY, T>) new Context<>(data.getKey(), data.getValue());
+    protected <KEY> Data<KEY, T> convert(Data<?, ?> data) {
+        return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue());
     }
 
     @Override

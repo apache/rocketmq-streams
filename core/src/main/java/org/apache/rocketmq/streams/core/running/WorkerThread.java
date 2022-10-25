@@ -33,6 +33,7 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
@@ -166,17 +167,11 @@ public class WorkerThread extends Thread {
                     context.getAdditional().put(Constant.SHUFFLE_KEY_CLASS_NAME, keyClassName);
                     context.getAdditional().put(Constant.SHUFFLE_VALUE_CLASS_NAME, valueClassName);
 
-                    if (topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX)) {
-                        //检查source topic queue对应的状态是否准备好, 确认状态已经恢复好了。
-                        MessageExt originData = context.getOriginData();
-                        MessageQueue sourceTopicQueue = new MessageQueue(originData.getTopic(), originData.getBrokerName(), originData.getQueueId());
-                        stateStore.waitIfNotReady(sourceTopicQueue, context.getKey());
-                    }
-
                     processor.preProcess(context);
 
                     Pair<K, V> pair = processor.deserialize(body);
-                    context.setKey(pair.getObject1());
+
+                    context.setData(new Data<>(pair.getObject1(), pair.getObject2()));
 
                     processor.process(pair.getObject2());
                 }

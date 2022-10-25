@@ -21,6 +21,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
@@ -56,7 +57,8 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
         @Override
         public void preProcess(StreamContext<T> context) {
             this.producer = context.getDefaultMQProducer();
-            this.key = context.getKey();
+            Data<K, T> data = context.getData();
+            this.key = data.getKey();
         }
 
         @Override

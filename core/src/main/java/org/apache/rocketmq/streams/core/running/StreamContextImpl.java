@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.core.running;
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
@@ -39,8 +39,8 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     private final MessageExt messageExt;
 
     private final List<Processor<T>> childList = new ArrayList<>();
-    private Object key;
-    private HashMap<String, Object> additional = new HashMap<>();
+    private Data<?, T> data;
+    private final HashMap<String, Object> additional = new HashMap<>();
 
     public StreamContextImpl(DefaultMQProducer producer, DefaultMQAdminExt mqAdmin, StateStore stateStore, MessageExt messageExt) {
         this.producer = producer;
@@ -63,14 +63,14 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     }
 
     @Override
-    public <K> void setKey(K k) {
-        this.key = k;
+    public <K> void setData(Data<K, T> data) {
+        this.data = data;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <K> K getKey() {
-        return (K) this.key;
+    public <K> Data<K, T> getData() {
+        return (Data<K, T>) this.data;
     }
 
     @Override
@@ -89,17 +89,15 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     }
 
     @Override
-    public <K> void forward(Context<K, T> context) throws Throwable {
-
-        this.key = context.getKey();
-
+    public <K> void forward(Data<K, T> data) throws Throwable {
+        this.data = data;
         List<Processor<T>> store = new ArrayList<>(childList);
 
         for (Processor<T> processor : childList) {
 
             try {
                 processor.preProcess(this);
-                processor.process(context.getValue());
+                processor.process(data.getValue());
             } finally {
                 this.childList.clear();
                 this.childList.addAll(store);

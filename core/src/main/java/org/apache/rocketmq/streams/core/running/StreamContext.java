@@ -18,9 +18,8 @@ package org.apache.rocketmq.streams.core.running;
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
-import org.checkerframework.checker.units.qual.K;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,8 +28,10 @@ public interface StreamContext<V> {
     void init(List<Processor<V>> childrenProcessors);
 
     StateStore getStateStore();
-    <K> void setKey(K k);
-    <K> K getKey();
+
+    <K> void setData(Data<K, V> data);
+
+    <K> Data<K, V> getData();
 
     DefaultMQProducer getDefaultMQProducer();
 
@@ -38,5 +39,5 @@ public interface StreamContext<V> {
 
     MessageExt getOriginData();
 
-    <K> void forward(Context<K, V> context) throws Throwable;
+    <K> void forward(Data<K, V> data) throws Throwable;
 }

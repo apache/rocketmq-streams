@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.state;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.streams.core.util.Utils;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -83,16 +84,10 @@ public class RocksDBStore extends AbstractStore {
     }
 
     @Override
-    public void waitIfNotReady(MessageQueue messageQueue, Object key) {
+    public void waitIfNotReady(MessageQueue messageQueue) {
         if (state != StoreState.INITIALIZED) {
             throw new RuntimeException("RocksDB not ready.");
         }
-
-        MessageQueue stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueue);
-        String stateTopicQueueKey = buildKey(stateTopicQueue);
-
-        Set<Object> keySet = this.stateTopicQueue2RocksDBKey.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
-        keySet.add(key);
     }
 
 
@@ -141,13 +136,18 @@ public class RocksDBStore extends AbstractStore {
     }
 
     @Override
-    public <K, V> void put(K key, V value) {
+    public <K, V> void put(MessageQueue stateTopicMessageQueue, K key, V value) {
         try {
             byte[] keyBytes = this.object2Byte(key);
 
             byte[] valueBytes = this.object2Byte(value);
 
             rocksDB.put(writeOptions, keyBytes, valueBytes);
+
+            String stateTopicQueueKey = buildKey(stateTopicMessageQueue);
+
+            Set<Object> keySet = this.stateTopicQueue2RocksDBKey.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+            keySet.add(key);
         } catch (Exception e) {
             throw new RuntimeException("putWindowInstance to rocksdb error", e);
         }

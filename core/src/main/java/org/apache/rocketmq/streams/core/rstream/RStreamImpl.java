@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.core.function.supplier.ForeachSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.KeySelectSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.PrintSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.TimestampSelectorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
@@ -34,7 +35,6 @@ import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 
 import static org.apache.rocketmq.streams.core.OperatorNameMaker.FILTER_PREFIX;
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.FLAT_MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.OperatorNameMaker.FOR_EACH_PREFIX;
 import static org.apache.rocketmq.streams.core.OperatorNameMaker.GROUPBY_PREFIX;
 import static org.apache.rocketmq.streams.core.OperatorNameMaker.MAP_PREFIX;
@@ -50,6 +50,16 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
+    public RStream<T> selectTimestamp(ValueMapperAction<T, Long> timestampSelector) {
+        String name = OperatorNameMaker.makeName(MAP_PREFIX);
+
+        TimestampSelectorSupplier<T> supplier = new TimestampSelectorSupplier<>(timestampSelector);
+        GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), supplier);
+
+        return pipeline.addRStreamVirtualNode(processorNode, parent);
+    }
+
+    @Override
     public <O> RStream<O> map(ValueMapperAction<T, O> mapperAction) {
         String name = OperatorNameMaker.makeName(MAP_PREFIX);
 
@@ -61,7 +71,7 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public <VR> RStream<T> flatMapValues(ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper) {
-        String name = OperatorNameMaker.makeName(FLAT_MAP_PREFIX);
+        String name = OperatorNameMaker.makeName(MAP_PREFIX);
 
         ValueChangeSupplier<? extends T, ? extends Iterable<? extends VR>> supplier = new ValueChangeSupplier<>(mapper);
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), supplier);

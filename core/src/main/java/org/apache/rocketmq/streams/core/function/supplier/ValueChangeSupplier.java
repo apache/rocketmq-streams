@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
-import org.apache.rocketmq.streams.core.metadata.Context;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 
@@ -49,19 +49,21 @@ public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
 
 
         @Override
+        @SuppressWarnings("unchecked")
         public void process(T data) throws Throwable {
             O convert = valueMapperAction.convert(data);
 
+            Data<Object, T> originData = this.context.getData();
             if (convert instanceof Iterable) {
                 Iterable<? extends O> iterable = (Iterable<? extends O>) convert;
                 for (O item : iterable) {
-                    Context<Object, O> before = new Context<>(this.context.getKey(), item);
-                    Context<Object, T> result = convert(before);
+                    Data<Object, O> before = originData.value(item);
+                    Data<Object, T> result = convert(before);
                     this.context.forward(result);
                 }
             } else {
-                Context<Object, O> before = new Context<>(this.context.getKey(), convert);
-                Context<Object, T> result = convert(before);
+                Data<Object, O> before = originData.value(convert);
+                Data<Object, T> result = convert(before);
                 this.context.forward(result);
             }
         }
