@@ -17,12 +17,10 @@
 package org.apache.rocketmq.streams.core.util;
 
 
-import org.apache.rocketmq.common.message.MessageQueue;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
-
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 
 public class Utils {
     public static final String pattern = "%s@%s@%s";
@@ -30,30 +28,35 @@ public class Utils {
         return String.format(pattern, brokerName, topic, queueId);
     }
 
+    public static String buildKey(String key, String...args) {
+        if (StringUtils.isEmpty(key)) {
+            return null;
+        }
 
-//    public static MessageQueue convertSourceTopicQueue2StateTopicQueue(MessageQueue messageQueue) {
-//        HashSet<MessageQueue> messageQueues = new HashSet<>();
-//        messageQueues.add(messageQueue);
-//
-//        Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueues);
-//
-//        Iterator<MessageQueue> iterator = stateTopicQueue.iterator();
-//        return iterator.next();
-//    }
-//    public static Set<MessageQueue> convertSourceTopicQueue2StateTopicQueue(Set<MessageQueue> messageQueues) {
-//        if (messageQueues == null || messageQueues.size() == 0) {
-//            return new HashSet<>();
-//        }
-//
-//        HashSet<MessageQueue> result = new HashSet<>();
-//        for (MessageQueue messageQueue : messageQueues) {
-//            if (messageQueue.getTopic().endsWith(Constant.STATE_TOPIC_SUFFIX)) {
-//                continue;
-//            }
-//            MessageQueue queue = new MessageQueue(messageQueue.getTopic() + Constant.STATE_TOPIC_SUFFIX, messageQueue.getBrokerName(), messageQueue.getQueueId());
-//            result.add(queue);
-//        }
-//
-//        return result;
-//    }
+        StringBuilder builder = new StringBuilder();
+        builder.append(key);
+
+        if (args != null && args.length != 0) {
+            builder.append(Constant.SPLIT);
+            for (String arg : args) {
+                builder.append(arg);
+                builder.append(Constant.SPLIT);
+            }
+        }
+
+        return builder.substring(0, builder.lastIndexOf(Constant.SPLIT));
+    }
+
+    public static byte[] object2Byte(Object target) {
+        if (target == null) {
+            return new byte[]{};
+        }
+
+        return JSON.toJSONBytes(target, SerializerFeature.WriteClassName);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <B> B byte2Object(byte[] source) {
+        return (B)JSON.parse(source);
+    }
 }

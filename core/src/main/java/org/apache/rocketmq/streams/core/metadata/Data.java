@@ -20,17 +20,14 @@ public class Data<K, V> {
     private String sinkTopic;
     private K key;
     private V value;
-    private Long timestamp;
+    private long timestamp;
+    private long watermark;
 
-    public Data(K key, V value) {
-        this.key = key;
-        this.value = value;
-    }
-
-    public Data(K key, V value, Long timestamp) {
+    public Data(K key, V value, long timestamp, long watermark) {
         this.key = key;
         this.value = value;
         this.timestamp = timestamp;
+        this.watermark = watermark;
     }
 
     public K getKey() {
@@ -65,12 +62,20 @@ public class Data<K, V> {
         this.timestamp = timestamp;
     }
 
+    public long getWatermark() {
+        return watermark;
+    }
+
+    public void setWatermark(long watermark) {
+        this.watermark = watermark;
+    }
+
     public <NK> Data<NK,V> key(NK key) {
-        return new Data<>(key, value);
+        return new Data<>(key, value, timestamp, watermark);
     }
 
     public <NV> Data<K,NV> value(NV value) {
-        return new Data<>(key, value);
+        return new Data<>(key, value, timestamp, watermark);
     }
 
     @Override

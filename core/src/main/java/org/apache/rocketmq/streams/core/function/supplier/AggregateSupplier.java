@@ -75,8 +75,8 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
 
         @Override
         public void process(V data) throws Throwable {
-            Data<K, V> dataWrapper = this.context.getData();
-            K key = dataWrapper.getKey();
+            Data<K, V> originData = this.context.getData();
+            K key = originData.getKey();
             OV value = stateStore.get(key);
             if (value == null) {
                 value = initAction.get();
@@ -86,7 +86,7 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
 
             stateStore.put(this.stateTopicMessageQueue, key, result);
 
-            Data<K, V> convert = super.convert(new Data<>(key, result));
+            Data<K, V> convert = super.convert(originData.value(result));
 
             this.context.forward(convert);
         }

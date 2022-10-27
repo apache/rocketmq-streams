@@ -17,6 +17,9 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.parser.Feature;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.metadata.Data;
@@ -27,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class AbstractProcessor<T> implements Processor<T> {
-
     private final List<Processor<T>> children = new ArrayList<>();
     protected StreamContext<T> context;
 
@@ -57,7 +59,7 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
 
     @SuppressWarnings("unchecked")
     protected <KEY> Data<KEY, T> convert(Data<?, ?> data) {
-        return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue());
+        return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getWatermark());
     }
 
     @Override

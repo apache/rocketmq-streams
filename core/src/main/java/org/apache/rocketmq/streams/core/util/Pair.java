@@ -14,19 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.running;
+package org.apache.rocketmq.streams.core.util;
 
+public class Pair<T1, T2> {
+    private T1 object1;
+    private T2 object2;
 
-
-import org.apache.rocketmq.streams.core.runtime.operators.Window;
-
-import java.util.List;
-
-public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V> {
-
-    protected List<Window> calculateWindow(long valueTime, K key) {
-
-        return null;
+    public Pair(T1 object1, T2 object2) {
+        this.object1 = object1;
+        this.object2 = object2;
     }
 
+    public T1 getObject1() {
+        return object1;
+    }
+
+    public void setObject1(T1 object1) {
+        this.object1 = object1;
+    }
+
+    public T2 getObject2() {
+        return object2;
+    }
+
+    public void setObject2(T2 object2) {
+        this.object2 = object2;
+    }
 }

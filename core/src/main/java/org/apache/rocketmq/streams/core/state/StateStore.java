@@ -23,6 +23,8 @@ import java.util.Set;
 public interface StateStore extends AutoCloseable {
     void init() throws Throwable;
 
+    RocksDBStore getRocksDBStore();
+
     /**
      * @param addQueues    messageQueue of source topic
      * @param removeQueues messageQueue of source topic
@@ -32,12 +34,11 @@ public interface StateStore extends AutoCloseable {
 
 
     /**
-     *
      * @param messageQueue 检查source topic中该queue的状态是否已经加载好，如果没有加载好，等待加载
-     * @param key 可以不传入，使用messageQueue即可检查是否该queue的状态被恢复。
-     *            即将使用这个key get/put，将该key放入与state topic queue形成映射，为后续使用queue清理状态做准备。
-     *            多数情况下，recover时已经形成stateTopicQueue-key的映射，但是在处理数据过程中，仍然可能有新的key过来，为了清理的时候一并清理，
-     *            不漏，这里在put key之前做这个操作，形成映射
+     * @param key          可以不传入，使用messageQueue即可检查是否该queue的状态被恢复。
+     *                     即将使用这个key get/put，将该key放入与state topic queue形成映射，为后续使用queue清理状态做准备。
+     *                     多数情况下，recover时已经形成stateTopicQueue-key的映射，但是在处理数据过程中，仍然可能有新的key过来，为了清理的时候一并清理，
+     *                     不漏，这里在put key之前做这个操作，形成映射
      * @throws Throwable
      */
     //如果没准备好，会阻塞
@@ -47,6 +48,8 @@ public interface StateStore extends AutoCloseable {
     <K, V> V get(K key);
 
     <K, V> void put(MessageQueue messageQueue, K key, V value);
+
+    <K> void delete(K key) throws Throwable;
 
     void persist(Set<MessageQueue> messageQueue) throws Throwable;
 }

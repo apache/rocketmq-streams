@@ -21,8 +21,6 @@ public class Window {
 
     private long endTime;
 
-    private long fireTime;
-
     public long getStartTime() {
         return startTime;
     }
@@ -39,11 +37,14 @@ public class Window {
         this.endTime = endTime;
     }
 
-    public long getFireTime() {
-        return fireTime;
-    }
 
-    public void setFireTime(long fireTime) {
-        this.fireTime = fireTime;
+    @Override
+    public String toString() {
+
+        return "[" +
+                startTime +
+                "," +
+                endTime +
+                "]";
     }
 }

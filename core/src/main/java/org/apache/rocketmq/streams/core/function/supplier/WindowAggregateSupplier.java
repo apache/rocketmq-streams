@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
+
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
@@ -26,10 +27,12 @@ import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.runtime.operators.Window;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
-import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
+import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.core.util.Utils;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
@@ -54,15 +57,17 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     }
 
 
-    private class WindowAggregateProcessor extends AbstractWindowProcessor<K,V> {
+    private class WindowAggregateProcessor extends AbstractWindowProcessor<K, V> {
         private final String currentName;
         private final String parentName;
         private final WindowInfo windowInfo;
 
-        private StateStore stateStore;
         private Supplier<OV> initAction;
         private AggregateAction<K, V, OV> aggregateAction;
         private MessageQueue stateTopicMessageQueue;
+        private WindowStore windowStore;
+
+        private AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
         public WindowAggregateProcessor(String currentName, String parentName, WindowInfo windowInfo,
                                         Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
@@ -76,47 +81,84 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         @Override
         public void preProcess(StreamContext<V> context) throws Throwable {
             super.preProcess(context);
-            this.stateStore = super.waitStateReplay();
+            this.windowStore = new WindowStore(super.waitStateReplay());
 
             MessageExt originData = context.getOriginData();
             String stateTopicName = originData.getTopic() + Constant.STATE_TOPIC_SUFFIX;
             this.stateTopicMessageQueue = new MessageQueue(stateTopicName, originData.getBrokerName(), originData.getQueueId());
         }
 
+        /**
+         * 维持一个watermark，小于watermark的数据都已经达到，触发窗口计算
+         */
         @Override
         public void process(V data) throws Throwable {
-            Data<K, V> originData = this.context.getData();
-            K key = originData.getKey();
-
-            //f(key, store) -> firedTime
-            //todo key转化为字符串
-            String firedTimeKey = Constant.FIRED_TIME_PREFIX + key.toString();
-            Long firedTimeOfKey = this.stateStore.get(firedTimeKey);
-            // 判断数据时间是否小于firedTime，如果小于，直接丢弃
-            if (1L < firedTimeOfKey) {
-                return;
+            Throwable throwable = errorReference.get();
+            if (throwable != null) {
+                errorReference.set(null);
+                throw throwable;
             }
 
+            Data<K, V> originData = this.context.getData();
+            K key = originData.getKey();
+            Long time = originData.getTimestamp();
+            long watermark = originData.getWatermark();
+
             //f(time) -> List<Window>
-            List<Window> windows = super.calculateWindow(0L, key);
+            List<Window> windows = super.calculateWindow(time, key);
+            for (Window window : windows) {
+                //f(Window + key, store) -> oldValue
+                //todo key 怎么转化成对应的string，只和key的值有关系
+                String windowKey = Utils.buildKey(key.toString(), String.valueOf(window.getEndTime()), String.valueOf(window.getStartTime()));
+                OV oldValue = this.windowStore.get(windowKey);
 
-            ArrayList<Window> firedWindow = new ArrayList<>();
+                //f(oldValue, Agg) -> newValue
+                if (oldValue == null) {
+                    oldValue = initAction.get();
+                }
 
+                OV result = this.aggregateAction.calculate(key, data, oldValue);
+                //f(Window + key, newValue, store)
+                this.windowStore.put(this.stateTopicMessageQueue, windowKey, result);
 
-            //f(Window + key, store) -> oldValue
+//                //f(timeWheel, firedTime)
+//                //检查该窗口的触发时间是否已经被写入，或者写入幂等
+//                //到时间以后触发计算、计算后向下游传递结果、保存 key - firedTime（firedTime只能升高不能降低）
+//                //故障恢复：某个节点失败以后，能在其他节点继续触发计算，就像没有发生故障一样。
+//
+//                //-------------------------------------------------------------------------------------
+//                //f(key, store) -> result
+//                OV newValue = stateStore.get(windowKey);
+//                Data<K, V> convert = super.convert(originData.value(newValue));
+//                this.context.forward(convert);
+//
+//                //f(key, fireTime, store)
+//                this.stateStore.put(this.stateTopicMessageQueue, firedTimeKey, window.getEndTime());
+            }
 
-            //f(oldValue, Agg) -> newValue
-
-            //f(Window + key, newValue, store)
-
-            //f(timeWheel, firedTime)
-
-            //firedTime 触发该实例所属window；
-
-            //f(key, fireTime, store)
+            try {
+                //如果存在窗口，且窗口结束时间小于watermark，触发这个窗口
+                fireWindowEndTimeLassThanWatermark(watermark, key);
+            }catch (Throwable t) {
+                errorReference.compareAndSet(null, t);
+            }
         }
 
+        private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
+            String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
+            List<Pair<K, V>> pairs = this.windowStore.searchByKeyPrefix(keyPrefix);
+
+            //需要倒序向后算子传递，pairs中最后一个结果的key，entTime最小，应该最先触发
+            for (int i = pairs.size() - 1; i >= 0; i--) {
+                //todo
+                Pair<K, V> pair = pairs.get(i);
+                Data<K, V> result = new Data<>(pair.getObject1(), pair.getObject2(), 0l, 0l);
+                this.context.forward(result);
+                //删除状态
+                this.windowStore.deleteByKey(pair.getObject1().toString());
+            }
+        }
 
     }
 

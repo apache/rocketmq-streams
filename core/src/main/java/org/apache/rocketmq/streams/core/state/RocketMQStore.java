@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-public class RocketMQStore extends AbstractStore {
+public class RocketMQStore extends AbstractStore implements StateStore {
     private final DefaultMQProducer producer;
     private final DefaultMQAdminExt mqAdmin;
     private final RocksDBStore rocksDBStore;
@@ -75,14 +75,11 @@ public class RocketMQStore extends AbstractStore {
 
     @Override
     public void init() throws Throwable {
-        synchronized (lock) {
-            if (state == StoreState.UNINITIALIZED) {
-                synchronized (lock) {
-                    this.rocksDBStore.init();
-                    state = StoreState.INITIALIZED;
-                }
-            }
-        }
+    }
+
+    @Override
+    public RocksDBStore getRocksDBStore() {
+        return rocksDBStore;
     }
 
     @Override
@@ -93,9 +90,6 @@ public class RocketMQStore extends AbstractStore {
 
     @Override
     public void waitIfNotReady(MessageQueue messageQueue) throws Throwable {
-        this.rocksDBStore.waitIfNotReady(messageQueue);
-
-
         MessageQueue stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueue);
         CountDownLatch2 waitPoint = this.recoveringQueueMutex.get(stateTopicQueue);
 
@@ -188,6 +182,10 @@ public class RocketMQStore extends AbstractStore {
         this.rocksDBStore.put(stateTopicMessageQueue, k, v);
     }
 
+    @Override
+    public <K> void delete(K key) throws Throwable {
+        this.rocksDBStore.deleteByKey(key);
+    }
 
     private void pullToLast(DefaultLitePullConsumer consumer) throws Throwable {
         Set<MessageQueue> readyToRecover = consumer.assignment();
@@ -279,7 +277,7 @@ public class RocketMQStore extends AbstractStore {
             return;
         }
 
-        ConcurrentHashMap<String, Set<Object>> stateTopicQueue2RocksDBKey = this.rocksDBStore.getStateTopicQueue2RocksDBKey();
+        Map<String, Set<Object>> stateTopicQueue2RocksDBKey = this.rocksDBStore.getStateTopicQueue2RocksDBKey();
 
         Set<MessageQueue> stateTopicQueues = convertSourceTopicQueue2StateTopicQueue(messageQueues);
         for (MessageQueue stateTopicQueue : stateTopicQueues) {

@@ -32,6 +32,14 @@ import org.apache.rocketmq.common.Pair;
  */
 public abstract class ShuffleProtocol {
     protected byte[] merge(byte[] keyBytes, byte[] valueBytes) {
+        if (keyBytes == null || keyBytes.length ==0) {
+            return valueBytes;
+        }
+
+        if (valueBytes == null || valueBytes.length ==0) {
+            return keyBytes;
+        }
+
         ByteBuf buf = ByteBufAllocator.DEFAULT.heapBuffer(16);
         buf.writeInt(keyBytes.length);
         buf.writeInt(valueBytes.length);

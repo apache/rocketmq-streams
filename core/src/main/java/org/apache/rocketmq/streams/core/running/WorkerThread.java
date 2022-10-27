@@ -166,12 +166,16 @@ public class WorkerThread extends Thread {
                     StreamContext<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, messageExt);
                     context.getAdditional().put(Constant.SHUFFLE_KEY_CLASS_NAME, keyClassName);
                     context.getAdditional().put(Constant.SHUFFLE_VALUE_CLASS_NAME, valueClassName);
+                    context.getAdditional().put(Constant.TIME_TYPE, properties.get(Constant.TIME_TYPE));
+                    context.getAdditional().put(Constant.ALLOW_LATENESS_MILLISECOND, properties.get(Constant.ALLOW_LATENESS_MILLISECOND));
 
                     processor.preProcess(context);
 
                     Pair<K, V> pair = processor.deserialize(body);
-
-                    context.setData(new Data<>(pair.getObject1(), pair.getObject2()));
+                    long timestamp = processor.getTimestamp(messageExt);
+                    long watermark = processor.getWatermark(timestamp);
+                    Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp, watermark);
+                    context.setData(data);
 
                     processor.process(pair.getObject2());
                 }

@@ -28,21 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public abstract class AbstractStore implements StateStore {
-    enum StoreState {
-        UNINITIALIZED,
-        INITIALIZED,
-        LOADING,
-        LOADING_FINISHED
-    }
-
-
-    protected StoreState state = StoreState.UNINITIALIZED;
-    protected final Object lock = new Object();
-
-    @Override
-    public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
-    }
+public abstract class AbstractStore {
 
     protected MessageQueue convertSourceTopicQueue2StateTopicQueue(MessageQueue messageQueue) {
         HashSet<MessageQueue> messageQueues = new HashSet<>();
@@ -61,6 +47,7 @@ public abstract class AbstractStore implements StateStore {
         HashSet<MessageQueue> result = new HashSet<>();
         for (MessageQueue messageQueue : messageQueues) {
             if (messageQueue.getTopic().endsWith(Constant.STATE_TOPIC_SUFFIX)) {
+                result.add(messageQueue);
                 continue;
             }
             MessageQueue queue = new MessageQueue(messageQueue.getTopic() + Constant.STATE_TOPIC_SUFFIX, messageQueue.getBrokerName(), messageQueue.getQueueId());
@@ -85,18 +72,6 @@ public abstract class AbstractStore implements StateStore {
 
     protected String buildKey(MessageQueue messageQueue) {
         return Utils.buildKey(messageQueue.getBrokerName(), messageQueue.getTopic(), messageQueue.getQueueId());
-    }
-
-    protected byte[] object2Byte(Object target) {
-        if (target == null) {
-            return new byte[]{};
-        }
-
-        return JSON.toJSONBytes(target, SerializerFeature.WriteClassName);
-    }
-
-    protected Object byte2Object(byte[] source) {
-        return JSON.parse(source);
     }
 
 }

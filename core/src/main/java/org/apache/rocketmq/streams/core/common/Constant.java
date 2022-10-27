@@ -30,4 +30,7 @@ public class Constant {
 
     public static final String TIME_TYPE = "timeType";
 
+    public static final String ALLOW_LATENESS_MILLISECOND = "allowLatenessMillisecond";
+
+    public static final String SPLIT = "@";
 }

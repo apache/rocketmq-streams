@@ -16,18 +16,24 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +46,10 @@ public class RocksDBStore extends AbstractStore {
     private WriteOptions writeOptions;
 
     protected final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<Object/*Key*/>> stateTopicQueue2RocksDBKey = new ConcurrentHashMap<>();
+
+    public RocksDBStore() {
+        createRocksDB();
+    }
 
     private void createRocksDB() {
         try (final Options options = new Options().setCreateIfMissing(true)) {
@@ -71,25 +81,6 @@ public class RocksDBStore extends AbstractStore {
         }
     }
 
-    @Override
-    public synchronized void init() throws Throwable {
-        synchronized (lock) {
-            if (state == StoreState.UNINITIALIZED) {
-                synchronized (lock) {
-                    createRocksDB();
-                    state = StoreState.INITIALIZED;
-                }
-            }
-        }
-    }
-
-    @Override
-    public void waitIfNotReady(MessageQueue messageQueue) {
-        if (state != StoreState.INITIALIZED) {
-            throw new RuntimeException("RocksDB not ready.");
-        }
-    }
-
 
     public void removeState(Set<MessageQueue> removeQueues) throws Throwable {
         if (removeQueues == null || removeQueues.size() == 0) {
@@ -107,14 +98,13 @@ public class RocksDBStore extends AbstractStore {
             }
 
             for (Object key : keys) {
-                byte[] keyBytes = this.object2Byte(key);
+                byte[] keyBytes = Utils.object2Byte(key);
                 this.rocksDB.delete(keyBytes);
             }
             this.stateTopicQueue2RocksDBKey.remove(uniqueQueue);
         }
     }
 
-    @Override
     @SuppressWarnings("unchecked")
     public <K, V> V get(K key) {
         if (key == null) {
@@ -122,25 +112,24 @@ public class RocksDBStore extends AbstractStore {
         }
 
         try {
-            byte[] bytes = this.object2Byte(key);
+            byte[] bytes = Utils.object2Byte(key);
             byte[] valueBytes = rocksDB.get(bytes);
 
             if (valueBytes == null || valueBytes.length == 0) {
                 return null;
             }
 
-            return (V) byte2Object(valueBytes);
+            return (V) Utils.byte2Object(valueBytes);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Override
     public <K, V> void put(MessageQueue stateTopicMessageQueue, K key, V value) {
         try {
-            byte[] keyBytes = this.object2Byte(key);
+            byte[] keyBytes = Utils.object2Byte(key);
 
-            byte[] valueBytes = this.object2Byte(value);
+            byte[] valueBytes = Utils.object2Byte(value);
 
             rocksDB.put(writeOptions, keyBytes, valueBytes);
 
@@ -153,17 +142,82 @@ public class RocksDBStore extends AbstractStore {
         }
     }
 
-    @Override
-    public void persist(Set<MessageQueue> messageQueue) throws Throwable {
+    public <K> void deleteByKey(K key) throws RocksDBException {
+        byte[] keyBytes = Utils.object2Byte(key);
+        rocksDB.delete(keyBytes);
 
+        //从内存缓存中删除待持久化的key
+        Set<Map.Entry<String, Set<Object>>> entries = stateTopicQueue2RocksDBKey.entrySet();
+        Iterator<Map.Entry<String, Set<Object>>> iterator = entries.iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Set<Object>> next = iterator.next();
+
+            Set<Object> keySet = next.getValue();
+            keySet.remove(key);
+            if (keySet.size() == 0) {
+                iterator.remove();
+            }
+        }
     }
 
-    @Override
+
+    public RocksDB getRocksDB() {
+        return this.rocksDB;
+    }
+
     public void close() throws Exception {
 
     }
 
-    ConcurrentHashMap<String, Set<Object>> getStateTopicQueue2RocksDBKey() {
-        return stateTopicQueue2RocksDBKey;
+    Map<String, Set<Object>> getStateTopicQueue2RocksDBKey() {
+        return ImmutableMap.copyOf(stateTopicQueue2RocksDBKey);
+    }
+
+
+    public static void main(String[] args) throws Throwable {
+        RocksDBStore rocksDBStore = new RocksDBStore();
+
+
+        String key = "ksldk@1666850400000@5";
+
+        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850200000@9", "2");
+        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), key, "4");
+        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850600000@2", "6");
+        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850300000@7", "3");
+        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850500000@1", "5");
+
+
+        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850700000@6", "7");
+        Object o = rocksDBStore.get(key);
+        System.out.println(o);
+
+        String keyPrefix = "ksldk@1666850500000";
+        byte[] bytes = Utils.object2Byte(keyPrefix);
+        Object o1 = rocksDBStore.searchByKeyPrefix(bytes);
+        System.out.println(o1);
+    }
+
+    public List<byte[]> searchByKeyPrefix(byte[] keyPrefix) {
+        RocksIterator newIterator = this.rocksDB.newIterator();
+        newIterator.seekForPrev(keyPrefix);
+
+        ArrayList<Pair<?,?>> temp = new ArrayList<>();
+        while (newIterator.isValid()) {
+            byte[] keyBytes = newIterator.key();
+            byte[] valueBytes = newIterator.value();
+
+            String key = Utils.byte2Object(keyBytes);
+            String value = Utils.byte2Object(valueBytes);
+
+            temp.add(new Pair<>(key, value));
+
+            newIterator.prev();
+        }
+
+        for (Pair o : temp) {
+            System.out.println(o.getObject1());
+        }
+
+        return null;
     }
 }
