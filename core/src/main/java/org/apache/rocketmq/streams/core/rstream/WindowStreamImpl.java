@@ -21,6 +21,7 @@ import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplie
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
+import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 
 import static org.apache.rocketmq.streams.core.OperatorNameMaker.WINDOW_COUNT_PREFIX;
 
@@ -41,7 +42,13 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
         WindowAggregateSupplier<K, V, Long> supplier = new WindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> 0L, (K key, V value, Long agg) -> agg + 1L);
 
-        ProcessorNode<V> node = new ProcessorNode<>(name, parent.getName(), supplier);
+        //是否需要分组计算
+        ProcessorNode<V> node;
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
 
         return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
     }
@@ -49,5 +56,10 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     @Override
     public void aggregate() {
 
+    }
+
+    @Override
+    public RStream<V> toRStream() {
+        return new RStreamImpl<>(this.pipeline, parent);
     }
 }

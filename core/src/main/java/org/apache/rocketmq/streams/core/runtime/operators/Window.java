@@ -21,6 +21,11 @@ public class Window {
 
     private long endTime;
 
+    public Window(long startTime, long endTime) {
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
     public long getStartTime() {
         return startTime;
     }

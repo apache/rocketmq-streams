@@ -48,19 +48,20 @@ public class WindowStore {
     }
 
 
-    public <K, V> List<Pair<K, WindowState<K, V>>> searchByKeyPrefix(String keyPrefix) {
+    @SuppressWarnings("unchecked")
+    public <K, V> List<Pair<String, WindowState<K, V>>> searchByKeyPrefix(String keyPrefix) {
         RocksIterator rocksIterator = rocksDB.newIterator();
 
         byte[] keyPrefixBytes = Utils.object2Byte(keyPrefix);
         rocksIterator.seekForPrev(keyPrefixBytes);
 
-        List<Pair<K, WindowState<K, V>>> temp = new ArrayList<>();
+        List<Pair<String, WindowState<K, V>>> temp = new ArrayList<>();
         while (rocksIterator.isValid()) {
             byte[] keyBytes = rocksIterator.key();
             byte[] valueBytes = rocksIterator.value();
 
-            K key = Utils.byte2Object(keyBytes);
-            WindowState<K, V> value = Utils.byte2Object(valueBytes);
+            String key = Utils.byte2Object(keyBytes, String.class);
+            WindowState<K, V> value = Utils.byte2Object(valueBytes, WindowState.class);
             temp.add(new Pair<>(key, value));
 
             rocksIterator.prev();

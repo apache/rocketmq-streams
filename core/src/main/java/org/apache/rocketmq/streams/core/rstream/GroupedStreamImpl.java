@@ -28,18 +28,10 @@ import static org.apache.rocketmq.streams.core.OperatorNameMaker.COUNT_PREFIX;
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     private final Pipeline pipeline;
     private final GraphNode parent;
-    private boolean shuffleNode;
-
 
     public GroupedStreamImpl(Pipeline pipeline, GraphNode parent) {
         this.pipeline = pipeline;
         this.parent = parent;
-    }
-
-    public GroupedStreamImpl(Pipeline pipeline, GraphNode parent, boolean shuffleNode) {
-        this.pipeline = pipeline;
-        this.parent = parent;
-        this.shuffleNode = shuffleNode;
     }
 
     @Override
@@ -49,7 +41,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
         AggregateSupplier<K, V, Long> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0L, (K key, V value, Long agg) -> agg + 1L);
 
         GraphNode graphNode;
-        if (shuffleNode) {
+        if (this.parent.shuffleNode()) {
             //todo  这个supplier提供出去的processor需要包含状态
             graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
         } else {

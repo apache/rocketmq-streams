@@ -18,5 +18,10 @@ package org.apache.rocketmq.streams.core.function;
 
 @FunctionalInterface
 public interface FilterAction<T> {
+    /**
+     *
+     * @param value
+     * @return pass if true;
+     */
     boolean apply(final T value);
 }

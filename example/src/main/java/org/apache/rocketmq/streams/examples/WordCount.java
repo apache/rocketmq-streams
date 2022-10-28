@@ -18,11 +18,11 @@ package org.apache.rocketmq.streams.examples;
 
 
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
+import org.apache.rocketmq.streams.core.util.Pair;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

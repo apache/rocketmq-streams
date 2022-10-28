@@ -47,7 +47,8 @@ public class RocketMQStream {
             }
         } catch (Throwable t) {
             //todo
-            t.printStackTrace();
+            System.out.println("RocketMQStream error.");
+            throw new RuntimeException(t);
         }
 
 

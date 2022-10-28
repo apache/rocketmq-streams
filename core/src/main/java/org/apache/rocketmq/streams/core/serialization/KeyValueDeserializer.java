@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.streams.core.serialization;
 
-import org.apache.rocketmq.common.Pair;
+
+import org.apache.rocketmq.streams.core.util.Pair;
 
 public interface KeyValueDeserializer<K, V> {
     default void configure(Object... args) throws Throwable {
     }
 
-    Pair<K, V> deserialize(byte[] total) throws Throwable;
+    Pair<K, V> deserialize(byte[] source) throws Throwable;
 }

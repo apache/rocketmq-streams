@@ -1,4 +1,3 @@
-package org.apache.rocketmq.streams.examples.pojo;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,32 +14,30 @@ package org.apache.rocketmq.streams.examples.pojo;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.examples.window;
 
-
-import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
-import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
-import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
-import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
+import org.apache.rocketmq.streams.core.runtime.operators.Time;
+import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
-public class Demo {
+public class windowCount {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder();
-
-        builder.source("sourceTopic", new KeyValueDeserializer<Void, User>() {
-                    @Override
-                    public Pair<Void, User> deserialize(byte[] total) throws Throwable {
-                        User user = JSON.parseObject(total, User.class);
-                        return new Pair<>(null, user);
-                    }
+        builder.source("windowCount", source -> {
+                    String value = new String(source, StandardCharsets.UTF_8);
+                    int result = Integer.parseInt(value);
+                    return new Pair<>(null, result);
                 })
-                .keyBy(User::getAge)
+                .filter(value -> value > 0)
+                .keyBy(value -> "key")
+                .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
                 .count()
                 .toRStream()
                 .print();
@@ -48,13 +45,13 @@ public class Demo {
         TopologyBuilder topologyBuilder = builder.build();
 
         Properties properties = new Properties();
-        properties.put(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        properties.put(Constant.TIME_TYPE, TimeType.EVENT_TIME);
-        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 2000);
+        properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
         rocketMQStream.start();
+
     }
+
 
 }

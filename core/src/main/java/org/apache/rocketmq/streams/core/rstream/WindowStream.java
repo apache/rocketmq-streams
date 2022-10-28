@@ -20,4 +20,6 @@ public interface WindowStream<K,V> {
     WindowStream<K, Long> count();
 
     void aggregate();
+
+    RStream<V> toRStream();
 }

@@ -32,6 +32,7 @@ import org.rocksdb.WriteOptions;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -45,7 +46,7 @@ public class RocksDBStore extends AbstractStore {
     private RocksDB rocksDB;
     private WriteOptions writeOptions;
 
-    protected final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<Object/*Key*/>> stateTopicQueue2RocksDBKey = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<RocksDBKey/*Key*/>> stateTopicQueue2RocksDBKey = new ConcurrentHashMap<>();
 
     public RocksDBStore() {
         createRocksDB();
@@ -92,38 +93,46 @@ public class RocksDBStore extends AbstractStore {
 
         Set<String> uniqueQueues = groupByUniqueQueue.keySet();
         for (String uniqueQueue : uniqueQueues) {
-            Set<Object> keys = this.stateTopicQueue2RocksDBKey.get(uniqueQueue);
+            Set<RocksDBKey> keys = this.stateTopicQueue2RocksDBKey.get(uniqueQueue);
             if (keys == null) {
                 continue;
             }
 
-            for (Object key : keys) {
-                byte[] keyBytes = Utils.object2Byte(key);
+            for (RocksDBKey key : keys) {
+                byte[] keyBytes = Utils.object2Byte(key.getKeyObject());
                 this.rocksDB.delete(keyBytes);
             }
             this.stateTopicQueue2RocksDBKey.remove(uniqueQueue);
         }
     }
 
-    @SuppressWarnings("unchecked")
     public <K, V> V get(K key) {
         if (key == null) {
             return null;
         }
 
         try {
-            byte[] bytes = Utils.object2Byte(key);
+            byte[] bytes;
+            if (key instanceof byte[]) {
+                bytes = (byte[]) key;
+            } else {
+                bytes = Utils.object2Byte(key);
+            }
+
             byte[] valueBytes = rocksDB.get(bytes);
 
             if (valueBytes == null || valueBytes.length == 0) {
                 return null;
             }
 
-            return (V) Utils.byte2Object(valueBytes);
+            Pair<Class<K>, Class<V>> classPair = getValueClazz(key);
+
+            return Utils.byte2Object(valueBytes, classPair.getObject2());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
+
 
     public <K, V> void put(MessageQueue stateTopicMessageQueue, K key, V value) {
         try {
@@ -145,8 +154,8 @@ public class RocksDBStore extends AbstractStore {
 
             String stateTopicQueueKey = buildKey(stateTopicMessageQueue);
 
-            Set<Object> keySet = this.stateTopicQueue2RocksDBKey.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
-            keySet.add(key);
+            Set<RocksDBKey> keySet = this.stateTopicQueue2RocksDBKey.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+            keySet.add(new RocksDBKey(key, key.getClass(), value.getClass()));
         } catch (Exception e) {
             throw new RuntimeException("putWindowInstance to rocksdb error", e);
         }
@@ -157,13 +166,17 @@ public class RocksDBStore extends AbstractStore {
         rocksDB.delete(keyBytes);
 
         //从内存缓存中删除待持久化的key
-        Set<Map.Entry<String, Set<Object>>> entries = stateTopicQueue2RocksDBKey.entrySet();
-        Iterator<Map.Entry<String, Set<Object>>> iterator = entries.iterator();
+        Set<Map.Entry<String, Set<RocksDBKey>>> entries = stateTopicQueue2RocksDBKey.entrySet();
+        Iterator<Map.Entry<String, Set<RocksDBKey>>> iterator = entries.iterator();
         while (iterator.hasNext()) {
-            Map.Entry<String, Set<Object>> next = iterator.next();
+            Map.Entry<String, Set<RocksDBKey>> next = iterator.next();
 
-            Set<Object> keySet = next.getValue();
-            keySet.remove(key);
+            Set<RocksDBKey> keySet = next.getValue();
+            for (RocksDBKey rocksDBKey : keySet) {
+                if (rocksDBKey.getKeyObject().equals(key)) {
+                    keySet.remove(rocksDBKey);
+                }
+            }
             if (keySet.size() == 0) {
                 iterator.remove();
             }
@@ -179,55 +192,21 @@ public class RocksDBStore extends AbstractStore {
 
     }
 
-    Map<String, Set<Object>> getStateTopicQueue2RocksDBKey() {
+    Map<String, Set<RocksDBKey>> getStateTopicQueue2RocksDBKey() {
         return ImmutableMap.copyOf(stateTopicQueue2RocksDBKey);
     }
 
 
-    public static void main(String[] args) throws Throwable {
-        RocksDBStore rocksDBStore = new RocksDBStore();
-
-
-        String key = "ksldk@1666850400000@5";
-
-        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850200000@9", "2");
-        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), key, "4");
-        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850600000@2", "6");
-        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850300000@7", "3");
-        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850500000@1", "5");
-
-
-        rocksDBStore.put(new MessageQueue("topic", "defalut", 1), "ksldk@1666850700000@6", "7");
-        Object o = rocksDBStore.get(key);
-        System.out.println(o);
-
-        String keyPrefix = "ksldk@1666850500000";
-        byte[] bytes = Utils.object2Byte(keyPrefix);
-        Object o1 = rocksDBStore.searchByKeyPrefix(bytes);
-        System.out.println(o1);
-    }
-
-    public List<byte[]> searchByKeyPrefix(byte[] keyPrefix) {
-        RocksIterator newIterator = this.rocksDB.newIterator();
-        newIterator.seekForPrev(keyPrefix);
-
-        ArrayList<Pair<?, ?>> temp = new ArrayList<>();
-        while (newIterator.isValid()) {
-            byte[] keyBytes = newIterator.key();
-            byte[] valueBytes = newIterator.value();
-
-            String key = Utils.byte2Object(keyBytes);
-            String value = Utils.byte2Object(valueBytes);
-
-            temp.add(new Pair<>(key, value));
-
-            newIterator.prev();
+    private <K, V> Pair<Class<K>, Class<V>> getValueClazz(K key) {
+        Collection<Set<RocksDBKey>> values = stateTopicQueue2RocksDBKey.values();
+        for (Set<RocksDBKey> value : values) {
+            for (RocksDBKey rocksDBKey : value) {
+                if (rocksDBKey.getKeyObject().equals(key)) {
+                    return new Pair<>(rocksDBKey.getKeyClazz(), rocksDBKey.getValueClazz());
+                }
+            }
         }
 
-        for (Pair o : temp) {
-            System.out.println(o.getObject1());
-        }
-
-        return null;
+        throw new IllegalStateException("get key class and value class with key=[" + key + "], but empty ");
     }
 }

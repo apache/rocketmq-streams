@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.core.serialization;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.streams.core.util.Pair;
 
 /**
  * shuffle data how to encode KV

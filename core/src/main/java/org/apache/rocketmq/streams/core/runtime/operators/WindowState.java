@@ -23,6 +23,10 @@ public class WindowState<K, V> {
     private K key;
     private V value;
 
+    //only for Serializer/Deserializer
+    public WindowState(){
+    }
+
     public WindowState(K key, V value, long timestamp, long watermark) {
         this.timestamp = timestamp;
         this.watermark = watermark;

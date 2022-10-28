@@ -21,7 +21,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
@@ -36,12 +35,11 @@ import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.serialization.deImpl.KVJsonDeserializer;
 import org.apache.rocketmq.streams.core.serialization.serImpl.KVJsonSerializer;
-import org.apache.rocketmq.streams.core.util.Utils;
+import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -49,9 +47,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class RocketMQStore extends AbstractStore implements StateStore {
@@ -113,27 +109,27 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             return;
         }
 
-        Future<?> future = this.executor.submit(() -> {
-            DefaultLitePullConsumer consumer = null;
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer(StreamConfig.ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP);
+        consumer.setNamesrvAddr(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        consumer.setAutoCommit(false);
+        consumer.start();
+
+        Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(addQueues);
+        for (MessageQueue messageQueue : stateTopicQueue) {
+            createStateTopicIfNotExist(messageQueue.getTopic());
+        }
+
+        consumer.assign(stateTopicQueue);
+        for (MessageQueue queue : stateTopicQueue) {
+            consumer.seekToBegin(queue);
+        }
+
+        this.executor.execute(() -> {
             try {
-                consumer = new DefaultLitePullConsumer(StreamConfig.ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP);
-                consumer.setNamesrvAddr(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
-                consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-                consumer.setAutoCommit(false);
-                consumer.start();
-
-                Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(addQueues);
-                for (MessageQueue messageQueue : stateTopicQueue) {
-                    createStateTopicIfNotExist(messageQueue.getTopic());
-                }
-
-                consumer.assign(stateTopicQueue);
-                for (MessageQueue queue : stateTopicQueue) {
-                    consumer.seekToBegin(queue);
-                }
-
                 pullToLast(consumer);
             } catch (Throwable e) {
+                System.out.println("loadState state error.");
                 e.printStackTrace();
                 //todo 记录日志
                 throw new RuntimeException(e);
@@ -144,15 +140,10 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             }
         });
 
-        try {
-            future.get(0, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | TimeoutException ignored) {
-        }
-
     }
 
     public void removeState(Set<MessageQueue> removeQueues) throws Throwable {
-        Future<?> future = this.executor.submit(() -> {
+        this.executor.submit(() -> {
             try {
                 this.rocksDBStore.removeState(removeQueues);
 
@@ -165,11 +156,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 throw new RuntimeException(e);
             }
         });
-
-        try {
-            future.get(0, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | TimeoutException ignored) {
-        }
     }
 
     @Override
@@ -277,13 +263,13 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             return;
         }
 
-        Map<String, Set<Object>> stateTopicQueue2RocksDBKey = this.rocksDBStore.getStateTopicQueue2RocksDBKey();
+        Map<String, Set<RocksDBKey>> stateTopicQueue2RocksDBKey = this.rocksDBStore.getStateTopicQueue2RocksDBKey();
 
         Set<MessageQueue> stateTopicQueues = convertSourceTopicQueue2StateTopicQueue(messageQueues);
         for (MessageQueue stateTopicQueue : stateTopicQueues) {
             String key = buildKey(stateTopicQueue);
 
-            Set<Object> rocketDBKeySet = stateTopicQueue2RocksDBKey.get(key);
+            Set<RocksDBKey> rocketDBKeySet = stateTopicQueue2RocksDBKey.get(key);
 
             if (rocketDBKeySet == null || rocketDBKeySet.size() == 0) {
                 return;
@@ -292,8 +278,8 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             String stateTopic = stateTopicQueue.getTopic();
             createStateTopicIfNotExist(stateTopic);
 
-            for (Object rocketDBKey : rocketDBKeySet) {
-                Object value = this.rocksDBStore.get(rocketDBKey);
+            for (RocksDBKey rocketDBKey : rocketDBKeySet) {
+                Object value = this.rocksDBStore.get(rocketDBKey.getKeyObject());
                 if (value == null) {
                     continue;
                 }

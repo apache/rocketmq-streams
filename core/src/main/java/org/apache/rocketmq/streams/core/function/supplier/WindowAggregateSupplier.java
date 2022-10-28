@@ -114,17 +114,19 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             fireWindowEndTimeLassThanWatermark(watermark, key);
 
             //f(time) -> List<Window>
-            List<Window> windows = super.calculateWindow(time, key);
+            List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
                 //f(Window + key, store) -> oldValue
                 //todo key 怎么转化成对应的string，只和key的值有关系
                 String windowKey = Utils.buildKey(key.toString(), String.valueOf(window.getEndTime()), String.valueOf(window.getStartTime()));
                 WindowState<K, OV> oldState = this.windowStore.get(windowKey);
-                OV oldValue = oldState.getValue();
 
                 //f(oldValue, Agg) -> newValue
-                if (oldValue == null) {
+                OV oldValue;
+                if (oldState == null || oldState.getValue() == null) {
                     oldValue = initAction.get();
+                } else {
+                    oldValue = oldState.getValue();
                 }
 
                 OV newValue = this.aggregateAction.calculate(key, data, oldValue);
@@ -144,20 +146,21 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
-            List<Pair<K, WindowState<K, OV>>> pairs = this.windowStore.searchByKeyPrefix(keyPrefix);
+            List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchByKeyPrefix(keyPrefix);
 
             //需要倒序向后算子传递，pairs中最后一个结果的key，entTime最小，应该最先触发
             for (int i = pairs.size() - 1; i >= 0; i--) {
 
-                Pair<K, WindowState<K, OV>> pair = pairs.get(i);
+                Pair<String, WindowState<K, OV>> pair = pairs.get(i);
+
                 WindowState<K, OV> value = pair.getObject2();
 
-                Data<K, OV> result = new Data<>(pair.getObject1(), value.getValue(), value.getTimestamp(), value.getWatermark());
+                Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getTimestamp(), value.getWatermark());
                 Data<K, V> convert = super.convert(result);
 
                 this.context.forward(convert);
                 //删除状态
-                this.windowStore.deleteByKey(pair.getObject1().toString());
+                this.windowStore.deleteByKey(pair.getObject1());
             }
         }
 

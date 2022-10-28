@@ -55,8 +55,8 @@ public class Utils {
         return JSON.toJSONBytes(target, SerializerFeature.WriteClassName);
     }
 
-    @SuppressWarnings("unchecked")
-    public static <B> B byte2Object(byte[] source) {
-        return (B)JSON.parse(source);
+
+    public static <B> B byte2Object(byte[] source, Class<B> clazz) {
+        return JSON.parseObject(source, clazz);
     }
 }

@@ -22,7 +22,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -39,6 +38,7 @@ import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
+import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
@@ -87,8 +87,10 @@ public class WorkerThread extends Thread {
 
             this.planetaryEngine.runInLoop();
         } catch (Throwable e) {
-            e.printStackTrace();
+            System.out.println("planetaryEngine error.");
+            throw new RuntimeException(e);
         } finally {
+            System.out.println("planetaryEngine stop.");
             this.planetaryEngine.stop();
         }
     }
@@ -221,7 +223,16 @@ public class WorkerThread extends Thread {
 
 
             //只能对同一mq集群中的数据进行计算，找到brokerAddr
-            TopicRouteData topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic.get(0));
+            TopicRouteData topicRouteData;
+            try {
+                topicRouteData  = mqAdmin.examineTopicRouteInfo(sourceTopic.get(0));
+            } catch (Throwable t) {
+                if (t instanceof MQClientException && ((MQClientException)t).getResponseCode() == 17) {
+                    System.out.println("source topic not exist, can not create shuffle topic, create topic when write.");
+                }
+                return;
+            }
+
             List<BrokerData> brokerData = topicRouteData.getBrokerDatas();
             List<String> materBrokerAddr = new ArrayList<>();
             for (BrokerData broker : brokerData) {

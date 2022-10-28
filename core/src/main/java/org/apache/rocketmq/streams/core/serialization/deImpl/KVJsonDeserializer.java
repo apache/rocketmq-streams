@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.core.serialization.deImpl;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 

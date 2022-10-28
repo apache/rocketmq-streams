@@ -53,12 +53,12 @@ public class Pipeline {
         currentNode.addParent(parentNode);
 
         virtualNodes.add(currentNode);
-        return new GroupedStreamImpl<>(this, currentNode, currentNode.shuffleNode());
+        return new GroupedStreamImpl<>(this, currentNode);
     }
 
     public <K,V> WindowStream<K,V> addWindowStreamVirtualNode(GraphNode currentNode, GraphNode parentNode, WindowInfo windowInfo) {
         parentNode.addChild(currentNode);
-        currentNode.addChild(parentNode);
+        currentNode.addParent(parentNode);
 
         virtualNodes.add(currentNode);
         return new WindowStreamImpl<>(this, currentNode, windowInfo);

@@ -49,23 +49,27 @@ public class Time {
         return new Time(size, unit);
     }
 
-     public static Time milliseconds(long milliseconds) {
+    public static Time milliseconds(long milliseconds) {
         return of(milliseconds, TimeUnit.MILLISECONDS);
     }
 
-     public static Time seconds(long seconds) {
+    public static Time seconds(long seconds) {
         return of(seconds, TimeUnit.SECONDS);
     }
 
-     public static Time minutes(long minutes) {
+    public static Time minutes(long minutes) {
         return of(minutes, TimeUnit.MINUTES);
     }
 
-     public static Time hours(long hours) {
+    public static Time hours(long hours) {
         return of(hours, TimeUnit.HOURS);
     }
 
-     public static Time days(long days) {
+    public static Time days(long days) {
         return of(days, TimeUnit.DAYS);
+    }
+
+    public long toMillSecond() {
+        return this.unit.toMillis(this.size);
     }
 }
