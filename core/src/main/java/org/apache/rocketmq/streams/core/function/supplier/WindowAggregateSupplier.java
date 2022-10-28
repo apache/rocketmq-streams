@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.runtime.operators.Window;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
@@ -104,42 +105,38 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             Long time = originData.getTimestamp();
             long watermark = originData.getWatermark();
 
+            if (time < watermark) {
+                //已经触发，丢弃数据
+                return;
+            }
+
+            //如果存在窗口，且窗口结束时间小于watermark，触发这个窗口
+            fireWindowEndTimeLassThanWatermark(watermark, key);
+
             //f(time) -> List<Window>
             List<Window> windows = super.calculateWindow(time, key);
             for (Window window : windows) {
                 //f(Window + key, store) -> oldValue
                 //todo key 怎么转化成对应的string，只和key的值有关系
                 String windowKey = Utils.buildKey(key.toString(), String.valueOf(window.getEndTime()), String.valueOf(window.getStartTime()));
-                OV oldValue = this.windowStore.get(windowKey);
+                WindowState<K, OV> oldState = this.windowStore.get(windowKey);
+                OV oldValue = oldState.getValue();
 
                 //f(oldValue, Agg) -> newValue
                 if (oldValue == null) {
                     oldValue = initAction.get();
                 }
 
-                OV result = this.aggregateAction.calculate(key, data, oldValue);
+                OV newValue = this.aggregateAction.calculate(key, data, oldValue);
                 //f(Window + key, newValue, store)
-                this.windowStore.put(this.stateTopicMessageQueue, windowKey, result);
-
-//                //f(timeWheel, firedTime)
-//                //检查该窗口的触发时间是否已经被写入，或者写入幂等
-//                //到时间以后触发计算、计算后向下游传递结果、保存 key - firedTime（firedTime只能升高不能降低）
-//                //故障恢复：某个节点失败以后，能在其他节点继续触发计算，就像没有发生故障一样。
-//
-//                //-------------------------------------------------------------------------------------
-//                //f(key, store) -> result
-//                OV newValue = stateStore.get(windowKey);
-//                Data<K, V> convert = super.convert(originData.value(newValue));
-//                this.context.forward(convert);
-//
-//                //f(key, fireTime, store)
-//                this.stateStore.put(this.stateTopicMessageQueue, firedTimeKey, window.getEndTime());
+                WindowState<K, OV> state = new WindowState<>(key, newValue, time, watermark);
+                this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
             }
 
             try {
                 //如果存在窗口，且窗口结束时间小于watermark，触发这个窗口
                 fireWindowEndTimeLassThanWatermark(watermark, key);
-            }catch (Throwable t) {
+            } catch (Throwable t) {
                 errorReference.compareAndSet(null, t);
             }
         }
@@ -147,14 +144,18 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
-            List<Pair<K, V>> pairs = this.windowStore.searchByKeyPrefix(keyPrefix);
+            List<Pair<K, WindowState<K, OV>>> pairs = this.windowStore.searchByKeyPrefix(keyPrefix);
 
             //需要倒序向后算子传递，pairs中最后一个结果的key，entTime最小，应该最先触发
             for (int i = pairs.size() - 1; i >= 0; i--) {
-                //todo
-                Pair<K, V> pair = pairs.get(i);
-                Data<K, V> result = new Data<>(pair.getObject1(), pair.getObject2(), 0l, 0l);
-                this.context.forward(result);
+
+                Pair<K, WindowState<K, OV>> pair = pairs.get(i);
+                WindowState<K, OV> value = pair.getObject2();
+
+                Data<K, OV> result = new Data<>(pair.getObject1(), value.getValue(), value.getTimestamp(), value.getWatermark());
+                Data<K, V> convert = super.convert(result);
+
+                this.context.forward(convert);
                 //删除状态
                 this.windowStore.deleteByKey(pair.getObject1().toString());
             }

@@ -42,7 +42,7 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     private Data<?, T> data;
     private final HashMap<String, Object> additional = new HashMap<>();
 
-    public StreamContextImpl(DefaultMQProducer producer, DefaultMQAdminExt mqAdmin, StateStore stateStore, MessageExt messageExt) {
+    StreamContextImpl(DefaultMQProducer producer, DefaultMQAdminExt mqAdmin, StateStore stateStore, MessageExt messageExt) {
         this.producer = producer;
         this.mqAdmin = mqAdmin;
         this.stateStore = stateStore;

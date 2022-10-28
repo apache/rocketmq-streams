@@ -38,28 +38,29 @@ public class WindowStore {
         this.rocksDB = this.stateStore.getRocksDBStore().getRocksDB();
     }
 
-    public <T> void put(MessageQueue stateTopicMessageQueue, String key, T value) {
-        this.stateStore.put(stateTopicMessageQueue, key, value);
+    public <K,V> void put(MessageQueue stateTopicMessageQueue, String key, WindowState<K, V> value) {
+        byte[] bytes = Utils.object2Byte(value);
+        this.stateStore.put(stateTopicMessageQueue, key, bytes);
     }
 
-    public <T> T get(String key) {
+    public <K, V> WindowState<K, V> get(String key) {
         return this.stateStore.get(key);
     }
 
 
-    public <K, V> List<Pair<K, V>> searchByKeyPrefix(String keyPrefix) {
+    public <K, V> List<Pair<K, WindowState<K, V>>> searchByKeyPrefix(String keyPrefix) {
         RocksIterator rocksIterator = rocksDB.newIterator();
 
         byte[] keyPrefixBytes = Utils.object2Byte(keyPrefix);
         rocksIterator.seekForPrev(keyPrefixBytes);
 
-        List<Pair<K, V>> temp = new ArrayList<>();
+        List<Pair<K, WindowState<K, V>>> temp = new ArrayList<>();
         while (rocksIterator.isValid()) {
             byte[] keyBytes = rocksIterator.key();
             byte[] valueBytes = rocksIterator.value();
 
             K key = Utils.byte2Object(keyBytes);
-            V value = Utils.byte2Object(valueBytes);
+            WindowState<K, V> value = Utils.byte2Object(valueBytes);
             temp.add(new Pair<>(key, value));
 
             rocksIterator.prev();

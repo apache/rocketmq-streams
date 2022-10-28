@@ -127,9 +127,19 @@ public class RocksDBStore extends AbstractStore {
 
     public <K, V> void put(MessageQueue stateTopicMessageQueue, K key, V value) {
         try {
-            byte[] keyBytes = Utils.object2Byte(key);
+            byte[] keyBytes;
+            if (key instanceof byte[]) {
+                keyBytes = (byte[]) key;
+            } else {
+                keyBytes = Utils.object2Byte(key);
+            }
 
-            byte[] valueBytes = Utils.object2Byte(value);
+            byte[] valueBytes;
+            if (value instanceof byte[]) {
+                valueBytes = (byte[]) value;
+            } else {
+                valueBytes = Utils.object2Byte(value);
+            }
 
             rocksDB.put(writeOptions, keyBytes, valueBytes);
 
@@ -201,7 +211,7 @@ public class RocksDBStore extends AbstractStore {
         RocksIterator newIterator = this.rocksDB.newIterator();
         newIterator.seekForPrev(keyPrefix);
 
-        ArrayList<Pair<?,?>> temp = new ArrayList<>();
+        ArrayList<Pair<?, ?>> temp = new ArrayList<>();
         while (newIterator.isValid()) {
             byte[] keyBytes = newIterator.key();
             byte[] valueBytes = newIterator.value();
