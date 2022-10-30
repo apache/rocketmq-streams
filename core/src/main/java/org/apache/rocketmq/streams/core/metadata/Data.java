@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.core.metadata;
 
 public class Data<K, V> {
-    private String sinkTopic;
     private K key;
     private V value;
     private long timestamp;
@@ -46,14 +45,6 @@ public class Data<K, V> {
         this.value = value;
     }
 
-    public String getSinkTopic() {
-        return sinkTopic;
-    }
-
-    public void setSinkTopic(String sinkTopic) {
-        this.sinkTopic = sinkTopic;
-    }
-
     public Long getTimestamp() {
         return timestamp;
     }
@@ -80,11 +71,11 @@ public class Data<K, V> {
 
     @Override
     public String toString() {
-        return "Context{" +
-                "sinkTopic='" + sinkTopic + '\'' +
-                ", key=" + key +
+        return "Data{" +
+                "key=" + key +
                 ", value=" + value +
                 ", timestamp=" + timestamp +
+                ", watermark=" + watermark +
                 '}';
     }
 }

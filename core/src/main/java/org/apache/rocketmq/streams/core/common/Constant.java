@@ -33,4 +33,8 @@ public class Constant {
     public static final String ALLOW_LATENESS_MILLISECOND = "allowLatenessMillisecond";
 
     public static final String SPLIT = "@";
+
+    public static final String EMPTY_BODY = "empty_body";
+
+    public static final String TRUE = "true";
 }

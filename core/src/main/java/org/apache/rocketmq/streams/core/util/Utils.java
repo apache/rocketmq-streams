@@ -24,11 +24,12 @@ import org.apache.rocketmq.streams.core.common.Constant;
 
 public class Utils {
     public static final String pattern = "%s@%s@%s";
+
     public static String buildKey(String brokerName, String topic, int queueId) {
         return String.format(pattern, brokerName, topic, queueId);
     }
 
-    public static String buildKey(String key, String...args) {
+    public static String buildKey(String key, String... args) {
         if (StringUtils.isEmpty(key)) {
             return null;
         }
@@ -45,6 +46,14 @@ public class Utils {
         }
 
         return builder.substring(0, builder.lastIndexOf(Constant.SPLIT));
+    }
+
+    public static String[] split(String source) {
+        if (StringUtils.isEmpty(source)) {
+            return new String[]{};
+        }
+
+        return source.split(Constant.SPLIT);
     }
 
     public static byte[] object2Byte(Object target) {

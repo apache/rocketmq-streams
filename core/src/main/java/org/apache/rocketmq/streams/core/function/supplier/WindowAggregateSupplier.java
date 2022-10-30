@@ -136,7 +136,8 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 WindowState<K, OV> state = new WindowState<>(key, newValue, time, watermark);
                 this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
 
-                System.out.println("put into store, startTime=" + this.format(window.getStartTime()) + ", endTime=" + this.format(window.getEndTime()));
+                System.out.println("put key into store, key: " + windowKey);
+//                System.out.println("put into store, startTime=" + this.format(window.getStartTime()) + ", endTime=" + this.format(window.getEndTime()));
             }
 
             try {
@@ -162,17 +163,22 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getTimestamp(), value.getWatermark());
                 Data<K, V> convert = super.convert(result);
 
-                this.context.forward(convert);
-
                 String temp = pair.getObject1();
                 String[] split = temp.split("@");
-                System.out.println("fire, startTime=" + this.format(Long.parseLong(split[2])) + ", endTime=" + this.format(Long.parseLong(split[1])));
+//                System.out.println("fire key: " + temp);
+//                System.out.println("fire, startTime=" + this.format(Long.parseLong(split[2])) + ", endTime=" + this.format(Long.parseLong(split[1])));
+
+                this.context.forward(convert);
+
                 //删除状态
+//                System.out.println("delete key: " + temp);
+//                System.out.println("delete, startTime=" + this.format(Long.parseLong(split[2])) + ", endTime=" + this.format(Long.parseLong(split[1])));
                 this.windowStore.deleteByKey(pair.getObject1());
             }
         }
 
         private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
         private String format(long timestamp) {
             Date date = new Date(timestamp);
             return df.format(date);

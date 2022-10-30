@@ -55,6 +55,10 @@ public abstract class AbstractStore {
         return wrapper.getByStateTopicQueueKey(stateTopicQueueKey);
     }
 
+    protected String getStateTopicQueue(Object key) {
+        return wrapper.getStateTopicQueueKey(key);
+    }
+
     protected <K> void deleteByKey(K key) {
         wrapper.deleteByKey(key);
     }
@@ -127,6 +131,16 @@ public abstract class AbstractStore {
 
         public Pair<Class<?>, Class<?>> getClazz(Object key) {
             return key2Clazz.get(key);
+        }
+
+        public String getStateTopicQueueKey(Object key) {
+            for (String uniqueQueue : stateTopicQueue2Key.keySet()) {
+                if (stateTopicQueue2Key.get(uniqueQueue).contains(key)) {
+                    return uniqueQueue;
+                }
+            }
+
+            return null;
         }
 
         public Object getKeyObject(String stateTopicQueueKey) {
