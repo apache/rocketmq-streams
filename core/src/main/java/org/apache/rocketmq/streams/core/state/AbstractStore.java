@@ -20,13 +20,48 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractStore {
+    private final Wrapper wrapper = new Wrapper();
+
+    public <V> V byte2Object(byte[] bytes, Class<V> clazz) {
+        return Utils.byte2Object(bytes, clazz);
+    }
+
+    public byte[] object2Bytes(Object target) {
+        return Utils.object2Byte(target);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <K, V> Pair<Class<K>, Class<V>> getClazzPair(K key) {
+        Pair<Class<?>, Class<?>> clazzPair = wrapper.getClazz(key);
+
+        return new Pair<>((Class<K>) clazzPair.getObject1(), (Class<V>) clazzPair.getObject2());
+    }
+
+    protected <K, V> void putClazz(String stateTopicQueueKey, K key, V value) {
+        wrapper.put(stateTopicQueueKey, key, value);
+    }
+
+    protected Set<Object> getByStateTopicQueueKey(String stateTopicQueueKey) {
+        return wrapper.getByStateTopicQueueKey(stateTopicQueueKey);
+    }
+
+    protected <K> void deleteByKey(K key) {
+        wrapper.deleteByKey(key);
+    }
+
+    protected void deleteByStateTopicQueueKey(String stateTopicQueueKey) {
+        wrapper.deleteByStateQueue(stateTopicQueueKey);
+    }
 
     protected MessageQueue convertSourceTopicQueue2StateTopicQueue(MessageQueue messageQueue) {
         HashSet<MessageQueue> messageQueues = new HashSet<>();
@@ -37,6 +72,7 @@ public abstract class AbstractStore {
         Iterator<MessageQueue> iterator = stateTopicQueue.iterator();
         return iterator.next();
     }
+
     protected Set<MessageQueue> convertSourceTopicQueue2StateTopicQueue(Set<MessageQueue> messageQueues) {
         if (messageQueues == null || messageQueues.size() == 0) {
             return new HashSet<>();
@@ -72,4 +108,60 @@ public abstract class AbstractStore {
         return Utils.buildKey(messageQueue.getBrokerName(), messageQueue.getTopic(), messageQueue.getQueueId());
     }
 
+    static class Wrapper {
+        private final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<Object/*Key*/>> stateTopicQueue2Key = new ConcurrentHashMap<>();
+        private final ConcurrentHashMap<Object/*Key*/, Pair<Class<?>/*Key class*/, Class<?>/*value class*/>> key2Clazz = new ConcurrentHashMap<>();
+
+        public void put(String stateTopicQueueKey, Object key, Object value) {
+            Set<Object> keySet = this.stateTopicQueue2Key.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+            keySet.add(key);
+
+            if (!key2Clazz.containsKey(key)) {
+                this.key2Clazz.put(key, new Pair<>(key.getClass(), value.getClass()));
+            }
+        }
+
+        public Set<Object> getByStateTopicQueueKey(String stateTopicQueueKey) {
+            return stateTopicQueue2Key.get(stateTopicQueueKey);
+        }
+
+        public Pair<Class<?>, Class<?>> getClazz(Object key) {
+            return key2Clazz.get(key);
+        }
+
+        public Object getKeyObject(String stateTopicQueueKey) {
+            return stateTopicQueue2Key.get(stateTopicQueueKey);
+        }
+
+        public void deleteByKey(Object key) {
+            //删除 stateTopicQueue2Key
+            Set<Map.Entry<String, Set<Object>>> entries = stateTopicQueue2Key.entrySet();
+            Iterator<Map.Entry<String, Set<Object>>> iterator = entries.iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Set<Object>> next = iterator.next();
+
+                Set<Object> keySet = next.getValue();
+                Iterator<Object> keySetIterator = keySet.iterator();
+                while (keySetIterator.hasNext()) {
+                    Object rocksDBKey = keySetIterator.next();
+                    if (rocksDBKey.equals(key)) {
+                         keySetIterator.remove();
+                    }
+                }
+                if (keySet.size() == 0) {
+                    iterator.remove();
+                }
+            }
+
+            //删除key2Clazz
+            key2Clazz.remove(key);
+        }
+
+        public void deleteByStateQueue(String uniqueQueue) {
+            Set<Object> remove = this.stateTopicQueue2Key.remove(uniqueQueue);
+            for (Object obj : remove) {
+                this.key2Clazz.remove(obj);
+            }
+        }
+    }
 }

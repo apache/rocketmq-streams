@@ -104,6 +104,41 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
 
+    @Override
+    public <K, V> V get(K key) throws Throwable {
+        byte[] bytes = super.object2Bytes(key);
+        byte[] valueBytes = this.rocksDBStore.get(bytes);
+        if (valueBytes == null || valueBytes.length == 0) {
+            return null;
+        }
+
+        Pair<Class<K>, Class<V>> classPair = super.getClazzPair(key);
+        return super.byte2Object(valueBytes, classPair.getObject2());
+    }
+
+    @Override
+    public <K, V> void put(MessageQueue stateTopicMessageQueue, K key, V value) throws Throwable {
+        String stateTopicQueueKey = buildKey(stateTopicMessageQueue);
+        super.putClazz(stateTopicQueueKey, key, value);
+
+        byte[] keyBytes = super.object2Bytes(key);
+        byte[] valueBytes = super.object2Bytes(value);
+        this.rocksDBStore.put(keyBytes, valueBytes);
+    }
+
+
+    public <V> List<Pair<String, V>> searchByKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable {
+        return this.rocksDBStore.searchByKeyPrefix(keyPrefix, valueClazz);
+    }
+
+
+    @Override
+    public <K> void delete(K key) throws Throwable {
+        byte[] keyBytes = super.object2Bytes(key);
+        this.rocksDBStore.deleteByKey(keyBytes);
+        super.deleteByKey(key);
+    }
+
     public void loadState(Set<MessageQueue> addQueues) throws Throwable {
         if (addQueues == null || addQueues.size() == 0) {
             return;
@@ -134,20 +169,36 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 //todo 记录日志
                 throw new RuntimeException(e);
             } finally {
-                if (consumer != null) {
-                    consumer.shutdown();
-                }
+                consumer.shutdown();
             }
         });
 
     }
 
     public void removeState(Set<MessageQueue> removeQueues) throws Throwable {
+        if (removeQueues == null || removeQueues.size() ==0){
+            return;
+        }
+
         this.executor.submit(() -> {
             try {
-                this.rocksDBStore.removeState(removeQueues);
-
+                if (removeQueues == null || removeQueues.size() == 0) {
+                    return;
+                }
                 Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(removeQueues);
+
+                Map<String/*brokerName@topic@queueId*/, List<MessageQueue>> groupByUniqueQueue = stateTopicQueue.stream().parallel().collect(Collectors.groupingBy(this::buildKey));
+                for (String stateUniqueQueue : groupByUniqueQueue.keySet()) {
+                    Set<Object> stateTopicQueueKey = super.getByStateTopicQueueKey(stateUniqueQueue);
+                    for (Object key : stateTopicQueueKey) {
+                        byte[] valueBytes = super.object2Bytes(key);
+                        this.rocksDBStore.deleteByKey(valueBytes);
+                    }
+
+                    super.deleteByStateTopicQueueKey(stateUniqueQueue);
+                }
+
+
                 for (MessageQueue stateMessageQueue : stateTopicQueue) {
                     this.recoveringQueueMutex.remove(stateMessageQueue);
                 }
@@ -158,32 +209,28 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         });
     }
 
-    @Override
-    public <K, V> V get(K key) {
-        return this.rocksDBStore.get(key);
-    }
-
-    @Override
-    public <K, V> void put(MessageQueue stateTopicMessageQueue, K k, V v) {
-        this.rocksDBStore.put(stateTopicMessageQueue, k, v);
-    }
-
-    @Override
-    public <K> void delete(K key) throws Throwable {
-        this.rocksDBStore.deleteByKey(key);
-    }
-
     private void pullToLast(DefaultLitePullConsumer consumer) throws Throwable {
         Set<MessageQueue> readyToRecover = consumer.assignment();
         for (MessageQueue messageQueue : readyToRecover) {
             this.recoveringQueueMutex.computeIfAbsent(messageQueue, messageQueue1 -> new CountDownLatch2(1));
         }
 
+        List<MessageExt> holder = new ArrayList<>();
         //recover
         List<MessageExt> result = consumer.poll(50);
         while (result != null && result.size() != 0) {
-            replayState(result);
+            holder.addAll(result);
+            if (holder.size() <= 1000) {
+                continue;
+            }
+
+            replayState(holder);
+            holder.clear();
+
             result = consumer.poll(50);
+        }
+        if (holder.size() != 0) {
+            replayState(holder);
         }
 
         //恢复完毕；
@@ -230,7 +277,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
                 //放入rocksdb
                 MessageQueue stateTopicQueue = new MessageQueue(result.getTopic(), result.getBrokerName(), result.getQueueId());
-                this.rocksDBStore.put(stateTopicQueue, key, value);
+                this.put(stateTopicQueue, key, value);
             }
         }
     }
@@ -263,35 +310,34 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             return;
         }
 
-        Map<String, Set<RocksDBKey>> stateTopicQueue2RocksDBKey = this.rocksDBStore.getStateTopicQueue2RocksDBKey();
-
         Set<MessageQueue> stateTopicQueues = convertSourceTopicQueue2StateTopicQueue(messageQueues);
         for (MessageQueue stateTopicQueue : stateTopicQueues) {
-            String key = buildKey(stateTopicQueue);
+            String stateTopicQueueKey = buildKey(stateTopicQueue);
+            Set<Object> keySet = super.getByStateTopicQueueKey(stateTopicQueueKey);
 
-            Set<RocksDBKey> rocketDBKeySet = stateTopicQueue2RocksDBKey.get(key);
-
-            if (rocketDBKeySet == null || rocketDBKeySet.size() == 0) {
+            if (keySet == null || keySet.size() == 0) {
                 return;
             }
 
             String stateTopic = stateTopicQueue.getTopic();
             createStateTopicIfNotExist(stateTopic);
 
-            for (RocksDBKey rocketDBKey : rocketDBKeySet) {
-                Object value = this.rocksDBStore.get(rocketDBKey.getKeyObject());
-                if (value == null) {
+            for (Object key : keySet) {
+                byte[] keyBytes = super.object2Bytes(key);
+                Pair<Class<Object>, Class<Object>> clazzPair = super.getClazzPair(key);
+                byte[] valueBytes = this.rocksDBStore.get(keyBytes);
+                if (valueBytes == null) {
                     continue;
                 }
 
-                byte[] body = kvJsonSerializer.serialize(rocketDBKey, value);
+                byte[] body = kvJsonSerializer.serialize(keyBytes, valueBytes);
 
                 Message message = new Message(stateTopicQueue.getTopic(), body);
                 //todo 改进key的计算方式
-                message.setKeys(String.valueOf(rocketDBKey.hashCode()));
+                message.setKeys(String.valueOf(key));
 
-                message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, rocketDBKey.getClass().getName());
-                message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, value.getClass().getName());
+                message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, clazzPair.getObject1().getName());
+                message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, clazzPair.getObject2().getName());
 
 
                 this.producer.send(message, stateTopicQueue);

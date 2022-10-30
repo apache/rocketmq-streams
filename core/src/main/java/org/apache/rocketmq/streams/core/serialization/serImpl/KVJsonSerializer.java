@@ -28,6 +28,8 @@ public class KVJsonSerializer<K, V> extends ShuffleProtocol implements KeyValueS
 
         if (key == null) {
             keyBytes = new byte[0];
+        } else if (key instanceof byte[]) {
+            keyBytes = (byte[]) key;
         } else {
             keyBytes = JSON.toJSONBytes(key, SerializerFeature.WriteClassName);
         }
@@ -35,6 +37,8 @@ public class KVJsonSerializer<K, V> extends ShuffleProtocol implements KeyValueS
         byte[] valueBytes;
         if (value == null) {
             valueBytes = new byte[0];
+        } else if (value instanceof byte[]) {
+            valueBytes = (byte[]) value;
         } else {
             valueBytes = JSON.toJSONBytes(value, SerializerFeature.WriteClassName);
         }

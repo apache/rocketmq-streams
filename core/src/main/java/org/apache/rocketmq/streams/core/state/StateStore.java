@@ -17,7 +17,9 @@ package org.apache.rocketmq.streams.core.state;
  */
 
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.util.Pair;
 
+import java.util.List;
 import java.util.Set;
 
 public interface StateStore extends AutoCloseable {
@@ -45,9 +47,11 @@ public interface StateStore extends AutoCloseable {
     void waitIfNotReady(MessageQueue messageQueue) throws Throwable;
 
 
-    <K, V> V get(K key);
+    <K, V> V get(K key) throws Throwable;
 
-    <K, V> void put(MessageQueue messageQueue, K key, V value);
+    <K, V> void put(MessageQueue messageQueue, K key, V value) throws Throwable;
+
+    <V> List<Pair<String, V>> searchByKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable;
 
     <K> void delete(K key) throws Throwable;
 

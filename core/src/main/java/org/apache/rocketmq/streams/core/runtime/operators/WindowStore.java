@@ -20,9 +20,7 @@ package org.apache.rocketmq.streams.core.runtime.operators;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
-import org.apache.rocketmq.streams.core.util.Utils;
 import org.rocksdb.RocksDB;
-import org.rocksdb.RocksIterator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,36 +36,25 @@ public class WindowStore {
         this.rocksDB = this.stateStore.getRocksDBStore().getRocksDB();
     }
 
-    public <K,V> void put(MessageQueue stateTopicMessageQueue, String key, WindowState<K, V> value) {
-        byte[] bytes = Utils.object2Byte(value);
-        this.stateStore.put(stateTopicMessageQueue, key, bytes);
+    public <K, V> void put(MessageQueue stateTopicMessageQueue, String key, WindowState<K, V> value) throws Throwable {
+        this.stateStore.put(stateTopicMessageQueue, key, value);
     }
 
-    public <K, V> WindowState<K, V> get(String key) {
+    public <K, V> WindowState<K, V> get(String key) throws Throwable {
         return this.stateStore.get(key);
     }
 
 
     @SuppressWarnings("unchecked")
-    public <K, V> List<Pair<String, WindowState<K, V>>> searchByKeyPrefix(String keyPrefix) {
-        RocksIterator rocksIterator = rocksDB.newIterator();
+    public <K, V> List<Pair<String, WindowState<K, V>>> searchByKeyPrefix(String keyPrefix) throws Throwable {
+        List<Pair<String, WindowState>> pairs = this.stateStore.searchByKeyPrefix(keyPrefix, WindowState.class);
 
-        byte[] keyPrefixBytes = Utils.object2Byte(keyPrefix);
-        rocksIterator.seekForPrev(keyPrefixBytes);
-
-        List<Pair<String, WindowState<K, V>>> temp = new ArrayList<>();
-        while (rocksIterator.isValid()) {
-            byte[] keyBytes = rocksIterator.key();
-            byte[] valueBytes = rocksIterator.value();
-
-            String key = Utils.byte2Object(keyBytes, String.class);
-            WindowState<K, V> value = Utils.byte2Object(valueBytes, WindowState.class);
-            temp.add(new Pair<>(key, value));
-
-            rocksIterator.prev();
+        List<Pair<String, WindowState<K, V>>> result = new ArrayList<>();
+        for (Pair<String, WindowState> pair : pairs) {
+            WindowState<K, V> object2 = (WindowState<K, V>) pair.getObject2();
+            result.add(new Pair<>(pair.getObject1(), object2));
         }
-
-        return temp;
+        return result;
     }
 
 

@@ -122,6 +122,7 @@ public class WorkerThread extends Thread {
                     return null;
                 } catch (Throwable e) {
                     System.out.println("error happen.");
+                    e.printStackTrace();
                     return e;
                 }
             });

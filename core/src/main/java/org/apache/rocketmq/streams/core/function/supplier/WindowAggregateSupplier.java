@@ -32,6 +32,8 @@ import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -133,6 +135,8 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 //f(Window + key, newValue, store)
                 WindowState<K, OV> state = new WindowState<>(key, newValue, time, watermark);
                 this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
+
+                System.out.println("put into store, startTime=" + this.format(window.getStartTime()) + ", endTime=" + this.format(window.getEndTime()));
             }
 
             try {
@@ -159,9 +163,19 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 Data<K, V> convert = super.convert(result);
 
                 this.context.forward(convert);
+
+                String temp = pair.getObject1();
+                String[] split = temp.split("@");
+                System.out.println("fire, startTime=" + this.format(Long.parseLong(split[2])) + ", endTime=" + this.format(Long.parseLong(split[1])));
                 //删除状态
                 this.windowStore.deleteByKey(pair.getObject1());
             }
+        }
+
+        private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        private String format(long timestamp) {
+            Date date = new Date(timestamp);
+            return df.format(date);
         }
 
     }
