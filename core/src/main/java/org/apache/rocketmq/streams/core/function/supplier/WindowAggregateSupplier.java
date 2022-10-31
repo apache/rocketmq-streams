@@ -137,7 +137,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
 
                 System.out.println("put key into store, key: " + windowKey);
-//                System.out.println("put into store, startTime=" + this.format(window.getStartTime()) + ", endTime=" + this.format(window.getEndTime()));
             }
 
             try {
@@ -163,16 +162,9 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getTimestamp(), value.getWatermark());
                 Data<K, V> convert = super.convert(result);
 
-                String temp = pair.getObject1();
-                String[] split = temp.split("@");
-//                System.out.println("fire key: " + temp);
-//                System.out.println("fire, startTime=" + this.format(Long.parseLong(split[2])) + ", endTime=" + this.format(Long.parseLong(split[1])));
-
                 this.context.forward(convert);
 
                 //删除状态
-//                System.out.println("delete key: " + temp);
-//                System.out.println("delete, startTime=" + this.format(Long.parseLong(split[2])) + ", endTime=" + this.format(Long.parseLong(split[1])));
                 this.windowStore.deleteByKey(pair.getObject1());
             }
         }

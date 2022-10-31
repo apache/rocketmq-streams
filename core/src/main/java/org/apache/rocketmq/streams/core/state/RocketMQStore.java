@@ -195,7 +195,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, clazzPair.getObject2().getName());
 
 
-                System.out.println("persist key: " + key + ",messageQueue: " + stateTopicQueues);
+                System.out.println("persist key: " + key + ",messageQueue: " + stateTopicQueue);
                 this.producer.send(message, stateTopicQueue);
             }
         }
