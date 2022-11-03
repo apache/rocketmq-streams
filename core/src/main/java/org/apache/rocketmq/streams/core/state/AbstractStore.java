@@ -41,7 +41,7 @@ public abstract class AbstractStore {
     }
 
     @SuppressWarnings("unchecked")
-    protected <K, V> Pair<Class<K>, Class<V>> getClazzPair(K key) {
+    protected <K, V> Pair<Class<K>, Class<V>> getClazz(K key) {
         Pair<Class<?>, Class<?>> clazzPair = wrapper.getClazz(key);
 
         return new Pair<>((Class<K>) clazzPair.getObject1(), (Class<V>) clazzPair.getObject2());
@@ -51,19 +51,19 @@ public abstract class AbstractStore {
         wrapper.put(stateTopicQueueKey, key, value);
     }
 
-    protected Set<Object> getByStateTopicQueueKey(String stateTopicQueueKey) {
-        return wrapper.getByStateTopicQueueKey(stateTopicQueueKey);
+    protected Set<Object> whichKeyMap2StateTopicQueue(String stateTopicQueue) {
+        return wrapper.whichKeyMap2StateTopicQueue(stateTopicQueue);
     }
 
-    protected String getStateTopicQueue(Object key) {
-        return wrapper.getStateTopicQueueKey(key);
+    protected String whichStateTopicQueueBelongTo(Object key) {
+        return wrapper.whichStateTopicQueueBelongTo(key);
     }
 
-    protected <K> void deleteByKey(K key) {
+    protected <K> void deleteAllMappingByKey(K key) {
         wrapper.deleteByKey(key);
     }
 
-    protected void deleteByStateTopicQueueKey(String stateTopicQueueKey) {
+    protected void deleteAllMappingByStateTopicQueue(String stateTopicQueueKey) {
         wrapper.deleteByStateQueue(stateTopicQueueKey);
     }
 
@@ -125,15 +125,15 @@ public abstract class AbstractStore {
             }
         }
 
-        public Set<Object> getByStateTopicQueueKey(String stateTopicQueueKey) {
-            return stateTopicQueue2Key.get(stateTopicQueueKey);
+        public Set<Object> whichKeyMap2StateTopicQueue(String stateTopicQueue) {
+            return stateTopicQueue2Key.get(stateTopicQueue);
         }
 
         public Pair<Class<?>, Class<?>> getClazz(Object key) {
             return key2Clazz.get(key);
         }
 
-        public String getStateTopicQueueKey(Object key) {
+        public String whichStateTopicQueueBelongTo(Object key) {
             for (String uniqueQueue : stateTopicQueue2Key.keySet()) {
                 if (stateTopicQueue2Key.get(uniqueQueue).contains(key)) {
                     return uniqueQueue;

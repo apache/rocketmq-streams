@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.core.state;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -115,7 +114,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             return null;
         }
 
-        Pair<Class<K>, Class<V>> classPair = super.getClazzPair(key);
+        Pair<Class<K>, Class<V>> classPair = super.getClazz(key);
         return super.byte2Object(valueBytes, classPair.getObject2());
     }
 
@@ -138,7 +137,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     @Override
     public <K> void delete(K key) throws Throwable {
         //删除远程
-        String stateTopicQueue = super.getStateTopicQueue(key);
+        String stateTopicQueue = super.whichStateTopicQueueBelongTo(key);
         String[] split = Utils.split(stateTopicQueue);
         String topic = split[1];
         MessageQueue queue = new MessageQueue(split[1], split[0], Integer.parseInt(split[2]));
@@ -154,7 +153,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         this.rocksDBStore.deleteByKey(keyBytes);
 
         //删除内存中的key
-        super.deleteByKey(key);
+        super.deleteAllMappingByKey(key);
 
         System.out.println("delete key: " + key + ",MessageQueue: " + queue);
     }
@@ -168,7 +167,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         Set<MessageQueue> stateTopicQueues = convertSourceTopicQueue2StateTopicQueue(messageQueues);
         for (MessageQueue stateTopicQueue : stateTopicQueues) {
             String stateTopicQueueKey = buildKey(stateTopicQueue);
-            Set<Object> keySet = super.getByStateTopicQueueKey(stateTopicQueueKey);
+            Set<Object> keySet = super.whichKeyMap2StateTopicQueue(stateTopicQueueKey);
 
             if (keySet == null || keySet.size() == 0) {
                 return;
@@ -179,7 +178,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
             for (Object key : keySet) {
                 byte[] keyBytes = super.object2Bytes(key);
-                Pair<Class<Object>, Class<Object>> clazzPair = super.getClazzPair(key);
+                Pair<Class<Object>, Class<Object>> clazzPair = super.getClazz(key);
                 byte[] valueBytes = this.rocksDBStore.get(keyBytes);
                 if (valueBytes == null) {
                     continue;
@@ -251,13 +250,13 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
                 Map<String/*brokerName@topic@queueId*/, List<MessageQueue>> groupByUniqueQueue = stateTopicQueue.stream().parallel().collect(Collectors.groupingBy(this::buildKey));
                 for (String stateUniqueQueue : groupByUniqueQueue.keySet()) {
-                    Set<Object> stateTopicQueueKey = super.getByStateTopicQueueKey(stateUniqueQueue);
+                    Set<Object> stateTopicQueueKey = super.whichKeyMap2StateTopicQueue(stateUniqueQueue);
                     for (Object key : stateTopicQueueKey) {
                         byte[] valueBytes = super.object2Bytes(key);
                         this.rocksDBStore.deleteByKey(valueBytes);
                     }
 
-                    super.deleteByStateTopicQueueKey(stateUniqueQueue);
+                    super.deleteAllMappingByStateTopicQueue(stateUniqueQueue);
                 }
 
 
