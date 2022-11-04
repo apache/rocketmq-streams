@@ -57,8 +57,7 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
         @Override
         public void preProcess(StreamContext<T> context) {
             this.producer = context.getDefaultMQProducer();
-
-            this.key = this.context.getKey();
+            this.key = context.getKey();
         }
 
         @Override

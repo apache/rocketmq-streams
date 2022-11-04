@@ -29,7 +29,6 @@ import java.util.List;
 public abstract class AbstractProcessor<T> implements Processor<T> {
     private final List<Processor<T>> children = new ArrayList<>();
     protected StreamContext<T> context;
-//    protected long watermark;
 
     @Override
     public void addChild(Processor<T> processor) {
@@ -54,13 +53,7 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         return stateStore;
     }
 
-//    @Override
-//    public void passWatermark(long watermark) throws Throwable {
-//        if (this.watermark <= watermark) {
-//            this.watermark = watermark;
-//        }
-//        //do-nothing
-//    }
+
 
     @SuppressWarnings("unchecked")
     protected <KEY> Data<KEY, T> convert(Data<?, ?> data) {

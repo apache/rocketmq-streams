@@ -40,26 +40,4 @@ public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V>
         return result;
     }
 
-//    private static List<Window> test(WindowInfo windowInfo, long valueTime) {
-//        long sizeInterval = windowInfo.getWindowSize().toMillSecond();
-//        long slideInterval = windowInfo.getWindowSlide().toMillSecond();
-//
-//        List<Window> result = new ArrayList<>((int) (sizeInterval / slideInterval));
-//        long lastStart = valueTime - (valueTime + sizeInterval) % sizeInterval;
-//
-//        for (long start = lastStart; start > valueTime - sizeInterval; start -= slideInterval) {
-//            long end = start + slideInterval;
-//            Window window = new Window(start, end);
-//            result.add(window);
-//        }
-//        return result;
-//    }
-//    public static void main(String[] args) {
-//        WindowInfo windowInfo = WindowBuilder.tumblingWindow(Time.seconds(5));
-//        List<Window> test = test(windowInfo, System.currentTimeMillis());
-//        for (Window window : test) {
-//            System.out.println("start: " + new Date(window.getStartTime()));
-//            System.out.println("end: " + new Date(window.getEndTime()));
-//        }
-//    }
 }

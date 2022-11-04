@@ -188,20 +188,6 @@ public class WorkerThread extends Thread {
             }
         }
 
-//        private void passWatermark(long waterMark) throws Throwable {
-//            Map<String, Processor<?>> processorMap = wrapper.selectAllProcessor();
-//
-//            for (String key : processorMap.keySet()) {
-//                Processor<V> processor = (Processor<V>) processorMap.get(key);
-//
-//                StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key);
-//                processor.preProcess(context);
-//                processor.passWatermark(waterMark);
-//
-//                context.passWatermark(waterMark);
-//            }
-//        }
-
         void createShuffleTopic() throws Throwable {
             Set<String> total = WorkerThread.this.topologyBuilder.getSourceTopic();
 
