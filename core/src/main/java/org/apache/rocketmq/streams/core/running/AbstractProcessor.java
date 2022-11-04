@@ -17,13 +17,10 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.parser.Feature;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +29,7 @@ import java.util.List;
 public abstract class AbstractProcessor<T> implements Processor<T> {
     private final List<Processor<T>> children = new ArrayList<>();
     protected StreamContext<T> context;
+//    protected long watermark;
 
     @Override
     public void addChild(Processor<T> processor) {
@@ -44,26 +42,51 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         this.context.init(getChildren());
     }
 
+    protected List<Processor<T>> getChildren() {
+        return Collections.unmodifiableList(children);
+    }
+
     protected StateStore waitStateReplay() throws Throwable {
-        MessageExt originData = context.getOriginData();
-        MessageQueue sourceTopicQueue = new MessageQueue(originData.getTopic(), originData.getBrokerName(), originData.getQueueId());
+        MessageQueue sourceTopicQueue = new MessageQueue(getSourceTopic(), getSourceBrokerName(), getSourceQueueId());
 
         StateStore stateStore = context.getStateStore();
         stateStore.waitIfNotReady(sourceTopicQueue);
         return stateStore;
     }
 
-    protected List<Processor<T>> getChildren() {
-        return Collections.unmodifiableList(children);
-    }
+//    @Override
+//    public void passWatermark(long watermark) throws Throwable {
+//        if (this.watermark <= watermark) {
+//            this.watermark = watermark;
+//        }
+//        //do-nothing
+//    }
 
     @SuppressWarnings("unchecked")
     protected <KEY> Data<KEY, T> convert(Data<?, ?> data) {
-        return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getWatermark());
+        return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp());
     }
 
     @Override
     public void close() throws Exception {
 
+    }
+
+    protected String getSourceBrokerName() {
+        String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
+        String[] split = Utils.split(sourceTopicQueue);
+        return split[0];
+    }
+
+    protected String getSourceTopic() {
+        String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
+        String[] split = Utils.split(sourceTopicQueue);
+        return split[1];
+    }
+
+    protected Integer getSourceQueueId() {
+        String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
+        String[] split = Utils.split(sourceTopicQueue);
+        return Integer.parseInt(split[2]);
     }
 }

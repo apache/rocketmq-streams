@@ -17,13 +17,11 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -36,17 +34,24 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     private final DefaultMQProducer producer;
     private final DefaultMQAdminExt mqAdmin;
     private final StateStore stateStore;
-    private final MessageExt messageExt;
+    private final String messageFromWhichSourceTopicQueue;
+
+    private Object key;
+    private long dataTime;
+
+    private long watermark;
 
     private final List<Processor<T>> childList = new ArrayList<>();
-    private Data<?, T> data;
-    private final HashMap<String, Object> additional = new HashMap<>();
 
-    StreamContextImpl(DefaultMQProducer producer, DefaultMQAdminExt mqAdmin, StateStore stateStore, MessageExt messageExt) {
+    StreamContextImpl(DefaultMQProducer producer, DefaultMQAdminExt mqAdmin, StateStore stateStore, String messageFromWhichSourceTopicQueue) {
         this.producer = producer;
         this.mqAdmin = mqAdmin;
         this.stateStore = stateStore;
-        this.messageExt = messageExt;
+        this.messageFromWhichSourceTopicQueue = messageFromWhichSourceTopicQueue;
+    }
+
+    void setWatermark(long watermark) {
+        this.watermark = watermark;
     }
 
     @Override
@@ -63,34 +68,50 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     }
 
     @Override
-    public <K> void setData(Data<K, T> data) {
-        this.data = data;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <K> Data<K, T> getData() {
-        return (Data<K, T>) this.data;
-    }
-
-    @Override
     public DefaultMQProducer getDefaultMQProducer() {
         return producer;
     }
 
-    @Override
-    public HashMap<String, Object> getAdditional() {
-        return additional;
+    public String getMessageFromWhichSourceTopicQueue() {
+        return messageFromWhichSourceTopicQueue;
     }
 
     @Override
-    public MessageExt getOriginData() {
-        return this.messageExt;
+    public long getDataTime() {
+        return this.dataTime;
     }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <K> K getKey() {
+        return (K) key;
+    }
+
+    @Override
+    public long getWatermark() {
+        return watermark;
+    }
+
+    //    @Override
+//    public void passWatermark(long watermark) throws Throwable {
+//        List<Processor<T>> store = new ArrayList<>(childList);
+//
+//        for (Processor<T> processor : childList) {
+//            try {
+//                processor.preProcess(this);
+//                processor.passWatermark(watermark);
+//            } finally {
+//                this.childList.clear();
+//                this.childList.addAll(store);
+//            }
+//        }
+//    }
 
     @Override
     public <K> void forward(Data<K, T> data) throws Throwable {
-        this.data = data;
+        this.key = data.getKey();
+        this.dataTime = data.getTimestamp();
+
         List<Processor<T>> store = new ArrayList<>(childList);
 
         for (Processor<T> processor : childList) {

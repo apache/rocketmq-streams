@@ -34,6 +34,7 @@ import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
+import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
 import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
 import org.apache.rocketmq.streams.core.state.StateStore;
@@ -45,6 +46,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -166,21 +168,17 @@ public class WorkerThread extends Thread {
                     String key = Utils.buildKey(brokerName, topic, queueId);
                     SourceSupplier.SourceProcessor<K, V> processor = (SourceSupplier.SourceProcessor<K, V>) wrapper.selectProcessor(key);
 
-                    StreamContext<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, messageExt);
-                    context.getAdditional().put(Constant.SHUFFLE_KEY_CLASS_NAME, keyClassName);
-                    context.getAdditional().put(Constant.SHUFFLE_VALUE_CLASS_NAME, valueClassName);
-                    context.getAdditional().put(Constant.TIME_TYPE, properties.get(Constant.TIME_TYPE));
-                    context.getAdditional().put(Constant.ALLOW_LATENESS_MILLISECOND, properties.get(Constant.ALLOW_LATENESS_MILLISECOND));
+                    StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key);
 
                     processor.preProcess(context);
 
-                    Pair<K, V> pair = processor.deserialize(body);
-                    long timestamp = processor.getTimestamp(messageExt);
-                    long watermark = processor.getWatermark(timestamp);
-                    Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp, watermark);
-                    context.setData(data);
+                    Pair<K, V> pair = processor.deserialize(keyClassName, valueClassName, body);
+                    long timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
+                    long watermark = processor.getWatermark(timestamp, (Long) properties.get(Constant.ALLOW_LATENESS_MILLISECOND));
+                    context.setWatermark(watermark);
 
-                    processor.process(pair.getObject2());
+                    Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp);
+                    context.forward(data);
                 }
 
                 //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
@@ -189,6 +187,20 @@ public class WorkerThread extends Thread {
                 //todo 提交消费位点、写出sink数据、写出状态、需要保持原子
             }
         }
+
+//        private void passWatermark(long waterMark) throws Throwable {
+//            Map<String, Processor<?>> processorMap = wrapper.selectAllProcessor();
+//
+//            for (String key : processorMap.keySet()) {
+//                Processor<V> processor = (Processor<V>) processorMap.get(key);
+//
+//                StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key);
+//                processor.preProcess(context);
+//                processor.passWatermark(waterMark);
+//
+//                context.passWatermark(waterMark);
+//            }
+//        }
 
         void createShuffleTopic() throws Throwable {
             Set<String> total = WorkerThread.this.topologyBuilder.getSourceTopic();
@@ -226,9 +238,9 @@ public class WorkerThread extends Thread {
             //只能对同一mq集群中的数据进行计算，找到brokerAddr
             TopicRouteData topicRouteData;
             try {
-                topicRouteData  = mqAdmin.examineTopicRouteInfo(sourceTopic.get(0));
+                topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic.get(0));
             } catch (Throwable t) {
-                if (t instanceof MQClientException && ((MQClientException)t).getResponseCode() == 17) {
+                if (t instanceof MQClientException && ((MQClientException) t).getResponseCode() == 17) {
                     System.out.println("source topic not exist, can not create shuffle topic, create topic when write.");
                 }
                 return;

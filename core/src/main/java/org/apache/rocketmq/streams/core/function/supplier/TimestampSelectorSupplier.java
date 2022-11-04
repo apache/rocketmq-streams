@@ -47,9 +47,8 @@ public class TimestampSelectorSupplier<T> implements Supplier<Processor<T>> {
         public void process(T data) throws Throwable {
             Long timestamp = this.valueMapperAction.convert(data);
 
-            Data<Object, T> originData = this.context.getData();
-            originData.setTimestamp(timestamp);
-            this.context.forward(originData);
+            Data<Object, T> result = new Data<>(this.context.getKey(), data, timestamp);
+            this.context.forward(result);
         }
     }
 }

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.core.function.supplier;
 
 
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
@@ -70,7 +69,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private MessageQueue stateTopicMessageQueue;
         private WindowStore windowStore;
 
-        private AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
+        private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
         public WindowAggregateProcessor(String currentName, String parentName, WindowInfo windowInfo,
                                         Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
@@ -86,9 +85,8 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             super.preProcess(context);
             this.windowStore = new WindowStore(super.waitStateReplay());
 
-            MessageExt originData = context.getOriginData();
-            String stateTopicName = originData.getTopic() + Constant.STATE_TOPIC_SUFFIX;
-            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, originData.getBrokerName(), originData.getQueueId());
+            String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
         }
 
         /**
@@ -102,11 +100,10 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 throw throwable;
             }
 
-            Data<K, V> originData = this.context.getData();
-            K key = originData.getKey();
-            Long time = originData.getTimestamp();
-            long watermark = originData.getWatermark();
+            K key = this.context.getKey();
+            long time = this.context.getDataTime();
 
+            long watermark = this.context.getWatermark();
             if (time < watermark) {
                 //已经触发，丢弃数据
                 return;
@@ -133,7 +130,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
                 OV newValue = this.aggregateAction.calculate(key, data, oldValue);
                 //f(Window + key, newValue, store)
-                WindowState<K, OV> state = new WindowState<>(key, newValue, time, watermark);
+                WindowState<K, OV> state = new WindowState<>(key, newValue, time);
                 this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
 
                 System.out.println("put key into store, key: " + windowKey);
@@ -147,6 +144,14 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             }
         }
 
+//        @Override
+//        public void passWatermark(long watermark) throws Throwable {
+//            //必须同步触发，将数据发送到下游才能返回继续向下游节点传递数据；
+//            super.passWatermark(watermark);
+//
+//        }
+
+        //todo
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
@@ -159,7 +164,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
                 WindowState<K, OV> value = pair.getObject2();
 
-                Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getTimestamp(), value.getWatermark());
+                Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getTimestamp());
                 Data<K, V> convert = super.convert(result);
 
                 this.context.forward(convert);

@@ -29,15 +29,17 @@ public interface StreamContext<V> {
 
     StateStore getStateStore();
 
-    <K> void setData(Data<K, V> data);
+    long getDataTime();
 
-    <K> Data<K, V> getData();
+    <K> K getKey();
+
+    long getWatermark();
 
     DefaultMQProducer getDefaultMQProducer();
 
-    HashMap<String, Object> getAdditional();
+    String getMessageFromWhichSourceTopicQueue();
 
-    MessageExt getOriginData();
+//    void passWatermark(long watermark) throws Throwable;
 
     <K> void forward(Data<K, V> data) throws Throwable;
 }

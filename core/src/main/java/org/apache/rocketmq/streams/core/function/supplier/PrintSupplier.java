@@ -41,7 +41,7 @@ public class PrintSupplier<T> implements Supplier<Processor<T>> {
         public void process(T data) {
             String template = "(key=%s, value=%s)";
 
-            Data<Object, T> result = this.context.getData();
+            Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime());
             String format = String.format(template, result.getKey(), data.toString());
 
             System.out.println(format);

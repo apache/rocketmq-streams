@@ -43,11 +43,11 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
     }
 
     public interface SourceProcessor<K, V> extends Processor<V> {
-        Pair<K, V> deserialize(byte[] data) throws Throwable;
+        Pair<K, V> deserialize(String keyClass, String valueClass, byte[] data) throws Throwable;
 
-        long getTimestamp(MessageExt originData);
+        long getTimestamp(MessageExt originData, TimeType timeType);
 
-        default long getWatermark(long time) {
+        default long getWatermark(long time, Long delay) {
             return -1;
         }
     }
@@ -62,44 +62,35 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
         }
 
         @Override
-        public void preProcess(StreamContext<V> context) throws Throwable {
-            super.preProcess(context);
-            this.deserializer.configure(context.getAdditional().get(Constant.SHUFFLE_KEY_CLASS_NAME), context.getAdditional().get(Constant.SHUFFLE_VALUE_CLASS_NAME));
-        }
-
-        @Override
-        public Pair<K, V> deserialize(byte[] data) throws Throwable {
+        public Pair<K, V> deserialize(String keyClass, String valueClass, byte[] data) throws Throwable {
+            this.deserializer.configure(keyClass, valueClass);
             return this.deserializer.deserialize(data);
         }
 
         @Override
-        public long getTimestamp(MessageExt originData) {
-            Object obj = this.context.getAdditional().get(Constant.TIME_TYPE);
-            if (obj == null) {
+        public long getTimestamp(MessageExt originData, TimeType timeType) {
+            if (timeType == null) {
                 return System.currentTimeMillis();
-            } else if (obj == TimeType.EVENT_TIME) {
+            } else if (timeType == TimeType.EVENT_TIME) {
                 return originData.getBornTimestamp();
-            } else if (obj == TimeType.PROCESS_TIME) {
+            } else if (timeType == TimeType.PROCESS_TIME) {
                 return System.currentTimeMillis();
             } else {
-                throw new IllegalStateException("unknown time type: " + obj.getClass().getName());
+                throw new IllegalStateException("unknown time type: " + timeType.getClass().getName());
             }
         }
 
         @Override
-        public long getWatermark(long time) {
+        public long getWatermark(long time, Long delay) {
             maxTimestamp = Math.max(time, this.maxTimestamp);
-            Long delayTimestamp = (Long)this.context.getAdditional().get(Constant.ALLOW_LATENESS_MILLISECOND);
-
-            delayTimestamp = delayTimestamp == null ? 0 : delayTimestamp;
+            long delayTimestamp = delay == null ? 0L : delay;
 
             return maxTimestamp - delayTimestamp;
         }
 
         @Override
         public void process(V data) throws Throwable {
-            Data<K, V> result = this.context.getData();
-            this.context.forward(result);
+            //no-op
         }
     }
 }

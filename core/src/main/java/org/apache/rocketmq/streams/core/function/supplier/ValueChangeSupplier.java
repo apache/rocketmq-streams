@@ -53,7 +53,7 @@ public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
         public void process(T data) throws Throwable {
             O convert = valueMapperAction.convert(data);
 
-            Data<Object, T> originData = this.context.getData();
+            Data<Object, T> originData = new Data<>(this.context.getKey(), data, this.context.getDataTime());
             if (convert instanceof Iterable) {
                 Iterable<? extends O> iterable = (Iterable<? extends O>) convert;
                 for (O item : iterable) {

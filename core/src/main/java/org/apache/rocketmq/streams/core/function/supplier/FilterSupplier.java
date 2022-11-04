@@ -38,19 +38,16 @@ public class FilterSupplier<T> implements Supplier<Processor<T>> {
     private class FilterProcessor extends AbstractProcessor<T> {
         private final FilterAction<T> filterAction;
 
-
         public FilterProcessor(FilterAction<T> filterAction) {
             this.filterAction = filterAction;
         }
-
-
-
 
         @Override
         public  void process(T data) throws Throwable {
             boolean pass = filterAction.apply(data);
             if (pass) {
-                this.context.forward(this.context.getData());
+                Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime());
+                this.context.forward(result);
             }
         }
     }

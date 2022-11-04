@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.core.runtime.operators;
 
 public class WindowState<K, V> {
     private long timestamp;
-    private long watermark;
 
     private K key;
     private V value;
@@ -27,9 +26,8 @@ public class WindowState<K, V> {
     public WindowState(){
     }
 
-    public WindowState(K key, V value, long timestamp, long watermark) {
+    public WindowState(K key, V value, long timestamp) {
         this.timestamp = timestamp;
-        this.watermark = watermark;
         this.key = key;
         this.value = value;
     }
@@ -40,14 +38,6 @@ public class WindowState<K, V> {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
-    }
-
-    public long getWatermark() {
-        return watermark;
-    }
-
-    public void setWatermark(long watermark) {
-        this.watermark = watermark;
     }
 
     public K getKey() {

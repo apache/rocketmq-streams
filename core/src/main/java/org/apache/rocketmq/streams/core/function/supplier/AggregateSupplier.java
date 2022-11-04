@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.util.function.Supplier;
 
@@ -68,15 +69,13 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
             super.preProcess(context);
             this.stateStore = super.waitStateReplay();
 
-            MessageExt originData = context.getOriginData();
-            String stateTopicName = originData.getTopic() + Constant.STATE_TOPIC_SUFFIX;
-            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, originData.getBrokerName(), originData.getQueueId());
+            String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
         }
 
         @Override
         public void process(V data) throws Throwable {
-            Data<K, V> originData = this.context.getData();
-            K key = originData.getKey();
+            K key = this.context.getKey();
             OV value = stateStore.get(key);
             if (value == null) {
                 value = initAction.get();
@@ -86,7 +85,8 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
 
             stateStore.put(this.stateTopicMessageQueue, key, result);
 
-            Data<K, V> convert = super.convert(originData.value(result));
+            Data<K, OV> temp = new Data<>(key, result, this.context.getDataTime());
+            Data<K, V> convert = super.convert(temp);
 
             this.context.forward(convert);
         }

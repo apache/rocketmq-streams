@@ -19,6 +19,7 @@ import org.apache.rocketmq.streams.core.function.KeySelectAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
+import org.checkerframework.checker.units.qual.K;
 
 import java.util.function.Supplier;
 
@@ -47,9 +48,8 @@ public class KeySelectSupplier<KEY, T> implements Supplier<Processor<T>> {
         @Override
         public void process(T data) throws Throwable {
             KEY newKey = keySelectAction.select(data);
-            Data<Object, T> originData = this.context.getData();
-            Data<KEY, T> result = originData.key(newKey);
-            this.context.forward(result);
+            Data<KEY, T> temp = new Data<>(newKey, data, this.context.getDataTime());
+            this.context.forward(temp);
         }
     }
 }

@@ -25,7 +25,12 @@ import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Utils;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -95,6 +100,10 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
     @SuppressWarnings("unchecked")
     <T> Processor<T> selectProcessor(String key) {
         return (Processor<T>) this.mq2Processor.get(key);
+    }
+
+    Map<String, Processor<?>> selectAllProcessor() {
+        return Collections.unmodifiableMap(this.mq2Processor);
     }
 
     public void setRecoverHandler(BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> handler) {

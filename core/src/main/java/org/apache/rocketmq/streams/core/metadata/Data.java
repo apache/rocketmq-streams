@@ -20,13 +20,11 @@ public class Data<K, V> {
     private K key;
     private V value;
     private long timestamp;
-    private long watermark;
 
-    public Data(K key, V value, long timestamp, long watermark) {
+    public Data(K key, V value, long timestamp) {
         this.key = key;
         this.value = value;
         this.timestamp = timestamp;
-        this.watermark = watermark;
     }
 
     public K getKey() {
@@ -53,20 +51,12 @@ public class Data<K, V> {
         this.timestamp = timestamp;
     }
 
-    public long getWatermark() {
-        return watermark;
-    }
-
-    public void setWatermark(long watermark) {
-        this.watermark = watermark;
-    }
-
     public <NK> Data<NK,V> key(NK key) {
-        return new Data<>(key, value, timestamp, watermark);
+        return new Data<>(key, value, timestamp);
     }
 
     public <NV> Data<K,NV> value(NV value) {
-        return new Data<>(key, value, timestamp, watermark);
+        return new Data<>(key, value, timestamp);
     }
 
     @Override
@@ -75,7 +65,6 @@ public class Data<K, V> {
                 "key=" + key +
                 ", value=" + value +
                 ", timestamp=" + timestamp +
-                ", watermark=" + watermark +
                 '}';
     }
 }
