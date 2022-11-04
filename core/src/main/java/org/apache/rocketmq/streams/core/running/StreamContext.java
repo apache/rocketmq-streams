@@ -39,7 +39,5 @@ public interface StreamContext<V> {
 
     String getMessageFromWhichSourceTopicQueue();
 
-//    void passWatermark(long watermark) throws Throwable;
-
     <K> void forward(Data<K, V> data) throws Throwable;
 }

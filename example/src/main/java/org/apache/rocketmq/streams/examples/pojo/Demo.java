@@ -49,8 +49,6 @@ public class Demo {
 
         Properties properties = new Properties();
         properties.put(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        properties.put(Constant.TIME_TYPE, TimeType.EVENT_TIME);
-        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 2000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 

@@ -174,7 +174,9 @@ public class WorkerThread extends Thread {
 
                     Pair<K, V> pair = processor.deserialize(keyClassName, valueClassName, body);
                     long timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
-                    long watermark = processor.getWatermark(timestamp, (Long) properties.get(Constant.ALLOW_LATENESS_MILLISECOND));
+
+                    String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
+                    long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));
                     context.setWatermark(watermark);
 
                     Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp);

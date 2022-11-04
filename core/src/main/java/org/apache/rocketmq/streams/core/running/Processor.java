@@ -22,7 +22,5 @@ public interface Processor<T> extends AutoCloseable {
 
     void preProcess(StreamContext<T> context) throws Throwable;
 
-//    void passWatermark(long watermark) throws Throwable;
-
     void process(T data) throws Throwable;
 }

@@ -144,14 +144,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             }
         }
 
-//        @Override
-//        public void passWatermark(long watermark) throws Throwable {
-//            //必须同步触发，将数据发送到下游才能返回继续向下游节点传递数据；
-//            super.passWatermark(watermark);
-//
-//        }
-
-        //todo
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
