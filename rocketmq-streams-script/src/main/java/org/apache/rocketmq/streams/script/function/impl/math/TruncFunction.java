@@ -92,24 +92,4 @@ public class TruncFunction {
         return result;
     }
 
-    /**
-     * 将输入值number截取到指定小数点位置
-     *
-     * @param message
-     * @param context
-     * @param x
-     * @return
-     */
-    @FunctionMethod(value = "trunc", comment = "将输入值number截取到指定小数点位置")
-    public BigDecimal trunc(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal base,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要截取小数点的位置") BigDecimal x) {
-        BigDecimal result = null;
-        if (base == null || x == null) {
-            return result;
-        }
-        ;
-        result = new BigDecimal(base.setScale(x.intValue(), BigDecimal.ROUND_FLOOR).doubleValue());
-        return result;
-    }
 }

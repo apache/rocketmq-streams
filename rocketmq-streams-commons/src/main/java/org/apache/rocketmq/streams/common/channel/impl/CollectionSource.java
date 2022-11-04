@@ -22,16 +22,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description for test checkpoint
  */
 public class CollectionSource extends AbstractSource implements Serializable {
 
-    private static final Log logger = LogFactory.getLog(CollectionSource.class);
+    private static final Logger logger = LoggerFactory.getLogger(CollectionSource.class);
 
     transient ConcurrentLinkedQueue<JSONObject> queue = new ConcurrentLinkedQueue<>();
 
@@ -133,6 +134,10 @@ public class CollectionSource extends AbstractSource implements Serializable {
     @Override
     protected boolean isNotDataSplit(String queueId) {
         return false;
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
     public long getMaxOffset() {

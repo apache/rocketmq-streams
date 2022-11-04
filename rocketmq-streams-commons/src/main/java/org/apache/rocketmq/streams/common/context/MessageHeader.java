@@ -17,11 +17,11 @@
 package org.apache.rocketmq.streams.common.context;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
@@ -44,7 +44,7 @@ public class MessageHeader {
     /**
      * 当前消息的channel信息
      */
-    private transient ISource source;
+    private transient ISource<?> source;
     /**
      * 路由用到的路由标签，标签的值是stage的label，用于路由stage，可以多个label
      */
@@ -62,7 +62,7 @@ public class MessageHeader {
      */
     private MessageOffset messageOffset = new MessageOffset();//保存消息的offset
 
-    private ISplit messageQueue;
+    private ISplit<?, ?> messageQueue;
 
     /**
      * 消息发送时间
@@ -97,7 +97,7 @@ public class MessageHeader {
      */
     protected String traceId = IMessage.DEFAULT_MESSAGE_TRACE_ID;
 
-    protected String msgRouteFromLable;//消息从哪里来的标签，标记上游节点的标记，主要是通过build table name来标记
+    protected String msgRouteFromLabel;//消息从哪里来的标签，标记上游节点的标记，主要是通过build table name来标记
 
     protected String logFingerprintValue;//日志指纹的值
 
@@ -118,7 +118,7 @@ public class MessageHeader {
         }
         header.messageGlobalTrace = messageGlobalTrace;//这里不必复制，会保持全局唯一
         header.traceId = traceId;
-        header.msgRouteFromLable = msgRouteFromLable;
+        header.msgRouteFromLabel = msgRouteFromLabel;
         header.logFingerprintValue = logFingerprintValue;
         header.messageQueue = messageQueue;
         header.checkpointQueueIds = checkpointQueueIds;
@@ -130,24 +130,24 @@ public class MessageHeader {
         ReflectUtil.setFieldValue2Object(this, jsonObject);
         return jsonObject;
     }
-    public Set<String> createRouteLableSet(String routeLabels){
-        if(routeLabels==null){
+
+    public Set<String> createRouteLabelSet(String routeLabels) {
+        if (routeLabels == null) {
             return null;
         }
-        String[] lables=MapKeyUtil.splitKey(routeLabels);
-        Set<String> routeLableSet=new HashSet<>();
-        for(String lable:lables){
-            routeLableSet.add(lable);
-        }
-        return routeLableSet;
+        String[] labels = MapKeyUtil.splitKey(routeLabels);
+        Set<String> routeLabelSet = new HashSet<>();
+        Collections.addAll(routeLabelSet, labels);
+        return routeLabelSet;
     }
+
     /**
      * 用于路由的标签，标签等于stage的label
      *
      * @param labels
      */
     public String addRouteLabel(String... labels) {
-        this.routeLabels = createLables(routeLabels, labels);
+        this.routeLabels = createLabels(routeLabels, labels);
         return this.routeLabels;
     }
 
@@ -155,7 +155,7 @@ public class MessageHeader {
      * 用于路由的标签，标签等于stage的label
      */
     public String addFilterLabel(String... labels) {
-        this.filterLabels = createLables(filterLabels, labels);
+        this.filterLabels = createLabels(filterLabels, labels);
         return this.filterLabels;
     }
 
@@ -163,18 +163,17 @@ public class MessageHeader {
         this.queueId = queueId;
     }
 
-    public ISource getSource() {
+    public ISource<?> getSource() {
         return source;
     }
 
-    public void setSource(ISource source) {
+    public void setSource(ISource<?> source) {
         this.source = source;
     }
 
     public String getRouteLabels() {
         return routeLabels;
     }
-
 
     public String getFilterLabels() {
         return filterLabels;
@@ -195,11 +194,11 @@ public class MessageHeader {
         return messageOffset.getOffsetStr();
     }
 
-    public ISplit getMessageQueue() {
+    public ISplit<?, ?> getMessageQueue() {
         return messageQueue;
     }
 
-    public void setMessageQueue(ISplit messageQueue) {
+    public void setMessageQueue(ISplit<?, ?> messageQueue) {
         this.messageQueue = messageQueue;
     }
 
@@ -210,7 +209,7 @@ public class MessageHeader {
      * @return
      */
     public boolean greateThan(String dstOffset) {
-        return messageOffset.greateThan(dstOffset);
+        return messageOffset.greaterThan(dstOffset);
     }
 
     public String getTraceId() {
@@ -224,10 +223,10 @@ public class MessageHeader {
     /**
      * 创建路由标签
      *
-     * @param routeLabels
-     * @param labels
+     * @param routeLabels 标签
+     * @param labels      标签名称
      */
-    protected String createLables(String routeLabels, String... labels) {
+    protected String createLabels(String routeLabels, String... labels) {
         if (StringUtil.isEmpty(routeLabels)) {
             routeLabels = MapKeyUtil.createKey(labels);
 
@@ -237,8 +236,6 @@ public class MessageHeader {
         }
         return routeLabels;
     }
-
-
 
     public boolean isNeedFlush() {
         return needFlush;
@@ -312,8 +309,6 @@ public class MessageHeader {
         isSystemMessage = systemMessage;
     }
 
-
-
     public MessageGlobleTrace getMessageGlobalTrace() {
         return messageGlobalTrace;
     }
@@ -322,12 +317,12 @@ public class MessageHeader {
         this.messageGlobalTrace = messageGlobalTrace;
     }
 
-    public String getMsgRouteFromLable() {
-        return msgRouteFromLable;
+    public String getMsgRouteFromLabel() {
+        return msgRouteFromLabel;
     }
 
-    public void setMsgRouteFromLable(String msgRouteFromLable) {
-        this.msgRouteFromLable = msgRouteFromLable;
+    public void setMsgRouteFromLabel(String msgRouteFromLabel) {
+        this.msgRouteFromLabel = msgRouteFromLabel;
     }
 
     public String getLogFingerprintValue() {

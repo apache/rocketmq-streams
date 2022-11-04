@@ -82,21 +82,4 @@ public class Log2Function {
         return result;
     }
 
-    /**
-     * 以2为底返回number的对数
-     *
-     * @param message
-     * @param context
-     * @return
-     */
-    @FunctionMethod(value = "log2", alias = "log2", comment = "以2为底返回number的对数")
-    public BigDecimal log2(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.log(2) / Math.log(number.doubleValue()));
-        return result;
-    }
 }

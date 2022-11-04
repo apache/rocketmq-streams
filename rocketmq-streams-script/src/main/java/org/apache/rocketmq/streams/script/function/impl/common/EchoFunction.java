@@ -17,23 +17,23 @@
 package org.apache.rocketmq.streams.script.function.impl.common;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Function
 public class EchoFunction {
-    private static final Log LOG = LogFactory.getLog(EchoFunction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(EchoFunction.class);
 
     @FunctionMethod(value = "echo", comment = "输出一个JSON字符串")
     public String echo(IMessage message, FunctionContext context,
                        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
         if (fieldNames == null) {
-            LOG.info("echo message:" + message.getMessageBody());
+            LOGGER.info("echo message:" + message.getMessageBody());
             return message.getMessageBody().toJSONString();
         }
         JSONObject jsonObject = new JSONObject();
@@ -41,7 +41,7 @@ public class EchoFunction {
         for (String fieldName : fieldNames) {
             jsonObject.put(fieldName, jsonMessage.getString(fieldName));
         }
-        LOG.info("echo message:" + jsonObject.toJSONString());
+        LOGGER.info("echo message:" + jsonObject.toJSONString());
         return jsonObject.toJSONString();
     }
 }

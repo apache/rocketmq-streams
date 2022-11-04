@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.streams.client.source;
 
+import java.util.List;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 
 public class UserDefinedSource extends AbstractSource {
 
@@ -30,5 +32,9 @@ public class UserDefinedSource extends AbstractSource {
 
     @Override protected boolean isNotDataSplit(String queueId) {
         return false;
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 }

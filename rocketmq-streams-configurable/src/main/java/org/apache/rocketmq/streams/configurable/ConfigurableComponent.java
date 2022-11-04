@@ -20,8 +20,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.ConfigureDescriptor;
@@ -31,6 +29,8 @@ import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
 import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
 import org.apache.rocketmq.streams.configurable.service.ConfigurableServiceFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 对Configurable对象，做统一的管理，统一查询，插入和更新。 insert/update 把configuabel对象写入存储，
@@ -40,7 +40,7 @@ import org.apache.rocketmq.streams.configurable.service.ConfigurableServiceFacto
  */
 public class ConfigurableComponent extends AbstractComponent<IConfigurableService> implements IConfigurableService {
 
-    private static final Log LOG = LogFactory.getLog(ConfigurableComponent.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurableComponent.class);
 
     protected volatile IConfigurableService configureService = null;
 
@@ -55,8 +55,7 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
         return ComponentCreator.getComponent(namespace, ConfigurableComponent.class);
     }
 
-    @Override
-    protected boolean initProperties(Properties properties) {
+    @Override protected boolean initProperties(Properties properties) {
         try {
             if (configureService != null) {
                 return true;
@@ -64,20 +63,19 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
             this.configureService = ConfigurableServiceFactory.createConfigurableService(properties);
             return true;
         } catch (Exception e) {
-            LOG.error("ConfigurableComponent create error,properties= " + properties, e);
+            LOGGER.error("ConfigurableComponent create error,properties= " + properties, e);
             return false;
         }
 
     }
 
-    @Override
-    public boolean startComponent(String namespace) {
+    @Override public boolean startComponent(String namespace) {
         try {
             this.namespace = namespace;
             configureService.initConfigurables(namespace);
             return true;
         } catch (Exception e) {
-            LOG.error("ConfigurableComponent init error, namespace is " + namespace, e);
+            LOGGER.error("ConfigurableComponent init error, namespace is " + namespace, e);
             return false;
         }
 
@@ -97,23 +95,19 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
         System.clearProperty(ConfigurableComponent.CONNECT_TYPE);
     }
 
-    @Override
-    public boolean stop() {
+    @Override public boolean stop() {
         return true;
     }
 
-    @Override
-    public IConfigurableService getService() {
+    @Override public IConfigurableService getService() {
         return configureService;
     }
 
-    @Override
-    public void initConfigurables(String namespace) {
+    @Override public void initConfigurables(String namespace) {
         configureService.initConfigurables(namespace);
     }
 
-    @Override
-    public boolean refreshConfigurable(String namespace) {
+    @Override public boolean refreshConfigurable(String namespace) {
         return configureService.refreshConfigurable(namespace);
     }
 
@@ -122,63 +116,67 @@ public class ConfigurableComponent extends AbstractComponent<IConfigurableServic
 
     }
 
-    @Override
-    public List<IConfigurable> queryConfigurable(String type) {
+    @Override public List<IConfigurable> queryConfigurable(String type) {
         return configureService.queryConfigurable(type);
     }
 
-    @Override
-    public <T extends IConfigurable> List<T> queryConfigurableByType(String type) {
+    @Override public <T extends IConfigurable> List<T> queryConfigurableByType(String type) {
         return configureService.queryConfigurableByType(type);
     }
 
-    @Override
-    public IConfigurable queryConfigurableByIdent(String type, String name) {
+    @Override public IConfigurable queryConfigurableByIdent(String type, String name) {
         return configureService.queryConfigurableByIdent(type, name);
     }
 
-    @Override
-    public IConfigurable queryConfigurableByIdent(String identification) {
+    @Override public IConfigurable refreshConfigurable(String type, String name) {
+        return configureService.refreshConfigurable(type, name);
+    }
+
+    @Override public IConfigurable queryConfigurableByIdent(String identification) {
         return configureService.queryConfigurableByIdent(identification);
     }
 
-    @Override
-    public void insert(IConfigurable configurable) {
+    @Override public void insert(IConfigurable configurable) {
         configureService.insert(configurable);
         ConfigurableUtil.refreshMock(configurable);
     }
 
-    @Override
-    public void update(IConfigurable configurable) {
+    @Override public void insertToCache(IConfigurable configurable) {
+        configureService.insertToCache(configurable);
+    }
+
+    @Override public void flushCache() {
+        configureService.flushCache();
+    }
+
+    @Override public void update(IConfigurable configurable) {
         configureService.update(configurable);
     }
 
-    @Override
-    public <T> Map<String, T> queryConfigurableMapByType(String type) {
+    @Override public <T> Map<String, T> queryConfigurableMapByType(String type) {
         return configureService.queryConfigurableMapByType(type);
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T queryConfigurable(String configurableType, String name) {
+    @SuppressWarnings("unchecked") @Override public <T> T queryConfigurable(String configurableType, String name) {
         return (T) queryConfigurableByIdent(configurableType, name);
     }
 
-    @Override
-    public String getNamespace() {
+    @Override public String getNamespace() {
         if (configureService instanceof AbstractConfigurableService) {
             return configureService.getNamespace();
         }
         return namespace;
     }
 
-    @Override
-    public Collection<IConfigurable> findAll() {
+    @Override public Collection<IConfigurable> findAll() {
         return configureService.findAll();
     }
 
-    @Override
-    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type) {
-        return configureService.loadConfigurableFromStorage(type);
+    @Override public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type, String namespace) {
+        return configureService.loadConfigurableFromStorage(type, namespace);
+    }
+
+    @Override public <T extends IConfigurable> T loadConfigurableFromStorage(String type, String configureName, String namespace) {
+        return configureService.loadConfigurableFromStorage(type, configureName, namespace);
     }
 }

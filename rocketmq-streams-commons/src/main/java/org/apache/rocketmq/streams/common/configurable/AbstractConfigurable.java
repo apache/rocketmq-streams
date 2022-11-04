@@ -18,32 +18,31 @@ package org.apache.rocketmq.streams.common.configurable;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.model.Entity;
 import org.apache.rocketmq.streams.common.utils.AESUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractConfigurable extends Entity implements IConfigurable {
 
-    private transient Log LOG = LogFactory.getLog(AbstractConfigurable.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractConfigurable.class);
 
     /**
      * 升级中心表
      */
     public static final String TABLE_NAME = "dipper_configure";
 
-    @Changeable
-    protected transient Map<String, Object> privateDatas = new HashMap<>();
+    @Changeable protected transient Map<String, Object> privateDatas = new HashMap<>();
 
     protected transient IConfigurableService configurableService;
 
     /**
      * 是否完成初始化
      */
-    private transient volatile boolean hasInit = false;
+    private transient boolean hasInit = false;
 
     /**
      * 是否初始化成功
@@ -60,20 +59,18 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
      */
     private static final String STATUS = "status";
 
-    @Override
-    public boolean init() {
+    @Override public boolean init() {
         boolean initConfigurable = true;
         if (!hasInit) {
             try {
                 privateDatas = new HashMap<>();
-                hasInit = false;
                 initSuccess = true;
                 isDestroy = false;
                 initConfigurable = initConfigurable();
                 initSuccess = initConfigurable;
             } catch (Exception e) {
                 initSuccess = false;
-                e.printStackTrace();
+                LOGGER.error("[{}] init configurable error, {}", getConfigureName(), this.toJson(), e);
                 throw new RuntimeException("init configurable error " + this.toJson(), e);
             }
             hasInit = true;
@@ -81,8 +78,7 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         return initConfigurable;
     }
 
-    @Override
-    public void destroy() {
+    @Override public void destroy() {
         isDestroy = true;
     }
 
@@ -114,12 +110,6 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
 
     public static String createSQL(IConfigurable configurable, String tableName) {
         String json = configurable.toJson();
-        Entity entity = null;
-        if (configurable instanceof Entity) {
-            entity = (Entity) configurable;
-        } else {
-            entity = new Entity();
-        }
         int status = 1;
         if (configurable.getPrivateData("status") != null) {
             status = Integer.parseInt(configurable.getPrivateData("status"));
@@ -130,18 +120,14 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        String sql = "insert into " + tableName
-            + "(gmt_create,gmt_modified,namespace,type,name,json_value,status)" + "values(" + "now(),now(),'" + configurable.getNameSpace() + "','"
-            + configurable.getType() + "','" + configurable.getConfigureName() + "','" + theSecretValue + "'," + status + ")"
-            + "ON DUPLICATE KEY UPDATE status=" + status + ", gmt_modified = now()" + ",json_value='" + theSecretValue + "'";
-        return sql;
+        return "insert into " + tableName + "(gmt_create,gmt_modified,namespace,type,name,json_value,status)" + "values(" + "now(),now(),'" + configurable.getNameSpace() + "','" + configurable.getType() + "','" + configurable.getConfigureName() + "','" + theSecretValue + "'," + status + ")" + "ON DUPLICATE KEY UPDATE status=" + status + ", gmt_modified = now()" + ",json_value='" + theSecretValue + "'";
     }
 
     public void update() {
         if (configurableService != null) {
             configurableService.update(this);
         } else {
-            LOG.warn("can not support configurable update configurable service is null");
+            LOGGER.debug("[{}] can not support configurable update configurable service is null", getConfigureName());
         }
     }
 
@@ -157,13 +143,11 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         this.configurableService = configurableService;
     }
 
-    @Override
-    public <T> void putPrivateData(String key, T value) {
+    @Override public <T> void putPrivateData(String key, T value) {
         this.privateDatas.put(key, value);
     }
 
-    @Override
-    public <T> T getPrivateData(String key) {
+    @Override public <T> T getPrivateData(String key) {
         return (T) this.privateDatas.get(key);
     }
 
@@ -171,8 +155,7 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         return (T) this.privateDatas.remove(key);
     }
 
-    @Override
-    public Map<String, Object> getPrivateData() {
+    @Override public Map<String, Object> getPrivateData() {
         return this.privateDatas;
     }
 

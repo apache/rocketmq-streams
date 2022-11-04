@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams</artifactId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.0.3-dispatcher-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-streams-script</artifactId>
     <name>ROCKETMQ STREAMS :: script</name>
@@ -54,6 +54,10 @@
         <dependency>
             <groupId>org.python</groupId>
             <artifactId>jython-standalone</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
         </dependency>
     </dependencies>
 </project>

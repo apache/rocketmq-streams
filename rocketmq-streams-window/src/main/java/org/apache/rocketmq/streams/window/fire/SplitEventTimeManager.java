@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
@@ -34,27 +32,26 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public class SplitEventTimeManager {
-    protected static final Log LOG = LogFactory.getLog(SplitEventTimeManager.class);
     protected static Map<String, Long> messageSplitId2MaxTime = new HashMap<>();
-    private AtomicInteger queueIdCount = new AtomicInteger(0);
+    private final AtomicInteger queueIdCount = new AtomicInteger(0);
     protected Long lastUpdateTime;
 
     protected volatile Integer allSplitSize;
     protected volatile Integer workingSplitSize;
-    protected Map<String, List<ISplit>> splitsGroupByInstance;
-    protected ISource source;
+    protected Map<String, List<ISplit<?, ?>>> splitsGroupByInstance;
+    protected ISource<?> source;
 
     protected volatile boolean isAllSplitReceived = false;
     protected transient String queueId;
 
     private static Long splitReadyTime;
 
-    public SplitEventTimeManager(ISource source, String queueId) {
+    public SplitEventTimeManager(ISource<?> source, String queueId) {
         this.source = source;
         this.queueId = queueId;
         if (source instanceof AbstractSource) {
             AbstractSource abstractSource = (AbstractSource) source;
-            List<ISplit> splits = abstractSource.getAllSplits();
+            List<ISplit<?, ?>> splits = abstractSource.getAllSplits();
             if (splits == null) {
                 this.allSplitSize = -1;
             } else {
@@ -116,7 +113,7 @@ public class SplitEventTimeManager {
             }
             if (source instanceof AbstractSource) {
                 AbstractSource abstractSource = (AbstractSource) source;
-                List<ISplit> splits = abstractSource.getAllSplits();
+                List<ISplit<?, ?>> splits = abstractSource.getAllSplits();
                 if (splits == null) {
                     this.allSplitSize = -1;
                 } else {
@@ -165,13 +162,13 @@ public class SplitEventTimeManager {
     private Integer calcuteWorkingSplitSize() {
         if (source instanceof AbstractSource) {
             AbstractSource abstractSource = (AbstractSource) source;
-            Map<String, List<ISplit>> splits = abstractSource.getWorkingSplitsGroupByInstances();
+            Map<String, List<ISplit<?, ?>>> splits = abstractSource.getWorkingSplitsGroupByInstances();
             if (splits == null) {
                 return 0;
             }
             this.splitsGroupByInstance = splits;
             int count = 0;
-            for (List<ISplit> splitList : splits.values()) {
+            for (List<ISplit<?, ?>> splitList : splits.values()) {
                 count += splitList.size();
             }
             return count;

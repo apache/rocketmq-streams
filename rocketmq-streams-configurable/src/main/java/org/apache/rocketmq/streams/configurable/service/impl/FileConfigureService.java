@@ -20,8 +20,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
@@ -34,12 +32,14 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.configurable.model.Configure;
 import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileConfigureService extends AbstractConfigurableService {
 
     public static final String FILE_PATH_NAME = IConfigurableService.FILE_PATH_NAME;
     // 配置文件的路径
-    private static final Log LOG = LogFactory.getLog(FileConfigureService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileConfigureService.class);
     private static final String DEFAULT_FILE_NAME = "dipper.cs";                        // 默认文件名
     private static final String SIGN = "&&&&";                                       // 字段分割附号
     public String fileName;
@@ -60,7 +60,7 @@ public class FileConfigureService extends AbstractConfigurableService {
         } else {
             fileName = fileAndPath;
         }
-        LOG.info("load file from path = " + fileName);
+        LOGGER.info("load file from path = " + fileName);
     }
 
     @Override
@@ -69,14 +69,14 @@ public class FileConfigureService extends AbstractConfigurableService {
         try {
             List<Configure> configures = selectOpening(namespace);
             List<IConfigurable> configurables = convert(configures);
-            LOG.info("load configure namespace=" + namespace + " count=" + configures.size());
+            LOGGER.info("load configure namespace=" + namespace + " count=" + configures.size());
             result.setConfigurables(configurables);
             // 该字段标示查询是否成功，若不成功则不会更新配置
             result.setQuerySuccess(true);
         } catch (Exception e) {
             result.setQuerySuccess(false);
             e.printStackTrace();
-            LOG.error("load configurable error ", e);
+            LOGGER.error("load configurable error ", e);
         }
         return result;
     }
@@ -107,7 +107,7 @@ public class FileConfigureService extends AbstractConfigurableService {
     @Override
     protected void insertConfigurable(IConfigurable configure) {
         if (configure == null) {
-            LOG.warn("insert configure is null");
+            LOGGER.warn("insert configure is null");
             return;
         }
         String row = configure2String(configure);
@@ -138,7 +138,7 @@ public class FileConfigureService extends AbstractConfigurableService {
     @Override
     protected void updateConfigurable(IConfigurable configure) {
         if (configure == null) {
-            LOG.warn("insert configure is null");
+            LOGGER.warn("insert configure is null");
             return;
         }
 
@@ -167,7 +167,7 @@ public class FileConfigureService extends AbstractConfigurableService {
         try {
             jsonValue = AESUtil.aesDecrypt(jsonValue, ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
         } catch (Exception e) {
-            LOG.error("failed in decrypting the value, reason:\t" + e.getCause());
+            LOGGER.error("failed in decrypting the value, reason:\t" + e.getCause());
             throw new RuntimeException(e);
         }
         String createDate = getColumnValue(values, 4, "gmt_create");
@@ -244,7 +244,7 @@ public class FileConfigureService extends AbstractConfigurableService {
         try {
             theSecretValue = AESUtil.aesEncrypt(configure.toJson(), ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
         } catch (Exception e) {
-            LOG.error("failed in encrypting the value, reason:\t" + e.getCause());
+            LOGGER.error("failed in encrypting the value, reason:\t" + e.getCause());
             throw new RuntimeException(e);
         }
         String row = MapKeyUtil.createKeyBySign(SIGN, configure.getNameSpace(), configure.getType(),
@@ -258,9 +258,13 @@ public class FileConfigureService extends AbstractConfigurableService {
     }
 
     @Override
-    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type) {
+    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type, String namespace) {
         refreshConfigurable(getNamespace());
         return queryConfigurableByType(type);
+    }
+
+    @Override public <T extends IConfigurable> T loadConfigurableFromStorage(String type, String configureName, String namespace) {
+        return null;
     }
 
 }

@@ -22,9 +22,9 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams</artifactId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.0.3-dispatcher-SNAPSHOT</version>
     </parent>
-    <artifactId>rocketmq-streams-ce0</artifactId>
+    <artifactId>rocketmq-streams-cep</artifactId>
     <name>ROCKETMQ STREAMS :: cep</name>
     <packaging>jar</packaging>
     <dependencies>

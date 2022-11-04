@@ -89,23 +89,4 @@ public class LogFunction {
         return result;
     }
 
-    /**
-     * 返回以base为底的x的对数
-     *
-     * @param message
-     * @param context
-     * @param x
-     * @return
-     */
-    @FunctionMethod(value = "log", alias = "log", comment = "返回以base为底的值的对数")
-    public BigDecimal log(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "底数值") BigDecimal base,
-                          @FunctionParamter(value = "BigDecimal", comment = "要求对数值的常量") BigDecimal x) {
-        BigDecimal result = null;
-        if (base == null || x == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.log(base.doubleValue()) / Math.log(x.doubleValue()));
-        return result;
-    }
 }

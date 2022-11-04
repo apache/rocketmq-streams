@@ -35,7 +35,7 @@ public class ServiceLoaderComponent<T> extends AbstractComponent<IServiceLoaderS
     private Map<String, T> name2Service = new HashMap<>();
     private List<T> serviceList = new ArrayList<T>();
     private boolean hasRefresh = false;
-    private boolean needServieName = true;
+    private boolean needServiceName = true;
 
     @Override
     public boolean stop() {
@@ -47,17 +47,15 @@ public class ServiceLoaderComponent<T> extends AbstractComponent<IServiceLoaderS
         return this;
     }
 
-    public static ServiceLoaderComponent getInstance(Class interfaceClass) {
-        ServiceLoaderComponent serviceLoaderComponent =
-            ComponentCreator.getComponent(interfaceClass.getName(), ServiceLoaderComponent.class);
-        return serviceLoaderComponent;
+    public static ServiceLoaderComponent<?> getInstance(Class<?> interfaceClass) {
+        return ComponentCreator.getComponent(interfaceClass.getName(), ServiceLoaderComponent.class);
     }
 
     @Override
     protected boolean startComponent(String interfaceClassName) {
         try {
-            Class clazz = Class.forName(interfaceClassName);
-            this.interfaceClass = clazz;
+            Class<?> clazz = Class.forName(interfaceClassName);
+            this.interfaceClass = (Class<T>) clazz;
             refresh(false);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("class not found " + interfaceClassName, e);
@@ -76,7 +74,7 @@ public class ServiceLoaderComponent<T> extends AbstractComponent<IServiceLoaderS
         if (!this.hasRefresh) {
             refresh(false);
         }
-        return (T)this.name2Service.get(serviceName);
+        return (T) this.name2Service.get(serviceName);
     }
 
     @Override
@@ -100,7 +98,7 @@ public class ServiceLoaderComponent<T> extends AbstractComponent<IServiceLoaderS
             Iterable<T> iterable = ServiceLoader.load(interfaceClass);
             List<T> allService = new ArrayList<>();
             for (T t : iterable) {
-                if (needServieName) {
+                if (needServiceName) {
                     List<String> serviceNames = loadServiceName(t);
                     if (serviceNames == null) {
                         name2Service.put(t.getClass().getSimpleName(), t);
@@ -119,24 +117,24 @@ public class ServiceLoaderComponent<T> extends AbstractComponent<IServiceLoaderS
         }
     }
 
-    static ServiceLoaderComponent nameLoaderComponent = new ServiceLoaderComponent();
+    static ServiceLoaderComponent<?> nameLoaderComponent = new ServiceLoaderComponent<>();
 
     static {
         nameLoaderComponent.init();
-        nameLoaderComponent.needServieName = true;
+        nameLoaderComponent.needServiceName = true;
         nameLoaderComponent.startComponent(IServiceNameGetter.class.getName());
     }
 
     protected List<String> loadServiceName(T t) {
-        List<String> serviceNames = new ArrayList();
-        Class tClass = t.getClass();
+        List<String> serviceNames = new ArrayList<>();
+        Class<?> tClass = t.getClass();
         String serviceName = properties.getProperty(tClass.getName());
         if (properties != null && StringUtil.isNotEmpty(serviceName)) {
 
             serviceNames.add(serviceName);
             return serviceNames;
         }
-        ServiceName annotation = (ServiceName)tClass.getAnnotation(ServiceName.class);
+        ServiceName annotation = (ServiceName) tClass.getAnnotation(ServiceName.class);
         if (annotation == null) {
             return null;
         }

@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.common.context;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
@@ -28,12 +29,12 @@ public class MessageOffset {
     /**
      * 因为是字符串比较，需要有一个固定位数
      */
-    public static final int LAYER_OFFST_INIT = 10000000;
+    public static final int LAYER_OFFSET_INIT = 10000000;
     public static String SPLIT_SIGN = ".";
 
     protected String mainOffset;//数据源发送出来的offset。
     protected List<Long> offsetLayers = new ArrayList<>();//多级offset
-    protected boolean isLongOfMainOffset = true;//主offset是否是long型
+    protected boolean isLongOfMainOffset;//主offset是否是long型
 
     public MessageOffset(String offset, boolean isLongOfMainOffset) {
         mainOffset = parseOffset(offset, offsetLayers);
@@ -86,7 +87,7 @@ public class MessageOffset {
      * @param index
      */
     public void addLayerOffset(long index) {
-        offsetLayers.add(LAYER_OFFST_INIT + index);
+        offsetLayers.add(LAYER_OFFSET_INIT + index);
     }
 
     /**
@@ -95,8 +96,8 @@ public class MessageOffset {
      * @param dstOffset
      * @return
      */
-    public boolean greateThan(String dstOffset) {
-        return greateThan(getOffsetStr(), dstOffset, isLongOfMainOffset);
+    public boolean greaterThan(String dstOffset) {
+        return greaterThan(getOffsetStr(), dstOffset, isLongOfMainOffset);
     }
 
     /**
@@ -107,8 +108,8 @@ public class MessageOffset {
      * @param isOffsetIsLong
      * @return
      */
-    public static boolean greateThan(String oriOffset, String dstOffset, boolean isOffsetIsLong) {
-        if (isOffsetIsLong == false) {
+    public static boolean greaterThan(String oriOffset, String dstOffset, boolean isOffsetIsLong) {
+        if (!isOffsetIsLong) {
             return (oriOffset.compareTo(dstOffset) > 0);
         }
         if (StringUtil.isEmpty(dstOffset)) {
@@ -116,41 +117,19 @@ public class MessageOffset {
         }
 
         List<Long> dstOffsetLayers = new ArrayList<>();
-        Long dstMainOffset = Long.valueOf(parseOffset(dstOffset, dstOffsetLayers));
+        long dstMainOffset = Long.parseLong(Objects.requireNonNull(parseOffset(dstOffset, dstOffsetLayers)));
 
         List<Long> oriOffsetLayers = new ArrayList<>();
-        Long oriMainOffset = Long.valueOf(parseOffset(oriOffset, oriOffsetLayers));
+        long oriMainOffset = Long.parseLong(Objects.requireNonNull(parseOffset(oriOffset, oriOffsetLayers)));
 
-        if (oriMainOffset > dstMainOffset) {
-            return true;
-        } else if (oriMainOffset <= dstMainOffset) {
-            return false;
-        }
-
-        for (int i = 0; i < oriOffsetLayers.size(); i++) {
-            Long origLayerOffset = (i < oriOffsetLayers.size()) ? oriOffsetLayers.get(i) : null;
-            Long destLayerOffset = (i < dstOffsetLayers.size()) ? dstOffsetLayers.get(i) : null;
-            if (origLayerOffset != null && destLayerOffset != null) {
-                if (origLayerOffset > destLayerOffset) {
-                    return true;
-                } else if (origLayerOffset <= destLayerOffset) {
-                    return false;
-                }
-                continue;
-            }
-            if (origLayerOffset != null && destLayerOffset == null) {
-                return true;
-            }
-            break;
-        }
-        return false;
+        return oriMainOffset > dstMainOffset;
 
     }
 
     /**
      * 解析offset 字符串
      *
-     * @param offset       offse字符串，格式：mainoffset.layyer1offset.layer2offset
+     * @param offset       offset字符串，格式：mainoffset.layer1offset.layer2offset
      * @param offsetLayers 不同层次的offset
      * @return
      */
@@ -178,7 +157,7 @@ public class MessageOffset {
         messageOffset.addLayerOffset(2);
         String offset = (messageOffset.getOffsetStr());
         messageOffset = new MessageOffset(offset, false);
-        System.out.println(messageOffset.greateThan("12345.10000001.10000001"));
+        System.out.println(messageOffset.greaterThan("12345.10000001.10000001"));
     }
 
     public boolean isLongOfMainOffset() {

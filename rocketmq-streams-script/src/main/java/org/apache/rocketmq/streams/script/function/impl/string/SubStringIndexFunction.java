@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.string;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -28,7 +26,6 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class SubStringIndexFunction {
-    private static final Log LOG = LogFactory.getLog(SubStringIndexFunction.class);
 
     /**
      * 截取字符串a第count分隔符之前的字符串，如count为正则从左边开始截取，如果为负则从右边开始截取

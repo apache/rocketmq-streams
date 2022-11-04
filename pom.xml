@@ -26,9 +26,10 @@
         <version>18</version>
     </parent>
 
+
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.3-dispatcher-SNAPSHOT</version>
     <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
     <url>https://rocketmq.apache.org/</url>
@@ -44,7 +45,7 @@
         <module>rocketmq-streams-schedule</module>
         <module>rocketmq-streams-lease</module>
         <module>rocketmq-streams-db-operator</module>
-        <module>rocketmq-streams-dbinit</module>
+        <module>rocketmq-streams-db-init</module>
         <module>rocketmq-streams-window</module>
         <module>rocketmq-streams-clients</module>
         <module>rocketmq-streams-channel-rocketmq</module>
@@ -58,7 +59,13 @@
         <module>rocketmq-streams-channel-es</module>
         <module>rocketmq-streams-channel-kafka</module>
         <module>rocketmq-streams-channel-mqtt</module>
+        <module>rocketmq-streams-channel-sls</module>
+        <module>rocketmq-streams-channel-openapi</module>
         <module>rocketmq-streams-cep</module>
+        <module>rocketmq-streams-dispatcher</module>
+        <module>rocketmq-streams-tasks</module>
+        <module>rocketmq-streams-sts</module>
+        <module>rocketmq-streams-storage</module>
     </modules>
 
     <properties>
@@ -72,37 +79,50 @@
         <java.version>1.8</java.version>
         <java.encoding>UTF-8</java.encoding>
         <project.build.sourceEncoding>${java.encoding}</project.build.sourceEncoding>
-        <commons-logging.version>1.1</commons-logging.version>
+
         <spring.version>5.1.14.RELEASE</spring.version>
         <auto-service.version>1.0-rc5</auto-service.version>
         <mysql-connector.version>5.1.40</mysql-connector.version>
-        <fastjson.version>1.2.25</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <quartz.version>2.2.1</quartz.version>
         <httpclient.version>4.5.13</httpclient.version>
+        <commons-logging.version>1.2</commons-logging.version>
         <commons-io.version>2.7</commons-io.version>
+        <commons-collections.version>3.2.2</commons-collections.version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <commons-codec.version>1.15</commons-codec.version>
         <junit.version>4.13.1</junit.version>
-        <guava.version>25.1-jre</guava.version>
+        <guava.version>31.1-jre</guava.version>
         <groovy.version>2.1.8</groovy.version>
         <disruptor.version>3.2.0</disruptor.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
-        <rocketmq.version>4.9.3</rocketmq.version>
+        <rocketmq.version>5.0.0</rocketmq.version>
         <hyperscan.version>5.4.0-2.0.0</hyperscan.version>
         <platform.version>3.5.2</platform.version>
         <gson.version>2.8.5</gson.version>
         <java-grok.version>0.1.9</java-grok.version>
         <jython.version>2.7.0</jython.version>
         <scala-library.version>2.12.4</scala-library.version>
-        <logback-core.version>1.2.3</logback-core.version>
         <minio.version>3.0.10</minio.version>
         <rocksdbjni.version>6.6.4</rocksdbjni.version>
-        <commons-collections.version>3.2.1</commons-collections.version>
-        <commons-lang.version>2.5</commons-lang.version>
         <elasticsearch.version>7.4.0</elasticsearch.version>
         <kafka.version>1.1.0</kafka.version>
         <paho.version>1.2.2</paho.version>
         <kryo.version>5.3.0</kryo.version>
         <fst.version>2.56</fst.version>
+        <re2j.version>1.6</re2j.version>
         <slf4j-log4j12.version>1.7.36</slf4j-log4j12.version>
+        <slf4j-api.version>1.7.36</slf4j-api.version>
+        <hll.version>1.6.0</hll.version>
+        <protobuf.version>2.5.0</protobuf.version>
+        <aliyun-log.version>0.6.74</aliyun-log.version>
+        <aliyun-log-producer.version>0.3.11</aliyun-log-producer.version>
+        <loghub.version>0.6.33</loghub.version>
+        <sts.version>3.2.0</sts.version>
+        <ram-auth-client.version>1.2.8</ram-auth-client.version>
+        <ram-inner.version>1.0.0</ram-inner.version>
+        <aliyun-java-sdk-core.version>4.5.1</aliyun-java-sdk-core.version>
+        <oss.version>3.10.2</oss.version>
     </properties>
 
 
@@ -128,7 +148,10 @@
                         <exclude>build_without_test.sh</exclude>
                         <exclude>NOTICE</exclude>
                         <exclude>LICENSE</exclude>
-                        <exclude>*.md</exclude>
+                        <exclude>README.md</exclude>
+                        <exclude>README-chinese.md</exclude>
+                        <exclude>QUICKSTART.md</exclude>
+                        <exclude>quick_start.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
@@ -199,10 +222,19 @@
             <!-- ================================================= -->
             <!-- rocketmq streams library -->
             <!-- ================================================= -->
-
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-dispatcher</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-commons</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-sts</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -212,12 +244,22 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-tasks</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-channel-mqtt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-dbinit</artifactId>
+                <artifactId>rocketmq-streams-db-init</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-channel-openapi</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -244,16 +286,6 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-configurable</artifactId>
                 <version>${project.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-classic</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-core</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
@@ -284,20 +316,15 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-script</artifactId>
                 <version>${project.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-classic</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-core</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-streams-script-python</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -327,12 +354,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-channel-rocketmq</artifactId>
+                <artifactId>rocketmq-streams-channel-kafka</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-streams-channel-kafka</artifactId>
+                <artifactId>rocketmq-streams-channel-sls</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -346,20 +373,6 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- ================================================= -->
-            <!-- rocketmq library -->
-            <!-- ================================================= -->
-
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-tools</artifactId>
-                <version>${rocketmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-common</artifactId>
-                <version>${rocketmq.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client</artifactId>
@@ -367,48 +380,73 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-acl</artifactId>
+                <artifactId>rocketmq-tools</artifactId>
                 <version>${rocketmq.version}</version>
-            </dependency>
-
-            <!-- ================================================= -->
-            <!-- tool library -->
-            <!-- ================================================= -->
-
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>${fastjson.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>commons-logging</groupId>
-                <artifactId>commons-logging</artifactId>
-                <version>${commons-logging.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>commons</artifactId>
-                <version>${project.version}</version>
+                <artifactId>rocketmq-acl</artifactId>
+                <version>${rocketmq.version}</version>
             </dependency>
+            <!-- ================================================= -->
+            <!-- commons library -->
+            <!-- ================================================= -->
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
             </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-collections</groupId>
+                <artifactId>commons-collections</artifactId>
+                <version>${commons-collections.version}</version>
+            </dependency>
 
+
+            <!-- ================================================= -->
+            <!-- slf4j library -->
+            <!-- ================================================= -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j-api.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
                 <version>${slf4j-log4j12.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.elasticsearch</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <!-- ================================================= -->
+            <!-- Google library -->
+            <!-- ================================================= -->
             <dependency>
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
@@ -431,6 +469,25 @@
                         <artifactId>guava</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.re2j</groupId>
+                <artifactId>re2j</artifactId>
+                <version>${re2j.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
             </dependency>
 
             <dependency>
@@ -514,21 +571,10 @@
 
 
             <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
-                <version>${logback-core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback-core.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.rocksdb</groupId>
                 <artifactId>rocksdbjni</artifactId>
@@ -540,44 +586,10 @@
                 <version>0.9.48</version>
             </dependency>
             <dependency>
-                <groupId>commons-collections</groupId>
-                <artifactId>commons-collections</artifactId>
-                <version>${commons-collections.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-lang</groupId>
-                <artifactId>commons-lang</artifactId>
-                <version>${commons-lang.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.elasticsearch.client</groupId>
-                <artifactId>elasticsearch-rest-high-level-client</artifactId>
-                <version>${elasticsearch.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.elasticsearch.client</groupId>
-                <artifactId>elasticsearch-rest-client</artifactId>
-                <version>${elasticsearch.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.elasticsearch</groupId>
-                <artifactId>elasticsearch</artifactId>
-                <version>${elasticsearch.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka_2.12</artifactId>
                 <version>${kafka.version}</version>
             </dependency>
-
-            <!--IOT dependency-->
-            <dependency>
-                <groupId>org.eclipse.paho</groupId>
-                <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
-                <version>${paho.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>de.ruedigermoeller</groupId>
                 <artifactId>fst</artifactId>
@@ -587,6 +599,69 @@
                 <groupId>com.esotericsoftware</groupId>
                 <artifactId>kryo</artifactId>
                 <version>${kryo.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.agkn</groupId>
+                <artifactId>hll</artifactId>
+                <version>${hll.version}</version>
+            </dependency>
+            <!--IOT dependency-->
+            <dependency>
+                <groupId>org.eclipse.paho</groupId>
+                <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+                <version>${paho.version}</version>
+            </dependency>
+            <!--SLS  dependency-->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun.openservices</groupId>
+                <artifactId>aliyun-log</artifactId>
+                <version>${aliyun-log.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun.openservices</groupId>
+                <artifactId>aliyun-log-producer</artifactId>
+                <version>${aliyun-log-producer.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun.openservices</groupId>
+                <artifactId>loghub-client-lib</artifactId>
+                <version>${loghub.version}</version>
+            </dependency>
+            <!--RAM dependency-->
+            <dependency>
+                <groupId>com.aliyun</groupId>
+                <artifactId>aliyun-java-sdk-sts-internal</artifactId>
+                <version>${sts.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun.ram</groupId>
+                <artifactId>ram-auth-client</artifactId>
+                <version>${ram-auth-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun</groupId>
+                <artifactId>aliyun-java-sdk-ram-inner</artifactId>
+                <version>${ram-inner.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun</groupId>
+                <artifactId>aliyun-java-sdk-core</artifactId>
+                <version>${aliyun-java-sdk-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.univocity</groupId>
+                <artifactId>univocity-parsers</artifactId>
+                <version>2.9.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>${oss.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

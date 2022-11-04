@@ -28,10 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -43,7 +40,6 @@ import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
@@ -55,19 +51,20 @@ import org.apache.rocketmq.streams.window.model.FunctionExecutor;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
-import org.nustaq.serialization.FSTConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class WindowValue extends WindowBaseValue implements Serializable ,ISerialize{
+public class WindowValue extends WindowBaseValue implements Serializable, ISerialize {
 
     private static final long serialVersionUID = 1083444850264401338L;
-
-    private static final Log LOG = LogFactory.getLog(WindowValue.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WindowValue.class);
 
     /**
      * 如果做分组，设置分组
      */
     protected String groupBy = "0";
 
+    protected String groupByFieldName;
     /**
      * split id和max offset的映射关系
      */
@@ -82,6 +79,8 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
      * the result of select column
      */
     protected Map<String, Object> computedColumnResult = new HashMap<>(16);
+
+    protected transient Map<String, String> ignoreGroupFieldByRollup2ComputerColumn;//In rollup, fields that are not in the prefix field will be ignored because of the prefix field. Ignoring is only limited to non udaf functions
 
     protected transient Long lastUpdateTime;//used in session window，set last update time
 
@@ -105,12 +104,10 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
     public String getAggColumnResult() {
         JSONArray jsonArray = new JSONArray();
 
-        Iterator<Entry<String, Object>> it = aggColumnResult.entrySet().iterator();
-        while (it.hasNext()) {
+        for (Entry<String, Object> objectEntry : aggColumnResult.entrySet()) {
             JSONObject jsonObject = new JSONObject();
-            Entry<String, Object> entry = it.next();
-            String functionName = entry.getKey();
-            Object value = entry.getValue();
+            String functionName = objectEntry.getKey();
+            Object value = objectEntry.getValue();
             jsonObject.put("function", functionName);
             if (value == null) {
                 continue;
@@ -118,12 +115,11 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
             DataType dataType = DataTypeUtil.getDataTypeFromClass(value.getClass());
             boolean isBasicType = false;
             String jsonValue = null;
-            if (!NotSupportDataType.class.isInstance(dataType)) {
+            if (!(dataType instanceof NotSupportDataType)) {
                 isBasicType = true;
                 jsonValue = dataType.toDataJson(value);
                 jsonObject.put("datatype", dataType.getDataTypeName());
             } else {
-                isBasicType = false;
                 jsonValue = ReflectUtil.serializeObject(value).toJSONString();
             }
 
@@ -178,7 +174,7 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
 
     public String getComputedColumnResult() {
         JSONObject object = null;
-        if (JSONObject.class.isInstance(computedColumnResult)) {
+        if (computedColumnResult instanceof JSONObject) {
             object = (JSONObject) computedColumnResult;
         } else {
             object = new JSONObject(computedColumnResult);
@@ -230,8 +226,6 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
      * @param message the consumed data
      */
     public boolean calculate(AbstractWindow window, IMessage message) {
-        message.getMessageBody().put(AbstractWindow.WINDOW_START, startTime);
-        message.getMessageBody().put(AbstractWindow.WINDOW_END, endTime);
         //每个计算节点对应一个consume split，如果多于一个queue的话，
         String queueId = message.getHeader().getQueueId();
         String offset = message.getHeader().getOffset();
@@ -247,7 +241,7 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                 this.maxOffset.put(queueId, offset);
             } else {
                 //如果比最大的offset 小或等于，则直接丢弃掉消息
-                System.out.println("!!!!!!!!!!!!!!!!!!! has outOfOrder data " + maxOffsetOfQueue + " " + message.getHeader().getOffset());
+                LOGGER.info("!!!!!!!!!!!!!!!!!!! has outOfOrder data " + maxOffsetOfQueue + " " + message.getHeader().getOffset());
                 return false;
             }
         }
@@ -266,7 +260,7 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
             calFunctionColumn(window, message);
 
         } catch (Exception e) {
-            throw new RuntimeException("failed in window value calculating",e);
+            throw new RuntimeException("failed in window value calculating", e);
         }
 
         //there is no need writing back to message
@@ -274,22 +268,28 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
         return true;
     }
 
-    protected static AtomicInteger SUM=new AtomicInteger(0);
+    protected static AtomicInteger SUM = new AtomicInteger(0);
 
     protected void calFunctionColumn(AbstractWindow window, IMessage message) {
-        String introduction = (String)message.getMessageBody().getOrDefault(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, "");
+        if (window.isOutputWindowInstanceInfo()) {
+            message.getMessageBody().put(AbstractWindow.WINDOW_START, this.startTime);
+            message.getMessageBody().put(AbstractWindow.WINDOW_END, this.endTime);
+            message.getMessageBody().put(AbstractWindow.WINDOW_TIME, DateUtil.parse(this.endTime).getTime() - 1);
+        }
+
+        String introduction = (String) message.getMessageBody().getOrDefault(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, "");
         boolean isMultiAccumulate = AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI.equals(introduction);
-        if(isMultiAccumulate){
-            WindowValue windowValue=message.getMessageBody().getObject(WindowValue.class.getName(),WindowValue.class);
+        if (isMultiAccumulate) {
+            WindowValue windowValue = message.getMessageBody().getObject(WindowValue.class.getName(), WindowValue.class);
             try {
-               // windowValue= SerializeUtil.deserialize(windowValueJson,WindowValue.class);
-            }catch (Exception e){
-                throw new RuntimeException("window value deserializeObject error",e);
+                // windowValue= SerializeUtil.deserialize(windowValueJson,WindowValue.class);
+            } catch (Exception e) {
+                throw new RuntimeException("window value deserializeObject error", e);
             }
-            List<WindowValue> windowValues=new ArrayList<>();
+            List<WindowValue> windowValues = new ArrayList<>();
             windowValues.add(this);
             windowValues.add(windowValue);
-            WindowValue mergerWindowValue= WindowValue.mergeWindowValue(window,windowValues);
+            WindowValue mergerWindowValue = WindowValue.mergeWindowValue(window, windowValues);
             this.computedColumnResult.putAll(mergerWindowValue.computedColumnResult);
             this.aggColumnResult.putAll(mergerWindowValue.aggColumnResult);
             return;
@@ -313,33 +313,44 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                         aggColumnResult.put(executorName, accumulator);
                     }
                     windowAccScript.setAccumulator(accumulator);
-                    if(!isMultiAccumulate){
+                    if (!isMultiAccumulate) {
                         message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,
                             AggregationScript.INNER_AGGREGATION_COMPUTE_SINGLE);
                     }
                     FunctionContext context = new FunctionContext(message);
                     windowAccScript.doMessage(message, context);
                 } else if (executor instanceof FunctionScript) {
+                    FunctionScript functionScript = (FunctionScript) executor;
                     FunctionContext context = new FunctionContext(message);
-                    ((FunctionScript) executor).doMessage(message, context);
+                    functionScript.doMessage(message, context);
+
                 }
             }
             //
-            computedColumnResult.put(computedColumn, message.getMessageBody().get(computedColumn));
+            if (this.ignoreGroupFieldByRollup2ComputerColumn != null && this.ignoreGroupFieldByRollup2ComputerColumn.values().contains(computedColumn)) {
+                // in rollup场景
+            } else {
+                computedColumnResult.put(computedColumn, message.getMessageBody().get(computedColumn));
+            }
+
         }
         calProjectColumn(window, message);
     }
 
     protected void calProjectColumn(AbstractWindow window, IMessage message) {
+
         Map<String, String> constMap = window.getColumnProjectMap();
         for (Entry<String, String> entry : constMap.entrySet()) {
             String computedColumn = entry.getKey();
             String originColumn = entry.getValue();
+            if (this.ignoreGroupFieldByRollup2ComputerColumn != null && this.ignoreGroupFieldByRollup2ComputerColumn.values().contains(originColumn)) {
+                continue;
+            }
             if (message.getMessageBody().containsKey(originColumn)) {
                 computedColumnResult.put(computedColumn, message.getMessageBody().get(originColumn));
             } else {
-                if (LOG.isWarnEnabled()) {
-                    LOG.warn("field:\t " + originColumn + " lost!");
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(window.getConfigureName() + " field:\t " + originColumn + " lost!");
                 }
             }
         }
@@ -368,11 +379,10 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
             sb.append("('" + name + "','" + windowInstance.getStartTime() + "','" + windowInstance.getEndTime() + "')");
         }
         String inSQL = sb.toString();
-        /**
+        /*
          * 分批，内存撑暴 todo
          */
-        String sql = "select * from " + ORMUtil
-            .getTableName(WindowValue.class) + " where status > 0 && (name, start_time, end_time) in (" + inSQL + ")";
+        String sql = "select * from " + ORMUtil.getTableName(WindowValue.class) + " where status > 0 && (name, start_time, end_time) in (" + inSQL + ")";
         Map<String, Object> paras = new HashMap<>(4);
         List<WindowValue> windowValueList = ORMUtil.queryForList(sql, paras, WindowValue.class);
         return queryMergeWindowValues(window, windowValueList);
@@ -419,30 +429,27 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                     AggregationScript origin = (AggregationScript) engine;
                     AggregationScript operator = origin.clone();
                     if (needMergeComputation) {
-                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,
-                            AggregationScript.INNER_AGGREGATION_COMPUTE_SINGLE);
+                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, AggregationScript.INNER_AGGREGATION_COMPUTE_SINGLE);
                         operator.setAccumulator(operator.getDirector().createAccumulator());
                         operator.doMessage(message, context);
                     } else {
-                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,
-                            AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI);
+                        message.getMessageBody().put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI);
                         List actors = valueList.stream().map(
                             windowValue -> {
                                 Object accumulator = null;
                                 if (windowValue.aggColumnResult.containsKey(column)) {
                                     accumulator = windowValue.aggColumnResult.get(column);
                                 } else {
-                                    IAccumulator director = AggregationScript.getAggregationFunction(
-                                        operator.getFunctionName());
+                                    IAccumulator director = AggregationScript.getAggregationFunction(operator.getFunctionName());
                                     accumulator = director.createAccumulator();
                                     windowValue.aggColumnResult.put(column, accumulator);
                                 }
                                 return accumulator;
-                             }).collect(
+                            }).collect(
                             Collectors.toList());
                         operator.setAccumulator(operator.getDirector().createAccumulator());
                         operator.setAccumulators(actors);
-                        lastWindowValue.aggColumnResult.put(column,operator.getAccumulator());
+                        lastWindowValue.aggColumnResult.put(column, operator.getAccumulator());
                         operator.doMessage(message, context);
                         needMergeComputation = true;
                     }
@@ -450,10 +457,8 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
                     FunctionScript theScript = (FunctionScript) engine;
                     String[] parameters = theScript.getDependentParameters();
                     for (String parameter : parameters) {
-                        if (!message.getMessageBody().containsKey(parameter) && lastWindowValue.computedColumnResult
-                            .containsKey(parameter)) {
-                            message.getMessageBody().put(parameter,
-                                lastWindowValue.computedColumnResult.get(parameter));
+                        if (!message.getMessageBody().containsKey(parameter) && lastWindowValue.computedColumnResult.containsKey(parameter)) {
+                            message.getMessageBody().put(parameter, lastWindowValue.computedColumnResult.get(parameter));
                         }
                     }
                     if (needMergeComputation) {
@@ -464,12 +469,9 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
             if (message.getMessageBody().containsKey(computedColumn)) {
                 lastWindowValue.computedColumnResult.put(computedColumn, message.getMessageBody().get(computedColumn));
             } else if (!needMergeComputation) {
-                lastWindowValue.computedColumnResult.put(computedColumn,
-                    valueList.get(0).computedColumnResult.get(computedColumn));
+                lastWindowValue.computedColumnResult.put(computedColumn, valueList.get(0).computedColumnResult.get(computedColumn));
             }
         }
-        // valueList.stream().map(value -> lastWindowValue.count += value.getCount());
-        //
         List<String> traceList = new ArrayList<>();
         for (WindowValue value : valueList) {
             if (value.computedColumnResult.containsKey(TraceUtil.TRACE_ID_FLAG)) {
@@ -553,5 +555,21 @@ public class WindowValue extends WindowBaseValue implements Serializable ,ISeria
         }
     }
 
+    public String getGroupByFieldName() {
+        return groupByFieldName;
+    }
+
+    public void setGroupByFieldName(String groupByFieldName) {
+        this.groupByFieldName = groupByFieldName;
+    }
+
+    public Map<String, String> getIgnoreGroupFieldByRollup2ComputerColumn() {
+        return ignoreGroupFieldByRollup2ComputerColumn;
+    }
+
+    public void setIgnoreGroupFieldByRollup2ComputerColumn(
+        Map<String, String> ignoreGroupFieldByRollup2ComputerColumn) {
+        this.ignoreGroupFieldByRollup2ComputerColumn = ignoreGroupFieldByRollup2ComputerColumn;
+    }
 }
 

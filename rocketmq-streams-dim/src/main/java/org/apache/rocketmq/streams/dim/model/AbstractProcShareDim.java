@@ -23,17 +23,17 @@ import java.util.Date;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.dim.index.DimIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description 基于本地文件存储的多进程共享的dim
  */
 public abstract class AbstractProcShareDim extends AbstractDim {
 
-    static final Log logger = LogFactory.getLog(AbstractProcShareDim.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcShareDim.class);
 
     /**
      * 多进程文件锁
@@ -80,16 +80,17 @@ public abstract class AbstractProcShareDim extends AbstractDim {
         return true;
     }
 
+    @Override
     protected void loadNameList() {
         try {
-            logger.info(getConfigureName() + " begin polling data");
+            LOGGER.info(getConfigureName() + " begin polling data");
             //全表数据
             AbstractMemoryTable dataCacheVar = loadData();
             table = dataCacheVar;
             this.nameListIndex = buildIndex(dataCacheVar);
             this.columnNames = this.dataCache.getCloumnName2Index().keySet();
         } catch (Exception e) {
-            logger.error("Load configurables error:" + e.getMessage(), e);
+            LOGGER.error("Load configurables error:" + e.getMessage(), e);
         }
     }
 

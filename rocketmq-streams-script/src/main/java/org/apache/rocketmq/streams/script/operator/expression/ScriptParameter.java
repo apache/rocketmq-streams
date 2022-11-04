@@ -41,7 +41,7 @@ public class ScriptParameter implements IScriptParamter {
 
     public ScriptParameter(String simpleParamter) {
         this.scriptParameterStr = simpleParamter;
-        if (ContantsUtil.isContant(simpleParamter)) {
+        if (ContantsUtil.isContant(simpleParamter)||simpleParamter.startsWith("(")&&simpleParamter.endsWith(")")) {
             this.leftVarName = simpleParamter;
         } else if (simpleParamter.indexOf("==") != -1) {
             doConditonValue(simpleParamter, "==");

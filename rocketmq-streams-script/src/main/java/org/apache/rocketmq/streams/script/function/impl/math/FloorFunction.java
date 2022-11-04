@@ -93,22 +93,5 @@ public class FloorFunction {
         return result;
     }
 
-    /**
-     * 向下取整，返回比number小的整数值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "floor", alias = "floor", comment = "向下取整，返回比当前值小的整数值")
-    public BigDecimal floor(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.floor(number.intValue()));
-        return result;
-    }
+
 }

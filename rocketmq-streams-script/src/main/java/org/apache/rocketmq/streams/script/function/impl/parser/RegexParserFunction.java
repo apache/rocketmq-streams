@@ -19,20 +19,19 @@ package org.apache.rocketmq.streams.script.function.impl.parser;
 import com.alibaba.fastjson.JSONObject;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Function
 public class RegexParserFunction {
-    private static final Log LOG = LogFactory.getLog(RegexParserFunction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegexParserFunction.class);
 
     @FunctionMethod(value = "paserByRegex", comment = "通过正则解析实例日志")
     public String paserByRegex(IMessage message, FunctionContext context,
@@ -61,7 +60,7 @@ public class RegexParserFunction {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(log);
         if (!matcher.matches()) {
-            LOG.error("parseLog error: log not match regex!" + regex + ":" + log);
+            LOGGER.error("parseLog error: log not match regex!" + regex + ":" + log);
             return null;
         }
         for (int i = 1; i <= matcher.groupCount(); i++) {

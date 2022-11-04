@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public final class DateUtil {
 
@@ -41,7 +39,6 @@ public final class DateUtil {
     public static final String TIMESTAMP_FORMAT = "yyyyMMddHHmmssSSS";
     private static final ThreadLocal<Map<String, DateFormat>> tl = new ThreadLocal<Map<String, DateFormat>>();
 
-    private static final Log LOG = LogFactory.getLog(DateUtil.class);
 
     /**
      * 给指定时间增加一个时间值
@@ -452,6 +449,11 @@ public final class DateUtil {
             throw new RuntimeException("illegal event time! " + eventTime);
         }
     }
+
+    public static Date getWindowBeginTime(long eventTime,long sizeInterval) {
+        return getWindowBeginTime(eventTime,sizeInterval,sizeInterval).get(0);
+    }
+
 
     /**
      * get the window start for a timestamp.

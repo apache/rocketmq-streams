@@ -20,10 +20,13 @@ package org.apache.rocketmq.streams.common.utils;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import java.lang.reflect.Constructor;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.codec.binary.Base64;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import java.io.*;
+import sun.reflect.ReflectionFactory;
 
 /**
  * Kryo Utils
@@ -37,7 +40,7 @@ public class KryoUtil {
     private static final ThreadLocal<Kryo> kryoLocal = new ThreadLocal<Kryo>() {
         @Override
         protected Kryo initialValue() {
-            Kryo kryo = new Kryo();
+            Kryo kryo = new Kryox();
 
             /**
              * 不要轻易改变这里的配置！更改之后，序列化的格式就会发生变化，
@@ -210,5 +213,58 @@ public class KryoUtil {
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    public static class Kryox extends Kryo {
+
+        private final ReflectionFactory REFLECTION_FACTORY = ReflectionFactory
+            .getReflectionFactory();
+
+        private final ConcurrentHashMap<Class<?>, Constructor<?>> _constructors = new ConcurrentHashMap<Class<?>, Constructor<?>>();
+
+        @Override
+        public <T> T newInstance(Class<T> type) {
+            try {
+                return super.newInstance(type);
+            } catch (Exception e) {
+                return (T) newInstanceFromReflectionFactory(type);
+            }
+        }
+
+        private Object newInstanceFrom(Constructor<?> constructor) {
+            try {
+                return constructor.newInstance();
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        public <T> T newInstanceFromReflectionFactory(Class<T> type) {
+            Constructor<?> constructor = _constructors.get(type);
+            if (constructor == null) {
+                constructor = newConstructorForSerialization(type);
+                Constructor<?> saved = _constructors.putIfAbsent(type, constructor);
+                if(saved!=null){
+                    constructor=saved;
+                }
+
+            }
+            return (T) newInstanceFrom(constructor);
+        }
+
+        private <T> Constructor<?> newConstructorForSerialization(
+            Class<T> type) {
+            try {
+                Constructor<?> constructor = REFLECTION_FACTORY
+                    .newConstructorForSerialization(type,
+                        Object.class.getDeclaredConstructor());
+                constructor.setAccessible(true);
+                return constructor;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
     }
 }

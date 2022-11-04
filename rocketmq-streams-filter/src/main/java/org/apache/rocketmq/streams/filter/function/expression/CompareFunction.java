@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -27,10 +25,12 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class CompareFunction extends AbstractExpressionFunction {
     public static String VAR_PREFIX="##*^%$#@!*";//标识一个表达式的值式一个变量，是一个特殊处理。这个标识会放到值的前面。如变量式uuid，值会变成&&&&##$$%^*uuid
-    private static final Log LOG = LogFactory.getLog(CompareFunction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CompareFunction.class);
 
     @Override
     public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
@@ -79,7 +79,7 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
                 new Class[] {varClass, valueClass},
                 new Object[] {basicVarValue, basicValue});
         } catch (Exception e) {
-            LOG.error("CompareFunction doFunction ReflectUtil.invoke error: ", e);
+            LOGGER.error("CompareFunction doFunction ReflectUtil.invoke error: ", e);
         }
 
         return match;

@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.common.topology.stages;
 
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
@@ -29,9 +27,11 @@ import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
-    private static final Log LOG = LogFactory.getLog(ScriptChainStage.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScriptChainStage.class);
     protected String scriptName;
 
     protected transient AbstractScript script;
@@ -57,7 +57,7 @@ public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChain
                 context.setSplitMessages(messages);
             }
             if (ComponentCreator.getPropertyBooleanValue("debug.message.parse")) {
-                LOG.info("message size is " + messages.size() + " split mode is " + context.isSplitModel());
+                LOGGER.info("message size is " + messages.size() + " split mode is " + context.isSplitModel());
             }
             return message;
         }

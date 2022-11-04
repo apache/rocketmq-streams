@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> {
@@ -41,7 +42,8 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
         super(null);
 //        this.executorService = new ThreadPoolExecutor(10, 10,
 //            0L, TimeUnit.MILLISECONDS,
-//            new LinkedBlockingQueue<Runnable>());
+//            new LinkedBlockingQueue<Runnable>(), new ThreadPoolFactory.DipperThreadFactory("AbstractMultiSplitMessageCache"));
+        this.executorService = ThreadPoolFactory.createFixedThreadPool(10, AbstractMultiSplitMessageCache.class.getName() + "-message_cache");
         this.flushCallBack = new MessageFlushCallBack(flushCallBack);
     }
 
@@ -78,8 +80,8 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
         return size;
     }
 
-    protected MessageCache createMessageCache(){
-       return new MessageCache(flushCallBack);
+    protected MessageCache createMessageCache() {
+        return new MessageCache(flushCallBack);
     }
 
     protected abstract String createSplitId(R msg);
@@ -104,7 +106,7 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
         }
         if (splitIds.size() == 1) {
             String spiltId = splitIds.iterator().next();
-            if(StringUtil.isEmpty(spiltId)){
+            if (StringUtil.isEmpty(spiltId)) {
                 return 0;
             }
             IMessageCache cache = queueMessageCaches.get(spiltId);
@@ -117,7 +119,7 @@ public abstract class AbstractMultiSplitMessageCache<R> extends MessageCache<R> 
         }
         CountDownLatch countDownLatch = new CountDownLatch(splitIds.size());
         for (String splitId : splitIds) {
-            if(StringUtil.isEmpty(splitId)){
+            if (StringUtil.isEmpty(splitId)) {
                 continue;
             }
             executorService.execute(new Runnable() {

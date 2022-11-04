@@ -29,7 +29,7 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
      * @param receiver 处理流数据
      * @return 是否正常启动
      */
-    boolean start(IStreamOperator receiver);
+    boolean start(IStreamOperator<?, ?> receiver);
 
     /**
      * 同一个group name共同消费一份数据，主要针对消息队列，如果实现的子类用到这个字段，需要保持语义
@@ -74,19 +74,18 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
     long getCheckpointTime();
 
     /**
-     *
      * @param topic
      */
     void setTopic(String topic);
 
     /**
-     *
      * @return
      */
     String getTopic();
 
     /**
      * 创建checkpoint名字
+     *
      * @return checkpoint key name
      */
     String createCheckPointName();

@@ -46,6 +46,9 @@ public class NotFireReason {
         this.stage=stage;
         this.pipeline=(ChainPipeline) stage.getPipeline();
         String logFingerFieldNames=this.stage.getPreFingerprint().getLogFingerFieldNames();
+        if(logFingerFieldNames==null){
+            return;
+        }
         String[] values=logFingerFieldNames.split(",");
         for(String oriFieldName:values){
             oriFilterFieldNames.add(oriFieldName);
@@ -58,6 +61,9 @@ public class NotFireReason {
         }
     }
     public void analysis(IMessage message,Map<String, List<String>> filterFieldName2ETLScriptList,Map<String, String> filterFieldName2OriFieldName,List<String> expressions,List<String> filterFieldNames){
+        if(oriFilterFields.size()==0){
+            return;
+        }
         this.expressions.addAll(expressions);
         Map<String, List<String>> etlScript=new HashMap<>();
         this.filterFieldNames.addAll(filterFieldNames);
@@ -149,27 +155,32 @@ public class NotFireReason {
     }
      public JSONObject toJson() {
         JSONObject jsonObject=new JSONObject();
-        jsonObject.put("expression", MapKeyUtil.createKey("\n",this.expressions));
+        jsonObject.put("表达式和数据", MapKeyUtil.createKey("\n",this.expressions));
+
+         JSONObject values=new JSONObject();
+
 
         if(CollectionUtil.isNotEmpty(this.filterFields)){
-            JSONObject filterFields=new JSONObject();
-            filterFields.putAll(this.filterFields);
-            jsonObject.put("field current value",filterFields);
+            values.putAll(this.filterFields);
         }
 
 
         if(CollectionUtil.isNotEmpty(this.oriFilterFields)){
-            JSONObject oriFilterFields=new JSONObject();
-            oriFilterFields.putAll(this.oriFilterFields);
-            jsonObject.put("field original value",oriFilterFields);
+            values.putAll(this.oriFilterFields);
 
         }
 
         if(CollectionUtil.isNotEmpty(this.filterFieldName2ETLScriptList)){
-            JSONObject etl=new JSONObject();
-            etl.putAll(this.filterFieldName2ETLScriptList);
-            jsonObject.put("field etl",etl);
+            List<String> strings=new ArrayList<>();
+            for(List<String> scripts:this.filterFieldName2ETLScriptList.values()){
+                strings.add(MapKeyUtil.createKey("<br>",scripts));
+                strings.add("<p>");
+            }
+            jsonObject.put("etl","<br>"+MapKeyUtil.createKeyFromCollection("<br>",strings));
         }
+         if(CollectionUtil.isNotEmpty(values)){
+             jsonObject.put("field value",values);
+         }
 
         return jsonObject;
     }

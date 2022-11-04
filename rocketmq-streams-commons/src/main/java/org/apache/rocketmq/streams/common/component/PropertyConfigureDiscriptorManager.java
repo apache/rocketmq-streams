@@ -23,14 +23,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.ENVUtile;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PropertyConfigureDiscriptorManager {
 
-    private static final Log LOG = LogFactory.getLog(PropertyConfigureDiscriptorManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PropertyConfigureDiscriptorManager.class);
 
     protected transient Map<String, List<ConfigureDescriptor>> groupbyConfigures = new HashMap<>();
 

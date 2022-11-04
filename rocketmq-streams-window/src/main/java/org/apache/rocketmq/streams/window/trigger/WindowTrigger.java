@@ -26,12 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -41,9 +40,11 @@ import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WindowTrigger extends AbstractSupportShuffleSource implements IStreamOperator {
-    protected static final Log LOG = LogFactory.getLog(WindowTrigger.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WindowTrigger.class);
     private AbstractWindow window;
     //这个时间是在于数据很离散，无法触发窗口的时候做的补位
     protected transient Long eventTimeLastUpdateTime;
@@ -127,7 +128,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             window.registerWindowInstance(windowInstance);
             offerWindowInstance(windowInstance);
         }
-        LOG.debug("register window instance into manager, instance key: " + windowInstanceTriggerId);
+        LOGGER.debug("register window instance into manager, instance key: " + windowInstanceTriggerId);
     }
 
     /**
@@ -194,12 +195,12 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
     protected void fireWindowInstance(WindowInstance windowInstance) {
         try {
             if (windowInstance == null) {
-                LOG.error("window instance is null!");
+                LOGGER.error("window instance is null!");
                 return;
             }
             String windowInstanceTriggerId = windowInstance.createWindowInstanceTriggerId();
             if (window == null) {
-                LOG.error(windowInstanceTriggerId + "'s window object have been removed!");
+                LOGGER.error(windowInstanceTriggerId + "'s window object have been removed!");
                 return;
             }
 
@@ -207,7 +208,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
                 windowInstance.setLastMaxUpdateTime(window.getMaxEventTime(windowInstance.getSplitId()));
             }
             int fireCount = window.fireWindowInstance(windowInstance, null);
-            LOG.debug("fire instance(" + windowInstanceTriggerId + " fire count is " + fireCount);
+            LOGGER.debug("fire instance(" + windowInstanceTriggerId + " fire count is " + fireCount);
             firingWindowInstances.remove(windowInstanceTriggerId);
         } catch (Exception e) {
             e.printStackTrace();
@@ -223,7 +224,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
     protected FireResult canFire(WindowInstance windowInstance) {
         String windowInstanceTriggerId = windowInstance.createWindowInstanceTriggerId();
         if (window == null) {
-            LOG.warn(windowInstanceTriggerId + " can't find window!");
+            LOGGER.warn(windowInstanceTriggerId + " can't find window!");
             return new FireResult();
         }
         Date fireTime = DateUtil.parseTime(windowInstance.getFireTime());
@@ -251,7 +252,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         if (isTest) {
             int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
             if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
-                LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
+                LOGGER.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
                 return new FireResult(true, 1);
             }
         }
@@ -365,5 +366,9 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
     @Override
     protected boolean isNotDataSplit(String queueId) {
         return false;
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 }

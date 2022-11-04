@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.dim.function.script;
 
 import java.util.Map;
 import java.util.Map.Entry;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -33,8 +31,6 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class IntelligenceFunction {
-
-    private static final Log LOG = LogFactory.getLog(IntelligenceFunction.class);
 
     private DimComponent nameListComponent;
 

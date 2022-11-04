@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -29,10 +27,8 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 /**
  * namespace 分层，支持顶级命名空间，顶级命名空间的对象，所有命名空间都可见。顶级命名空间是固定值IConfigurableService.PARENT_CHANNEL_NAME_SPACE
  */
-public abstract class AbstractSupportParentConfigureService extends AbstractConfigurableService
-    implements IConfigurableService {
+public abstract class AbstractSupportParentConfigureService extends AbstractConfigurableService implements IConfigurableService {
 
-    private static final Log LOG = LogFactory.getLog(AbstractSupportParentConfigureService.class);
     protected IConfigurableService configureService = null;
     protected IConfigurableService parentConfigureService = null;
     protected Properties properties;
@@ -114,6 +110,20 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
         return parentConfigureService.queryConfigurableByIdent(identification);
     }
 
+    @Override public void insertToCache(IConfigurable configurable) {
+        if (parentConfigureService != null && configurable.getNameSpace()
+            .equals(IConfigurableService.PARENT_CHANNEL_NAME_SPACE)) {
+            parentConfigureService.insertToCache(configurable);
+        } else {
+            configureService.insertToCache(configurable);
+        }
+    }
+
+    @Override public void flushCache() {
+        parentConfigureService.flushCache();
+        configureService.flushCache();
+    }
+
     @Override
     protected void insertConfigurable(IConfigurable configurable) {
         if (parentConfigureService != null && configurable.getNameSpace()
@@ -146,8 +156,7 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
 
     protected List<IConfigurable> createAndQueryConfigurable(String sharedNameSpace, String sharedType,
         String sharedName) {
-        IConfigurableService innerSharedConfigurableService =
-            ConfigurableServiceFactory.createConfigurableService(properties);
+        IConfigurableService innerSharedConfigurableService = ConfigurableServiceFactory.createConfigurableService(properties);
         innerSharedConfigurableService.refreshConfigurable(sharedNameSpace);
         if (StringUtil.isNotEmpty(sharedName)) {
             List<IConfigurable> configurables = new ArrayList<>();
@@ -181,18 +190,26 @@ public abstract class AbstractSupportParentConfigureService extends AbstractConf
     }
 
     @Override
-    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type) {
+    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type, String namespace) {
         List<T> configurables = new ArrayList<>();
         if (parentConfigureService != null) {
-            Collection<T> tmp = parentConfigureService.loadConfigurableFromStorage(type);
+            Collection<T> tmp = parentConfigureService.loadConfigurableFromStorage(type, namespace);
             if (tmp != null || tmp.size() > 0) {
                 configurables.addAll(tmp);
             }
         }
-        Collection<T> tmp = configureService.loadConfigurableFromStorage(type);
+        Collection<T> tmp = configureService.loadConfigurableFromStorage(type, namespace);
         if (tmp != null || tmp.size() > 0) {
             configurables.addAll(tmp);
         }
         return configurables;
+    }
+
+    @Override public <T extends IConfigurable> T loadConfigurableFromStorage(String type, String configureName, String namespace) {
+        if (parentConfigureService != null) {
+            return parentConfigureService.loadConfigurableFromStorage(type, configureName, namespace);
+        } else {
+            return configureService.loadConfigurableFromStorage(type, configureName, namespace);
+        }
     }
 }

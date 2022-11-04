@@ -19,19 +19,19 @@ package org.apache.rocketmq.streams.syslog;
 import com.alibaba.fastjson.JSONObject;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.common.channel.AbstractChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -40,9 +40,11 @@ import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.graylog2.syslog4j.Syslog;
 import org.graylog2.syslog4j.SyslogConfigIF;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
-    private static final Log LOG = LogFactory.getLog(SyslogChannel.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SyslogChannel.class);
     protected transient List<String> ipList = new ArrayList<>();
     //消息发送源的ip或域名列表，支持ip范围-192.168.1.1-192.168.1.10，ip端-192.168.0.0/22，和正则表达式
     protected String protol = SyslogChannelManager.UDP;//syslog支持的协议
@@ -74,7 +76,7 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
 
     @Override
     protected ISink createSink() {
-        this.sink= new AbstractSink() {
+        this.sink = new AbstractSink() {
             @Override
             protected boolean batchInsert(List<IMessage> messages) {
                 if (messages == null || !syslogClientInit) {
@@ -98,13 +100,13 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
                         syslogClient.getConfig().setLocalName(IPUtil.getLocalIP());
                         syslogClient.getConfig().setSendLocalTimestamp(true);
                         syslogClient.getConfig().setSendLocalName(true);//如果这个值是false，需要确保json数据无空格
-                        if("127.0.0.1".equals(syslogClient.getConfig().getHost())){
+                        if ("127.0.0.1".equals(syslogClient.getConfig().getHost())) {
                             //本机测试必须设置，否则ip地址变成了127.0.0.1,如果是远端server，必须注释掉这一行，否则server发生覆盖
                             syslogClient.getConfig().setHost(IPUtil.getLocalIP());
                         }
 
                     } catch (Exception e) {
-                        LOG.error("syslogClient decode message error " + msg.getMessageValue().toString(), e);
+                        SyslogChannel.LOGGER.error("syslogClient decode message error " + msg.getMessageValue().toString(), e);
                     }
                     syslogClient.log(level, message);
                 }
@@ -117,14 +119,18 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
 
     @Override
     protected ISource createSource() {
-         this.source=new AbstractUnreliableSource() {
+        this.source = new AbstractUnreliableSource() {
             @Override
             protected boolean startSource() {
                 SyslogChannelManager.start(protol);
                 return true;
             }
+
+            @Override public List<ISplit<?, ?>> getAllSplits() {
+                return null;
+            }
         };
-         return this.source;
+        return this.source;
     }
 
     @Override
@@ -145,9 +151,9 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
             syslogClient = Syslog.getInstance(protol);
             SyslogConfigIF config = syslogClient.getConfig();
             config.setHost(serverIp);
-            config.setPort((protol .equals( SyslogChannelManager.UDP) )? SyslogChannelManager.udpPort : SyslogChannelManager.tcpPort);
+            config.setPort((protol.equals(SyslogChannelManager.UDP)) ? SyslogChannelManager.udpPort : SyslogChannelManager.tcpPort);
         } catch (Throwable throwable) {
-            LOG.warn("syslogClient client init fail " + throwable);
+            LOGGER.warn("syslogClient client init fail " + throwable);
             syslogClientInit = false;
         }
 
@@ -215,9 +221,7 @@ public class SyslogChannel extends AbstractChannel implements ISyslogRouter {
         if (ips == null) {
             return;
         }
-        for (String ip : ips) {
-            this.ipList.add(ip);
-        }
+        this.ipList.addAll(Arrays.asList(ips));
     }
 
     public String getProtol() {

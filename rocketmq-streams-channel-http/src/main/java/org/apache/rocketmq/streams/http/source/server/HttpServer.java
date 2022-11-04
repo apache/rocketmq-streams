@@ -33,23 +33,22 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.http.source.HttpSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HttpServer extends AbstractUnreliableSource {
-    private static final Log LOG = LogFactory.getLog(HttpServer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpServer.class);
     private transient com.sun.net.httpserver.HttpServer server;
     @ENVDependence
     private int port = 8000;
@@ -66,6 +65,10 @@ public class HttpServer extends AbstractUnreliableSource {
     public HttpServer() {
         setJsonData(false);
         setMsgIsJsonArray(false);
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
     public void register(HttpSource channel) {
@@ -108,7 +111,7 @@ public class HttpServer extends AbstractUnreliableSource {
                             params.setSSLParameters(sslParameters);
 
                         } catch (Exception ex) {
-                            LOG.error("Failed to create HTTPS port", ex);
+                            LOGGER.error("Failed to create HTTPS port", ex);
                         }
                     }
                 });
@@ -119,15 +122,15 @@ public class HttpServer extends AbstractUnreliableSource {
 
         } catch (IOException e) {
             //            System.out.println(e);
-            LOG.error("http channel init get io exception", e);
+            LOGGER.error("http channel init get io exception", e);
             return false;
         } catch (NoSuchAlgorithmException e) {
             //            System.out.println(e);
-            LOG.error("http channel init https ssl context exception", e);
+            LOGGER.error("http channel init https ssl context exception", e);
             return false;
         } catch (Exception e) {
             //            System.out.println(e);
-            LOG.error("http channel init http cert exception", e);
+            LOGGER.error("http channel init http cert exception", e);
             return false;
         }
         return true;
@@ -135,9 +138,7 @@ public class HttpServer extends AbstractUnreliableSource {
 
     @Override
     protected boolean startSource() {
-        ExecutorService cachedThreadPool = new ThreadPoolExecutor(maxThread, maxThread,
-            0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<Runnable>(1000));
+        ExecutorService cachedThreadPool = ThreadPoolFactory.createFixedThreadPool(maxThread, HttpServer.class.getName() + "-" + getConfigureName());
         server.setExecutor(cachedThreadPool);
         server.createContext("/", new DataHandler());
         setReceiver((message, context) -> {
@@ -161,9 +162,9 @@ public class HttpServer extends AbstractUnreliableSource {
         });
         server.start();
         if (isUseHttps()) {
-            LOG.info("https server is start");
+            LOGGER.info("https server is start");
         } else {
-            LOG.info("http server is start");
+            LOGGER.info("http server is start");
         }
 
         return true;
@@ -226,7 +227,7 @@ public class HttpServer extends AbstractUnreliableSource {
                 os.write(response.getBytes());
                 os.flush();
             } catch (Exception e) {
-                LOG.error("");
+                LOGGER.error("");
             } finally {
                 if (os != null) {
                     os.close();

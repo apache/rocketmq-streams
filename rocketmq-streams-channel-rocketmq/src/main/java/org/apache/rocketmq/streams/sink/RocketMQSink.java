@@ -20,27 +20,16 @@ package org.apache.rocketmq.streams.sink;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.CreateTopicRequestHeader;
-import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
@@ -49,10 +38,12 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.queue.RocketMQMessageQueue;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RocketMQSink extends AbstractSupportShuffleSink {
 
-    private static final Log LOG = LogFactory.getLog(RocketMQSink.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RocketMQSink.class);
     @ENVDependence
     private String tags = "*";
 
@@ -99,8 +90,8 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
             return true;
         }
         if (StringUtil.isEmpty(topic)) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("topic is blank");
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("topic is blank");
             }
             return false;
         }
@@ -151,9 +142,9 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
         if (producer == null) {
             synchronized (this) {
                 if (producer == null) {
-                    destroy();
-                    producer = new DefaultMQProducer(groupName + "producer", true, null);
                     try {
+                        destroy();
+                        producer = new DefaultMQProducer(groupName + "producer", true, null);
                         //please not use the code，the name srv addr may be empty in jmenv
 //                        if (this.namesrvAddr == null || "".equals(this.namesrvAddr)) {
 //                            throw new RuntimeException("namesrvAddr can not be null.");
@@ -179,9 +170,10 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                 producer.shutdown();
                 producer = null;
             } catch (Throwable t) {
-                if (LOG.isWarnEnabled()) {
-                    LOG.warn(t.getMessage(), t);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(t.getMessage(), t);
                 }
+                throw new RuntimeException("producer close error", t);
             }
         }
     }
@@ -200,7 +192,7 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     @Override
     protected void createTopicIfNotExist(int splitNum) {
         if (StringUtil.isEmpty(topic)) {
-            LOG.error("Topic should be empty");
+            LOGGER.error("Topic should be empty");
             throw new RuntimeException("Topic should be empty");
         }
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
@@ -218,25 +210,22 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
                 CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
             for (String master : masterSet) {
                 defaultMQAdminExt.createAndUpdateTopicConfig(master, topicConfig);
-                LOG.info("Create topic to success: " + master);
+                LOGGER.info("Create topic to success: " + master);
             }
 
             if (this.order) {
-                Set<String> brokerNameSet =
-                    CommandUtil.fetchBrokerNameByClusterName(defaultMQAdminExt, clusterName);
+                Set<String> brokerNameSet = CommandUtil.fetchBrokerNameByClusterName(defaultMQAdminExt, clusterName);
                 StringBuilder orderConf = new StringBuilder();
                 String splitor = "";
                 for (String s : brokerNameSet) {
-                    orderConf.append(splitor).append(s).append(":")
-                        .append(topicConfig.getWriteQueueNums());
+                    orderConf.append(splitor).append(s).append(":").append(topicConfig.getWriteQueueNums());
                     splitor = ";";
                 }
-                defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
-                    orderConf.toString(), true);
-                System.out.printf("set cluster orderConf. isOrder=%s, orderConf=[%s]", order, orderConf);
+                defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(), orderConf.toString(), true);
+                LOGGER.info("set cluster orderConf. isOrder={}, orderConf=[{}]", order, orderConf);
             }
         } catch (Exception e) {
-            LOG.error("Create topic error", e);
+            LOGGER.error("Create topic error", e);
             throw new RuntimeException("Create topic error " + topic, e);
         } finally {
             defaultMQAdminExt.shutdown();
@@ -246,26 +235,24 @@ public class RocketMQSink extends AbstractSupportShuffleSink {
     @Override
     public List<ISplit<?, ?>> getSplitList() {
         initProducer();
-        List<ISplit<?, ?>> messageQueues = new ArrayList<>();
-        List<MessageQueue> metaqQueueSet = new ArrayList<>();
+        List<ISplit<?, ?>> messageQueues;
+        List<MessageQueue> messageQueueSet;
         try {
 
-            if (messageQueues == null || messageQueues.size() == 0) {
-                try {
-                    metaqQueueSet = producer.fetchPublishMessageQueues(topic);
-                }catch (Exception e) {
-                    producer.send(new Message(topic, "test", "test".getBytes(StandardCharsets.UTF_8)));
-                    metaqQueueSet = producer.fetchPublishMessageQueues(topic);
-                }
-                List<ISplit<?, ?>> queueList = new ArrayList<>();
-                for (MessageQueue queue : metaqQueueSet) {
-                    RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
-                    queueList.add(rocketMQMessageQueue);
-
-                }
-                queueList.sort((Comparator<ISplit>) Comparable::compareTo);
-                messageQueues = queueList;
+            try {
+                messageQueueSet = producer.fetchPublishMessageQueues(topic);
+            } catch (Exception e) {
+                producer.send(new Message(topic, "test", "test".getBytes(StandardCharsets.UTF_8)));
+                messageQueueSet = producer.fetchPublishMessageQueues(topic);
             }
+            List<ISplit<?, ?>> queueList = new ArrayList<>();
+            for (MessageQueue queue : messageQueueSet) {
+                RocketMQMessageQueue rocketMQMessageQueue = new RocketMQMessageQueue(queue);
+                queueList.add(rocketMQMessageQueue);
+
+            }
+            queueList.sort((Comparator<ISplit>) Comparable::compareTo);
+            messageQueues = queueList;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

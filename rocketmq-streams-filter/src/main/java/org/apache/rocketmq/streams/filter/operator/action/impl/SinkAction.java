@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.operator.action.impl;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
@@ -27,7 +25,6 @@ import org.apache.rocketmq.streams.filter.operator.action.Action;
 
 public class SinkAction extends Action<Boolean> implements IAfterConfigurableRefreshListener {
 
-    private static final Log LOG = LogFactory.getLog(SinkAction.class);
     protected String channelName;
     protected transient IChannel channel;
 

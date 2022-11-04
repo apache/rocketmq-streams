@@ -23,8 +23,6 @@ import java.util.ServiceLoader;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.channel.impl.view.ViewSink;
@@ -47,14 +45,16 @@ import org.apache.rocketmq.streams.common.schedule.ScheduleManager;
 import org.apache.rocketmq.streams.common.schedule.ScheduleTask;
 import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.assigner.TaskAssigner;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Pipeline;
-import org.apache.rocketmq.streams.common.topology.task.TaskAssigner;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> implements IAfterConfigurableRefreshListener {
-    private static final Log LOG = LogFactory.getLog(ViewChainStage.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ViewChainStage.class);
 
     /**
      * 动态加载的pipeline，pipeline的source type是view，且tablename=sink的view name
@@ -105,9 +105,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
     /**
      * 最早的处理时间
      */
-    protected transient Long firstReceiveTime = null;
-
-
+    protected transient volatile Long firstReceiveTime = null;
 
     /**
      * 是否包含key by节点
@@ -145,7 +143,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
             double qps = calculateQPS();
             if (StringUtil.isEmpty(logFingerprint)) {
                 if (COUNT.get() % 10000 == 0) {
-                    System.out.println(getConfigureName() + " qps is " + qps + "。the count is " + COUNT.get());
+                    LOGGER.debug("[{}] qps is {}, the count is {}", getConfigureName(), qps, COUNT.get());
                 }
             }
 
@@ -159,7 +157,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
             BitSetCache.BitSet bitSet = getFilterValue(msgKey);
             boolean isHitCache = true;
             CountDownLatch countDownLatch = null;
-            if (bitSet == null && StringUtil.isNotEmpty(logFingerprint)&&StringUtil.isNotEmpty(logFingerprintSwitch)&&Boolean.valueOf(logFingerprintSwitch)) {
+            if (bitSet == null && StringUtil.isNotEmpty(logFingerprint) && StringUtil.isNotEmpty(logFingerprintSwitch) && Boolean.valueOf(logFingerprintSwitch)) {
                 bitSet = new BitSetCache.BitSet(pipelines.size());
                 isHitCache = false;
                 if (!isContainsKeyBy && pipelines.size() > 1 && parallelTasks > 1) {
@@ -167,7 +165,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
                 }
             }
             int index = 0;
-            for (ChainPipeline<?> pipeline :pipelines) {
+            for (ChainPipeline<?> pipeline : pipelines) {
                 //If the fingerprint matches, filter it directly
                 if (isHitCache && bitSet != null && bitSet.get(index)) {
                     index++;
@@ -216,8 +214,8 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
 
     @Override
     public boolean isAsyncNode() {
-        for (Pipeline pipline : this.pipelines) {
-            if (pipline.isAsynNode() == true) {
+        for (Pipeline<?> pipeline : this.pipelines) {
+            if (pipeline.isAsynNode()) {
                 return true;
             }
         }
@@ -253,17 +251,16 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
     public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         List<ChainPipeline<?>> newPipelines = loadSubPipelines(configurableService);
         boolean isChanged = false;
-        if(newPipelines==null){
+        if (newPipelines == null) {
             return;
         }
-
 
         List<ChainPipeline<?>> deletePipeline = new ArrayList<>();
         if (newPipelines.size() > 0) {
             for (ChainPipeline<?> pipeline : newPipelines) {
                 if (!this.pipelines.contains(pipeline)) {
                     isChanged = true;
-                    ScheduleManager.getInstance().regist(new ScheduleTask(0,10,pipeline));
+                    ScheduleManager.getInstance().regist(new ScheduleTask(0, 10, pipeline));
                 }
             }
             for (ChainPipeline<?> pipeline : this.pipelines) {
@@ -278,23 +275,29 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
             this.pipelines = newPipelines;
             this.homologousRulesCache = new FingerprintCache(homologousRulesCaseSize);
             for (ChainPipeline<?> pipeline : deletePipeline) {
-                pipeline.destroy();
+                try {
+                    pipeline.destroy();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
 
         if (this.parallelTasks > 0 && executorService == null) {
-            executorService = ThreadPoolFactory.createThreadPool(this.parallelTasks);
+            executorService = ThreadPoolFactory.createThreadPool(this.parallelTasks, ViewChainStage.class.getName() + "-viewChainStage");
         }
     }
+
     @Override
-    public void setSink(ISink channel) {
-        ViewSink viewSink=(ViewSink)channel;
+    public void setSink(ISink<?> channel) {
+        ViewSink viewSink = (ViewSink) channel;
         this.sink = channel;
         this.setNameSpace(channel.getNameSpace());
         this.setSinkName(channel.getConfigureName());
         this.setLabel(channel.getConfigureName());
         this.setConfigureName(viewSink.getViewTableName());
     }
+
     /**
      * 动态装配子pipeline
      *
@@ -306,13 +309,13 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
             return null;
         }
         String taskName = getConfigureName();
-        List<ChainPipeline<?>> subPipelines=new ArrayList<>();
+        List<ChainPipeline<?>> subPipelines = new ArrayList<>();
         for (TaskAssigner taskAssigner : taskAssigners) {
             if (!taskName.equals(taskAssigner.getTaskName())) {
                 continue;
             }
             String pipelineName = taskAssigner.getPipelineName();
-            if(pipelineName!=null){
+            if (pipelineName != null) {
                 ChainPipeline<?> pipeline = configurableService.queryConfigurable(Pipeline.TYPE, pipelineName);
                 if (pipeline != null) {
                     subPipelines.add(pipeline);
@@ -321,9 +324,6 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
         }
         return subPipelines;
     }
-
-
-
 
     /**
      * When fingerprint is enabled, print QPS, filter rate, cache condition and rule matching rate
@@ -335,10 +335,9 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
         double rate = fingerprintMetric.getHitCacheRate();
         double fireRate = (double) FIRE_RULE_COUNT.get() / (double) COUNT.get();
         if (COUNT.get() % 1000 == 0) {
-            System.out.println("qps is " + qps + ",the count is " + COUNT.get() + " the cache hit  rate " + rate + " the cache size is " + fingerprintMetric.getCacheSize() + "，" + "the fire rule rate is " + fireRate);
+            LOGGER.debug("[{}] qps is {},the count is {}, the cache hit  rate {}, the cache size is {}，the fire rule rate is {}", getConfigureName(), qps, COUNT.get(), rate, fingerprintMetric.getCacheSize(), fireRate);
         }
     }
-
 
     /**
      * 如果确定这个message，在某个pipeline不触发，则记录下来，下次直接跳过，不执行
@@ -351,12 +350,12 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
         if (StringUtil.isEmpty(logFingerprint)) {
             return;
         }
-        if(StringUtil.isEmpty(logFingerprintSwitch)){
-            return ;
+        if (StringUtil.isEmpty(logFingerprintSwitch)) {
+            return;
         }
 
-        if(Boolean.valueOf(logFingerprintSwitch)==false){
-            return ;
+        if (!Boolean.parseBoolean(logFingerprintSwitch)) {
+            return;
         }
         this.homologousRulesCache.addLogFingerprint(getOrCreateFingerNameSpace(), msgKey, bitSet);
     }
@@ -365,11 +364,11 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
         if (StringUtil.isEmpty(logFingerprint)) {
             return null;
         }
-        if(StringUtil.isEmpty(logFingerprintSwitch)){
+        if (StringUtil.isEmpty(logFingerprintSwitch)) {
             return null;
         }
 
-        if(Boolean.valueOf(logFingerprintSwitch)==false){
+        if (!Boolean.parseBoolean(logFingerprintSwitch)) {
             return null;
         }
         return this.homologousRulesCache.getLogFingerprint(getOrCreateFingerNameSpace(), msgKey);
@@ -381,18 +380,16 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
             return null;
         }
 
-        if(StringUtil.isEmpty(logFingerprintSwitch)){
+        if (StringUtil.isEmpty(logFingerprintSwitch)) {
             return null;
         }
 
-        if(Boolean.valueOf(logFingerprintSwitch)==false){
+        if (!Boolean.parseBoolean(logFingerprintSwitch)) {
             return null;
         }
 
         return FingerprintCache.creatFingerpringKey(message, getOrCreateFingerNameSpace(), this.logFingerprint);
     }
-
-
 
     protected String getOrCreateFingerNameSpace() {
         return getConfigureName();
@@ -415,6 +412,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
         }
         return (double) (COUNT.incrementAndGet() / second);
     }
+
     /**
      * 把消息投递给pipline的channel，让子pipline完成任务 注意：子pipline对消息的任何修改，都不反映到当前的pipline
      *
@@ -426,8 +424,6 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
     protected IStageHandle selectHandle(T t, AbstractContext context) {
         return handle;
     }
-
-
 
     class HomologousTask implements Runnable {
         protected IMessage message;
@@ -461,8 +457,7 @@ public class ViewChainStage<T extends IMessage> extends OutputChainStage<T> impl
                     FIRE_RULE_COUNT.incrementAndGet();
                 }
             } catch (Exception e) {
-                e.printStackTrace();
-                LOG.error("pipeline execute error " + pipeline.getConfigureName(), e);
+                LOGGER.error("[{}] pipeline execute error {}", getConfigureName(), pipeline.getConfigureName(), e);
             } finally {
                 if (this.countDownLatch != null) {
                     this.countDownLatch.countDown();

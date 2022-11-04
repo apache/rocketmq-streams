@@ -25,16 +25,15 @@ import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.interfaces.ISerialize;
-import org.nustaq.serialization.FSTConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SerializeUtil {
-    private static final Log LOG = LogFactory.getLog(SerializeUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SerializeUtil.class);
    /**
      * 把一个对象序列化成字节,对象中的字段是datatype支持的
      *
@@ -127,5 +126,7 @@ public class SerializeUtil {
             return null;
         }
     }
+
+
 
 }

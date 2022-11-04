@@ -19,8 +19,6 @@ package org.apache.rocketmq.streams.dim.intelligence;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 
@@ -29,7 +27,6 @@ import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefresh
  */
 public class AccountIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfigurableRefreshListener {
 
-    private static final Log LOG = LogFactory.getLog(AccountIntelligenceCache.class);
 
     /**
      * 情报域名

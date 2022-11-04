@@ -25,7 +25,7 @@ public class MapKeyUtil {
     /**
      * 默认分隔符
      */
-    private static final String SIGN = ";";
+    public static final String SIGN = ";";
 
     public static String createKey(List<String> keyItems) {
         return createKey(SIGN, keyItems);

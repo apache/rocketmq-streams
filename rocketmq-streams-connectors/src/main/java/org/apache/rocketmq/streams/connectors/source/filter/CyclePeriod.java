@@ -19,8 +19,8 @@ package org.apache.rocketmq.streams.connectors.source.filter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @Description
@@ -111,7 +111,7 @@ public enum CyclePeriod {
 
     String hisDateString;
 
-    static final Log logger = LogFactory.getLog(CyclePeriod.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(CyclePeriod.class);
 
     void argsParser(String expr) throws ParseException {
         if (expr.matches("^\\d+$")) {
@@ -141,7 +141,7 @@ public enum CyclePeriod {
             new SimpleDateFormat(format).parse(expr);
             return true;
         } catch (ParseException e) {
-            logger.error(String.format("error format, expr is %s, format is %s.", expr, format));
+            LOGGER.error(String.format("error format, expr is %s, format is %s.", expr, format));
             e.printStackTrace();
             return false;
         }

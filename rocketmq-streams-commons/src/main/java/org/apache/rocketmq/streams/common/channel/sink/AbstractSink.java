@@ -23,8 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MultiSplitMessageCache;
@@ -35,20 +33,21 @@ import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 输出的接口抽象，针对json消息的场景
  */
 public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink>, ILifeCycle {
 
-    private static final Log logger = LogFactory.getLog(AbstractSink.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractSink.class);
     public static String TARGET_QUEUE = "target_queue";//指定发送queue
     public static final int DEFAULT_BATCH_SIZE = 3000;
     protected transient IMessageCache<IMessage> messageCache;
@@ -72,13 +71,13 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     }
 
     @Override
-    public boolean batchAdd(IMessage message,  ISplit<?,?> split) {
+    public boolean batchAdd(IMessage message, ISplit<?, ?> split) {
         message.getMessageBody().put(TARGET_QUEUE, split);
         return batchAdd(message);
     }
 
-    public ISplit<?,?> getSplit(IMessage message) {
-        return (ISplit<?,?>) message.getMessageBody().get(TARGET_QUEUE);
+    public ISplit<?, ?> getSplit(IMessage message) {
+        return (ISplit<?, ?>) message.getMessageBody().get(TARGET_QUEUE);
     }
 
     @Override

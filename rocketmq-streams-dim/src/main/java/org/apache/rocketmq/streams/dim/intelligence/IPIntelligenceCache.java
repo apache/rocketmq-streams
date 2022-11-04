@@ -20,18 +20,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.dboperator.IDBDriver;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IPIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfigurableRefreshListener {
-    private static final Log LOG = LogFactory.getLog(IPIntelligenceCache.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IPIntelligenceCache.class);
     protected transient String keyName = "ip";
-
 
     @Override
     protected String getSQL() {
@@ -74,22 +73,22 @@ public class IPIntelligenceCache extends AbstractIntelligenceCache implements IA
     @Override
     protected void doProccRows(IntValueKV intValueKV, List<Map<String, Object>> rows, int index) {
         for (Map<String, Object> row : rows) {
-            String ip = (String)row.get(keyName);
+            String ip = (String) row.get(keyName);
             if (ip == null) {
-                LOG.warn("load Intelligence exception ,the ip is null");
+                LOGGER.warn("load Intelligence exception ,the ip is null");
                 continue;
             }
             List<String> values = new ArrayList<>();
-            values.add((String)row.get("is_web_attack"));
-            values.add((String)row.get("is_tor"));
-            values.add((String)row.get("is_proxy"));
-            values.add((String)row.get("is_nat"));
-            values.add((String)row.get("is_mining_pool"));
-            values.add((String)row.get("is_c2"));
-            values.add((String)row.get("is_malicious_source"));
-            values.add((String)row.get("is_3rd"));
-            values.add((String)row.get("is_idc"));
-            values.add((String)row.get("is_malicious_login"));
+            values.add((String) row.get("is_web_attack"));
+            values.add((String) row.get("is_tor"));
+            values.add((String) row.get("is_proxy"));
+            values.add((String) row.get("is_nat"));
+            values.add((String) row.get("is_mining_pool"));
+            values.add((String) row.get("is_c2"));
+            values.add((String) row.get("is_malicious_source"));
+            values.add((String) row.get("is_3rd"));
+            values.add((String) row.get("is_idc"));
+            values.add((String) row.get("is_malicious_login"));
             int value = createInt(values);
             synchronized (this) {
                 intValueKV.put(ip, value);

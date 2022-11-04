@@ -37,7 +37,7 @@ public class ConcatDistinctAccumulator implements IAccumulator<String, ConcatDis
 
         public String separator = ",";
 
-        public Set<String> values = Collections.synchronizedSet(new HashSet<>());
+        public Set<String> values = new HashSet<>();
     }
 
     @Override

@@ -34,8 +34,6 @@ import java.util.Properties;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -68,6 +66,8 @@ import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.utils.AESUtil;
 import org.apache.rocketmq.streams.configurable.model.Configure;
 import org.apache.rocketmq.streams.configurable.service.AbstractConfigurableService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HttpConfigureService extends AbstractConfigurableService {
 
@@ -82,7 +82,7 @@ public class HttpConfigureService extends AbstractConfigurableService {
 
     protected transient CloseableHttpClient client;
 
-    private static final Log LOG = LogFactory.getLog(HttpConfigureService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpConfigureService.class);
 
     public static void main(String[] args) {
         HttpConfigureService service = new HttpConfigureService("", "", "http://11.158.168.161:8888/queryConfigure");
@@ -158,8 +158,8 @@ public class HttpConfigureService extends AbstractConfigurableService {
             CloseableHttpResponse response = post(endPoint, param.toJSONString(), null);
             if (response == null) {
                 result.setQuerySuccess(false);
-                if (LOG.isErrorEnabled()) {
-                    LOG.error("loadConfigurable error!namespace=" + namespace + ",response=" + JSONObject.toJSONString(
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("loadConfigurable error!namespace=" + namespace + ",response=" + JSONObject.toJSONString(
                         response));
                 }
             } else {
@@ -184,8 +184,8 @@ public class HttpConfigureService extends AbstractConfigurableService {
             }
         } catch (Exception e) {
             result.setQuerySuccess(false);
-            if (LOG.isErrorEnabled()) {
-                LOG.error("loadConfigurable error!namespace=" + namespace, e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("loadConfigurable error!namespace=" + namespace, e);
             }
         }
         return result;
@@ -361,7 +361,11 @@ public class HttpConfigureService extends AbstractConfigurableService {
     }
 
     @Override
-    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type) {
+    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type, String namespace) {
+        return null;
+    }
+
+    @Override public <T extends IConfigurable> T loadConfigurableFromStorage(String type, String configureName, String namespace) {
         return null;
     }
 

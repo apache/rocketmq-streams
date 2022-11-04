@@ -30,8 +30,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
 import org.apache.rocketmq.streams.common.datatype.BaseDataType;
@@ -58,11 +56,13 @@ import org.apache.rocketmq.streams.common.datatype.SerializableDataType;
 import org.apache.rocketmq.streams.common.datatype.SetDataType;
 import org.apache.rocketmq.streams.common.datatype.ShortDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("rawtypes")
 public class DataTypeUtil {
 
-    private static final Log LOG = LogFactory.getLog(DataTypeUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DataTypeUtil.class);
 
     private static final List<DataType> dataTypes = new ArrayList<>();
     /**
@@ -75,7 +75,6 @@ public class DataTypeUtil {
 
     static {
         register(new HllDataType());
-        register(new NumberDataType());
         register(new StringDataType());
         register(new IntDataType());
         register(new LongDataType());
@@ -85,6 +84,7 @@ public class DataTypeUtil {
         register(new FloatDataType());
         register(new ByteDataType());
         register(new ShortDataType());
+        register(new NumberDataType());
         register(new ListDataType());
         register(new SetDataType());
         register(new ArrayDataType());

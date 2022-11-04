@@ -66,24 +66,6 @@ public class AcosFunction {
         return result;
     }
 
-    /**
-     * 求反余弦函数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "acos", alias = "acos", comment = "求反余弦")
-    public BigDecimal acos(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "BigDecimal常量") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null || number.intValue() < -1 || number.intValue() > 1) {
-            return result;
-        }
-        result = new BigDecimal(Math.acos(number.intValue()));
-        return result;
-    }
 
     /**
      * 求反余弦函数

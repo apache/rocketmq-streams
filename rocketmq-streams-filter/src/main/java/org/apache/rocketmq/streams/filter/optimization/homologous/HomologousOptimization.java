@@ -28,14 +28,19 @@ import org.apache.rocketmq.streams.common.optimization.IHomologousOptimization;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
 import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 import org.apache.rocketmq.streams.filter.optimization.dependency.CommonExpression;
 import org.apache.rocketmq.streams.filter.optimization.dependency.DependencyTree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(IHomologousOptimization.class)
 public class HomologousOptimization implements IHomologousOptimization {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HomologousOptimization.class);
     protected transient HomologousCompute homologousCompute;
-    protected static Map<ChainPipeline,HomologousCompute> homologousComputeCache=new HashMap<>();
+    protected static Map<ChainPipeline<?>, HomologousCompute> homologousComputeCache = new HashMap<>();
 
     @Override
     public void optimizate(List<ChainPipeline<?>> pipelines, int cacheSize, int preFingerprintCacheSize) {
@@ -47,27 +52,27 @@ public class HomologousOptimization implements IHomologousOptimization {
             if (commonExpressionList != null) {
                 commonExpressions.addAll(commonExpressionList);
             }
-            printOptimizatePipeline(pipeline);
+            printOptimizePipeline(pipeline);
         }
         homologousCompute = new HomologousCompute(commonExpressions, cacheSize);
-        for(ChainPipeline chainPipeline:pipelines){
-            homologousComputeCache.put(chainPipeline,homologousCompute);
+        for (ChainPipeline<?> chainPipeline : pipelines) {
+            homologousComputeCache.put(chainPipeline, homologousCompute);
         }
     }
 
-
-    public HomologousCompute getHomologousCompute(ChainPipeline chainPipeline){
+    public HomologousCompute getHomologousCompute(ChainPipeline<?> chainPipeline) {
         return homologousComputeCache.get(chainPipeline);
     }
 
-
     @Override
     public void calculate(IMessage message, AbstractContext context) {
-        homologousCompute.calculate(message, context);
+        if (homologousCompute != null) {
+            homologousCompute.calculate(message, context);
+        }
+
     }
 
-    protected void printOptimizatePipeline(ChainPipeline<?> pipeline) {
-        System.out.println(pipeline.getConfigureName() + " finish optimizate, the detail is :");
+    protected void printOptimizePipeline(ChainPipeline<?> pipeline) {
         Map<String, Map<String, PreFingerprint>> prefingers = pipeline.getPreFingerprintExecutor();
         JSONObject detail = new JSONObject();
         for (String prefinger : prefingers.keySet()) {
@@ -77,7 +82,7 @@ public class HomologousOptimization implements IHomologousOptimization {
                 detail.put("prefiger." + (prefinger.equals(pipeline.getChannelName()) ? "source" : prefinger), preFingerprint.getLogFingerFieldNames());
             }
         }
-        System.out.println(JsonableUtil.formatJson(detail));
+        LOGGER.info("[{}][{}] Finish_Optimize_Detail_Is_[{}]", IdUtil.instanceId(), pipeline.getConfigureName(), JsonableUtil.formatJson(detail));
     }
 
 }

@@ -17,24 +17,24 @@
 
 package org.apache.rocketmq.streams.common.channel.impl.view;
 
+import java.util.List;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.topology.assigner.TaskAssigner;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.common.topology.task.TaskAssigner;
 
 public class ViewSource extends AbstractSource {
     protected String tableName;
 
-
     @Override
     public void addConfigurables(PipelineBuilder pipelineBuilder) {
-        TaskAssigner taskAssigner=new TaskAssigner();
+        TaskAssigner taskAssigner = new TaskAssigner();
         taskAssigner.setTaskName(tableName);
-        taskAssigner.setPipelineName(pipelineBuilder.getPipelineName());;
+        taskAssigner.setPipelineName(pipelineBuilder.getPipelineName());
+        ;
         pipelineBuilder.addConfigurables(taskAssigner);
         pipelineBuilder.addConfigurables(this);
     }
-
-
 
     @Override protected boolean startSource() {
         return true;
@@ -54,6 +54,10 @@ public class ViewSource extends AbstractSource {
 
     @Override protected boolean isNotDataSplit(String queueId) {
         return false;
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
     public String getTableName() {

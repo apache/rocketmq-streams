@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListTopicsResult;
@@ -36,9 +34,11 @@ import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.kafka.KafkaSplit;
 import org.apache.rocketmq.streams.kafka.source.KafkaSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaSink extends AbstractSupportShuffleSink {
-    private static final Log LOG = LogFactory.getLog(KafkaSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
 
     private transient KafkaProducer<String, String> kafkaProducer;
 
@@ -86,8 +86,8 @@ public class KafkaSink extends AbstractSupportShuffleSink {
             try {
                 kafkaProducer.close();
             } catch (Throwable t) {
-                if (LOG.isWarnEnabled()) {
-                    LOG.warn(t.getMessage(), t);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(t.getMessage(), t);
                 }
             }
         }
@@ -115,7 +115,7 @@ public class KafkaSink extends AbstractSupportShuffleSink {
             NewTopic newTopic = new NewTopic(topic, splitNum, (short) 1);
             adminClient.createTopics(Collections.singletonList(newTopic));
 
-            LOG.info("创建主题成功：" + topic);
+            LOGGER.info("创建主题成功：" + topic);
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
@@ -141,7 +141,7 @@ public class KafkaSink extends AbstractSupportShuffleSink {
     protected boolean putMessage2Mq(IMessage fieldName2Value) {
         try {
 
-            LOG.info(String.format("topic=%s, record=%s", topic, fieldName2Value.getMessageValue().toString()));
+            LOGGER.info(String.format("topic=%s, record=%s", topic, fieldName2Value.getMessageValue().toString()));
             ProducerRecord<String, String> records = new ProducerRecord<>(topic, fieldName2Value.getMessageValue().toString());
             kafkaProducer.send(records, (recordMetadata, e) -> {
                 if (e != null) {
@@ -151,7 +151,7 @@ public class KafkaSink extends AbstractSupportShuffleSink {
                 }
             });
         } catch (Exception e) {
-            LOG.error("send message error:" + fieldName2Value.getMessageValue().toString(), e);
+            LOGGER.error("send message error:" + fieldName2Value.getMessageValue().toString(), e);
             return false;
         }
         return true;

@@ -31,10 +31,10 @@ public class EmptyChainStage<T extends IMessage> extends AbstractStatelessChainS
             return proccessMessage(message,context);
         }
     };
-
     protected IMessage proccessMessage(IMessage message, AbstractContext context) {
         return message;
     }
+
     @Override public boolean isAsyncNode() {
         return false;
     }

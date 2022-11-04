@@ -95,7 +95,7 @@ public class ScriptServiceImpl implements IScriptService {
 
     @Override
     public void scanPackages(String... packageNames) {
-        functionService.scanePackages(packageNames);
+        functionService.scanPackages(packageNames);
     }
 
     @Override

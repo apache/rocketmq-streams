@@ -18,11 +18,12 @@ package org.apache.rocketmq.streams.common.checkpoint;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.common.model.Entity;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 /**
  * model for checkpoint，need save in store
  */
-public class CheckPoint<T> extends Entity {
+public class CheckPoint<T> extends Entity implements ISplitOffset{
 
     protected String sourceNamespace;
     protected String pipelineName;
@@ -34,8 +35,17 @@ public class CheckPoint<T> extends Entity {
 
     protected JSONObject content;
 
+    @Override public String getName() {
+        return MapKeyUtil.createKey(sourceNamespace,sourceName);
+    }
+
+    @Override
     public String getQueueId() {
         return queueId;
+    }
+
+    @Override public String getOffset() {
+        return data.toString();
     }
 
     public void setQueueId(String queueId) {

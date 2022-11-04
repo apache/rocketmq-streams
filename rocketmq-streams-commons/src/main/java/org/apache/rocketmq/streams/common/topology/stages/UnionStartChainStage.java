@@ -16,15 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 
 public class UnionStartChainStage extends EmptyChainStage {
@@ -38,7 +33,7 @@ public class UnionStartChainStage extends EmptyChainStage {
         if (CollectionUtil.isEmpty(msgSource2StageLables)) {
             return message;
         }
-        String msgSourceName = message.getHeader().getMsgRouteFromLable();
+        String msgSourceName = message.getHeader().getMsgRouteFromLabel();
         Set<String> lableNames=msgSource2StageLables.get(msgSourceName);
         if(lableNames!=null){
             for(String lableName:lableNames){
@@ -56,4 +51,5 @@ public class UnionStartChainStage extends EmptyChainStage {
     public void setMsgSource2StageLables(Map<String, Set<String>> msgSource2StageLables) {
         this.msgSource2StageLables = msgSource2StageLables;
     }
+
 }

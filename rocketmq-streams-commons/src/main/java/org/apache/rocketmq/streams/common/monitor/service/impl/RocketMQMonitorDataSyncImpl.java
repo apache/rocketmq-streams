@@ -19,11 +19,10 @@ package org.apache.rocketmq.streams.common.monitor.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -36,12 +35,13 @@ import org.apache.rocketmq.streams.common.monitor.model.JobStage;
 import org.apache.rocketmq.streams.common.monitor.model.TraceIdsDO;
 import org.apache.rocketmq.streams.common.monitor.model.TraceMonitorDO;
 import org.apache.rocketmq.streams.common.monitor.service.MonitorDataSyncService;
-import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RocketMQMonitorDataSyncImpl implements MonitorDataSyncService {
 
-    protected final Log LOG = LogFactory.getLog(RocketMQMonitorDataSyncImpl.class);
+    protected final Logger LOG = LoggerFactory.getLogger(RocketMQMonitorDataSyncImpl.class);
 
     public static final String QUERYVALIDTRACEID = "queryValidTraceId";
     public static final String UPDATEJOBSTAGE = "updateJobStage";
@@ -170,10 +170,26 @@ public class RocketMQMonitorDataSyncImpl implements MonitorDataSyncService {
             sendMsg(msg, ruleUpTopic);
         }
 
+//        protected void sendMsg(byte[] msg) {
+//            sendMsg(msg, ruleUpTopic);
+//        }
+
         protected void sendMsg(JSONObject msg, String topic) {
             try {
-                LOG.info("sendMsg is: " + msg.toJSONString() + "   topic is: " + topic + " tag is: " + ruleUpTag);
-                Message message = new Message(topic, ruleUpTag, null, msg.toJSONString().getBytes("UTF-8"));
+//                byte[] bytes = CompressUtil.gZip(msg.toJSONString());
+                byte[] bytes = msg.toJSONString().getBytes(StandardCharsets.UTF_8);
+                LOG.info("sendMsg is: " + msg.toJSONString() + "   topic is: " + topic + " tag is: " + ruleUpTag + "  byte length is " + bytes.length);
+                Message message = new Message(topic, ruleUpTag, null, bytes);
+                producer.send(message);
+            } catch (Exception e) {
+                LOG.error("updater sendMsg error: ", e);
+                e.printStackTrace();
+            }
+        }
+
+        protected void sendMsg(byte[] msg, String topic) {
+            try {
+                Message message = new Message(topic, ruleUpTag, null, msg);
                 producer.send(message);
             } catch (Exception e) {
                 LOG.error("updater sendMsg error: ", e);

@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
@@ -61,10 +59,12 @@ import org.apache.rocketmq.streams.filter.optimization.ExpressionOptimization;
 import org.apache.rocketmq.streams.filter.optimization.dependency.CommonExpression;
 import org.apache.rocketmq.streams.filter.optimization.dependency.StateLessDependencyTree;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Rule extends AbstractRule implements IAfterConfigurableRefreshListener,
     IStageBuilder<ChainStage> {
-    private static final Log LOG = LogFactory.getLog(Rule.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Rule.class);
     private transient volatile Map<String, Var> varMap = new HashMap<>();
     private transient volatile Map<String, Expression> expressionMap = new HashMap<>();
     @Deprecated
@@ -506,10 +506,10 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
      */
     public void optimize() {
         Expression root = createOptimizationRule();
-        if (!RelationExpression.class.isInstance(root)) {
-            return;
-        }
-        groupByChildrenExpression((RelationExpression) root);
+//        if (!RelationExpression.class.isInstance(root)) {
+//            return;
+//        }
+//        groupByChildrenExpression((RelationExpression) root);
     }
 
     /**
@@ -627,7 +627,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             }
         } catch (Exception e) {
             e.printStackTrace();
-            LOG.error("DefaultRuleEngine processExpress error,rule is: " + getConfigureName(), e);
+            LOGGER.error("DefaultRuleEngine processExpress error,rule is: " + getConfigureName(), e);
             return false;
         }
         return true;

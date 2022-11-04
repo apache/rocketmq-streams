@@ -28,8 +28,6 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
 
     /**
      * 获取sink的主题，在sls中是logStore，RocketMQ是topic
-     *
-     * @return
      */
     public abstract String getShuffleTopicFieldName();
 
@@ -40,8 +38,6 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
 
     /**
      * 获取所有的分片
-     *
-     * @return
      */
     public abstract List<ISplit<?, ?>> getSplitList();
 
@@ -67,7 +63,6 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-
                     hasCreated = true;
                 }
 

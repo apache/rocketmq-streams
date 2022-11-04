@@ -26,11 +26,11 @@ import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.dbinit.mysql.delegate.DBDelegate;
-import org.apache.rocketmq.streams.dbinit.mysql.delegate.DBDelegateFactory;
+import org.apache.rocketmq.streams.db.init.mysql.delegate.DBDelegate;
+import org.apache.rocketmq.streams.db.init.mysql.delegate.DBDelegateFactory;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
-import static org.apache.rocketmq.streams.db.driver.DriverBuilder.DEFALUT_JDBC_DRIVER;
+import static org.apache.rocketmq.streams.db.driver.DriverBuilder.DEFAULT_JDBC_DRIVER;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
@@ -48,7 +48,7 @@ public class RemoteCheckpointExample {
     static  {
         ComponentCreator.getProperties().put(ConfigureFileKey.CONNECT_TYPE, "DB");
         ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL, URL);
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_DRIVER, DEFALUT_JDBC_DRIVER);
+        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_DRIVER, DEFAULT_JDBC_DRIVER);
         ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME, USER_NAME);
         ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD, PASSWORD);
     }

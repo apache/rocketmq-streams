@@ -22,14 +22,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellUtil {
 
     private static final String SEPERATOR_LINE = "\r\n";
-    private static final Log LOG = LogFactory.getLog(ShellUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ShellUtil.class);
     private static final String ENV_CMD = "env";
 
     public static Map<String, String> exeENV() {

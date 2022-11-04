@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
@@ -35,7 +36,7 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 public class DistinctAccumulator implements IAccumulator<Set, DistinctAccumulator.DistinctAccum> {
 
     public static class DistinctAccum {
-        public Set values = Collections.synchronizedSet(new HashSet<>());
+        public Set values =new HashSet();
     }
 
     @Override

@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
@@ -54,8 +55,7 @@ public class ConfigurableUtil {
         }
     }
 
-    public static IConfigurable create(String className, String namespace, String name, JSONObject property,
-        JSONObject mock) {
+    public static IConfigurable create(String className, String namespace, String name, JSONObject property, JSONObject mock) {
         IConfigurable configurable = ConfigurableUtil.create(namespace, name, property, className);
         if (mock != null) {
             addMockData(mock, property);
@@ -64,9 +64,7 @@ public class ConfigurableUtil {
     }
 
     public static void addMockData(JSONObject mock, JSONObject property) {
-        Iterator<Map.Entry<String, Object>> it = mock.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Object> entry = it.next();
+        for (Map.Entry<String, Object> entry : mock.entrySet()) {
             String fieldName = entry.getKey();
             String value = (String) property.get(fieldName);
             if (StringUtil.isNotEmpty(value)) {
@@ -86,9 +84,9 @@ public class ConfigurableUtil {
         if (!configurable1.getConfigureName().equals(configurable2.getConfigureName())) {
             return false;
         }
-        if (BasedConfigurable.class.isInstance(configurable1) && BasedConfigurable.class.isInstance(configurable2)) {
-            BasedConfigurable abstractConfigurable1 = (BasedConfigurable)configurable1;
-            BasedConfigurable abstractConfigurable2 = (BasedConfigurable)configurable2;
+        if (configurable1 instanceof BasedConfigurable && configurable2 instanceof BasedConfigurable) {
+            BasedConfigurable abstractConfigurable1 = (BasedConfigurable) configurable1;
+            BasedConfigurable abstractConfigurable2 = (BasedConfigurable) configurable2;
             if (abstractConfigurable1.getUpdateFlag() == abstractConfigurable2.getUpdateFlag()) {
                 return true;
             } else {

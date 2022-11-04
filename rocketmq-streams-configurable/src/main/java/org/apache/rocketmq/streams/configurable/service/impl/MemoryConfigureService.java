@@ -83,7 +83,7 @@ public class MemoryConfigureService extends AbstractConfigurableService {
             }
         }
         if (AbstractConfigurable.class.isInstance(configurable)) {
-            ((AbstractConfigurable)configurable).setConfigurableService(this);
+            ((AbstractConfigurable) configurable).setConfigurableService(this);
         }
         if (removeIndex != -1) {
             list.remove(removeIndex);
@@ -113,8 +113,12 @@ public class MemoryConfigureService extends AbstractConfigurableService {
     }
 
     @Override
-    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type) {
-        refreshConfigurable(getNamespace());
+    public <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type, String namespace) {
+        refreshConfigurable(namespace);
         return queryConfigurableByType(type);
+    }
+
+    @Override public <T extends IConfigurable> T loadConfigurableFromStorage(String type, String configureName, String namespace) {
+        return null;
     }
 }

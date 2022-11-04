@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.metadata.MetaDataUtils;
 import org.apache.rocketmq.streams.connectors.reader.DBScanReader;
@@ -30,6 +28,8 @@ import org.apache.rocketmq.streams.connectors.reader.ISplitReader;
 import org.apache.rocketmq.streams.connectors.source.filter.DataFormatPatternFilter;
 import org.apache.rocketmq.streams.connectors.source.filter.PatternFilter;
 import org.apache.rocketmq.streams.db.DynamicMultipleDBSplit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description DynamicMultipleDBScanSource
@@ -37,7 +37,7 @@ import org.apache.rocketmq.streams.db.DynamicMultipleDBSplit;
 public class DynamicMultipleDBScanSource extends AbstractPullSource implements Serializable {
 
     private static final long serialVersionUID = 3987103552547019739L;
-    private static final Log logger = LogFactory.getLog(DynamicMultipleDBScanSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DynamicMultipleDBScanSource.class);
     public static final int DEFAULT_BATCH_SIZE = 50;
     public static final int MAX_BATCH_SIZE = 100;
 
@@ -48,7 +48,7 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
     String suffix;
     int batchSize;
     List<String> tableNames;
-    List<ISplit> splits;
+    List<ISplit<?, ?>> splits;
     transient volatile AtomicBoolean statusCheckerStart = new AtomicBoolean(false);
 
     //todo
@@ -58,19 +58,20 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
         splits = new ArrayList<>();
     }
 
-    @Override
-    protected boolean initConfigurable() {
+    @Override protected boolean initConfigurable() {
         setTopic(logicTableName);
         return super.initConfigurable();
     }
 
-    @Override
-    protected boolean isNotDataSplit(String queueId) {
+    @Override protected boolean isNotDataSplit(String queueId) {
         return tableNames.contains(queueId);
     }
 
-    @Override
-    protected ISplitReader createSplitReader(ISplit split) {
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
+    }
+
+    @Override protected ISplitReader createSplitReader(ISplit split) {
 
         DBScanReader reader = new DBScanReader();
         reader.setISplit(split);
@@ -79,15 +80,14 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
         reader.setPassword(password);
         reader.setTableName(String.valueOf(split.getQueue()));
         int local = batchSize <= 0 ? DEFAULT_BATCH_SIZE : batchSize;
-        local = local > MAX_BATCH_SIZE ? MAX_BATCH_SIZE : local;
+        local = Math.min(local, MAX_BATCH_SIZE);
         reader.setBatchSize(local);
         reader.setISource(this);
-        logger.info(String.format("create reader for split %s", split.getQueueId()));
+        LOGGER.info(String.format("create reader for split %s", split.getQueueId()));
         return reader;
     }
 
-    @Override
-    public List<ISplit> fetchAllSplits() {
+    @Override public List<ISplit<?, ?>> fetchAllSplits() {
 
         if (filter == null) {
             filter = new DataFormatPatternFilter();
@@ -97,18 +97,18 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
 
         tableNames = MetaDataUtils.listTableNameByPattern(url, userName, password, logicTableName + "%");
 
-        logger.info(String.format("load all logic table : %s", Arrays.toString(tableNames.toArray())));
+        LOGGER.info(String.format("load all logic table : %s", Arrays.toString(tableNames.toArray())));
 
         for (String s : tableNames) {
             String suffix = s.replace(logicTableName + "_", "");
             if (filter.filter(null, logicTableName, suffix)) {
-                logger.info(String.format("filter add %s", s));
+                LOGGER.info(String.format("filter add %s", s));
                 DynamicMultipleDBSplit split = new DynamicMultipleDBSplit();
                 split.setLogicTableName(logicTableName);
                 split.setSuffix(suffix);
                 splits.add(split);
             } else {
-                logger.info(String.format("filter remove %s", s));
+                LOGGER.info(String.format("filter remove %s", s));
             }
 
         }
@@ -171,11 +171,11 @@ public class DynamicMultipleDBScanSource extends AbstractPullSource implements S
         this.tableNames = tableNames;
     }
 
-    public List<ISplit> getSplits() {
+    public List<ISplit<?, ?>> getSplits() {
         return splits;
     }
 
-    public void setSplits(List<ISplit> splits) {
+    public void setSplits(List<ISplit<?, ?>> splits) {
         this.splits = splits;
     }
 

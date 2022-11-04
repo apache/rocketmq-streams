@@ -16,17 +16,15 @@
  */
 package org.apache.rocketmq.streams.window.util;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.shuffle.IShuffleKeyGenerator;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShuffleUtil {
-    private static final Log LOG = LogFactory.getLog(ShuffleUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShuffleUtil.class);
     public static IMessage createShuffleMsg(IMessage msg, String shuffleKey,JSONObject msgHeader){
         if (msg.getHeader().isSystemMessage()) {
             return null;
@@ -34,7 +32,7 @@ public class ShuffleUtil {
 
         if (StringUtil.isEmpty(shuffleKey)) {
             shuffleKey = "<null>";
-            LOG.debug("there is no group by value in message! " + msg.getMessageBody().toString());
+            LOGGER.debug("there is no group by value in message! " + msg.getMessageBody().toString());
             //continue;
         }
 

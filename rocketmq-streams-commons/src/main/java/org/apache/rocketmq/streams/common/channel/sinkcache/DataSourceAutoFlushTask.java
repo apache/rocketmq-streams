@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.common.channel.sinkcache;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.schedule.IScheduleCondition;
 
 /**
@@ -25,7 +23,6 @@ import org.apache.rocketmq.streams.common.schedule.IScheduleCondition;
  */
 public class DataSourceAutoFlushTask implements Runnable, IScheduleCondition {
 
-    private static final Log LOG = LogFactory.getLog(DataSourceAutoFlushTask.class);
 
     private volatile boolean isAutoFlush = false;
     private final IMessageCache<?> messageCache;

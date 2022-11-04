@@ -18,8 +18,10 @@ package org.apache.rocketmq.streams.common.utils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @SuppressWarnings("rawtypes")
 public final class CollectionUtil {
@@ -60,6 +62,24 @@ public final class CollectionUtil {
             }
         }
         return list;
+    }
+
+    public  static <T> void put2Set(Map<String, Set<T>> map,String key,T value){
+        Set<T> set=map.get(key);
+        if(set==null){
+            set=new HashSet<T>();
+            map.put(key,set);
+        }
+        set.add(value);
+    }
+
+    public  static <T> void put2List(Map<String, List<T>> map,String key,T value){
+        List<T> set=map.get(key);
+        if(set==null){
+            set=new ArrayList<>();
+            map.put(key,set);
+        }
+        set.add(value);
     }
 
 }

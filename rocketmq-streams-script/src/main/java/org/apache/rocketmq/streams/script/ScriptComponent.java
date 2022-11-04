@@ -31,8 +31,6 @@ import org.apache.rocketmq.streams.script.service.impl.ScriptServiceImpl;
  */
 public class ScriptComponent extends AbstractComponent<IScriptService> implements IgnoreNameSpace {
 
-    private static final Log LOG = LogFactory.getLog(ScriptComponent.class);
-
     private static final ScriptComponent scriptComponent = ComponentCreator.getComponent(null, ScriptComponent.class);
     /**
      * 所有实现IScriptInit接口的对象和method
@@ -47,8 +45,8 @@ public class ScriptComponent extends AbstractComponent<IScriptService> implement
 
     @Override
     public boolean startComponent(String namespace) {
-        functionService.scanePackage("org.apache.rocketmq.streams.script.function.impl");
-        functionService.scanePackage("org.apache.rocketmq.streams.dim.function.script");
+//        functionService.scanPackage("org.apache.rocketmq.streams.script.function.impl");
+//        functionService.scanPackage("org.apache.rocketmq.streams.dim.function.script");
         return true;
     }
 

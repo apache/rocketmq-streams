@@ -19,13 +19,10 @@ package org.apache.rocketmq.streams.script.operator.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -45,23 +42,25 @@ import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * * 对外提供的脚本算子，通过输入脚本，来实现业务逻辑 * 脚本存储的成员变量是value字段
  */
 public class FunctionScript extends AbstractScript<List<IMessage>, FunctionContext> implements IStreamOperator<IMessage, List<IMessage>>, IStageBuilder<ChainStage>, IAfterConfigurableRefreshListener {
 
-    private static final Log LOG = LogFactory.getLog(FunctionScript.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FunctionScript.class);
 
     /**
      * 脚本解析的表达式列表
      */
-    private transient List<IScriptExpression> scriptExpressions = new ArrayList<IScriptExpression>();
+    private transient List<IScriptExpression> scriptExpressions = new ArrayList<>();
     //protected transient ScriptExpressionGroupsProxy scriptExpressionGroupsProxy;
     /**
      * 表达式，转化成streamoperator接口列表，可以在上层中使用
      */
-    private transient List<IBaseStreamOperator<IMessage, IMessage, FunctionContext>> receivers = new ArrayList<>();
+    private transient List<IBaseStreamOperator<IMessage, IMessage, FunctionContext<?>>> receivers = new ArrayList<>();
 
     protected transient IScriptOptimization.IOptimizationCompiler optimizationCompiler;
 
@@ -80,15 +79,16 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
     @Override
     protected boolean initConfigurable() {
         String value = this.value;
-        /**
-         * 健壮性检查，对于不符合规范的字符做转型
+        /*
+          健壮性检查，对于不符合规范的字符做转型
          */
         value = value.replace("’", "'");
         value = value.replace("‘", "'");
         value = value.replace("’", "'");
         this.scriptExpressions = FunctionParser.getInstance().parse(value);
+
         //转化成istreamoperator 接口
-        for (IScriptExpression scriptExpression : this.scriptExpressions) {
+        for (IScriptExpression<?> scriptExpression : this.scriptExpressions) {
             receivers.add((message, context) -> {
                 scriptExpression.executeExpression(message, context);
                 return message;
@@ -135,14 +135,8 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
                 Set<String> newFieldNames = scriptExpression.getNewFieldNames();
                 if (newFieldNames != null && newFieldNames.size() > 0) {
                     List<String> fieldNames = scriptExpression.getDependentFields();
-                    Iterator<String> it = newFieldNames.iterator();
-                    while (it.hasNext()) {
-                        String newFieldName = it.next();
-                        List<String> list = newFieldName2DependentFields.get(newFieldName);
-                        if (list == null) {
-                            list = new ArrayList<>();
-                            newFieldName2DependentFields.put(newFieldName, list);
-                        }
+                    for (String newFieldName : newFieldNames) {
+                        List<String> list = newFieldName2DependentFields.computeIfAbsent(newFieldName, k -> new ArrayList<>());
                         if (fieldNames != null) {
                             list.addAll(fieldNames);
                         }
@@ -174,7 +168,7 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
         return parameterSet.toArray(new String[0]);
     }
 
-    protected transient Map<String, IScriptExpression> name2ScriptExpressions = null;
+    protected transient Map<String, IScriptExpression<?>> name2ScriptExpressions = null;
 
     /**
      * 跟定字段，查找对应的脚本
@@ -187,9 +181,9 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
         if (name2ScriptExpressions == null) {
             synchronized (this) {
                 if (name2ScriptExpressions == null) {
-                    Map<String, IScriptExpression> map = new HashMap<>();
-                    for (IScriptExpression expression : this.scriptExpressions) {
-                        if (ScriptExpression.class.isInstance(expression)) {
+                    Map<String, IScriptExpression<?>> map = new HashMap<>();
+                    for (IScriptExpression<?> expression : this.scriptExpressions) {
+                        if (expression instanceof ScriptExpression) {
                             ScriptExpression scriptExpression = (ScriptExpression) expression;
                             if (scriptExpression.getNewFieldName() != null) {
                                 map.put(scriptExpression.getNewFieldName(), scriptExpression);
@@ -255,17 +249,17 @@ public class FunctionScript extends AbstractScript<List<IMessage>, FunctionConte
             }
 
             if (this.scriptExpressions == null) {
-                LOG.debug("empty function");
+                LOGGER.debug("empty function");
             } else {
                 List<IScriptExpression> expressions = this.scriptExpressions;
                 if (scriptOptimization != null) {
                     this.optimizationCompiler = scriptOptimization.compile(this.scriptExpressions, this);
                     expressions = this.optimizationCompiler.getOptimizationExpressionList();
                 }
-                this.scriptExpressions = expressions;
-                List<IBaseStreamOperator<IMessage, IMessage, FunctionContext>> newReceiver = new ArrayList<>();
+                // this.scriptExpressions = expressions;
+                List<IBaseStreamOperator<IMessage, IMessage, FunctionContext<?>>> newReceiver = new ArrayList<>();
                 //转化成istreamoperator 接口
-                for (IScriptExpression scriptExpression : expressions) {
+                for (IScriptExpression<?> scriptExpression : expressions) {
                     newReceiver.add((message, context) -> {
                         scriptExpression.executeExpression(message, context);
                         return message;

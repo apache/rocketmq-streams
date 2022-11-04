@@ -17,21 +17,22 @@
 package org.apache.rocketmq.streams.checkpoint.db;
 
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.checkpoint.AbstractCheckPointStorage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPoint;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
+import org.apache.rocketmq.streams.common.checkpoint.ISplitOffset;
 import org.apache.rocketmq.streams.common.checkpoint.SourceSnapShot;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description
  */
 public class DBCheckPointStorage extends AbstractCheckPointStorage {
 
-    static final Log logger = LogFactory.getLog(DBCheckPointStorage.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(DBCheckPointStorage.class);
     static final String STORAGE_NAME = "DB";
 
     public DBCheckPointStorage() {
@@ -44,8 +45,8 @@ public class DBCheckPointStorage extends AbstractCheckPointStorage {
     }
 
     @Override
-    public <T> void save(List<T> checkPointState) {
-        logger.info(String.format("save checkpoint size %d", checkPointState.size()));
+    public <T extends ISplitOffset> void save(List<T> checkPointState) {
+        LOGGER.info(String.format("save checkpoint size %d", checkPointState.size()));
         ORMUtil.batchReplaceInto(checkPointState);
     }
 
@@ -56,13 +57,13 @@ public class DBCheckPointStorage extends AbstractCheckPointStorage {
 
     @Override
     //todo
-    public CheckPoint recover(ISource iSource, String queueId) {
+    public ISplitOffset recover(ISource iSource, String queueId) {
         String sourceName = CheckPointManager.createSourceName(iSource, null);
         String key = CheckPointManager.createCheckPointKey(sourceName, queueId);
         String sql = "select * from source_snap_shot where `key` = " + "'" + key + "';";
         SourceSnapShot snapShot = ORMUtil.queryForObject(sql, null, SourceSnapShot.class);
 
-        logger.info(String.format("checkpoint recover key is %s, sql is %s, recover sourceSnapShot : %s", key, sql, snapShot == null ? "null snapShot" : snapShot.toString()));
+        LOGGER.info(String.format("checkpoint recover key is %s, sql is %s, recover sourceSnapShot : %s", key, sql, snapShot == null ? "null snapShot" : snapShot.toString()));
         return new CheckPoint().fromSnapShot(snapShot);
     }
 }

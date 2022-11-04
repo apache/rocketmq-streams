@@ -30,7 +30,7 @@ public interface ISplitReader extends Serializable {
      * @param split the split
      * @throws IOException the io exception
      */
-    void open(ISplit split);
+    void open(ISplit<?, ?> split);
 
     /**
      * Next boolean.
@@ -46,7 +46,7 @@ public interface ISplitReader extends Serializable {
      *
      * @return the message
      */
-    List<PullMessage> getMessage();
+    List<PullMessage<?>> getMessage();
 
     /**
      * Close.
@@ -87,10 +87,12 @@ public interface ISplitReader extends Serializable {
 
     boolean isClose();
 
-    ISplit getSplit();
+    ISplit<?, ?> getSplit();
 
     boolean isInterrupt();
 
     boolean interrupt();
+
+    void finish();
 
 }

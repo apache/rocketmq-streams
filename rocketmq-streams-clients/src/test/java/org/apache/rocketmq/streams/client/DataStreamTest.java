@@ -28,8 +28,13 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.functions.ForEachMessageFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.script.ScriptComponent;
+import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,6 +52,18 @@ public class DataStreamTest implements Serializable {
         dataStream
             .fromFile("/Users/junjie.cheng/test.sql", false)
             .map(message -> message + "--")
+            .forEachMessage(new ForEachMessageFunction() {
+                @Override public void foreach(IMessage message, AbstractContext context) {
+                    FunctionContext functionContext=new FunctionContext(message);
+                    functionContext.syncSubContext(context);
+                    Object value=ScriptComponent.getInstance().getFunctionService().
+                        executeFunction(message,functionContext,"函数名，用FunctionMethod里面的value或alias","参数，" +
+                            "如果是json的变量直接写变量名，如果是常量加单引号,可以是多个");
+
+                    String nowTime=ScriptComponent.getInstance().getFunctionService().executeFunction(message,functionContext,"now");
+                    context.syncContext(functionContext);
+                }
+            })
             .toPrint(1)
             .start();
     }

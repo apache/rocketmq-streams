@@ -41,13 +41,15 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 主要用于写db，输入可以是一个insert/replace 模版，也可以是metadata对象，二者选一即可。都支持批量插入，提高吞吐 sql 模版：insert into table(column1,column2,column3)values('#{var1}',#{var2},'#{var3}') MetaData:主要是描述每个字段的类型，是否必须 二者选一个即可。sql模式，系统会把一批（batchSize）数据拼成一个大sql。metadata模式，基于字段描述，最终也是拼成一个大sql
  */
 public class DBSink extends AbstractSink {
 
-    static final Log logger = LogFactory.getLog(DBSink.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(DBSink.class);
 
     public static final String SQL_MODE_DEFAULT = "default";
     public static final String SQL_MODE_REPLACE = "replace";
@@ -154,7 +156,7 @@ public class DBSink extends AbstractSink {
         this.sqlCache = new MessageCache<>(sqls -> {
             JDBCDriver dataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
             try {
-                dataSource.executSqls(sqls);
+                dataSource.executeSqls(sqls);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
@@ -224,7 +226,7 @@ public class DBSink extends AbstractSink {
                 this.sqlCache.addCache(sql);
             }
         } else {
-            dbDataSource.executSqls(sqls);
+            dbDataSource.executeSqls(sqls);
         }
     }
 
@@ -352,11 +354,11 @@ public class DBSink extends AbstractSink {
         String createTableSql = MetaDataUtils.getCreateTableSqlByTableName(url, userName, password, sourceTableName);
         if (createTableSql == null) {
             String errMsg = String.format("source table is not exist. multiple db sink must be dependency logic table meta for auto create sub table. logic table name is ", sourceTableName);
-            logger.error(errMsg);
+            LOGGER.error(errMsg);
             throw new RuntimeException(errMsg);
         }
         createTableSql = createTableSql.replace(sourceTableName, targetTableName);
-        logger.info(String.format("createTableSql is %s", createTableSql));
+        LOGGER.info(String.format("createTableSql is %s", createTableSql));
         return createTableSql;
 
     }

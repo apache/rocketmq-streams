@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.junit.Test;
 
@@ -57,5 +58,18 @@ public class FileTest {
         }
         lines.add("");
         FileUtil.write("/tmp/file.txt", lines);
+    }
+
+    @Test
+    public void testt(){
+        try {
+            IConfigurable configurable = (IConfigurable) Class.forName("org.apache.rocketmq.streams.common.topology.stages.FilterChainStage").newInstance();
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

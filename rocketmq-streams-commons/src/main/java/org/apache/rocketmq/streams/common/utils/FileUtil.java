@@ -26,7 +26,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -37,19 +36,13 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-//import org.apache.http.client.config.RequestConfig;
-//import org.apache.http.client.methods.CloseableHttpResponse;
-//import org.apache.http.client.methods.HttpGet;
-//import org.apache.http.impl.client.CloseableHttpClient;
-//import org.apache.http.impl.client.HttpClients;
-//import org.apache.log4j.lf5.util.StreamUtils;
 import org.apache.rocketmq.streams.common.interfaces.ILineMessageProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileUtil {
 
-    private static final Log LOG = LogFactory.getLog(FileUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FileUtil.class);
 
     public static final String LINE_SIGN = System.getProperty("line.separator");
 
@@ -88,7 +81,7 @@ public class FileUtil {
     public static String getJarPath() {
         String path = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         if (path.endsWith(".jar")) {
-            int startInde = path.lastIndexOf(File.separator);
+            int startInde = path.lastIndexOf(".");
             path = path.substring(0, startInde);
             return path;
         }
@@ -156,7 +149,7 @@ public class FileUtil {
     }
 
     public static List<File> getFileFromResoure2Target(String targetDir, String dirName, Class clazz,
-        String fileNameRegex, boolean supportNesting) {
+                                                       String fileNameRegex, boolean supportNesting) {
         URL url = clazz.getClassLoader().getResource(dirName);
         if (url == null) {
             return null;
@@ -165,7 +158,7 @@ public class FileUtil {
     }
 
     public static List<File> getFileFromDir2Target(String targetDir, String dirName, String fileNameRegex,
-        boolean supportNesting) {
+                                                   boolean supportNesting) {
         File dir = new File(dirName);
         File[] files = dir.listFiles();
         if (files == null) {
@@ -206,7 +199,7 @@ public class FileUtil {
      * @return
      */
     public static List<File> getFileFromJar2Target(String targetDir, String dirName, Class clazz, String fileNameRegex,
-        boolean supportNesting) {
+                                                   boolean supportNesting) {
         URL url = null;
         BufferedReader br = null;
         BufferedWriter bw = null;
@@ -215,7 +208,7 @@ public class FileUtil {
             if (url == null) {
                 return null;
             }
-            JarURLConnection jarURLConnection = (JarURLConnection) url.openConnection();
+            JarURLConnection jarURLConnection = (JarURLConnection)url.openConnection();
             JarFile jarFile = jarURLConnection.getJarFile();
             Enumeration<JarEntry> entries = jarFile.entries();
             List<File> fileList = new ArrayList<>();
@@ -571,6 +564,7 @@ public class FileUtil {
                 return false;
             }
 
+
             for (String row : rows) {
                 bw.write(row + LINE_SIGN);
             }
@@ -759,7 +753,7 @@ public class FileUtil {
         URL url = getJarFileURL(fileName);
         JarURLConnection jarConnection = null;
         try {
-            jarConnection = (JarURLConnection) url
+            jarConnection = (JarURLConnection)url
                 .openConnection();
             InputStream in = jarConnection.getInputStream();
             return in;
@@ -1020,10 +1014,12 @@ public class FileUtil {
 ////        return dest_file+File.separator+fileName;
 //    }
 
-    public static void downloadNet(String packageUrl, String destPath) {
+    public static void downloadNet(String packageUrl, String destPath)  {
         // 下载网络文件
         int bytesum = 0;
         int byteread = 0;
+
+
 
         try {
             URL url = new URL(packageUrl);
@@ -1036,7 +1032,7 @@ public class FileUtil {
             while ((byteread = inStream.read(buffer)) != -1) {
                 bytesum += byteread;
                 System.out.println(bytesum);
-                fs.write(buffer, 0, byteread);
+                fs.write(buffer, 0 , byteread);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();

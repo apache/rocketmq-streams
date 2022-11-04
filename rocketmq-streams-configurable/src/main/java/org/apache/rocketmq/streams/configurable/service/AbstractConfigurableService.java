@@ -19,32 +19,35 @@ package org.apache.rocketmq.streams.configurable.service;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.interfaces.IConfigurablePropertySetter;
 import org.apache.rocketmq.streams.common.model.Entity;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.configurable.model.Configure;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractConfigurableService implements IConfigurableService {
 
-    private static final Log LOG = LogFactory.getLog(AbstractConfigurableService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractConfigurableService.class);
 
     private static final String CLASS_NAME = IConfigurableService.CLASS_NAME;
 
@@ -123,14 +126,13 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         if (configures != null && configures.isQuerySuccess() && configures.getConfigurables() != null) {
             List<IConfigurable> configurables = configures.getConfigurables();
             if (configurables != null && !configurables.isEmpty()) {
-                checkAndUpdateConfigurables(configurables, tempType2ConfigurableMap, tempName2ConfigurableMap);
-                for (IConfigurable configurable : this.name2ConfigurableMap.values()) {
+                List<IConfigurable> updateConfigurables = checkAndUpdateConfigurables(configurables, tempType2ConfigurableMap, tempName2ConfigurableMap);
+                for (IConfigurable configurable : updateConfigurables) {
                     if (configurable instanceof IAfterConfigurableRefreshListener) {
                         ((IAfterConfigurableRefreshListener) configurable).doProcessAfterRefreshConfigurable(this);
                     }
                 }
             }
-
             return true;
         }
         return false;
@@ -149,7 +151,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
                     configurableList.add(configurable);
                 }
             } catch (Exception e) {
-                LOG.error("组件初始化异常：" + e.getMessage() + ",name=" + configurable.getConfigureName(), e);
+                LOGGER.error("组件初始化异常：" + e.getMessage() + ",name=" + configurable.getConfigureName(), e);
             }
         }
         destroyOldConfigurables(tempName2ConfigurableMap);
@@ -166,12 +168,15 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
                 destroyOldConfigurable(value);
             }
         }
-
     }
 
     private void destroyOldConfigurable(IConfigurable oldConfigurable) {
         if (oldConfigurable instanceof AbstractConfigurable) {
-            oldConfigurable.destroy();
+            try {
+                oldConfigurable.destroy();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         String key = getConfigureKey(oldConfigurable.getNameSpace(), oldConfigurable.getType(), oldConfigurable.getConfigureName());
         configurableMap.remove(key);
@@ -198,18 +203,22 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
             }
         }
         if (polingTime > 0) {
-            scheduledExecutorService = new ScheduledThreadPoolExecutor(3);
-            scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
-
-                @Override public void run() {
-                    try {
-                        refreshConfigurable(namespace);
-                    } catch (Exception e) {
-                        LOG.error("Load configurables error:" + e.getMessage(), e);
-                    }
+            if (scheduledExecutorService == null) {
+                scheduledExecutorService = ThreadPoolFactory.createScheduledThreadPool(3, AbstractConfigurableService.class.getName() + "-" + namespace);
+            }
+            scheduledExecutorService.scheduleWithFixedDelay(() -> {
+                try {
+                    refreshConfigurable(namespace);
+                } catch (Exception e) {
+                    LOGGER.error("Load configurables error:" + e.getMessage(), e);
                 }
             }, polingTime, polingTime, TimeUnit.SECONDS);
         }
+    }
+
+    @Override public IConfigurable refreshConfigurable(String type, String name) {
+        refreshConfigurable(this.namespace);
+        return this.queryConfigurable(type, name);
     }
 
     @Override public List<IConfigurable> queryConfigurable(String type) {
@@ -225,19 +234,30 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
     /**
      * 根据namespace加载配置信息
      *
-     * @param namespace
-     * @return
-     * @throws Exception
+     * @param namespace namespace
+     * @return ConfigureResult
      */
     protected abstract GetConfigureResult loadConfigurable(String namespace);
 
     @Override public void update(IConfigurable configurable) {
+        if (configurable instanceof Entity) {
+            Entity entity = (Entity) configurable;
+            entity.setGmtModified(new Date());
+        }
         updateConfigurable(configurable);
     }
 
     protected abstract void updateConfigurable(IConfigurable configurable);
 
     protected abstract void insertConfigurable(IConfigurable configurable);
+
+    @Override public void insertToCache(IConfigurable configurable) {
+        insertConfigurable(configurable);
+    }
+
+    @Override public void flushCache() {
+
+    }
 
     protected boolean update(IConfigurable configurable, Map<String, IConfigurable> name2ConfigurableMap, Map<String, List<IConfigurable>> type2ConfigurableMap) {
         if (configurable == null) {
@@ -247,14 +267,18 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
         boolean isUpdate = false;
         List<IConfigurable> configurableList = new ArrayList<>();
         configurableList.add(configurable);
-
         String nameKey = MapKeyUtil.createKey(configurable.getType(), configurable.getConfigureName());
         if (this.name2ConfigurableMap.containsKey(nameKey)) {
             String configureKey = getConfigureKey(namespace, configurable.getType(), configurable.getConfigureName());
             IConfigurable oldConfigurable = this.name2ConfigurableMap.get(nameKey);
             if (equals(configureKey, configurableList)) {
+                if (IConfigurablePropertySetter.class.isAssignableFrom(oldConfigurable.getClass())) {
+                    IConfigurablePropertySetter configurablePropertySetter = (IConfigurablePropertySetter) oldConfigurable;
+                    configurablePropertySetter.setConfigurableProperty(configurable);
+                }
                 configurable = oldConfigurable;
             } else {
+                LOGGER.info("[{}][{}][{}] Configurable_Changed_Old({})_New({})", IdUtil.instanceId(), oldConfigurable.getConfigureName(), configurable.getConfigureName(), oldConfigurable.toJson(), configurable.toJson());
                 destroyOldConfigurable(oldConfigurable);
                 initConfigurable(configurable);
                 isUpdate = true;
@@ -271,6 +295,12 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
     }
 
     @Override public void insert(IConfigurable configurable) {
+        if (configurable instanceof Entity) {
+            Entity entity = (Entity) configurable;
+            Date now = new Date();
+            entity.setGmtModified(now);
+            entity.setGmtCreate(now);
+        }
         insertConfigurable(configurable);
     }
 
@@ -353,17 +383,16 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
      * @param configures
      * @return
      */
-    protected List<IConfigurable> convert(List<Configure> configures) {
-        if (configures == null) {
-            return new ArrayList<IConfigurable>();
-        }
-        List<IConfigurable> configurables = new ArrayList<IConfigurable>();
-        for (Configure configure : configures) {
-            IConfigurable configurable = convert(configure);
-            if (configurable != null) {
-                configurables.add(configurable);
-            }
 
+    protected List<IConfigurable> convert(List<Configure> configures) {
+        List<IConfigurable> configurables = new ArrayList<IConfigurable>();
+        if (configures != null) {
+            for (Configure configure : configures) {
+                IConfigurable configurable = convert(configure);
+                if (configurable != null) {
+                    configurables.add(configurable);
+                }
+            }
         }
         return configurables;
     }
@@ -419,7 +448,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
             convertPost(configurable);
             return configurable;
         } catch (Exception e) {
-            LOG.error("转换异常：" + configure.toString(), e);
+            LOGGER.error("转换异常：" + configure.toString(), e);
             return null;
         }
     }
@@ -459,7 +488,7 @@ public abstract class AbstractConfigurableService implements IConfigurableServic
                 ReflectUtil.setBeanFieldValue(configurable, fieldName, fieldValue);
 
             } catch (Exception e) {
-                LOG.error("convert post error " + fieldName2Value, e);
+                LOGGER.error("convert post error " + fieldName2Value, e);
             }
         }
     }

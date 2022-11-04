@@ -16,14 +16,10 @@
  */
 package org.apache.rocketmq.streams.common.topology.model;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
 public abstract class IStageHandle<T extends IMessage> implements ILifeCycle<T> {
-
-    private static final Log LOG = LogFactory.getLog(IStageHandle.class);
 
     @Override
     public T doMessage(T t, AbstractContext context) {

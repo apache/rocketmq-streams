@@ -21,13 +21,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.model.NameCreator;
 
 public class ContantsUtil {
     private static final List<String> CONSTANTS_SIGNS = new ArrayList<>();//对于特殊字符优先处理，里面存储需要特殊处理的字符
     private static final Map<String, String> CONSTANTS_SIGNS_REPLACE = new HashMap<>();// 特殊字符和替换字符的映射
     private static final Map<String, String> CONSTANTS_REPLACE_SIGNS = new HashMap<>();//替换字符和特殊字符的映射
-    private static final NameCreator EscapesNameCreator=new NameCreator();
+
     static {
         CONSTANTS_SIGNS.add("\\\\");
         CONSTANTS_SIGNS.add("\\\"");
@@ -52,23 +51,6 @@ public class ContantsUtil {
         CONSTANTS_REPLACE_SIGNS.put("#######", "'");
     }
 
-    public static String replaceEscape(String str,Map<String,String> flag2Escapes){
-        int index=str.indexOf("\\");
-        if(index==-1){
-            return str;
-        }
-        String word=str.substring(index,index+1);
-        String flag= EscapesNameCreator.createName("escapes");
-        str=str.substring(0,index)+flag+str.substring(index+1);
-        return replaceEscape(str,flag2Escapes);
-    }
-    public static void main(String[] args) {
-        String str = "34432\"fs";
-        Map<String, String> replaceEscape = new HashMap<>(16);
-        String value = replaceEscape(str, replaceEscape);
-        System.out.println(value);
-    }
-
     /**
      * 替换特殊字符为替换字符串
      *
@@ -81,6 +63,23 @@ public class ContantsUtil {
         }
         return str;
     }
+
+    public static String getConstant(String fieldName) {
+        if (StringUtil.isEmpty(fieldName)) {
+            return fieldName;
+        }
+        // fieldName = fieldName.trim();
+        if (fieldName.startsWith("'") && fieldName.endsWith("'")) {
+            if (fieldName.equals("''")) {
+                return "";
+            }else if(fieldName.equals("'")){
+                return fieldName;
+            }
+            return fieldName.substring(1, fieldName.length() - 1);
+        }
+        return fieldName;
+    }
+
 
     public static String restoreSpecialSign(String str) {
         for (String sign : CONSTANTS_REPLACE_SIGNS.keySet()) {
@@ -265,9 +264,13 @@ public class ContantsUtil {
     public static String createConsKey(int flag) {
         String tmp = flag + "";
         if (flag < 10) {
-            tmp = "00" + tmp;
+            tmp = "0000" + tmp;
         } else if (flag < 100) {
-            tmp = "0" + tmp;
+            tmp = "000" + tmp;
+        }else if(flag<1000){
+            tmp="00"+tmp;
+        }else if(flag<10000){
+            tmp="0"+tmp;
         }
         return "constants_para_" + tmp;
     }
@@ -275,9 +278,13 @@ public class ContantsUtil {
     public static String createFlagKey(int flag) {
         String tmp = flag + "";
         if (flag < 10) {
-            tmp = "00" + tmp;
+            tmp = "0000" + tmp;
         } else if (flag < 100) {
-            tmp = "0" + tmp;
+            tmp = "000" + tmp;
+        }else if(flag<1000){
+            tmp="00"+tmp;
+        }else if(flag<10000){
+            tmp="0"+tmp;
         }
         return "constants_" + tmp;
     }
@@ -346,7 +353,18 @@ public class ContantsUtil {
         return true;
     }
 
-
+    public static void main(String[] args) {
+        String str = "splitarray('da''fsfds''ta','fdsdfs')";
+        Map<String, String> flag2ExpressionStr = new HashMap<>(16);
+        String value = doConstantReplace(str, flag2ExpressionStr, 1);
+        String[] values = value.split(",");
+        int i = 0;
+        for (String v : values) {
+            values[i] = restore(v, flag2ExpressionStr);
+            System.out.println(values[i]);
+        }
+        System.out.println(value);
+    }
 
     public static boolean containContant(String jsonValue) {
         if (isContant(jsonValue)) {

@@ -30,10 +30,12 @@ import org.apache.rocketmq.streams.common.cache.compress.KVAddress;
 import org.apache.rocketmq.streams.common.cache.compress.impl.MapAddressListKV;
 import org.apache.rocketmq.streams.common.datatype.IntDataType;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DimIndex {
 
-    private static final Log LOG = LogFactory.getLog(DimIndex.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DimIndex.class);
 
     /**
      * 索引字段名，支持多个索引，每个索引一行，支持组合索引，多个字段用；拼接 name 单索引 name;age 组合索引
@@ -113,13 +115,11 @@ public class DimIndex {
             addRowIndex(row.getRow(), mapAddress, tableCompress.getRowCount());
 //            addRowIndex(row.getRow(),row.getRowIndex(),tableCompress.getRowCount());
             if ((i % 100000) == 0) {
-                LOG.info("dim build continue...." + i);
+                LOGGER.debug("dim build continue...." + i);
             }
             i++;
         }
-
-        LOG.info(" finish poll data , the row count  is " + i + ". byte is " + tableCompress
-            .getByteCount());
+        LOGGER.debug(" finish poll data , the row count  is " + i + ". byte is " + tableCompress.getByteCount());
     }
 
     /**
@@ -165,9 +165,8 @@ public class DimIndex {
         for (int i = 0; i < nameIndexs.length; i++) {
             indexValues[i] = row.get(nameIndexs[i]);
         }
-        if (indexValues != null && indexValues.length > 0) {
-            String indexValue = MapKeyUtil.createKey(indexValues);
-            return indexValue;
+        if (indexValues.length > 0) {
+            return MapKeyUtil.createKey(indexValues);
         }
         return null;
     }
@@ -180,10 +179,8 @@ public class DimIndex {
      */
     protected Map<String, String> createRow(Map<String, Object> row) {
         Map<String, String> cacheValues = new HashMap<String, String>();//一行数据
-        Iterator<Map.Entry<String, Object>> iterator = row.entrySet().iterator();
         //把数据value从object转化成string
-        while (iterator.hasNext()) {
-            Map.Entry<String, Object> entry = iterator.next();
+        for (Map.Entry<String, Object> entry : row.entrySet()) {
             if (entry != null && entry.getValue() != null && entry.getKey() != null) {
                 cacheValues.put(entry.getKey(), entry.getValue().toString());
             }

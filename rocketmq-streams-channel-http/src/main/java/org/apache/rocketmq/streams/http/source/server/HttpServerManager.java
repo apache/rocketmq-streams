@@ -25,7 +25,6 @@ import org.apache.rocketmq.streams.http.source.HttpSource;
  * receive http(s) post data
  **/
 public class HttpServerManager {
-    private static final Log LOG = LogFactory.getLog(HttpServerManager.class);
     protected transient static HttpServer HTTP_SERVER = new HttpServer();//http server，全局只有一个
     protected transient static HttpServer HTTPS_SERVER = new HttpServer();//https server 全局只有一个
     protected transient static AtomicBoolean isHttpStart = new AtomicBoolean(false);//只启动一次

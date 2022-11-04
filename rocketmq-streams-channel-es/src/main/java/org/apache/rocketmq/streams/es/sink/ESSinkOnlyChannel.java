@@ -22,14 +22,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -41,9 +38,11 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ESSinkOnlyChannel extends AbstractSink {
-    private static final Log LOG = LogFactory.getLog(ESSinkOnlyChannel.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ESSinkOnlyChannel.class);
 
     private static final String PREFIX = "xxx";
 
@@ -143,7 +142,7 @@ public class ESSinkOnlyChannel extends AbstractSink {
                         JSONObject jsonObject= JSON.parseObject(str);
                         object=jsonObject;
                     }catch (Exception e){
-                        LOG.warn("the sink msg is not json, convert error");
+                        LOGGER.warn("the sink msg is not json, convert error");
                     }
 
                 }
@@ -178,11 +177,11 @@ public class ESSinkOnlyChannel extends AbstractSink {
             response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
             e.printStackTrace();
-            LOG.error("batch insert message to es exception " + e);
+            LOGGER.error("batch insert message to es exception " + e);
             return false;
         }
 
-        LOG.info("esChannel sendLogs logSize=" + messages.size() + " response size"
+        LOGGER.info("esChannel sendLogs logSize=" + messages.size() + " response size"
             + response.getItems().length + " status " + response.status()
             + " cost=" + response.getTook() + " esIndex=" + esIndex + " host=" + host);
         return true;

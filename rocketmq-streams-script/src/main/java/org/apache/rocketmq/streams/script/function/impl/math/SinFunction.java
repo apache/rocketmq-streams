@@ -85,22 +85,4 @@ public class SinFunction {
         return result;
     }
 
-    /**
-     * 正弦函数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "sin", comment = "求正弦函数值")
-    public BigDecimal sin(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "代表要求的值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.sin(number.intValue()));
-        return result;
-    }
 }

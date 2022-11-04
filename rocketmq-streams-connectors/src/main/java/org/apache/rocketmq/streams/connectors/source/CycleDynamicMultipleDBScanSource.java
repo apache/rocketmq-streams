@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.ChangeTableNameMessage;
@@ -40,6 +38,8 @@ import org.apache.rocketmq.streams.connectors.reader.ISplitReader;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleScheduleFilter;
 import org.apache.rocketmq.streams.db.CycleSplit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description
@@ -47,7 +47,7 @@ import org.apache.rocketmq.streams.db.CycleSplit;
 public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSource implements IBoundedSource, Serializable {
 
     private static final long serialVersionUID = 6840988298037061128L;
-    private static final Log logger = LogFactory.getLog(CycleDynamicMultipleDBScanSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CycleDynamicMultipleDBScanSource.class);
 
     Map<String, Boolean> initReaderMap = new ConcurrentHashMap<>();
     CycleSchedule.Cycle cycle;
@@ -75,7 +75,7 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
      */
     //todo
     @Override
-    public synchronized List<ISplit> fetchAllSplits() {
+    public synchronized List<ISplit<?, ?>> fetchAllSplits() {
 
         if (this.filter == null) {
             filter = new CycleScheduleFilter(cycle.getAllPattern());
@@ -88,13 +88,13 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
         String sourceName = createKey(this);
         List<String> tableNames = MetaDataUtils.listTableNameByPattern(url, userName, password, logicTableName + "%");
 
-        logger.info(String.format("load all logic table : %s", Arrays.toString(tableNames.toArray())));
+        LOGGER.info(String.format("load all logic table : %s", Arrays.toString(tableNames.toArray())));
         Iterator<String> it = tableNames.iterator();
         while (it.hasNext()) {
             String s = it.next();
             String suffix = s.replace(logicTableName + "_", "");
             if (filter.filter(sourceName, logicTableName, suffix)) {
-                logger.info(String.format("filter add %s", s));
+                LOGGER.info(String.format("filter add %s", s));
                 CycleSplit split = new CycleSplit();
                 split.setLogicTableName(logicTableName);
                 split.setSuffix(suffix);
@@ -106,7 +106,7 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
                     size.incrementAndGet();
                 }
             } else {
-                logger.info(String.format("filter remove %s", s));
+                LOGGER.info(String.format("filter remove %s", s));
                 it.remove();
             }
         }
@@ -129,8 +129,8 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
         for (Map.Entry<String, Boolean> entry : initReaderMap.entrySet()) {
             String key = entry.getKey();
             Boolean value = entry.getValue();
-            if (value == false) {
-                logger.error(String.format("split[%s] reader is not finish, exit with error. ", key));
+            if (!value) {
+                LOGGER.error(String.format("split[%s] reader is not finish, exit with error. ", key));
             }
         }
         this.initReaderMap.clear();
@@ -142,9 +142,6 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
     @Override
     public boolean isFinished() {
         List<ReaderStatus> readerStatuses = ReaderStatus.queryReaderStatusListBySourceName(createKey(this));
-        if (readerStatuses == null) {
-            return false;
-        }
         return readerStatuses.size() == size.get();
     }
 
@@ -154,20 +151,20 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
     }
 
     private void sendChangeTableNameMessage() {
-        logger.info(String.format("start send change table name message."));
+        LOGGER.info(String.format("start send change table name message."));
         ChangeTableNameMessage changeTableNameMessage = new ChangeTableNameMessage();
         changeTableNameMessage.setScheduleCycle(cycle.getCycleDateStr());
         Message message = createMessage(new JSONObject(), null, null, false);
         message.setSystemMessage(changeTableNameMessage);
         message.getHeader().setSystemMessage(true);
         executeMessage(message);
-        logger.info(String.format("finish send change table name message."));
+        LOGGER.info(String.format("finish send change table name message."));
     }
 
     @Override
     public synchronized void boundedFinishedCallBack(ISplit iSplit) {
         this.initReaderMap.put(iSplit.getQueueId(), true);
-        logger.info(String.format("current map is %s, key is %s. ", initReaderMap, iSplit.getQueueId()));
+        LOGGER.info(String.format("current map is %s, key is %s. ", initReaderMap, iSplit.getQueueId()));
         if (statusCheckerStart.compareAndSet(false, true)) {
             Thread thread = new Thread(new Runnable() {
                 @Override
@@ -175,7 +172,7 @@ public class CycleDynamicMultipleDBScanSource extends DynamicMultipleDBScanSourc
                     while (!isFinished()) {
                         ThreadUtil.sleep(3 * 1000);
                     }
-                    logger.info(String.format("source will be closed."));
+                    LOGGER.info(String.format("source will be closed."));
                     sendChangeTableNameMessage(); //下发修改name的消息
                     ThreadUtil.sleep(1 * 1000);
                     finish();

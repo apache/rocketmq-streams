@@ -281,6 +281,10 @@ public class ListDataType extends GenericParameterDataType<List> {
         System.out.println(listDataType.toDataStr(list));
     }
 
+    public DataType getParadigmType() {
+        return paradigmType;
+    }
+
     public void setParadigmType(DataType paradigmType) {
         this.paradigmType = paradigmType;
     }

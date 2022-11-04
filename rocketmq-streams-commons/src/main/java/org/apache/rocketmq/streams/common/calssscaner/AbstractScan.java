@@ -29,15 +29,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.classloader.IsolationClassLoader;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractScan {
 
-    private static final Log LOG = LogFactory.getLog(AbstractScan.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractScan.class);
 
     private static final String CLASS_REAR = ".class";
 
@@ -46,18 +46,20 @@ public abstract class AbstractScan {
     public void scanJarsFromDir(String dir, String packageName) {
         IsolationClassLoader classLoader = new IsolationClassLoader(dir);
         File file = new File(dir);
-        if (file.exists() == false) {
+        if (!file.exists()) {
             return;
         }
-        if (file.isDirectory() == false) {
+        if (!file.isDirectory()) {
             return;
         }
         File[] jars = file.listFiles();
-        for (File jar : jars) {
-            if (!jar.getName().endsWith(".jar")) {
-                continue;
+        if (jars != null) {
+            for (File jar : jars) {
+                if (!jar.getName().endsWith(".jar")) {
+                    continue;
+                }
+                scanClassDir(jar, packageName, classLoader, null);
             }
-            scanClassDir(jar, packageName, classLoader, null);
         }
     }
 
@@ -84,19 +86,20 @@ public abstract class AbstractScan {
         }
 
         File[] files = dirs.listFiles();
-        if (files.length == 0) {
-            return;
-        }
-        for (File file : files) {
-            try {
-                String className = file.getName();
-                if (className.endsWith(CLASS_REAR)) {
-                    Class clazz = classLoader.loadClass(packageName + "." + className.replace(CLASS_REAR, ""));
-                    doProcessor(clazz, null);
+        if (files != null) {
+            if (files.length == 0) {
+                return;
+            }
+            for (File file : files) {
+                try {
+                    String className = file.getName();
+                    if (className.endsWith(CLASS_REAR)) {
+                        Class<?> clazz = classLoader.loadClass(packageName + "." + className.replace(CLASS_REAR, ""));
+                        doProcessor(clazz, null);
+                    }
+                } catch (ClassNotFoundException e) {
+                    LOG.error("load class error " + file.getName(), e);
                 }
-            } catch (ClassNotFoundException e) {
-                LOG.error("load class error " + file.getName(), e);
-                continue;
             }
         }
     }
@@ -139,7 +142,6 @@ public abstract class AbstractScan {
                     scanDir(dir);
                     hasScan.add(dir);
                 }
-
             }
         }
 
@@ -206,7 +208,17 @@ public abstract class AbstractScan {
         String packageName = createPackageName(dirName);
         jarUrl = jarUrl.substring(0, index);
         scanClassInJar(jarUrl, packageName, this.getClass().getClassLoader(), null);
+    }
 
+    protected void scanClassInJar(String packageName, ClassLoader classLoader, String functionName) {
+        try {
+            if (classLoader == null) {
+                classLoader = this.getClass().getClassLoader();
+            }
+            doRegisterFunction(functionName, packageName, classLoader);
+        } catch (Exception e) {
+            LOG.error("ScanFunctionService scanClassInJar JarFile error", e);
+        }
     }
 
     protected void scanClassInJar(String jarPath, String packageName, ClassLoader classLoader, String functionName) {
@@ -257,8 +269,7 @@ public abstract class AbstractScan {
 
     protected String createPackageName(String dirName) {
         if (dirName.startsWith("/")) {
-            String packageName = dirName.substring(1).replace("/", ".") + ".";
-            return packageName;
+            return dirName.substring(1).replace("/", ".") + ".";
         } else {
             return this.getClass().getPackage().getName() + "." + dirName + ".";
         }
@@ -269,7 +280,7 @@ public abstract class AbstractScan {
     }
 
     protected void doRegisterFunction(String functionName, String className, ClassLoader classLoader) {
-        Class clazz = null;
+        Class<?> clazz = null;
         try {
             clazz = Class.forName(className, true, classLoader);
             doProcessor(clazz, functionName);

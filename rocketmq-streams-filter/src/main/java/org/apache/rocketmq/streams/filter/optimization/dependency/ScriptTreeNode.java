@@ -28,6 +28,8 @@ import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.RuleExpression;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.optimization.casewhen.AbstractWhenExpression;
+import org.apache.rocketmq.streams.filter.optimization.casewhen.IFCaseWhenExpression;
+import org.apache.rocketmq.streams.filter.optimization.casewhen.IFCaseWhenExpressionGroup;
 import org.apache.rocketmq.streams.filter.optimization.script.ScriptOptimization;
 import org.apache.rocketmq.streams.script.operator.expression.GroupScriptExpression;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
@@ -73,7 +75,8 @@ public class ScriptTreeNode extends TreeNode<ScriptChainStage> {
                         }
                     }
                 }
-            } else if (AbstractWhenExpression.class.isInstance(scriptExpression)) {
+            }
+            else if (AbstractWhenExpression.class.isInstance(scriptExpression)) {
                 AbstractWhenExpression abstractWhenExpression = (AbstractWhenExpression) scriptExpression;
                 List<IScriptExpression> scriptExpressionList = abstractWhenExpression.getIfExpressions();
                 for (IScriptExpression ifExpression : scriptExpressionList) {

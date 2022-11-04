@@ -31,6 +31,7 @@ import org.apache.rocketmq.streams.common.datatype.IntDataType;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.datatype.MapDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
@@ -43,7 +44,7 @@ public class TopNState implements IJsonable {
     protected List<String> sortValues=new ArrayList<>();
     protected Map<String,String> orderByValue2Msgs=new HashMap<>();
     protected int topN=100;
-    protected boolean isChanged=false;
+//    protected boolean isChanged=false;
     protected transient ListDataType listDataType;
     protected transient MapDataType mapDataType;
     public TopNState(int topN){
@@ -61,7 +62,7 @@ public class TopNState implements IJsonable {
      *
      * @return msg order by orderbyFields
      */
-    public List<JSONObject> getOrderMsgs(String rowNumerName, Set<String> fieldNames){
+    public List<JSONObject> getOrderMsgs(String rowNumerName, Set<String> fieldNames,int startRowNum){
         List<JSONObject> msgs=new ArrayList<>();
         for(int i=0;i<sortValues.size();i++){
             JSONObject jsonObject=JSONObject.parseObject(orderByValue2Msgs.get(sortValues.get(i)));
@@ -80,8 +81,15 @@ public class TopNState implements IJsonable {
             msg.remove(ShuffleChannel.SHUFFLE_OFFSET);
             msg.remove(AbstractWindow.WINDOW_START);
             msg.remove(AbstractWindow.WINDOW_END);
-            msg.put(rowNumerName,i+1);
+            int index=i+1;
+            if(rowNumerName!=null){
+                msg.put(rowNumerName,index);
+            }
+            if(index<=startRowNum){
+                continue;
+            }
             msgs.add(msg);
+
         }
         return msgs;
     }
@@ -93,21 +101,33 @@ public class TopNState implements IJsonable {
      * @return
      */
     public boolean addAndSortMsg(JSONObject message,List<OrderBy> orderByList){
+        if(CollectionUtil.isEmpty(orderByList)){
+            /**
+             * 无排序场景
+             */
+            String orderByValue=message.toJSONString();
+            if(sortValues.size()<topN){
+                putMsg(this.orderByValue2Msgs,orderByValue,orderByValue);
+                this.sortValues.add(orderByValue);
+                return true;
+            }else {
+                return false;
+            }
+        }
         String orderByValue=createOrderByValue(message,orderByList);
 
         if(sortValues.size()<topN){
-            this.orderByValue2Msgs.put(orderByValue,message.toJSONString());
+            putMsg(this.orderByValue2Msgs,orderByValue,message.toJSONString());
             this.sortValues.add(orderByValue);
         }else {
             String lastValue=sortValues.get(sortValues.size()-1);
             if(compareElement(orderByValue,lastValue,orderByList)<0){
                 sortValues.add(orderByValue);
-                this.orderByValue2Msgs.put(orderByValue,message.toJSONString());
+                putMsg(this.orderByValue2Msgs,orderByValue,message.toJSONString());
             }else {
                 return false;
             }
         }
-        isChanged=true;
         Collections.sort(sortValues, new Comparator<String>() {
             @Override public int compare(String o1, String o2) {
                 return compareElement(o1,o2,orderByList);
@@ -115,9 +135,25 @@ public class TopNState implements IJsonable {
         });
         while (sortValues.size()>topN){
             String sortValue=sortValues.remove(sortValues.size()-1);
-            this.orderByValue2Msgs.remove(sortValue);
+            if(!sortValues.contains(sortValue)){
+                this.orderByValue2Msgs.remove(orderByValue);
+            }
         }
         return true;
+    }
+
+    protected void removeMsg(Map<String, List<String>> msgList, String orderByValue) {
+        List<String> msgs=msgList.get(orderByValue);
+        if(msgs!=null){
+            msgs.remove(msgs.size()-1);
+        }
+        if(msgs.size()==0){
+            msgList.remove(orderByValue);
+        }
+    }
+
+    protected void putMsg(Map<String, String> msgList, String orderByValue, String msg) {
+       msgList.put(orderByValue,msg);
     }
 
     private int compareElement(String left, String right,List<OrderBy> orderByList) {
@@ -235,19 +271,10 @@ public class TopNState implements IJsonable {
         this.orderByValue2Msgs = orderByValue2Msgs;
     }
 
-    public boolean isChanged() {
-        return isChanged;
-    }
-
-    public void setChanged(boolean changed) {
-        isChanged = changed;
-    }
-
     @Override public String toJson() {
         JSONObject jsonObject=new JSONObject();
         jsonObject.put("sortValues",listDataType.toDataJson(this.sortValues));
         jsonObject.put("topN",this.topN);
-        jsonObject.put("changed",this.isChanged?1:0);
         jsonObject.put("orderByValue2Msgs",mapDataType.toDataJson(this.orderByValue2Msgs));
         return jsonObject.toJSONString();
     }
@@ -255,7 +282,6 @@ public class TopNState implements IJsonable {
     @Override public void toObject(String jsonString) {
         JSONObject jsonObject=JSONObject.parseObject(jsonString);
         this.topN=jsonObject.getInteger("topN");
-        this.isChanged=jsonObject.getInteger("changed")==1?true:false;
         this.sortValues=listDataType.getData(jsonObject.getString("sortValues"));
         this.orderByValue2Msgs=mapDataType.getData(jsonObject.getString("orderByValue2Msgs"));
     }

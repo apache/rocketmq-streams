@@ -43,7 +43,7 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
 
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
-            String lable = message.getHeader().getMsgRouteFromLable();
+            String lable = message.getHeader().getMsgRouteFromLabel();
             String joinFlag = null;
             if (lable != null) {
                 if (lable.equals(rightDependentTableName)) {
@@ -51,7 +51,7 @@ public class JoinChainStage<T extends IMessage> extends AbstractWindowStage<T> {
                 } else {
                     joinFlag = MessageHeader.JOIN_LEFT;
                 }
-                message.getHeader().setMsgRouteFromLable(joinFlag);
+                message.getHeader().setMsgRouteFromLabel(joinFlag);
             } else {
                 throw new RuntimeException("can not dipatch message, need route label " + toJson());
             }

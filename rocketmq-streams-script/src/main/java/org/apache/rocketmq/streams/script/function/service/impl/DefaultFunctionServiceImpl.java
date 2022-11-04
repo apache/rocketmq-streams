@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -39,10 +37,12 @@ import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.function.service.IDipperInterfaceAdpater;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultFunctionServiceImpl implements IFunctionService {
 
-    private static final Log LOG = LogFactory.getLog(DefaultFunctionServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultFunctionServiceImpl.class);
 
     /**
      * 重要，函数注册中心。FunctionConfigureMap 保存多个同名的FunctionConfigure
@@ -117,7 +117,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
             functionConfigureMap.registFunction(engine);
             return engine;
         } catch (Exception e) {
-            LOG.error("DefaultFunctionServiceImpl registeFunction error", e);
+            LOGGER.error("DefaultFunctionServiceImpl registeFunction error", e);
             throw new RuntimeException("can not regeiste this method "+functionName);
         }
     }
@@ -264,7 +264,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
         Object[] allParameters = createAllParameter(message, context, parameters);
         FunctionConfigure functionConfigure = getFunctionConfigure(functionName, allParameters);
         if (functionConfigure == null) {
-            LOG.warn("not found engine for " + functionName);
+            LOGGER.warn("not found engine for " + functionName);
             return null;
         }
         return directExecuteFunction(functionConfigure, allParameters);
@@ -313,7 +313,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     @Override public DataType getReturnDataType(String functionName) {
         FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
         if (functionConfigureMap == null) {
-            LOG.warn("get function may be not registe engine for " + functionName);
+            LOGGER.warn("get function may be not registe engine for " + functionName);
             return null;
         }
         List<FunctionConfigure> functionConfigureList = functionConfigureMap.getFunctionConfigureList();
@@ -350,7 +350,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     public boolean startWith(String functionName, Class[] classes) {
         FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
         if (functionConfigureMap == null) {
-            LOG.warn("startWith may be not registe engine for " + functionName);
+            LOGGER.warn("startWith may be not registe engine for " + functionName);
             return false;
         }
         return functionConfigureMap.startWith(classes);

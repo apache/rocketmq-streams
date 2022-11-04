@@ -62,7 +62,7 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
             if (CollectionUtil.isEmpty(piplines)) {
                 return message;
             }
-            String msgSourceName = message.getHeader().getMsgRouteFromLable();
+            String msgSourceName = message.getHeader().getMsgRouteFromLabel();
             if (piplines.size() > 0) {
                 List<IMessage> messages = new ArrayList<>();
                 Iterator<Entry<String, Set<String>>> it = piplineName2MsgSourceName.entrySet().iterator();
@@ -77,7 +77,7 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
                             //copyMessage.getMessageBody().put(ORI_MESSAGE_KEY,message.getMessageBody());
                             // 保留一份最原始的数据，后续对字段的修改不影响这个字段
                             Context newContext = new Context(copyMessage);
-                            copyMessage.getHeader().setMsgRouteFromLable(msgSourceName);
+                            copyMessage.getHeader().setMsgRouteFromLabel(msgSourceName);
                             boolean needReturn = executePipline(pipline, copyMessage, newContext, msgSourceName);
                             if (needReturn) {
                                 return message;
@@ -95,7 +95,7 @@ public abstract class AbstractMutilPipelineChainPipline<T extends IMessage> exte
 
                 }
                 for (IMessage msg : messages) {
-                    msg.getHeader().setMsgRouteFromLable(msgSourceName);
+                    msg.getHeader().setMsgRouteFromLabel(msgSourceName);
                 }
                 doMessageAfterFinishPipline(message, context, messages);
                 return message;

@@ -20,9 +20,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 public class ShuffleOverWindow extends WindowOperator implements IAfterConfigurableRefreshListener {
@@ -33,14 +37,35 @@ public class ShuffleOverWindow extends WindowOperator implements IAfterConfigura
     /**
      * 需要把生成的序列号返回设置到message，这个是序列号对应的名字
      */
-    protected String rowNumerName;
+    protected String rowNumerName="rowNum";
+
+    protected int startRowNum;//默认为0，当设置这个值时，小于这个值的行被丢弃
+
+    protected transient Long lastFireTime;
+    protected transient Long lastChangeTime;
 
     @Override protected boolean initConfigurable() {
         boolean success = super.initConfigurable();
-        this.setSizeInterval(3600);
-        this.setSlideInterval(3600);
+        if(this.getSizeInterval()==0){
+            String windowSizeStr= ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_WINDOW_OVER_DEFAULT_ITERVA_SIZE);
+            int windowSize=3600;
+            if(StringUtil.isNotEmpty(windowSizeStr)){
+                windowSize=Integer.valueOf(windowSizeStr)*60;
+            }
+            this.setSizeInterval(windowSize);
+            this.setSlideInterval(windowSize);
+        }
+        if(this.getEmitBeforeValue()==null){
+            String emitBeforeStr= ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_WINDOW_OVER_DEFAULT_EMIT_BEFORE_SECOND);
+            long emitBefore=60L;
+            if(StringUtil.isNotEmpty(emitBeforeStr)){
+                emitBefore=Integer.valueOf(emitBeforeStr);
+            }
+
+
+            this.setEmitBeforeValue(emitBefore);
+        }
         this.setTimeUnitAdjust(1);
-        this.setEmitBeforeValue(5L);
         return success;
     }
 
@@ -51,35 +76,49 @@ public class ShuffleOverWindow extends WindowOperator implements IAfterConfigura
             topNState = new TopNState(topN);
 
         }
-        topNState.addAndSortMsg(msg.getMessageBody(), orderList);
+        boolean isChanged= topNState.addAndSortMsg(msg.getMessageBody(), orderList);
+        if(isChanged){
+            lastChangeTime=System.currentTimeMillis();
+        }
         windowValue.putAggColumnResult(TOPN_KEY, topNState);
     }
 
+    @Override
+    public int fireWindowInstance(WindowInstance instance, String queueId, Map<String, String> queueId2Offset) {
+        if(lastFireTime!=null&&lastChangeTime!=null){
+            if(lastFireTime-lastChangeTime>0){
+                return 0;
+            }
+        }
+       int result= super.fireWindowInstance(instance,queueId,queueId2Offset);
+        lastFireTime=System.currentTimeMillis();
+        return result;
+    }
     @Override public void sendFireMessage(List<WindowValue> windowValueList, String queueId) {
         List<WindowValue> windowValues = new ArrayList<>();
         for (WindowValue windowValue : windowValueList) {
 
             TopNState topNState = (TopNState) windowValue.getAggColumnResultByKey(TOPN_KEY);
 
-            if (topNState.isChanged()) {
-                int i = 0;
-                for (Map<String, Object> msg : topNState.getOrderMsgs(this.rowNumerName, this.getSelectMap().keySet())) {
-                    WindowValue copy = windowValue.clone();
-                    copy.setAggColumnMap(new HashMap<>());
-                    copy.setPartitionNum(copy.getPartitionNum() * topN + i);
-                    copy.putComputedColumnResult(msg);
-                    windowValues.add(copy);
-                    i++;
-                }
-                topNState.setChanged(false);
+            int i = 0;
+            for (Map<String, Object> msg : topNState.getOrderMsgs(this.rowNumerName, this.getSelectMap().keySet(),this.startRowNum)) {
+                WindowValue copy = windowValue.clone();
+                copy.setAggColumnMap(new HashMap<>());
+                copy.setPartitionNum(copy.getPartitionNum() * topN + i);
+                copy.putComputedColumnResult(msg);
+                windowValues.add(copy);
+                i++;
             }
 
         }
-        super.sendFireMessage(windowValues, queueId);
+            super.sendFireMessage(windowValues, queueId);
     }
 
     @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
         super.windowInit();
+        if(this.orderFieldNames==null){
+            return;
+        }
         if (orderList == null) {
             synchronized (this) {
                 if (orderList == null) {
@@ -115,6 +154,14 @@ public class ShuffleOverWindow extends WindowOperator implements IAfterConfigura
 
     public String getRowNumerName() {
         return rowNumerName;
+    }
+
+    public int getStartRowNum() {
+        return startRowNum;
+    }
+
+    public void setStartRowNum(int startRowNum) {
+        this.startRowNum = startRowNum;
     }
 
     public void setRowNumerName(String rowNumerName) {

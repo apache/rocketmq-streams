@@ -5,7 +5,7 @@
     <parent>
         <artifactId>rocketmq-streams</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.0.3-dispatcher-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -29,6 +29,10 @@
         <dependency>
             <groupId>org.eclipse.paho</groupId>
             <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
 

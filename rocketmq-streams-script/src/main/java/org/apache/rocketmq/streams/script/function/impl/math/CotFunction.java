@@ -85,22 +85,5 @@ public class CotFunction {
         return result;
     }
 
-    /**
-     * 余切函数，输入为弧度值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "cot", alias = "cot", comment = "余切函数，输入为弧度值")
-    public BigDecimal cot(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(1 / Math.tan(number.intValue()));
-        return result;
-    }
+
 }

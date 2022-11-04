@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-streams</artifactId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.0.3-dispatcher-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-streams-channel-syslog</artifactId>
     <name>ROCKETMQ STREAMS :: channel-syslog</name>
@@ -26,8 +26,8 @@
             <artifactId>commons-collections</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
     </dependencies>
 </project>

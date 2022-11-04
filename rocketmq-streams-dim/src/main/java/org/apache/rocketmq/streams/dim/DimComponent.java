@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.dim;
 
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
@@ -26,10 +24,6 @@ import org.apache.rocketmq.streams.dim.service.IDimService;
 import org.apache.rocketmq.streams.dim.service.impl.DimServiceImpl;
 
 public class DimComponent extends AbstractComponent<IDimService> {
-
-    private static final Log LOG = LogFactory.getLog(DimComponent.class);
-
-    // private transient Map<String, DBDim> nameListMap = new HashMap<>();
 
     protected transient ConfigurableComponent configurableComponent;
     private transient IDimService dimService;

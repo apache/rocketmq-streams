@@ -17,13 +17,14 @@
 package org.apache.rocketmq.streams.dim.builder;
 
 import java.util.Properties;
+import org.apache.rocketmq.streams.common.interfaces.IDim;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.dim.model.AbstractDim;
 
 public abstract class AbstractDimParser implements IDimSQLParser {
     @Override
-    public AbstractDim parseDim(String namespace, Properties properties, MetaData metaData) {
+    public IDim parseDim(String namespace, Properties properties, MetaData metaData) {
         AbstractDim dim = createDim(properties, metaData);
         String cacheTTLMs = properties.getProperty("cacheTTLMs");
         long pollingTime = 30;//默认更新时间是30分钟

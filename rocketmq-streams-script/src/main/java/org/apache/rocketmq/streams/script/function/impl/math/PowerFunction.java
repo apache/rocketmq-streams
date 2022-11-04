@@ -88,24 +88,4 @@ public class PowerFunction {
         result = Math.pow(base, x);
         return result;
     }
-
-    /**
-     * 返回x的y次方
-     *
-     * @param message
-     * @param context
-     * @param x
-     * @return
-     */
-    @FunctionMethod(value = "power", alias = "power", comment = "返回x的y次方")
-    public BigDecimal power(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "BigDecimal常量代表底数") BigDecimal base,
-                            @FunctionParamter(value = "BigDecimal", comment = "BigDecimal常量代表幂数") BigDecimal x) {
-        BigDecimal result = null;
-        if (base == null || x == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.pow(base.doubleValue(), x.doubleValue()));
-        return result;
-    }
 }

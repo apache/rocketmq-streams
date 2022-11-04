@@ -25,8 +25,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.model.Entity;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
@@ -38,13 +36,15 @@ import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 具体的窗口实例
  */
 public class WindowInstance extends Entity implements Serializable {
 
-    protected static final Log LOG = LogFactory.getLog(WindowInstance.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WindowInstance.class);
 
     private static final long serialVersionUID = 6893491128670330569L;
 
@@ -187,7 +187,7 @@ public class WindowInstance extends Entity implements Serializable {
         try {
             dbWindowInstanceList = ORMUtil.queryForList(sql, null, WindowInstance.class);
         } catch (Exception e) {
-            LOG.error("failed in getting unfired window instances", e);
+            LOGGER.error("failed in getting unfired window instances", e);
         }
         return dbWindowInstanceList;
     }
@@ -316,7 +316,7 @@ public class WindowInstance extends Entity implements Serializable {
                     WindowInstance lastWindowInstance = window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end), DateUtil.format(clearWindowInstanceFireTime), queueId);
                     lastWindowInstance.setCanClearResource(true);
                     window.registerWindowInstance(lastWindowInstance);
-                    window.getSqlCache().addCache(new SQLElement(queueId, lastWindowInstance.createWindowInstanceId(), ORMUtil.createBatchReplacetSQL(lastWindowInstance)));
+                    window.getSqlCache().addCache(new SQLElement(queueId, lastWindowInstance.createWindowInstanceId(), ORMUtil.createBatchReplaceSQL(lastWindowInstance)));
                     window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance, window);
                 }
 
@@ -326,7 +326,7 @@ public class WindowInstance extends Entity implements Serializable {
                     fire = DateUtil.addDate(TimeUnit.SECONDS, fire, window.getMaxDelay().intValue());
                 }
                 if (maxEventTime != null && maxEventTime - fire.getTime() > 0) {
-                    LOG.warn("*********************the message is discard, because the fire time is exceed****************** " + DateUtil.format(begin) + "-" + DateUtil.format(end) + "---" + DateUtil.format(fire));
+                    LOGGER.warn("*********************the message is discard, because the fire time is exceed****************** " + DateUtil.format(begin) + "-" + DateUtil.format(end) + "---" + DateUtil.format(fire));
                     break;
                 }
             }
@@ -352,8 +352,11 @@ public class WindowInstance extends Entity implements Serializable {
                 List<WindowInstance> emitInstances = createEmitWindowInstance(window, windowInstance);
                 if (emitInstances != null && emitInstances.size() > 0) {
                     for (WindowInstance emitBeforeInstance : emitInstances) {
+                        if(StringUtil.isEmpty(window.getTimeFieldName())&&System.currentTimeMillis()-DateUtil.parse(emitBeforeInstance.getFireTime()).getTime()>=0){
+                            continue;
+                        }
                         window.registerWindowInstance(emitBeforeInstance);
-                        window.getSqlCache().addCache(new SQLElement(queueId, emitBeforeInstance.createWindowInstanceId(), ORMUtil.createBatchReplacetSQL(emitBeforeInstance)));
+                        window.getSqlCache().addCache(new SQLElement(queueId, emitBeforeInstance.createWindowInstanceId(), ORMUtil.createBatchReplaceSQL(emitBeforeInstance)));
                         window.getWindowFireSource().registFireWindowInstanceIfNotExist(emitBeforeInstance, window);
                     }
                 }

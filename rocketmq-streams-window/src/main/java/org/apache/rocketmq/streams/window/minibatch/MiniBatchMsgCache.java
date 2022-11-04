@@ -43,32 +43,26 @@ import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.util.ShuffleUtil;
 
-public class MiniBatchMsgCache extends AbstractMultiSplitMessageCache<Pair<ISplit,IMessage>> {
-    public static String SHUFFLE_KEY="shuffle_key";
-
-
+public class MiniBatchMsgCache extends AbstractMultiSplitMessageCache<Pair<ISplit<?, ?>, IMessage>> {
+    public static String SHUFFLE_KEY = "shuffle_key";
 
     protected transient IShuffleKeyGenerator shuffleKeyGenerator;
     protected transient AbstractShuffleWindow window;
 
-
-
-
     public MiniBatchMsgCache(
-        IMessageFlushCallBack<Pair<ISplit,IMessage>> flushCallBack, IShuffleKeyGenerator shuffleKeyGenerator,
+        IMessageFlushCallBack<Pair<ISplit<?, ?>, IMessage>> flushCallBack, IShuffleKeyGenerator shuffleKeyGenerator,
         AbstractShuffleWindow window) {
         super(flushCallBack);
-        this.shuffleKeyGenerator=shuffleKeyGenerator;
-        this.window=window;
+        this.shuffleKeyGenerator = shuffleKeyGenerator;
+        this.window = window;
     }
 
-
-    @Override protected String createSplitId(Pair<ISplit, IMessage> msg) {
+    @Override protected String createSplitId(Pair<ISplit<?, ?>, IMessage> msg) {
         return msg.getLeft().getQueueId();
     }
 
     @Override protected MessageCache createMessageCache() {
-        ShuffleMessageCache messageCache=new ShuffleMessageCache(this.flushCallBack);
+        ShuffleMessageCache messageCache = new ShuffleMessageCache(this.flushCallBack);
         messageCache.setWindow(window);
         messageCache.setShuffleKeyGenerator(shuffleKeyGenerator);
         return messageCache;

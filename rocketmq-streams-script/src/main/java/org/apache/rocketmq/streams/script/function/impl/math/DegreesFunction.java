@@ -66,22 +66,4 @@ public class DegreesFunction {
         return result;
     }
 
-    /**
-     * 将弧度转换为角度
-     *
-     * @param message
-     * @param context
-     * @param base
-     * @return
-     */
-    @FunctionMethod(value = "degrees", alias = "degrees", comment = "将弧度转换为角度")
-    public Double degrees(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal base) {
-        Double result = null;
-        if (base == null) {
-            return result;
-        }
-        result = Math.toDegrees(base.intValue());
-        return result;
-    }
 }

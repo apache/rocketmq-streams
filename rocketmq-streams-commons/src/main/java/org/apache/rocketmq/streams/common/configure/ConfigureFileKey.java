@@ -61,6 +61,17 @@ public interface ConfigureFileKey {
 
     String DIPPER_RUNNING_STATUS_DEFAULT = "true";
 
+    String DIPPER_DISPATCHER_TYPE = "dipper.dispatcher.type";
+
+    String DIPPER_DISPATCHER_ROCKETMQ_TOPIC = "dipper.dispatcher.rocketmq.topic";
+
+    String DIPPER_DISPATCHER_ROCKETMQ_GROUP = "dipper.dispatcher.rocketmq.group";
+
+    String DIPPER_DISPATCHER_ROCKETMQ_NAMESERV = "dipper.dispatcher.rocketmq.nameserv";
+
+
+    String DIPPER_DISPATCHER_MODE = "dipper.dispatcher.mode";
+
     /**
      * 代表常量，不需要在配置文件配置
      */
@@ -128,6 +139,8 @@ public interface ConfigureFileKey {
     //over partition窗口的默认时间
     String DIPPER_WINDOW_OVER_DEFAULT_ITERVA_SIZE = "dipper.window.over.default.iterval.size.time";
 
+    String DIPPER_WINDOW_OVER_DEFAULT_EMIT_BEFORE_SECOND = "dipper.window.over.default.emit.before.size.second";
+
     static String getDipperJdbcUrl() {
         return ComponentCreator.getProperties().getProperty(JDBC_URL);
     }
@@ -166,6 +179,6 @@ public interface ConfigureFileKey {
      * minibatch
      */
 
-    String WINDOW_MINIBATCH_SWITCH="window.minibatch.switch";//是否启动minibatch
+    String WINDOW_MINIBATCH_SWITCH = "window.minibatch.switch";//是否启动minibatch
 
 }

@@ -40,6 +40,7 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
         return (RocketMQSource) ConfigurableUtil.create(RocketMQSource.class.getName(), namespace, name, createFormatProperty(properties), null);
     }
 
+    @Override
     protected JSONObject createFormatProperty(Properties properties) {
         JSONObject formatProperties = new JSONObject();
         for (Object object : properties.keySet()) {

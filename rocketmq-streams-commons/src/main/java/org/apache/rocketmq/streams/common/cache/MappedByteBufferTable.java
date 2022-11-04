@@ -33,14 +33,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MappedByteBufferTable extends FileBasedTable {
 
-    private static final Log logger = LogFactory.getLog(MappedByteBufferTable.class);
+    private static final Logger logger = LoggerFactory.getLogger(MappedByteBufferTable.class);
 
     protected static final int DEFAULT_SIZE = 1024 * 1024 * 1024;
     protected transient List<MappedByteBuffer> caches = new ArrayList<>();

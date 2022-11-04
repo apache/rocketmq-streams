@@ -16,22 +16,13 @@
  */
 package org.apache.rocketmq.streams.schedule.job;
 
-import com.alibaba.fastjson.JSON;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.interfaces.IScheduleExecutor;
-import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.quartz.DisallowConcurrentExecution;
-import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.StatefulJob;
 
 @DisallowConcurrentExecution
 public class ConfigurableExecutorJob implements StatefulJob {
-    private Log LOG = LogFactory.getLog(ConfigurableExecutorJob.class);
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {

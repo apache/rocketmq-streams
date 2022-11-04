@@ -25,20 +25,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.disruptor.BufferFullFunction;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorEvent;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorEventFactory;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 不可靠的消息源，如http，syslog，可以继承这个类。做了系统保护，如果消息发送太快，可能会出现丢失。
  */
 public abstract class AbstractUnreliableSource extends AbstractBatchSource {
-    private static final Log LOG = LogFactory.getLog(AbstractUnreliableSource.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractUnreliableSource.class);
 
     protected Boolean enableAsyncReceive = false;
     protected boolean isSingleType = false;//是否只有单个生产者，如果是，则为true

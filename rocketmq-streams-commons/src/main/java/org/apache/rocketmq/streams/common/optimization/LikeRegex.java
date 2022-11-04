@@ -18,15 +18,15 @@ package org.apache.rocketmq.streams.common.optimization;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 可以用sql中的like表示正则，系统负责完成转化
  */
 public class LikeRegex {
-    private static final Log LOG = LogFactory.getLog(LikeRegex.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LikeRegex.class);
     public static final String SPECAIL_WORD = "%";
     public static String[] regexSpecialWords = {"\\(", "\\)", "\\*", "\\+", "\\.", "\\[", "\\]", "\\?", "\\^", "\\{", "\\}", "\\|"};
     //public static String[] regexSpecialWords = {"\\\\","\\$", "\\(", "\\)", "\\*", "\\+", "\\.", "\\[", "\\]", "\\?", "\\^", "\\{", "\\}", "\\|"};

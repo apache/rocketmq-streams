@@ -82,21 +82,4 @@ public class Log10Function {
         return result;
     }
 
-    /**
-     * 以10为底返回number的对数
-     *
-     * @param message
-     * @param context
-     * @return
-     */
-    @FunctionMethod(value = "log10", alias = "log10", comment = "以10为底返回值的对数")
-    public BigDecimal log10(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.log10(number.doubleValue()));
-        return result;
-    }
 }

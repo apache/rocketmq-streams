@@ -51,7 +51,6 @@ public interface IConfigurableService {
 
     String HTTP_SERVICE_ENDPOINT = "dipper.configurable.service.type.http.endpoint";
 
-
     /**
      * 启动定时任务，定期从存储加载对象到内存
      *
@@ -93,6 +92,13 @@ public interface IConfigurableService {
     IConfigurable queryConfigurableByIdent(String type, String name);
 
     /**
+     * 从存储加载对象到内存
+     *
+     * @return
+     */
+    IConfigurable refreshConfigurable(String type, String name);
+
+    /**
      * 共享实现中：根据namespace,type和name进行配置查询 单业务实现中：根据type和name进行配置查询
      *
      * @param identification namespace,type;name
@@ -107,6 +113,18 @@ public interface IConfigurableService {
      * @param configurable
      */
     void insert(IConfigurable configurable);
+
+    /**
+     * 把configuable 插入缓存，并不直接写入存储
+     *
+     * @param configurable
+     */
+    void insertToCache(IConfigurable configurable);
+
+    /**
+     * 刷新存储
+     */
+    void flushCache();
 
     /**
      * 有具体的存储子类实现，直接写数据到存储，不会更新缓存，所以insert后，直接查询会查询不到，必须再次加载后才能获取
@@ -134,6 +152,8 @@ public interface IConfigurableService {
      * @param type
      * @return
      */
-    <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type);
+    <T extends IConfigurable> List<T> loadConfigurableFromStorage(String type, String namespace);
+
+    <T extends IConfigurable> T loadConfigurableFromStorage(String type, String configureName, String namespace);
 
 }

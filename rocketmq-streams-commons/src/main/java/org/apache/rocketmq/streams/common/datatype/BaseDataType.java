@@ -21,9 +21,9 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class BaseDataType<T> implements DataType<T>, Serializable {
 
@@ -31,7 +31,7 @@ public abstract class BaseDataType<T> implements DataType<T>, Serializable {
 
     protected final static String CODE = "UTF-8";
 
-    private static final Log LOG = LogFactory.getLog(BaseDataType.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BaseDataType.class);
 
     /**
      * 数据类型

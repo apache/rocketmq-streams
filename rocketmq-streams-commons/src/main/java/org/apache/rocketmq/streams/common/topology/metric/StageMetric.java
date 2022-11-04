@@ -68,7 +68,7 @@ public class StageMetric {
         if(!notFireReasons.contains(notFireReason)){
             this.notFireReasons.add(notFireReason);
         }
-        while (notFireReasons.size()>100){
+        while (notFireReasons.size()>10){
             notFireReasons.remove(0);
         }
 

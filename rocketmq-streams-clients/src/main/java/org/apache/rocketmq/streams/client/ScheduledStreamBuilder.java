@@ -22,16 +22,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.ThreadUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description
  */
 public class ScheduledStreamBuilder {
 
-    static final Log logger = LogFactory.getLog(ScheduledStreamBuilder.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(ScheduledStreamBuilder.class);
 
     protected ScheduledExecutorService balanceExecutor;
 
@@ -57,7 +57,7 @@ public class ScheduledStreamBuilder {
         while (true) {
             Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
             for (Thread th : threadSet) {
-                logger.error(String.format("CycleStreamBuilder size %d, name is %s, stack is %s. ", threadSet.size(), th.getName(), Arrays.toString(th.getStackTrace())));
+                LOGGER.error(String.format("CycleStreamBuilder size %d, name is %s, stack is %s. ", threadSet.size(), th.getName(), Arrays.toString(th.getStackTrace())));
             }
 
             ThreadUtil.sleep(10000);

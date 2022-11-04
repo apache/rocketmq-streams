@@ -26,7 +26,7 @@ import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
 
 public class StageGroup extends BasedConfigurable {
-    public static String TYPE="StageGroup";
+    public static String TYPE = "StageGroup";
 
     /**
      * 展示在拓扑中
@@ -43,11 +43,10 @@ public class StageGroup extends BasedConfigurable {
     protected transient AbstractStage endStage;
     protected transient List<AbstractStage<?>> allStages;
 
-
-    protected List<String> childrenNames=new ArrayList<>();
+    protected List<String> childrenNames = new ArrayList<>();
     protected String parentName;
 
-    protected transient List<StageGroup> children=new ArrayList<>();
+    protected transient List<StageGroup> children = new ArrayList<>();
     protected transient StageGroup parent;
 
     /**
@@ -67,57 +66,68 @@ public class StageGroup extends BasedConfigurable {
     protected long avgCost;
     protected long maxCost;
 
-    public StageGroup(){
+    public StageGroup() {
         setType(TYPE);
     }
 
-    public StageGroup(AbstractStage startStage, AbstractStage endStage, List<AbstractStage<?>> allStages){
+    public StageGroup(AbstractStage startStage, AbstractStage endStage, List<AbstractStage<?>> allStages) {
         setType(TYPE);
         this.setConfigureName(NameCreatorContext.get().createName("StageGroup"));
 //        this.setNameSpace(namespace);
         setStartStage(startStage);
         setEndStage(endStage);
-        if(allStages!=null){
-            List<String> allStageLables=new ArrayList<>();
-            for(AbstractStage stage:allStages){
+        if (allStages != null) {
+            List<String> allStageLables = new ArrayList<>();
+            for (AbstractStage stage : allStages) {
                 allStageLables.add(stage.getLabel());
             }
-            this.allStageLables=allStageLables;
-            this.allStages=allStages;
+            this.allStageLables = allStageLables;
+            this.allStages = allStages;
         }
     }
 
     /**
      * 在序列化时做反序列化
+     *
      * @param stageMap
      */
-    public void init(Map<String, AbstractStage<?>> stageMap,Map<String,StageGroup> stageGroupMap){
-        this.startStage=stageMap.get(this.startLable);
-        this.endStage=stageMap.get(this.endLable);
-        this.parent=stageGroupMap.get(this.parentName);
-        List<StageGroup> children=new ArrayList<>();
-        for(String name:this.childrenNames){
+    public void init(Map<String, AbstractStage<?>> stageMap, Map<String, StageGroup> stageGroupMap) {
+        this.startStage = stageMap.get(this.startLable);
+        this.endStage = stageMap.get(this.endLable);
+        this.parent = stageGroupMap.get(this.parentName);
+        List<StageGroup> children = new ArrayList<>();
+        for (String name : this.childrenNames) {
             children.add(stageGroupMap.get(name));
         }
-        this.children=children;
+        this.children = children;
 
-        List<AbstractStage<?>> allStages=new ArrayList<>();
-        List<String> tmpStageLables=new ArrayList<>();
+        List<AbstractStage<?>> allStages = new ArrayList<>();
+        List<String> tmpStageLables = new ArrayList<>();
         tmpStageLables.addAll(this.allStageLables);
         Iterator<String> it = tmpStageLables.iterator();
-        while (it.hasNext()){
-            String name=it.next();
-            AbstractStage stage=stageMap.get(name);
+        while (it.hasNext()) {
+            String name = it.next();
+            AbstractStage stage = stageMap.get(name);
             allStages.add(stage);
             stage.setStageGroup(this);
         }
-        this.allStages=allStages;
+        this.allStages = allStages;
     }
 
-    public void calculateMetric(){
-        inCount=startStage.getStageMetric().getInCount();
-        qps=startStage.getStageMetric().getQps();
-        outCount=endStage.getStageMetric().getOutCount();
+    public void calculateMetric() {
+        inCount = startStage.calculateInCount();
+        qps = startStage.calculateInQPS();
+        if (children != null) {
+            for (StageGroup stageGroup : children) {
+                if (stageGroup.getStartStage().calculateInCount() > inCount) {
+                    inCount = stageGroup.getStartStage().calculateInCount();
+                }
+                if (stageGroup.getStartStage().calculateInQPS() > qps) {
+                    qps = stageGroup.getStartStage().calculateInQPS();
+                }
+            }
+        }
+        outCount = endStage.getStageMetric().getOutCount();
     }
 
     public String getStartLable() {
@@ -135,7 +145,6 @@ public class StageGroup extends BasedConfigurable {
     public void setEndLable(String endLable) {
         this.endLable = endLable;
     }
-
 
     public String getSql() {
         return sql;
@@ -175,12 +184,12 @@ public class StageGroup extends BasedConfigurable {
 
     public void setStartStage(AbstractStage startStage) {
         this.startStage = startStage;
-        this.startLable=startStage.getLabel();
+        this.startLable = startStage.getLabel();
     }
 
     public void setEndStage(AbstractStage endStage) {
         this.endStage = endStage;
-        this.endLable=endStage.getLabel();
+        this.endLable = endStage.getLabel();
     }
 
     public void setChildren(List<StageGroup> children) {
@@ -194,7 +203,7 @@ public class StageGroup extends BasedConfigurable {
     public void setParent(StageGroup parent) {
         parent.children.add(this);
         this.parent = parent;
-        this.parentName=this.parent.getConfigureName();
+        this.parentName = this.parent.getConfigureName();
         parent.childrenNames.add(this.getConfigureName());
     }
 

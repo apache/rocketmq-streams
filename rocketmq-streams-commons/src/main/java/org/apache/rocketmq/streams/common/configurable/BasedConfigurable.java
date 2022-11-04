@@ -20,20 +20,27 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import org.apache.http.client.methods.Configurable;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.configurable.annotation.NoSerialized;
+import org.apache.rocketmq.streams.common.constant.State;
 import org.apache.rocketmq.streams.common.datatype.DataType;
+import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.ENVUtile;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 这个类自动完成成员变量的序列化，反序列化，以及环境变量的替换 子类只要按pojo实现即可。 有几个要求： 1.需要序列化的类，必须实现getset方法，这块下个版本会优化，去掉这个限制 2.不需要序列化的字段必须加transient 关键字声明 3.成员变量是 DataType支持的类型
  */
-public class BasedConfigurable extends AbstractConfigurable {
+public class BasedConfigurable extends AbstractConfigurable implements IConfigurableIdentification {
 
     /**
      * 扩展字段
@@ -46,37 +53,33 @@ public class BasedConfigurable extends AbstractConfigurable {
 
     private String type;
 
+    private String state = State.STOPPED;
+
     protected String version = "1.0";
 
     protected long updateFlag = 0;//通过它来触发更新，其他字段变更都不会触发更新
 
-    @Override
-    public String getNameSpace() {
+    @Override public String getNameSpace() {
         return nameSpace;
     }
 
-    @Override
-    public void setNameSpace(String nameSpace) {
+    @Override public void setNameSpace(String nameSpace) {
         this.nameSpace = nameSpace;
     }
 
-    @Override
-    public String getConfigureName() {
+    @Override public String getConfigureName() {
         return configureName;
     }
 
-    @Override
-    public void setConfigureName(String configureName) {
+    @Override public void setConfigureName(String configureName) {
         this.configureName = configureName;
     }
 
-    @Override
-    public String getType() {
+    @Override public String getType() {
         return type;
     }
 
-    @Override
-    public void setType(String type) {
+    @Override public void setType(String type) {
         this.type = type;
     }
 
@@ -87,8 +90,7 @@ public class BasedConfigurable extends AbstractConfigurable {
         return jsonObject;
     }
 
-    @Override
-    public String toJson() {
+    @Override public String toJson() {
         JSONObject jsonObject = toJsonObject();
         return jsonObject.toJSONString();
     }
@@ -99,11 +101,12 @@ public class BasedConfigurable extends AbstractConfigurable {
         setJsonObject(thisClass, jsonObject);
     }
 
-    protected void setJsonObject(Class clazz, JSONObject jsonObject) {
+    protected void setJsonObject(Class<?> clazz, JSONObject jsonObject) {
         if (AbstractConfigurable.class.getName().equals(clazz.getName())) {
             return;
         }
         Field[] fields = clazz.getDeclaredFields();
+
         for (Field field : fields) {
             if (field.isAnnotationPresent(NoSerialized.class)) {
                 continue;
@@ -116,9 +119,17 @@ public class BasedConfigurable extends AbstractConfigurable {
                 continue;
             } else if (field.getName().endsWith("this$0")) {
                 continue;
-            }
+            }else if(field.isAnnotationPresent(ConfigurableReference.class)&&getConfigurableService()!=null){
 
-            DataType dataType = DataTypeUtil.createFieldDataType(this, field.getName());
+                IConfigurable configurable=ReflectUtil.getBeanFieldValue(this, field.getName());
+                if(configurable!=null){
+                    jsonObject.put(field.getName()+".type",configurable.getType());
+                    jsonObject.put(field.getName(),configurable.getConfigureName());
+                }
+                continue;
+
+            }
+            DataType dataType=DataTypeUtil.createFieldDataType(this, field.getName());
             Object fieldValue = ReflectUtil.getBeanFieldValue(this, field.getName());
             if (fieldValue != null) {
                 // 如果是空值则不再处理。入库也没意义
@@ -127,24 +138,24 @@ public class BasedConfigurable extends AbstractConfigurable {
                 jsonObject.put(field.getName(), fieldValueStr);
             }
         }
-        Class parent = clazz.getSuperclass();
+        Class<?> parent = clazz.getSuperclass();
         setJsonObject(parent, jsonObject);
     }
 
     public int getStatus() {
         int status = 1;
         if (this.getPrivateData("status") != null) {
-            status = Integer.valueOf(this.getPrivateData("status"));
+            status = Integer.parseInt(this.getPrivateData("status"));
         }
         return status;
     }
 
     protected void getJsonObject(JSONObject jsonObject) {
-        Class thisClass = this.getClass();
+        Class<?> thisClass = this.getClass();
         getJsonObject(thisClass, jsonObject);
     }
 
-    protected void getJsonObject(Class clazz, JSONObject jsonObject) {
+    protected void getJsonObject(Class<?> clazz, JSONObject jsonObject) {
         if (AbstractConfigurable.class.getName().equals(clazz.getName())) {
             return;
         }
@@ -153,6 +164,8 @@ public class BasedConfigurable extends AbstractConfigurable {
         }
         Field[] fields = clazz.getDeclaredFields();
         for (Field field : fields) {
+            DataType<?> dataType=null;
+            Object fieldValue =null;
             if (field.isAnnotationPresent(NoSerialized.class)) {
                 continue;
             }
@@ -162,26 +175,31 @@ public class BasedConfigurable extends AbstractConfigurable {
                 continue;
             } else if (Modifier.isNative(field.getModifiers())) {
                 continue;
+            }else if(field.isAnnotationPresent(ConfigurableReference.class)&&getConfigurableService()!=null){
+
+                String configuableName = jsonObject.getString(field.getName());
+                String type=jsonObject.getString(field.getName()+".type");
+                fieldValue=getConfigurableService().queryConfigurable(type,configuableName);
+
+            }else {
+                dataType=DataTypeUtil.createFieldDataType(this, field.getName());
+                String fieldJsonStr = jsonObject.getString(field.getName());
+                fieldJsonStr = getENVParameter(field, fieldJsonStr);
+                fieldValue = dataType.getData(fieldJsonStr);
             }
-            DataType dataType = DataTypeUtil.createFieldDataType(this, field.getName());
-            String fieldJsonStr = jsonObject.getString(field.getName());
-            fieldJsonStr = getENVParameter(field, fieldJsonStr);
-            Object fieldValue = dataType.getData(fieldJsonStr);
+
             if (fieldValue != null) {
                 ReflectUtil.setBeanFieldValue(this, field.getName(), fieldValue);
             } else {
                 ReflectUtil.setFieldValue(this, field.getName(), null);
             }
         }
-        Class parent = clazz.getSuperclass();
+        Class<?> parent = clazz.getSuperclass();
         getJsonObject(parent, jsonObject);
     }
 
     /**
      * 支持存储env的key值，而具体的值存储在IENVParameter参数中
-     *
-     * @param fieldValue
-     * @return
      */
     protected String getENVParameter(Field field, String fieldValue) {
         ENVDependence dependence = field.getAnnotation(ENVDependence.class);
@@ -219,8 +237,7 @@ public class BasedConfigurable extends AbstractConfigurable {
         if (dependence == null) {
             return fieldValueStr;
         }
-        String key =
-            MapKeyUtil.createKey(getNameSpace(), getType(), getConfigureName(), field.getName(), fieldValueStr);
+        String key = MapKeyUtil.createKey(getNameSpace(), getType(), getConfigureName(), field.getName(), fieldValueStr);
         String oriFieldValue = this.getPrivateData(key);
         //        if(needRemove){
         //            this.removePrivateData(key);
@@ -232,8 +249,7 @@ public class BasedConfigurable extends AbstractConfigurable {
         return fieldValueStr;
     }
 
-    @Override
-    public void toObject(String jsonString) {
+    @Override public void toObject(String jsonString) {
         JSONObject jsonObject = JSON.parseObject(jsonString);
         getJsonObject(jsonObject);
     }
@@ -257,5 +273,13 @@ public class BasedConfigurable extends AbstractConfigurable {
 
     public void setUpdateFlag(long updateFlag) {
         this.updateFlag = updateFlag;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 }

@@ -27,8 +27,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
@@ -36,9 +34,11 @@ import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseGetCallback;
 import org.apache.rocketmq.streams.lease.service.ILeaseService;
 import org.apache.rocketmq.streams.lease.service.ILeaseStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class BasedLesaseImpl implements ILeaseService {
-    private static final Log LOG = LogFactory.getLog(BasedLesaseImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(BasedLesaseImpl.class);
 
     private static final String CONSISTENT_HASH_PREFIX = "consistent_hash_";
     private static final AtomicBoolean syncStart = new AtomicBoolean(false);
@@ -151,18 +151,18 @@ public abstract class BasedLesaseImpl implements ILeaseService {
                 Date leaseDate = applyLeaseTask(leaseTerm, name, newApplyLease);
                 if (leaseDate != null) {
                     leaseName2Date.put(name, leaseDate);
-                    LOG.info("LeaseServiceImpl, name: " + name + " " + getSelfUser() + " 获取租约成功, 租约到期时间为 "
+                    LOGGER.info("LeaseServiceImpl, name: " + name + " " + getSelfUser() + " 获取租约成功, 租约到期时间为 "
                         + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(leaseDate));
                 } else {
                     // fix.2020.08.13 这时name对应的租约可能还在有效期内,或者本机还持有租约，需要remove
                     //  leaseName2Date.remove(name);
-                    LOG.info("LeaseServiceImpl name: " + name + " " + getSelfUser() + " 获取租约失败 ");
+                    LOGGER.info("LeaseServiceImpl name: " + name + " " + getSelfUser() + " 获取租约失败 ");
                 }
                 if (newApplyLease.get() && callback != null) {
                     callback.callback(leaseDate);
                 }
             } catch (Exception e) {
-                LOG.error(" LeaseServiceImpl name: " + name + "  " + getSelfUser() + " 获取租约出现异常 ", e);
+                LOGGER.error(" LeaseServiceImpl name: " + name + "  " + getSelfUser() + " 获取租约出现异常 ", e);
             }
 
         }
@@ -182,7 +182,7 @@ public abstract class BasedLesaseImpl implements ILeaseService {
             // 更新数据库
             LeaseInfo leaseInfo = queryValidateLease(name);
             if (leaseInfo == null) {
-                LOG.error("LeaseServiceImpl applyLeaseTask leaseInfo is null");
+                LOGGER.error("LeaseServiceImpl applyLeaseTask leaseInfo is null");
                 return null;
             }
             // fix.2020.08.13,与本机ip相等且满足一致性hash分配策略，才续约，其他情况为null
@@ -255,17 +255,17 @@ public abstract class BasedLesaseImpl implements ILeaseService {
                 validateLeaseInfo.setStatus(1);
                 validateLeaseInfo.setVersion(1);
                 if (insert(validateLeaseInfo)) {
-                    LOG.info("数据库中暂时没有租约信息，原子插入成功，获取租约成功:" + name);
+                    LOGGER.info("数据库中暂时没有租约信息，原子插入成功，获取租约成功:" + name);
                     return true;
                 } else {
-                    LOG.info("数据库中暂时没有租约信息，原子插入失败，已经被其他机器获取租约:" + name);
+                    LOGGER.info("数据库中暂时没有租约信息，原子插入失败，已经被其他机器获取租约:" + name);
                     return false;
                 }
             } else { // 表示数据库里面有一条但是无效，这里需要两台机器按照version进行原子更新，更新成功的获取租约
                 // LOG.info("数据库中有一条无效的租约信息，尝试根据版本号去原子更新租约信息:" + name);
                 LeaseInfo inValidateLeaseInfo = queryInValidateLease(name);
                 if (inValidateLeaseInfo == null) {// 说明这个时候另外一台机器获取成功了
-                    LOG.info("另外一台机器获取成功了租约:" + name);
+                    LOGGER.info("另外一台机器获取成功了租约:" + name);
                     return false;
                 }
                 // fix.2020.08.13,机器重启之后，该名字的任务已经不分配在此机器上执行，直接返回，无需更新数据库
@@ -278,9 +278,9 @@ public abstract class BasedLesaseImpl implements ILeaseService {
                 inValidateLeaseInfo.setStatus(1);
                 boolean success = updateDBLeaseInfo(inValidateLeaseInfo);
                 if (success) {
-                    LOG.info("LeaseServiceImpl 原子更新租约成功，当前机器获取到了租约信息:" + name);
+                    LOGGER.info("LeaseServiceImpl 原子更新租约成功，当前机器获取到了租约信息:" + name);
                 } else {
-                    LOG.info("LeaseServiceImpl 原子更新租约失败，租约被其他机器获取:" + name);
+                    LOGGER.info("LeaseServiceImpl 原子更新租约失败，租约被其他机器获取:" + name);
                 }
                 return success;
             }
@@ -294,13 +294,13 @@ public abstract class BasedLesaseImpl implements ILeaseService {
                 validateLeaseInfo.setLeaseEndDate(time);
                 boolean hasUpdate = updateLeaseInfo(validateLeaseInfo);
                 if (hasUpdate) {
-                    LOG.info(
+                    LOGGER.info(
                         "LeaseServiceImpl机器重启情况，当前用户有租约信息，并且更新数据库成功，租约信息为 name :" + validateLeaseInfo.getLeaseName()
                             + " ip : " + validateLeaseInfo.getLeaseUserIp() + " 到期时间 : " + new SimpleDateFormat(
                             "yyyy-MM-dd HH:mm:ss").format(validateLeaseInfo.getLeaseEndDate()));
                     return true;
                 } else {
-                    LOG.info("LeaseServiceImpl 机器重启情况，当前用户有租约信息，并且更新数据库失败，表示失去租约:" + name);
+                    LOGGER.info("LeaseServiceImpl 机器重启情况，当前用户有租约信息，并且更新数据库失败，表示失去租约:" + name);
                     return false;
                 }
             }
@@ -334,7 +334,7 @@ public abstract class BasedLesaseImpl implements ILeaseService {
             addLeaseInfo(leaseInfo);
             return true;
         } catch (Exception e) {
-            LOG.error("LeaseServiceImpl insert error", e);
+            LOGGER.error("LeaseServiceImpl insert error", e);
             return false;
         }
     }

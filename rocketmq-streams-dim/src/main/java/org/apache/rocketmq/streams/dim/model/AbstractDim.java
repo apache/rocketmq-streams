@@ -40,7 +40,10 @@ import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReference
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.interfaces.IDim;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.dim.index.DimIndex;
@@ -51,15 +54,15 @@ import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.script.ScriptComponent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 这个结构代表一张表 存放表的全部数据和索引
  */
-public abstract class AbstractDim extends BasedConfigurable {
+public abstract class AbstractDim extends BasedConfigurable implements IDim {
 
-    private static final Log LOG = LogFactory.getLog(AbstractDim.class);
-
-    public static final String TYPE = "nameList";
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractDim.class);
 
     /**
      * 同步数据的事件间隔，单位是分钟
@@ -88,27 +91,23 @@ public abstract class AbstractDim extends BasedConfigurable {
     protected transient ScheduledExecutorService executorService;
 
     public AbstractDim() {
-        this.setType(TYPE);
+        this.setType(IDim.TYPE);
     }
 
     //protected String index;//只是做标记，为了是简化indexs的赋值
 
-    public String addIndex(String... fieldNames) {
+    @Override public String addIndex(String... fieldNames) {
         return addIndex(this.indexs, fieldNames);
     }
 
-    @Override
-    protected boolean initConfigurable() {
+    @Override protected boolean initConfigurable() {
         boolean success = super.initConfigurable();
         if (Boolean.TRUE.equals(Boolean.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_RUNNING_STATUS, ConfigureFileKey.DIPPER_RUNNING_STATUS_DEFAULT)))) {
             loadNameList();
-            executorService = new ScheduledThreadPoolExecutor(3);
-            executorService.scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    loadNameList();
-                }
-            }, pollingTimeMinute, pollingTimeMinute, TimeUnit.MINUTES);
+            if (executorService == null) {
+                executorService = ThreadPoolFactory.createScheduledThreadPool(3, AbstractDim.class.getName() + "-" + getConfigureName());
+            }
+            executorService.scheduleWithFixedDelay(this::loadNameList, pollingTimeMinute, pollingTimeMinute, TimeUnit.MINUTES);
         }
 
         return success;
@@ -119,14 +118,14 @@ public abstract class AbstractDim extends BasedConfigurable {
      */
     protected void loadNameList() {
         try {
-            LOG.info(getConfigureName() + " begin polling data");
+            LOGGER.info("[{}][{}] Dim_Begin_Polling_Data", IdUtil.instanceId(), getConfigureName());
             //全表数据
             AbstractMemoryTable dataCacheVar = loadData();
             this.dataCache = dataCacheVar;
             this.nameListIndex = buildIndex(dataCacheVar);
             this.columnNames = this.dataCache.getCloumnName2Index().keySet();
         } catch (Exception e) {
-            LOG.error("Load configurables error:" + e.getMessage(), e);
+            LOGGER.error("[{}][{}] Dim_Load_Configurables_Error", IdUtil.instanceId(), getConfigureName(), e);
         }
     }
 
@@ -134,7 +133,7 @@ public abstract class AbstractDim extends BasedConfigurable {
      * 给维表生成索引数据结构
      *
      * @param dataCacheVar 维表
-     * @return
+     * @return dimIndex
      */
     protected DimIndex buildIndex(AbstractMemoryTable dataCacheVar) {
         DimIndex dimIndex = new DimIndex(this.indexs);
@@ -145,7 +144,7 @@ public abstract class AbstractDim extends BasedConfigurable {
     /**
      * 软引用缓存，最大可能保存索引执行器，避免频繁创建，带来额外开销 同时会保护内存不被写爆，当内存不足时自动回收内存
      */
-    private static ICache<String, IndexExecutor> cache = new SoftReferenceCache<>();
+    private static final ICache<String, IndexExecutor> cache = new SoftReferenceCache<>();
 
     /**
      * 先找索引，如果有索引，通过索引匹配。如果没有，全表扫表.
@@ -154,7 +153,7 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param msg           消息
      * @return 只返回匹配的第一行
      */
-    public Map<String, Object> matchExpression(String expressionStr, JSONObject msg) {
+    @Override public Map<String, Object> matchExpression(String expressionStr, JSONObject msg) {
         List<Map<String, Object>> rows = matchExpression(expressionStr, msg, true, null);
         if (rows != null && rows.size() > 0) {
             return rows.get(0);
@@ -169,8 +168,7 @@ public abstract class AbstractDim extends BasedConfigurable {
      * @param msg           消息
      * @return 返回全部匹配的行
      */
-    public List<Map<String, Object>> matchExpression(String expressionStr, JSONObject msg, boolean needAll,
-        String script) {
+    @Override public List<Map<String, Object>> matchExpression(String expressionStr, JSONObject msg, boolean needAll, String script) {
         IndexExecutor indexNamelistExecutor = cache.get(expressionStr);
         if (indexNamelistExecutor == null) {
             indexNamelistExecutor = new IndexExecutor(expressionStr, getNameSpace(), this.indexs, dataCache.getCloumnName2DatatType().keySet());
@@ -186,40 +184,37 @@ public abstract class AbstractDim extends BasedConfigurable {
     /**
      * 全表扫描，做表达式匹配，返回全部匹配结果
      *
-     * @param expressionStr
-     * @param msg
-     * @param needAll
-     * @return
+     * @param expressionStr expression string
+     * @param msg           msg
+     * @param needAll       need all
+     * @return list map
      */
     protected List<Map<String, Object>> matchExpressionByLoop(String expressionStr, JSONObject msg, boolean needAll) {
         AbstractMemoryTable dataCache = this.dataCache;
-        List<Map<String, Object>> rows = matchExpressionByLoop(dataCache.rowIterator(), expressionStr, msg, needAll, null, columnNames);
-        return rows;
+        return matchExpressionByLoop(dataCache.rowIterator(), expressionStr, msg, needAll, null, columnNames);
     }
 
     /**
      * 全表扫描，做表达式匹配，返回全部匹配结果。join中有使用
      *
-     * @param expressionStr
-     * @param msg
-     * @param needAll
-     * @return
+     * @param expressionStr expression string
+     * @param msg           msg
+     * @param needAll       need all
+     * @return list map
      */
-    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it,
-        String expressionStr, JSONObject msg, boolean needAll) {
+    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it, String expressionStr, JSONObject msg, boolean needAll) {
         return matchExpressionByLoop(it, expressionStr, msg, needAll, null, new HashSet<>());
     }
 
     /**
      * 全表扫描，做表达式匹配，返回全部匹配结果。join中有使用
      *
-     * @param expressionStr
-     * @param msg
-     * @param needAll
-     * @return
+     * @param expressionStr expression string
+     * @param msg           msg
+     * @param needAll       need all
+     * @return list map
      */
-    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it,
-        String expressionStr, JSONObject msg, boolean needAll, String script, Set<String> colunmNames) {
+    public static List<Map<String, Object>> matchExpressionByLoop(Iterator<Map<String, Object>> it, String expressionStr, JSONObject msg, boolean needAll, String script, Set<String> colunmNames) {
         List<Map<String, Object>> rows = new ArrayList<>();
         Rule ruleTemplete = ExpressionBuilder.createRule("tmp", "tmpRule", expressionStr);
         while (it.hasNext()) {
@@ -238,21 +233,19 @@ public abstract class AbstractDim extends BasedConfigurable {
     /**
      * 和维表的一行数据进行匹配，如果维表中有函数，先执行函数
      *
-     * @param ruleTemplete
-     * @param dimRow
-     * @param msgRow
-     * @param script
-     * @param colunmNames
-     * @return
+     * @param ruleTemplate rule template
+     * @param dimRow       dim row
+     * @param msgRow       msg row
+     * @param script       script
+     * @return map
      */
-    public static Map<String, Object> isMatch(Rule ruleTemplete, Map<String, Object> dimRow, JSONObject msgRow,
-        String script, Set<String> colunmNames) {
+    public static Map<String, Object> isMatch(Rule ruleTemplate, Map<String, Object> dimRow, JSONObject msgRow, String script, Set<String> columnNames) {
         Map<String, Object> oldRow = dimRow;
         Map<String, Object> newRow = executeScript(oldRow, script);
-        if (ruleTemplete == null) {
+        if (ruleTemplate == null) {
             return newRow;
         }
-        Rule rule = ruleTemplete.copy();
+        Rule rule = ruleTemplate.copy();
         Map<String, Expression> expressionMap = new HashMap<>();
         String dimAsName = null;
         ;
@@ -276,7 +269,7 @@ public abstract class AbstractDim extends BasedConfigurable {
                 if (values.length == 2) {
                     String asName = values[0];
                     String varName = values[1];
-                    if (colunmNames.contains(varName)) {
+                    if (columnNames.contains(varName)) {
                         dimAsName = asName;
                     }
                 }
@@ -333,7 +326,7 @@ public abstract class AbstractDim extends BasedConfigurable {
             relationExpression.setValue(new ArrayList<>());
             for (String expressionName : expressionNames) {
                 Expression subExpression = map.get(expressionName);
-                if (subExpression != null && !RelationExpression.class.isInstance(subExpression) && dimField.isDimField(subExpression.getValue())) {
+                if (subExpression != null && !(subExpression instanceof RelationExpression) && dimField.isDimField(subExpression.getValue())) {
                     indexExpressions.add(subExpression);
                 } else {
                     otherExpressions.add(subExpression);
@@ -389,30 +382,29 @@ public abstract class AbstractDim extends BasedConfigurable {
     protected AbstractMemoryTable loadData() {
         AbstractMemoryTable memoryTable = null;
         if (!isLarge) {
-            LOG.info(String.format("init ByteArrayMemoryTable."));
             memoryTable = new ByteArrayMemoryTable();
             loadData2Memory(memoryTable);
+            LOGGER.info("[{}][{}] Init_ByteArrayMemoryTable", IdUtil.instanceId(), getConfigureName());
         } else {
-            LOG.info(String.format("init MappedByteBufferTable."));
-//            memoryTable = new MappedByteBufferTable();
-//            loadData2Memory(memoryTable);
             Date date = new Date();
             try {
                 memoryTable = MappedByteBufferTable.Creator.newCreator(filePath, date, pollingTimeMinute.intValue()).create(table -> loadData2Memory(table));
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.error("[{}][{}] Init_MappedByteBufferTable_Error", IdUtil.instanceId(), getConfigureName(), e);
             }
-
+            LOGGER.info("[{}][{}] Init_MappedByteBufferTable", IdUtil.instanceId(), getConfigureName());
         }
         return memoryTable;
     }
 
     protected abstract void loadData2Memory(AbstractMemoryTable table);
 
-    @Override
-    public void destroy() {
+    @Override public void destroy() {
         super.destroy();
-        executorService.shutdown();
+        if (this.executorService != null) {
+            this.executorService.shutdown();
+            this.executorService = null;
+        }
     }
 
     /**
@@ -455,7 +447,7 @@ public abstract class AbstractDim extends BasedConfigurable {
         this.pollingTimeMinute = pollingTimeMinute;
     }
 
-    public List<String> getIndexs() {
+    @Override public List<String> getIndexs() {
         return indexs;
     }
 

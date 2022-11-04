@@ -38,21 +38,21 @@ public interface IConfigurable extends IJsonable, IConfigurableIdentification, S
     /**
      * 每个配置有一个独立的名字
      *
-     * @param configureName
+     * @param configureName configureName
      */
     void setConfigureName(String configureName);
 
     /**
      * 每个配置有独立的命名空间
      *
-     * @param nameSpace
+     * @param nameSpace namespace
      */
     void setNameSpace(String nameSpace);
 
     /**
      * 区分配置类型
      *
-     * @param type
+     * @param type type
      */
     void setType(String type);
 
@@ -63,18 +63,18 @@ public interface IConfigurable extends IJsonable, IConfigurableIdentification, S
     /**
      * 设置私有数据
      *
-     * @param key
-     * @param value
-     * @param <T>
+     * @param key   key
+     * @param value value
+     * @param <T>   t
      */
     <T> void putPrivateData(String key, T value);
 
     /**
      * 获取私有数据
      *
-     * @param key
-     * @param <T>
-     * @return
+     * @param key key
+     * @param <T> value
+     * @return value
      */
     <T> T getPrivateData(String key);
 

@@ -17,17 +17,17 @@
 package org.apache.rocketmq.streams.configurable.service;
 
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfigurableServiceFactory {
-    private static ServiceLoaderComponent<IConfigurableService> configurableServiceLoaderComponent = ServiceLoaderComponent.getInstance(IConfigurableService.class);
+    private static ServiceLoaderComponent<IConfigurableService> configurableServiceLoaderComponent = (ServiceLoaderComponent<IConfigurableService>) ServiceLoaderComponent.getInstance(IConfigurableService.class);
     public static final String CONFIGURABLE_SERVICE_TYPE = "dipper.configurable.service.type";
-    private static final Log LOG = LogFactory.getLog(ConfigurableServiceFactory.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurableServiceFactory.class);
 
     public static IConfigurableService createConfigurableService(Properties properties) {
         try {
@@ -43,7 +43,7 @@ public class ConfigurableServiceFactory {
             }
             return configurableService;
         } catch (Exception e) {
-            LOG.error("create ConfigurableService error", e);
+            LOGGER.error("create ConfigurableService error", e);
             return null;
         }
 

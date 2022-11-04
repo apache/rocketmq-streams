@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -40,6 +41,9 @@ public class CheckPointManager extends BasedConfigurable {
 
     public CheckPointManager() {
         String name = ComponentCreator.getProperties().getProperty(ConfigureFileKey.CHECKPOINT_STORAGE_NAME);
+        if(StringUtil.isEmpty(name)){
+            return;
+        }
         iCheckPointStorage = CheckPointStorageFactory.getInstance().getStorage(name);
     }
 
@@ -87,14 +91,16 @@ public class CheckPointManager extends BasedConfigurable {
 
     }
 
-    public CheckPoint recover(ISource iSource, ISplit iSplit) {
+    public ISplitOffset recover(ISource iSource, ISplit iSplit) {
         if (this.iCheckPointStorage == null) {
             return null;
         }
-        String isRecover = ComponentCreator.getProperties().getProperty(ConfigureFileKey.IS_RECOVER_MODE);
-        if (isRecover != null && Boolean.valueOf(isRecover)) {
-            String queueId = iSplit.getQueueId();
-            return iCheckPointStorage.recover(iSource, queueId);
+        if(AbstractSource.class.isInstance(iSource)){
+            AbstractSource abstractSource=(AbstractSource)iSource;
+            if(abstractSource.supportOffsetRest()){
+                String queueId = iSplit.getQueueId();
+                return iCheckPointStorage.recover(iSource, queueId);
+            }
         }
         return null;
     }
@@ -207,5 +213,13 @@ public class CheckPointManager extends BasedConfigurable {
         snapShot.setValue("value");
         System.out.println(ReflectUtil.serializeObject(snapShot));
 
+    }
+
+    public ICheckPointStorage getiCheckPointStorage() {
+        return iCheckPointStorage;
+    }
+
+    public void setiCheckPointStorage(ICheckPointStorage iCheckPointStorage) {
+        this.iCheckPointStorage = iCheckPointStorage;
     }
 }

@@ -44,7 +44,7 @@ public class DimBuilder {
             sql = "select * from " + sqlOrTableName + " limit 500000";
         }
         nameList.setSql(sql);
-        nameList.setJdbcdriver(jdbcDriver);
+        nameList.setJdbcDriver(jdbcDriver);
         nameList.setPollingTimeMinute(pollingTime);
         nameList.setUrl(url);
         nameList.setUserName(userName);

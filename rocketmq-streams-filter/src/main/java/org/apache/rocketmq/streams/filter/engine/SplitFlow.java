@@ -17,12 +17,12 @@
 package org.apache.rocketmq.streams.filter.engine;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SplitFlow {
 
-    private static final Log LOG = LogFactory.getLog(SplitFlow.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SplitFlow.class);
     private volatile String nameSpace;
     private JSONObject uuidNameMap = new JSONObject();
 
@@ -50,7 +50,7 @@ public class SplitFlow {
      */
     public boolean aegisUuidMatch(String uuid) {
         if (uuidEndNum == null || "".equals(uuidEndNum)) {
-            LOG.warn("SplitFlow aegisUuidMatch,uuidEndNum is null");
+            LOGGER.warn("SplitFlow aegisUuidMatch,uuidEndNum is null");
             return true;
         }
         String numbers = uuidEndNum;
@@ -86,7 +86,7 @@ public class SplitFlow {
         try {
             this.uuidNameMap = JSONObject.parseObject(uuidNameJson);
         } catch (Exception e) {
-            LOG.error("SplitFlow setUuidNameJson error" + uuidNameJson, e);
+            LOGGER.error("SplitFlow setUuidNameJson error" + uuidNameJson, e);
         }
 
     }
@@ -134,7 +134,7 @@ public class SplitFlow {
         try {
             paserConfigToField(splitFlowJson);
         } catch (Exception e) {
-            LOG.error("SplitFlow setSplitFlowJson error,splitFlowJson is:" + splitFlowJson, e);
+            LOGGER.error("SplitFlow setSplitFlowJson error,splitFlowJson is:" + splitFlowJson, e);
         }
 
     }

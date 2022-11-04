@@ -37,7 +37,8 @@ public abstract class AbstractWindowStorage<T extends WindowBaseValue> implement
 //        0L, TimeUnit.MILLISECONDS,
 //        new LinkedBlockingQueue<Runnable>(), new ThreadPoolFactory.DipperThreadFactory("AbstractWindowStorage-"));
 
-    protected transient ExecutorService dataLoaderExecutor = ThreadPoolFactory.createThreadPool(10);
+    protected transient ExecutorService dataLoaderExecutor = ThreadPoolFactory.createThreadPool(10, 10, 0L, TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<Runnable>(), "AbstractWindowStorage");
     ;
 
     @Override
@@ -65,8 +66,6 @@ public abstract class AbstractWindowStorage<T extends WindowBaseValue> implement
                         + windowInstancePartitionId + "'", processor);
                 batchRowLoader.startLoadData();
                 ShufflePartitionManager.getInstance().setWindowInstanceFinished(windowInstanceId);
-                System.out.println(System.currentTimeMillis() - start);
-                System.out.println("");
             }
         });
 

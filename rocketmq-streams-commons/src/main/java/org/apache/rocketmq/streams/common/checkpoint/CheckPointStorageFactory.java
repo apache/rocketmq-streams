@@ -21,15 +21,15 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Iterator;
 import java.util.ServiceLoader;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description
  */
 public class CheckPointStorageFactory {
 
-    private static final Log logger = LogFactory.getLog(CheckPointStorageFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(CheckPointStorageFactory.class);
     public static final String DEFAULT_CHECKPOINT_TYPE_NAME = "DB";
     private static CheckPointStorageFactory instance;
     private ServiceLoader<ICheckPointStorage> loader;

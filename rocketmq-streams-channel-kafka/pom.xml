@@ -5,7 +5,7 @@
     <parent>
         <artifactId>rocketmq-streams</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.0.3-dispatcher-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

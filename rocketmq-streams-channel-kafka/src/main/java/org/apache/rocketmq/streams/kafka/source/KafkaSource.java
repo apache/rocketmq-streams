@@ -28,18 +28,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaSource extends AbstractSupportShuffleSource {
 
-    private static final Log LOG = LogFactory.getLog(KafkaSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
 
     private transient Properties props;
     private String bootstrapServers;
@@ -80,6 +82,8 @@ public class KafkaSource extends AbstractSupportShuffleSource {
         return super.initConfigurable();
     }
 
+    private ExecutorService executorService;
+
     @Override protected boolean startSource() {
         try {
             //kafka多线程消费会报“KafkaConsumer is not safe for multi-threaded access”，所以改成单线程拉取，多线程处理
@@ -88,12 +92,17 @@ public class KafkaSource extends AbstractSupportShuffleSource {
                 this.consumer.subscribe(Lists.newArrayList(topic));
             }
             WorkerFunc workerFunc = new WorkerFunc();
-            ExecutorService executorService = new ThreadPoolExecutor(getMaxThread(), getMaxThread(), 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(1000));
+            if (executorService == null) {
+                executorService = ThreadPoolFactory.createFixedThreadPool(getMaxThread(), KafkaSource.class.getName() + "-" + getConfigureName());
+            }
             executorService.execute(workerFunc);
         } catch (Exception e) {
-            setInitSuccess(false);
-            LOG.error(e.getMessage(), e);
-            destroy();
+            LOGGER.error(e.getMessage(), e);
+            try {
+                destroy();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
             throw new RuntimeException(" start kafka channel error " + topic);
         }
         return true;
@@ -126,7 +135,7 @@ public class KafkaSource extends AbstractSupportShuffleSource {
                             message.getHeader().setOffsetIsLong(true);
                             executeMessage(message);
                         } catch (Exception e) {
-                            LOG.error(e.getMessage(), e);
+                            LOGGER.error(e.getMessage(), e);
                         }
                     }
                     if ((System.currentTimeMillis() - lastUpgrade) > checkpointTime) {
@@ -135,7 +144,7 @@ public class KafkaSource extends AbstractSupportShuffleSource {
                         lastUpgrade = System.currentTimeMillis();
                     }
                 } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
+                    LOGGER.error(e.getMessage(), e);
                 }
             }
         }
@@ -183,9 +192,17 @@ public class KafkaSource extends AbstractSupportShuffleSource {
         return false;
     }
 
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
+    }
+
     protected void destroyConsumer() {
         if (this.consumer != null) {
             this.consumer.close();
+        }
+        if (this.executorService != null) {
+            this.executorService.shutdown();
+            this.executorService = null;
         }
     }
 

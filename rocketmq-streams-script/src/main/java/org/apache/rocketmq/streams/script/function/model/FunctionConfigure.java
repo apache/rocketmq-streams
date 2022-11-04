@@ -25,8 +25,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -35,13 +33,15 @@ import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 每一个注册的function会有一个engine来代表。引擎主要用于执行一个service的方法
  */
 public class FunctionConfigure {
 
-    private static final Log LOG = LogFactory.getLog(FunctionConfigure.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FunctionConfigure.class);
 
     /**
      * 函数名称，可以把任务springbean的方法注册成function，并取一个functionname
@@ -402,7 +402,7 @@ public class FunctionConfigure {
 
             return parameters;
         } catch (Exception e) {
-            LOG.error("parseParameters error :" + parameterConfigure + ";detail info is " + e.getMessage(), e);
+            LOGGER.error("parseParameters error :" + parameterConfigure + ";detail info is " + e.getMessage(), e);
             return null;
         }
 
@@ -433,7 +433,7 @@ public class FunctionConfigure {
             }
             return parameters;
         } catch (Exception e) {
-            LOG.error("parseParameters error :" + parameterConfigure + ";detail info is " + e.getMessage(), e);
+            LOGGER.error("parseParameters error :" + parameterConfigure + ";detail info is " + e.getMessage(), e);
             return null;
         }
 
@@ -535,7 +535,7 @@ public class FunctionConfigure {
                 }
             }
         } catch (Exception e) {
-            LOG.error("startWith执行异常，将返回true", e);
+            LOGGER.error("startWith执行异常，将返回true", e);
         }
         return true;
 

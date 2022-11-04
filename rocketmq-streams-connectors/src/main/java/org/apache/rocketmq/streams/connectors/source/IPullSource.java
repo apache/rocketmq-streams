@@ -25,28 +25,28 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 /**
  * poll message，need balance
  */
-public interface IPullSource<T extends ISource> extends ISource<T> {
+public interface IPullSource<T extends ISource<?>> extends ISource<T> {
 
     /**
      * 拥有的分片格式
      *
      * @return
      */
-    Collection<ISplit> ownerSplits();
+    Collection<ISplit<?, ?>> ownerSplits();
 
     /**
      * get all split for the source
      *
      * @return
      */
-    List<ISplit> fetchAllSplits();
+    List<ISplit<?, ?>> fetchAllSplits();
 
     /**
      * get all split for the source
      *
      * @return
      */
-    Map<String, ISplit> getAllSplitMap();
+    Map<String, ISplit<?, ?>> getAllSplitMap();
 
     Long getPullIntervalMs();
 
@@ -55,6 +55,6 @@ public interface IPullSource<T extends ISource> extends ISource<T> {
      *
      * @return
      */
-    String loadSplitOffset(ISplit split);
+    String loadSplitOffset(ISplit<?, ?> split);
 
 }

@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
@@ -40,13 +38,15 @@ import org.apache.rocketmq.streams.script.function.aggregation.MaxAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.MinAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.SumAccumulator;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 主要在window中使用，做统计计算使用
  */
 public class AggregationScript implements IStreamOperator<IMessage, List<IMessage>> {
 
-    private static final Log LOG = LogFactory.getLog(AggregationScript.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AggregationScript.class);
     private static Set<String> supportQuickStoreModelFunctions=new HashSet<String>(){{
        add("max");
        add("min");
@@ -204,7 +204,7 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
                 .newInstance() : null;
 
         } catch (Exception e) {
-            LOG.error("failed in getting aggregation function, " + functionName, e);
+            LOGGER.error("failed in getting aggregation function, " + functionName, e);
         }
         return null;
     }

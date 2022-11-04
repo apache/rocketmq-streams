@@ -48,6 +48,7 @@ import org.apache.rocketmq.streams.connectors.source.DynamicMultipleDBScanSource
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
 import org.apache.rocketmq.streams.kafka.source.KafkaSource;
 import org.apache.rocketmq.streams.mqtt.source.PahoSource;
+import org.apache.rocketmq.streams.sls.source.SLSSource;
 import org.apache.rocketmq.streams.source.RocketMQSource;
 
 public class DataStreamSource {
@@ -85,12 +86,27 @@ public class DataStreamSource {
         return fromFile(filePath, true);
     }
 
+    public DataStream fromCSVFile(String filePath) {
+        FileSource fileChannel = new FileSource(filePath);
+        fileChannel.setCSV(true);
+        this.mainPipelineBuilder.setSource(fileChannel);
+        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+    }
     public DataStream fromFile(String filePath, Boolean isJsonData) {
         FileSource fileChannel = new FileSource(filePath);
         fileChannel.setJsonData(isJsonData);
         this.mainPipelineBuilder.setSource(fileChannel);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
     }
+
+
+    public DataStream fromSls(String endPoint,String project, String logstore, String ak,String sk,String groupName) {
+        SLSSource slsSource=new SLSSource(endPoint,project,logstore,ak,sk,groupName);
+        slsSource.setJsonData(true);
+        this.mainPipelineBuilder.setSource(slsSource);
+        return new DataStream(this.mainPipelineBuilder, null);
+    }
+
 
     public DataStream fromRocketmq(String topic, String groupName, String namesrvAddress) {
         return fromRocketmq(topic, groupName, false, namesrvAddress);
@@ -99,14 +115,18 @@ public class DataStreamSource {
     public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress) {
         return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress);
     }
+    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress){
+        return fromRocketmq(topic,groupName,tags,isJson,namesrvAddress,false);
+    }
+    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress, boolean isMessageListenerConcurrently) {
 
-    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress) {
         RocketMQSource rocketMQSource = new RocketMQSource();
         rocketMQSource.setTopic(topic);
         rocketMQSource.setTags(tags);
         rocketMQSource.setGroupName(groupName);
         rocketMQSource.setJsonData(isJson);
         rocketMQSource.setNamesrvAddr(namesrvAddress);
+        rocketMQSource.setMessageListenerConcurrently(isMessageListenerConcurrently);
         this.mainPipelineBuilder.setSource(rocketMQSource);
         return new DataStream(this.mainPipelineBuilder, null);
     }
@@ -130,7 +150,7 @@ public class DataStreamSource {
         source.setPassword(password);
         source.setBatchSize(10);
         source.setLogicTableName(tablePattern);
-        source.setBalanceTimeSecond(balanceSec);
+      //  source.setBalanceTimeSecond(balanceSec);
 
         this.mainPipelineBuilder.setSource(source);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);

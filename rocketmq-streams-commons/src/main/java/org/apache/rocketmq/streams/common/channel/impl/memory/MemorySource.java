@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.memory;
 
+import java.util.List;
 import org.apache.rocketmq.streams.common.channel.source.AbstractBatchSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 
@@ -27,6 +29,10 @@ public class MemorySource extends AbstractBatchSource implements IAfterConfigura
 
     public MemorySource() {
 
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
     @Override
@@ -42,12 +48,16 @@ public class MemorySource extends AbstractBatchSource implements IAfterConfigura
             public void run() {
                 try {
                     while (true) {
+                        boolean hasMsg=false;
                         Object message = memoryCache.queue.poll();
                         while (message != null) {
+                            hasMsg=true;
                             doReceiveMessage(createJson(message));
                             message = memoryCache.queue.poll();
                         }
-                        sendCheckpoint(getQueueId());
+                        if(hasMsg){
+                            sendCheckpoint(getQueueId());
+                        }
                         Thread.sleep(1000);
                     }
 

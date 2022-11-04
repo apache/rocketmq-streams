@@ -62,7 +62,7 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
     protected transient FilterChainStage<T, R> SELF;
 
     public FilterChainStage() {
-        SELF=this;
+        SELF = this;
         setEntityName("filter");
 
     }
@@ -80,15 +80,14 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
             if (component == null) {
                 component = ComponentCreator.getComponent(null, componentClass);
             }
-            String fieldValue=message.getHeader().getLogFingerprintValue();
-            NotFireReason notFireReason=null;
-            if(preFingerprint!=null){
-                notFireReason=new NotFireReason(SELF,fieldValue);
+            String fieldValue = message.getHeader().getLogFingerprintValue();
+            NotFireReason notFireReason = null;
+            if (preFingerprint != null) {
+                notFireReason = new NotFireReason(SELF, fieldValue);
                 context.setNotFireReason(notFireReason);
             }
 
             List<R> fireRules = component.getService().executeRule(message, context, rules);
-
 
             //not match rules
             if (fireRules == null || fireRules.size() == 0) {
@@ -96,9 +95,9 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
                 if (preFingerprint != null) {
                     preFingerprint.addLogFingerprintToSource(message);
                 }
-                notFireReason=context.getNotFireReason();
-                 if(isTrace&&notFireReason!=null){
-                    traceFailExpression(message,notFireReason);
+                notFireReason = context.getNotFireReason();
+                if (isTrace && notFireReason != null) {
+                    traceFailExpression(message, notFireReason);
                 }
             }
             return message;
@@ -110,11 +109,10 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
         }
     };
 
-    protected void traceFailExpression(IMessage message,NotFireReason notFireReason) {
+    protected void traceFailExpression(IMessage message, NotFireReason notFireReason) {
         ConsoleMonitorManager.getInstance().reportOutput(FilterChainStage.this, message, ConsoleMonitorManager.MSG_FILTERED, notFireReason.toString());
         TraceUtil.debug(message.getHeader().getTraceId(), "break rule", notFireReason.toString());
     }
-
 
     @Override
     protected IStageHandle selectHandle(T t, AbstractContext context) {
@@ -152,8 +150,8 @@ public class FilterChainStage<T extends IMessage, R extends AbstractRule> extend
             String filterName = getLabel();
             for (String name : names) {
                 AbstractRule rule = configurableService.queryConfigurable(AbstractRule.TYPE, name);
-                if(rule==null){
-                    throw new RuntimeException("the rule expect exist, but not. the rule name is "+name);
+                if (rule == null) {
+                    throw new RuntimeException("the rule expect exist, but not. the rule name is " + name);
                 }
                 rules.add((R) rule);
                 if (!this.isOpenHyperscan()) {

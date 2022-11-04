@@ -23,6 +23,7 @@ import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
 /**
@@ -71,6 +72,10 @@ public class MemoryChannel extends AbstractChannel {
             @Override
             protected boolean startSource() {
                 return super.startSource();
+            }
+
+            @Override public List<ISplit<?, ?>> getAllSplits() {
+                return null;
             }
         };
     }

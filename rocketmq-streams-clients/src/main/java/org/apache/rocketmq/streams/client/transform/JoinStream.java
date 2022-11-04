@@ -219,6 +219,7 @@ public class JoinStream {
         if (hasNoEqualsExpression.get()) {
             joinWindow.setExpression(onCondition);
         }
+        joinWindow.setRightDependentTableName("right");
         return new DataStream(pipelineBuilder, otherPipelineBuilders, currentChainStage);
     }
 

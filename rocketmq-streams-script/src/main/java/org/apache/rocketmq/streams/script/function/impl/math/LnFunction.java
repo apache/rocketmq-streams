@@ -85,22 +85,4 @@ public class LnFunction {
         return result;
     }
 
-    /**
-     * 返回number的自然对数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "ln", alias = "ln", comment = "返回值的自然对数")
-    public BigDecimal ln(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.log(2.71828) / Math.log(number.intValue()));
-        return result;
-    }
 }

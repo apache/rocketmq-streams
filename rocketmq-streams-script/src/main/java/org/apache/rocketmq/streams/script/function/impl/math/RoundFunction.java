@@ -92,23 +92,4 @@ public class RoundFunction {
         return result;
     }
 
-    /**
-     * 四舍五入到指定小数点位置
-     *
-     * @param message
-     * @param context
-     * @param x
-     * @return
-     */
-    @FunctionMethod(value = "round", comment = "四舍五入到指定小数点位置")
-    public BigDecimal round(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量") BigDecimal base,
-                            @FunctionParamter(value = "BigDecimal", comment = "四舍五入计算到小数点后的位置") BigDecimal x) {
-        BigDecimal result = null;
-        if (base == null || x == null) {
-            return result;
-        }
-        result = new BigDecimal(base.setScale(x.intValue(), BigDecimal.ROUND_HALF_UP).doubleValue());
-        return result;
-    }
 }

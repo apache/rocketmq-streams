@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
@@ -35,16 +33,19 @@ import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 import org.apache.rocketmq.streams.common.optimization.MessageGlobleTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * 每个pipline会有一个固定的处理流程，通过stage组成。每个stage可以决定是否需要中断执行，也可以决定下个stage的输入参数
+ * 每个pipeline会有一个固定的处理流程，通过stage组成。每个stage可以决定是否需要中断执行，也可以决定下个stage的输入参数
  *
- * @param <T> pipline初期流转的对象，在流转过程中可能会发生变化
+ * @param <T> pipeline初期流转的对象，在流转过程中可能会发生变化
  */
 public class Pipeline<T extends IMessage> extends BasedConfigurable implements IStreamOperator<T, T> {
 
-    public static final Log LOG = LogFactory.getLog(Pipeline.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(Pipeline.class);
 
     public static final String TYPE = "pipeline";
 
@@ -77,8 +78,7 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
     }
 
     @Override public T doMessage(T t, AbstractContext context) {
-        T message = doMessage(t, context, null);
-        return message;
+        return doMessage(t, context, null);
     }
 
     public T doMessage(T t, AbstractContext context, AbstractStage... replaceStage) {
@@ -109,7 +109,6 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
             if (!isContinue) {
                 if (stage.isAsyncNode()) {
                     MessageGlobleTrace.finishPipeline(t);
-                    ;
                 }
                 return t;
             }
@@ -119,7 +118,7 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
     }
 
     @Override protected boolean initConfigurable() {
-        for(AbstractStage stage:stages){
+        for (AbstractStage stage : stages) {
             stage.init();
         }
         return super.initConfigurable();
@@ -177,17 +176,18 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
             return true;
         }
         context.resetIsContinue();
-        if (context.isSplitModel() && stage.isCloseSplitMode() == false) {
+        if (context.isSplitModel() && !stage.isCloseSplitMode()) {
             List<T> oldSplits = context.getSplitMessages();
             List<T> newSplits = new ArrayList<T>();
             int splitMessageOffset = 0;
             T lastMsg = null;
+            boolean isFinishTrace = MessageGlobleTrace.existFinishBranch(t);
             for (T subT : oldSplits) {
                 context.closeSplitMode(subT);
-                if(ChainPipeline.class.isInstance(this)&&!((ChainPipeline)this).isTopology()&&StringUtil.isNotEmpty(this.msgSourceName)){
-                    subT.getHeader().setMsgRouteFromLable(t.getHeader().getMsgRouteFromLable());
-                }else {
-                    subT.getHeader().setMsgRouteFromLable(t.getHeader().getMsgRouteFromLable());
+                if (ChainPipeline.class.isInstance(this) && !((ChainPipeline) this).isTopology() && StringUtil.isNotEmpty(this.msgSourceName)) {
+                    subT.getHeader().setMsgRouteFromLabel(t.getHeader().getMsgRouteFromLabel());
+                } else {
+                    subT.getHeader().setMsgRouteFromLabel(t.getHeader().getMsgRouteFromLabel());
                 }
 
                 subT.getHeader().addLayerOffset(splitMessageOffset);
@@ -206,7 +206,7 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
                     newSplits.add(subT);
                 }
             }
-            MessageGlobleTrace.clear(t);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
+            MessageGlobleTrace.setResult(t, isFinishTrace);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
             //if (needFlush) {
             //    flushStage(stage, lastMsg, context);
             //}
@@ -227,14 +227,10 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
                 }
                 context.closeSplitMode(t);
             }
+            Boolean isFinishTrace = MessageGlobleTrace.existFinishBranch(t);
             boolean isContinue = doMessage(t, stage, context);
-            MessageGlobleTrace.clear(t);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
-            //if (needFlush) {
-            //    flushStage(stage, t, context);
-            //}
-            if (!isContinue) {
-                return false;
-            }
+            MessageGlobleTrace.setResult(t, isFinishTrace);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
+            return isContinue;
         }
         return true;
     }
@@ -284,12 +280,8 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
     }
 
     private boolean doMessage(T t, AbstractStage stage, AbstractContext context) {
-        Object result = null;
-        result = stage.doMessage(t, context);
-        if (result == null || !context.isContinue()) {
-            return false;
-        }
-        return true;
+        Object result = stage.doMessage(t, context);
+        return result != null && context.isContinue();
     }
 
     public void addStage(AbstractStage stage) {
@@ -305,10 +297,10 @@ public class Pipeline<T extends IMessage> extends BasedConfigurable implements I
     }
 
     @Override public void destroy() {
-        if (LOG.isInfoEnabled()) {
-            LOG.info(getName() + " is destroy, release pipline " + stages.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("[{}] {} is destroy, release pipeline {}", IdUtil.instanceId(), getConfigureName(), getName());
         }
-        stages.clear();
+        //stages.clear();
     }
 
     public String getName() {

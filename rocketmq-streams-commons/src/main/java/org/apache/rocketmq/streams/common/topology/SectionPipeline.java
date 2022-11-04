@@ -45,7 +45,7 @@ public class SectionPipeline implements IStreamOperator<IMessage, AbstractContex
     public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
         //设置window触发后需要执行的逻辑
         if (pipeline.isTopology()) {
-            pipeline.doNextStages(context, currentStage.getMsgSourceName(), currentStage.getLabel(), currentStage.getNextStageLabels(), currentStage.getOwnerSqlNodeTableName());
+            pipeline.doNextStages(context, currentStage.getMsgSourceName(), currentStage.getLabel(), currentStage.getNextStageLabels());
             return context;
 
         } else {

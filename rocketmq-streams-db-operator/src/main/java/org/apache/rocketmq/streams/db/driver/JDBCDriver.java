@@ -21,7 +21,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
@@ -45,19 +44,15 @@ import org.springframework.util.Assert;
  * <p>
  */
 public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDBDriver {
-    private String jdbcDriver = DriverBuilder.DEFALUT_JDBC_DRIVER;
-    @ENVDependence
-    protected String url;
-    @ENVDependence
-    protected String userName;
-    @ENVDependence
-    protected String password;
+    private String jdbcDriver = DriverBuilder.DEFAULT_JDBC_DRIVER;
+    @ENVDependence protected String url;
+    @ENVDependence protected String userName;
+    @ENVDependence protected String password;
 
     protected transient javax.sql.DataSource dataSource;
-    private transient IDBDriver dbDriver = null;
+    private transient volatile IDBDriver dbDriver = null;
 
-    public JDBCDriver(String url, String userName, String password,
-                      String driver) {
+    public JDBCDriver(String url, String userName, String password, String driver) {
         setType(ISink.TYPE);
         this.url = url;
         this.userName = userName;
@@ -84,76 +79,78 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
         }
         return dbDriver;
     }
-   static class BatchUpdateStatementCallback implements StatementCallback<int[]>, SqlProvider {
+
+    static class BatchUpdateStatementCallback implements StatementCallback<int[]>, SqlProvider {
         private String currSql;
         private String[] sql;
-        public BatchUpdateStatementCallback(String... sqls){
-            this.sql=sqls;
+
+        public BatchUpdateStatementCallback(String... sqls) {
+            this.sql = sqls;
         }
-        @Override
-        public int[] doInStatement(Statement stmt) throws SQLException, DataAccessException {
+
+        @Override public int[] doInStatement(Statement stmt) throws SQLException, DataAccessException {
             int[] rowsAffected = new int[sql.length];
             if (JdbcUtils.supportsBatchUpdates(stmt.getConnection())) {
-               // stmt.getConnection().setAutoCommit(false);
+                // stmt.getConnection().setAutoCommit(false);
                 for (String sqlStmt : sql) {
                     this.currSql = sqlStmt;
                     stmt.addBatch(sqlStmt);
                 }
 
                 rowsAffected = stmt.executeBatch();
-              //  stmt.getConnection().commit();
-            }
-            else {
+                //  stmt.getConnection().commit();
+            } else {
                 for (int i = 0; i < sql.length; i++) {
                     this.currSql = sql[i];
                     if (!stmt.execute(sql[i])) {
                         rowsAffected[i] = stmt.getUpdateCount();
-                    }
-                    else {
+                    } else {
                         throw new InvalidDataAccessApiUsageException("Invalid batch SQL statement: " + sql[i]);
                     }
                 }
             }
             return rowsAffected;
         }
-        @Override
-        public String getSql() {
+
+        @Override public String getSql() {
             return this.currSql;
         }
     }
-    @Override
-    public IDBDriver createDBDriver() {
+
+    @Override public IDBDriver createDBDriver() {
         javax.sql.DataSource dataSource = createDBDataSource();
         return new IDBDriver() {
             private final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
-
-            @Override
-            public int update(String sql) {
+            @Override public int update(String sql) {
                 return jdbcTemplate.update(sql);
             }
 
-            @Override
-            public void execute(String sql) {
+            @Override public void execute(String sql) {
                 jdbcTemplate.execute(sql);
             }
 
-            @Override
-            public List<Map<String, Object>> queryForList(String sql) {
+            @Override public int execute(String sql, Object[] params) {
+                return jdbcTemplate.update(sql, params);
+            }
+
+            @Override public List<Map<String, Object>> executeQuery(String sql, Object[] params) {
+                return jdbcTemplate.queryForList(sql, params);
+            }
+
+            @Override public List<Map<String, Object>> queryForList(String sql) {
                 return jdbcTemplate.queryForList(sql);
             }
 
-            @Override
-            public Map<String, Object> queryOneRow(String sql) {
+            @Override public Map<String, Object> queryOneRow(String sql) {
                 return jdbcTemplate.queryForMap(sql);
             }
 
-            @Override
-            public long executeInsert(String sql) {
+            @Override public long executeInsert(String sql) {
                 try {
                     KeyHolder keyHolder = new GeneratedKeyHolder();
                     jdbcTemplate.update(con -> con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS), keyHolder);
-                    if (keyHolder.getKeyList() == null || keyHolder.getKeyList().size() > 1 || keyHolder.getKey() == null) {
+                    if (keyHolder.getKeyList().size() > 1 || keyHolder.getKey() == null) {
                         return 0;
                     }
                     return keyHolder.getKey().longValue();
@@ -163,26 +160,22 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
                 }
             }
 
-            @Override
-            public void executSqls(String... sqls) {
+            @Override public void executeSqls(String... sqls) {
                 Assert.notEmpty(sqls, "SQL array must not be empty");
                 jdbcTemplate.execute(new BatchUpdateStatementCallback(sqls));
             }
 
-            @Override
-            public void executSqls(Collection<String> sqlCollection) {
+            @Override public void executeSqls(Collection<String> sqlCollection) {
                 if (sqlCollection == null || sqlCollection.size() == 0) {
                     return;
                 }
                 String[] sqls = new String[sqlCollection.size()];
                 int i = 0;
-                Iterator<String> it = sqlCollection.iterator();
-                while (it.hasNext()) {
-                    String sql = it.next();
+                for (String sql : sqlCollection) {
                     sqls[i] = sql;
                     i++;
                 }
-                executSqls(sqls);
+                executeSqls(sqls);
             }
 
             /**
@@ -190,8 +183,7 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
              * @param sql 可执行的SQL
              * @return 结果数据
              */
-            @Override
-            public List<Map<String, Object>> batchQueryBySql(String sql, int batchSize) {
+            @Override public List<Map<String, Object>> batchQueryBySql(String sql, int batchSize) {
                 List<Map<String, Object>> rows = new ArrayList<>();
                 int startBatch;
                 String baseSql = sql;
@@ -216,17 +208,14 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
     }
 
     protected javax.sql.DataSource createDBDataSource() {
-
         SingleConnectionDataSource dataSource = new SingleConnectionDataSource(url, userName, password, true);
-
         dataSource.setDriverClassName(jdbcDriver);
         dataSource.setSuppressClose(true);
         this.dataSource = dataSource;
         return dataSource;
     }
 
-    @Override
-    public boolean isValidate() {
+    @Override public boolean isValidate() {
         try {
             if (dataSource == null) {
                 dataSource = createDBDataSource();
@@ -238,10 +227,9 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
         return true;
     }
 
-    @Override
-    public void destroy() {
+    @Override public void destroy() {
         if (dataSource instanceof SingleConnectionDataSource) {
-            SingleConnectionDataSource data = (SingleConnectionDataSource)dataSource;
+            SingleConnectionDataSource data = (SingleConnectionDataSource) dataSource;
             data.destroy();
         }
     }
@@ -278,43 +266,43 @@ public class JDBCDriver extends BasedConfigurable implements IDriverBudiler, IDB
         this.password = password;
     }
 
-    @Override
-    public int update(String sql) {
+    @Override public int update(String sql) {
         return createOrGetDriver().update(sql);
     }
 
-    @Override
-    public void execute(String sql) {
+    @Override public void execute(String sql) {
         createOrGetDriver().execute(sql);
     }
 
-    @Override
-    public List<Map<String, Object>> queryForList(String sql) {
+    @Override public int execute(String sql, Object[] params) {
+        return createOrGetDriver().execute(sql, params);
+    }
+
+    @Override public List<Map<String, Object>> executeQuery(String sql, Object[] params) {
+        return createOrGetDriver().executeQuery(sql, params);
+    }
+
+    @Override public List<Map<String, Object>> queryForList(String sql) {
         return createOrGetDriver().queryForList(sql);
     }
 
-    @Override
-    public Map<String, Object> queryOneRow(String sql) {
+    @Override public Map<String, Object> queryOneRow(String sql) {
         return createOrGetDriver().queryOneRow(sql);
     }
 
-    @Override
-    public long executeInsert(String sql) {
+    @Override public long executeInsert(String sql) {
         return createOrGetDriver().executeInsert(sql);
     }
 
-    @Override
-    public void executSqls(String... sqls) {
-        createOrGetDriver().executSqls(sqls);
+    @Override public void executeSqls(String... sqls) {
+        createOrGetDriver().executeSqls(sqls);
     }
 
-    @Override
-    public void executSqls(Collection<String> sqls) {
-        createOrGetDriver().executSqls(sqls);
+    @Override public void executeSqls(Collection<String> sqls) {
+        createOrGetDriver().executeSqls(sqls);
     }
 
-    @Override
-    public List<Map<String, Object>> batchQueryBySql(String sql, int batchSize) {
+    @Override public List<Map<String, Object>> batchQueryBySql(String sql, int batchSize) {
         return createOrGetDriver().batchQueryBySql(sql, batchSize);
     }
 }

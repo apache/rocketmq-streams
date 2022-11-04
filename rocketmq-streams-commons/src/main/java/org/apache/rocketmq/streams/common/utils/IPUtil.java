@@ -21,12 +21,12 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IPUtil {
 
-    private static final Log LOG = LogFactory.getLog(IPUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(IPUtil.class);
 
     private static volatile InetAddress LOCAL_ADDRESS = null;
     private static final Pattern IP_PATTERN = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3,5}$");

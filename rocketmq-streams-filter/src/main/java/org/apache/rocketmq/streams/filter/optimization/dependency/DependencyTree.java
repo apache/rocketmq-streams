@@ -135,7 +135,7 @@ public class DependencyTree {
                     commonExpressions.addAll(commonExpressionList);
                 }
                 treeNode = filterTreeNode;
-            } else {
+            }else {
                 continue;
             }
             parseTree(treeNode, stage.getNextStageLabels(), pipeline, commonExpressions);

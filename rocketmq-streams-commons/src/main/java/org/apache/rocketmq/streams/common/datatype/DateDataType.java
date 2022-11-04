@@ -24,14 +24,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DateDataType extends BaseDataType<Date> {
 
     private static final long serialVersionUID = 3745784172508184101L;
-    private static final Log LOG = LogFactory.getLog(DateDataType.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DateDataType.class);
 
     public DateDataType(Class clazz) {
         setDataClazz(clazz);

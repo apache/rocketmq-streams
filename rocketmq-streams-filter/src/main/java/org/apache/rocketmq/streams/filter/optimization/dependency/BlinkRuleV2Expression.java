@@ -218,9 +218,7 @@ public class BlinkRuleV2Expression {
         List<String> rules = FileUtil.loadFileLine(inputStream);
         String line = rules.get(0);
         JSONArray allRules = JSON.parseArray(line);
-        Iterator iterator = allRules.iterator();
-        while (iterator.hasNext()) {
-            Object object = iterator.next();
+        for (Object object : allRules) {
             JSONObject rule_json = JSON.parseObject(object.toString());
             int status = rule_json.getInteger("status");
             int ruleId = rule_json.getInteger("id");

@@ -76,6 +76,7 @@ public class KafkaChannelBuilder extends AbstractSupportShuffleChannelBuilder {
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "endpoint", "bootstrap.servers");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "thread.max.count");
 
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "bootstrapServers", "bootstrap.servers");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "consumergroup");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "groupname");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");

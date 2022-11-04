@@ -55,6 +55,39 @@ public class CaseWhenBuilder {
         return true;
     }
 
+
+    public static boolean canSupportIFCaseWhen(GroupScriptExpression groupScriptExpression) {
+        if (CollectionUtil.isNotEmpty(groupScriptExpression.getElseIfExpressions())) {
+            return false;
+        }
+        if (CollectionUtil.isEmpty(groupScriptExpression.getElseExpressions())) {
+            return false;
+        }
+        if (CollectionUtil.isEmpty(groupScriptExpression.getThenExpresssions())) {
+            return false;
+        }
+        if(groupScriptExpression.getThenExpresssions().size()==1&&groupScriptExpression.getElseExpressions().size()==1){
+            IScriptExpression thenExpression=groupScriptExpression.getThenExpresssions().get(0);
+            IScriptExpression elseExpression=groupScriptExpression.getElseExpressions().get(0);
+            if(isIFExpression(thenExpression)&&isIFExpression(elseExpression)){
+                return true;
+            }
+            return false;
+        }else {
+            return false;
+        }
+    }
+
+    private static boolean isIFExpression(IScriptExpression expression) {
+        if(expression.getFunctionName()==null&&expression.getScriptParamters()!=null&&expression.getScriptParamters().size()==1){
+            IScriptParamter scriptParamter=(IScriptParamter)expression.getScriptParamters().get(0);
+            if(scriptParamter.getScriptParameterStr().toLowerCase().equals("true")||scriptParamter.getScriptParameterStr().toLowerCase().equals("false")){
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static List<IScriptExpression> compile(String namespace, String name, List<IScriptExpression> expressions) {
         expressions = mergeGroupScriptExpression(expressions);
         expressions = groupGroupScriptExpression(namespace, name, expressions);
@@ -78,9 +111,9 @@ public class CaseWhenBuilder {
                 continue;
             }
             IScriptExpression scriptExpression = expressions.get(i);
-            if (scriptExpression.getFunctionName() != null && (scriptExpression.getFunctionName().equals("start_if") | scriptExpression.getFunctionName().equals("start_if_true_false"))) {
+            if (scriptExpression.getFunctionName() != null && (scriptExpression.getFunctionName().equals("start_if") || scriptExpression.getFunctionName().equals("start_if_true_false"))) {
                 startGroup = true;
-            } else if (scriptExpression.getFunctionName() != null && (scriptExpression.getFunctionName().equals("end_if") | (scriptExpression.getFunctionName().equals("end_if_true_false")))) {
+            } else if (scriptExpression.getFunctionName() != null && (scriptExpression.getFunctionName().equals("end_if") || (scriptExpression.getFunctionName().equals("end_if_true_false")))) {
                 List<IScriptExpression> afterGroup = findAfterExpression(groupScriptExpression, expressions, i, skpitIndex);
                 groupScriptExpression.setBeforeExpressions(beforeGroup);
                 if (afterGroup != null) {
@@ -129,7 +162,10 @@ public class CaseWhenBuilder {
                     map.putAll(groupScriptExpression.getBeforeDependents());
                     SingleCaseWhenExpression singleCaseWhenExpression = registeSingleCaseWhen(namespace, name, groupScriptExpression, map);
                     scriptExpressions.add(singleCaseWhenExpression);
-                } else {
+                }else if(canSupportIFCaseWhen(groupScriptExpression)) {
+                    scriptExpressions.add(new IFCaseWhenExpression(groupScriptExpression));
+                }
+                else {
                     scriptExpressions.add(groupScriptExpression);
                 }
             } else {

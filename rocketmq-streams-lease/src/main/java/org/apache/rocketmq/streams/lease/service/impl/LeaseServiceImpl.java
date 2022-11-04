@@ -27,16 +27,16 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LeaseServiceImpl extends BasedLesaseImpl {
 
-    private static final Log LOG = LogFactory.getLog(LeaseServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LeaseServiceImpl.class);
 
     private transient ConcurrentHashMap<String, HoldLockTask> holdLockTasks = new ConcurrentHashMap();
 
@@ -75,7 +75,7 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
-                LOG.error("LeaseServiceImpl try locker error", e);
+                LOGGER.error("LeaseServiceImpl try locker error", e);
             }
         }
         return success;
@@ -105,7 +105,7 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
         lockerName = createLockName(name, lockerName);
         LeaseInfo validateLeaseInfo = queryValidateLease(lockerName);
         if (validateLeaseInfo == null) {
-            LOG.warn("LeaseServiceImpl unlock,validateLeaseInfo is null,lockerName:" + lockerName);
+            LOGGER.warn("LeaseServiceImpl unlock,validateLeaseInfo is null,lockerName:" + lockerName);
         }
         if (validateLeaseInfo != null && validateLeaseInfo.getLeaseUserIp().equals(getSelfUser())) {
             validateLeaseInfo.setStatus(0);
@@ -214,18 +214,18 @@ public class LeaseServiceImpl extends BasedLesaseImpl {
                 Date leaseDate = applyLeaseTask(leaseTerm, name, new AtomicBoolean(false));
                 if (leaseDate != null) {
                     leaseName2Date.put(name, leaseDate);
-                    LOG.debug("LeaseServiceImpl, name: " + name + " " + getSelfUser() + " 续约锁成功, 租约到期时间为 "
+                    LOGGER.debug("LeaseServiceImpl, name: " + name + " " + getSelfUser() + " 续约锁成功, 租约到期时间为 "
                         + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(leaseDate));
                 } else {
                     isContinue = false;
                     synchronized (leaseService) {
                         holdLockTasks.remove(name);
                     }
-                    LOG.info("LeaseServiceImpl name: " + name + " " + getSelfUser() + " 续约锁失败，续锁程序会停止");
+                    LOGGER.info("LeaseServiceImpl name: " + name + " " + getSelfUser() + " 续约锁失败，续锁程序会停止");
                 }
             } catch (Exception e) {
                 isContinue = false;
-                LOG.error(" LeaseServiceImpl name: " + name + "  " + getSelfUser() + " 续约锁出现异常，续锁程序会停止", e);
+                LOGGER.error(" LeaseServiceImpl name: " + name + "  " + getSelfUser() + " 续约锁出现异常，续锁程序会停止", e);
             }
 
         }

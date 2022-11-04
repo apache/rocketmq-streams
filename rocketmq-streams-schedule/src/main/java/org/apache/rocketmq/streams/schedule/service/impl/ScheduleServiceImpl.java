@@ -18,8 +18,6 @@ package org.apache.rocketmq.streams.schedule.service.impl;
 
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.interfaces.IScheduleExecutor;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -37,7 +35,6 @@ import static org.quartz.CronScheduleBuilder.cronSchedule;
 import static org.quartz.TriggerBuilder.newTrigger;
 
 public class ScheduleServiceImpl implements IScheduleService {
-    private static final Log LOG = LogFactory.getLog(ScheduleServiceImpl.class);
     protected Scheduler scheduler;
 
     public ScheduleServiceImpl() {
@@ -49,11 +46,11 @@ public class ScheduleServiceImpl implements IScheduleService {
     }
 
     @Override
-    public void startSchedule(IScheduleExecutor channelExecutor, String crotabStr, boolean startNow) {
+    public void startSchedule(IScheduleExecutor channelExecutor, String cronTable, boolean startNow) {
         String name = MapKeyUtil.createKey(channelExecutor.getType(), channelExecutor.getConfigureName());
         Trigger trigger = newTrigger()
             .withIdentity(name, channelExecutor.getNameSpace())
-            .withSchedule(cronSchedule(crotabStr))
+            .withSchedule(cronSchedule(cronTable))
             .forJob(name, channelExecutor.getNameSpace())
             .build();
         try {
@@ -97,11 +94,11 @@ public class ScheduleServiceImpl implements IScheduleService {
         String cron = null;
         if (secondPollingTime < 60) {
             cron = "0/" + secondPollingTime + " * * * * ?";
-        } else if (secondPollingTime >= 60 && secondPollingTime < 3600) {
+        } else if (secondPollingTime < 3600) {
             int minute = secondPollingTime / 60;
             int second = secondPollingTime % 60;
             cron = second + " 0/" + minute + " * * * ?";
-        } else if (secondPollingTime >= 3600 && secondPollingTime < 86400) {
+        } else if (secondPollingTime < 86400) {
             int hour = secondPollingTime / 3600;
             int other = secondPollingTime % 3600;
             String minuteStr = "0";
@@ -115,7 +112,7 @@ public class ScheduleServiceImpl implements IScheduleService {
                 secondStr = other + "";
             }
             cron = secondStr + " " + minuteStr + " " + "0/" + hour + " * * ?";
-        } else if (secondPollingTime >= 86400 && secondPollingTime < 86400 * 2) {
+        } else if (secondPollingTime < 86400 * 2) {
             secondPollingTime = secondPollingTime % 86400;
             int hour = secondPollingTime / 3600;
             int other = secondPollingTime % 3600;
@@ -138,20 +135,20 @@ public class ScheduleServiceImpl implements IScheduleService {
 
     @Override
     public void startScheduleUsingPollingTime(IScheduleExecutor channelExecutor, int pollingTime, TimeUnit timeUnit, boolean startNow) {
-        String crotabStr = createCrotablStr(pollingTime, timeUnit);
-        startSchedule(channelExecutor, crotabStr, startNow);
+        String cronTable = createCronTableStr(pollingTime, timeUnit);
+        startSchedule(channelExecutor, cronTable, startNow);
     }
 
     @Override
     public void startScheduleDailyTime(IScheduleExecutor channelExecutor, String dateTime, boolean startNow) {
-        String crotabStr = createCrotablStr(dateTime, TimeUnit.DAYS);
-        startSchedule(channelExecutor, crotabStr, startNow);
+        String cronTable = createCronTableStr(dateTime, TimeUnit.DAYS);
+        startSchedule(channelExecutor, cronTable, startNow);
     }
 
     @Override
     public void startScheduleHourTime(IScheduleExecutor channelExecutor, String dateTime, boolean startNow) {
-        String crotabStr = createCrotablStr(dateTime, TimeUnit.HOURS);
-        startSchedule(channelExecutor, crotabStr, startNow);
+        String cronTable = createCronTableStr(dateTime, TimeUnit.HOURS);
+        startSchedule(channelExecutor, cronTable, startNow);
     }
 
     public void start() {
@@ -180,11 +177,10 @@ public class ScheduleServiceImpl implements IScheduleService {
         JobDataMap jobDataMap = new JobDataMap();
         jobDataMap.put(IScheduleExecutor.class.getName(), executor);
         String name = MapKeyUtil.createKey(executor.getType(), executor.getConfigureName());
-        JobDetail jobDetail = JobBuilder.newJob(ConfigurableExecutorJob.class)
+        return JobBuilder.newJob(ConfigurableExecutorJob.class)
             .withIdentity(name, executor.getNameSpace()) // name "myJob", group "group1"
             .usingJobData(jobDataMap)
             .build();
-        return jobDetail;
     }
 
     /**
@@ -194,8 +190,8 @@ public class ScheduleServiceImpl implements IScheduleService {
      * @param timeUnit
      * @return
      */
-    protected String createCrotablStr(int pollingTime, TimeUnit timeUnit) {
-        String crotab = null;
+    protected String createCronTableStr(int pollingTime, TimeUnit timeUnit) {
+        String cronTable = null;
         if (pollingTime > 60) {
             throw new RuntimeException("pollingTime can not exceed 60, must in the unit " + timeUnit + ". the value is " + pollingTime);
         }
@@ -203,17 +199,17 @@ public class ScheduleServiceImpl implements IScheduleService {
             throw new RuntimeException("pollingTime can not exceed 31, must in the day unit . the value is " + pollingTime);
         }
         if (TimeUnit.SECONDS == timeUnit) {
-            crotab = "0/" + pollingTime + " * * * * ?";
+            cronTable = "0/" + pollingTime + " * * * * ?";
         } else if (TimeUnit.MINUTES == timeUnit) {
-            crotab = "0 0/" + pollingTime + " * * * ?";
+            cronTable = "0 0/" + pollingTime + " * * * ?";
         } else if (TimeUnit.HOURS == timeUnit) {
-            crotab = "0 0 0/" + pollingTime + " * * ?";
+            cronTable = "0 0 0/" + pollingTime + " * * ?";
         } else if (TimeUnit.DAYS == timeUnit) {
-            crotab = "0 0 0 0/" + pollingTime + " * ?";
+            cronTable = "0 0 0 0/" + pollingTime + " * ?";
         } else {
             throw new RuntimeException("can not support the timeunit");
         }
-        return crotab;
+        return cronTable;
     }
 
     /**
@@ -223,23 +219,23 @@ public class ScheduleServiceImpl implements IScheduleService {
      * @param timeUnit
      * @return
      */
-    protected String createCrotablStr(String dateTime, TimeUnit timeUnit) {
-        String crotab = null;
+    protected String createCronTableStr(String dateTime, TimeUnit timeUnit) {
+        String cronTable = null;
         if (TimeUnit.DAYS == timeUnit) {
             String[] values = dateTime.split(":");
             String hour = getTimeValue(values[0]);
             String minute = getTimeValue(values[1]);
             String second = getTimeValue(values[2]);
-            crotab = second + " " + minute + " " + hour + " 0/1 * ?";
+            cronTable = second + " " + minute + " " + hour + " 0/1 * ?";
         } else if (TimeUnit.HOURS == timeUnit) {
             String[] values = dateTime.split(":");
             String minute = getTimeValue(values[0]);
             String second = getTimeValue(values[1]);
-            crotab = second + " " + minute + " 0/1 * * ?";
+            cronTable = second + " " + minute + " 0/1 * * ?";
         } else {
             throw new RuntimeException("can not support the timeunit");
         }
-        return crotab;
+        return cronTable;
     }
 
     private String getTimeValue(String value) {

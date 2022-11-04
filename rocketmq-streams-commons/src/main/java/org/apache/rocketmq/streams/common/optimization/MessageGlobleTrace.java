@@ -69,11 +69,20 @@ public class MessageGlobleTrace {
         return messageHeader.getMessageGlobalTrace();
     }
 
-    public static void clear(IMessage message) {
-        MessageHeader messageHeader = message.getHeader();
-        if (messageHeader.getMessageGlobalTrace() == null) {
-            messageHeader.setMessageGlobalTrace(new MessageGlobleTrace());
+    public static void setResult(IMessage message,Boolean result) {
+        MessageGlobleTrace trace = message.getHeader().getMessageGlobalTrace();
+        if (trace == null||result==null) {
+            return;
         }
-        messageHeader.getMessageGlobalTrace().existFinishBranch = false;
+        trace.existFinishBranch = result;
     }
+
+//    public static void clear(IMessage message) {
+//        MessageHeader messageHeader = message.getHeader();
+//        if (messageHeader.getMessageGlobalTrace() == null) {
+//            messageHeader.setMessageGlobalTrace(new MessageGlobleTrace());
+//        }
+//
+//        messageHeader.getMessageGlobalTrace().existFinishBranch = false;
+//    }
 }

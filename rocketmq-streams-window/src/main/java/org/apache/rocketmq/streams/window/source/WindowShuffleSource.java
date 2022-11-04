@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.streams.window.source;
 
+import java.util.List;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
@@ -82,6 +84,10 @@ public class WindowShuffleSource extends AbstractSource implements IAfterConfigu
 
     @Override protected boolean isNotDataSplit(String queueId) {
         throw new RuntimeException("can not support this method");
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
 }

@@ -85,22 +85,4 @@ public class ExpFunction {
         return result;
     }
 
-    /**
-     * 指数函数返回number的指数值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "exp", alias = "exp", comment = "指数函数返回number的指数值")
-    public BigDecimal exp(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.exp(number.intValue()));
-        return result;
-    }
 }

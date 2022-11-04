@@ -32,7 +32,6 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.state.kv.rocksdb.RocksDBOperator;
@@ -51,8 +50,17 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
     protected static String DB_PATH = "/tmp/rocksdb";
     protected static String UTF8 = "UTF8";
     protected static AtomicBoolean hasCreate = new AtomicBoolean(false);
-    protected static RocksDB rocksDB = new RocksDBOperator().getInstance();
-    protected WriteOptions writeOptions = new WriteOptions();
+    protected static RocksDB rocksDB ;
+   // protected WriteOptions writeOptions = new WriteOptions();
+
+
+    public  RocksdbStorage(){
+        rocksDB = new RocksDBOperator().getInstance();
+    }
+
+    public  RocksdbStorage(String rocksdbFileName){
+        rocksDB = new RocksDBOperator(rocksdbFileName).getInstance();
+    }
 
     @Override
     public void removeKeys(Collection<String> keys) {

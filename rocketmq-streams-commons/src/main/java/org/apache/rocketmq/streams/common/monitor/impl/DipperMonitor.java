@@ -20,8 +20,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
@@ -41,10 +39,12 @@ import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DipperMonitor implements IMonitor {
 
-    private static final Log LOG = LogFactory.getLog(DipperMonitor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DipperMonitor.class);
 
     private static final String MONITO_SLOW = "SLOW";
     private static final String MONITO_INFO = "INFO";
@@ -207,7 +207,7 @@ public class DipperMonitor implements IMonitor {
         }
         if (IMessage.class.isInstance(value)) {
             JSONObject msgContext = new JSONObject();
-            IMessage message = (IMessage)value;
+            IMessage message = (IMessage) value;
             msgContext.put("orig_msg", message.getMessageBody());
             msgContext.put("orig_header", message.getHeader().toJsonObject());
             this.contextMsgs.add(msgContext);
@@ -418,7 +418,7 @@ public class DipperMonitor implements IMonitor {
             }
             try {
                 if (channel != null) {
-                    channel.batchAdd(new Message(result),null);
+                    channel.batchAdd(new Message(result), null);
                 }
 
             } catch (Exception e) {

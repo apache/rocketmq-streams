@@ -36,8 +36,12 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OutputChainStage<T extends IMessage> extends ChainStage<T> implements IAfterConfigurableRefreshListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OutputChainStage.class);
     public static final String OUT_MOCK_SWITCH = "out.mock.switch";//在配置文件中，是否打开mock的开关
 
     private String sinkName;
@@ -50,19 +54,19 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
     @ENVDependence
     protected String closeOutput;
 
-    protected transient ISink sink;
+    protected transient ISink<?> sink;
 
     protected transient MetaData metaData;
 
     /**
      * 如果需要把输出关闭或mock到一个其他channel，可以通过配置一个mockchannel。同时通过配置文件
      */
-    protected transient ISink mockSink;
+    protected transient ISink<?> mockSink;
     protected transient AtomicInteger count = new AtomicInteger(0);
-    protected transient IStageHandle handle = new IStageHandle() {
+    protected transient IStageHandle<?> handle = new IStageHandle() {
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
-            return doSink(message,context);
+            return doSink(message, context);
         }
 
         @Override
@@ -71,12 +75,11 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         }
     };
 
-
-    protected IMessage doSink(IMessage message, AbstractContext context){
+    protected IMessage doSink(IMessage message, AbstractContext context) {
         if (StringUtil.isNotEmpty(closeOutput)) {
             String tmp = closeOutput.toLowerCase();
             if ("true".equals(tmp) || "false".equals(tmp)) {
-                Boolean value = Boolean.valueOf(tmp);
+                boolean value = Boolean.parseBoolean(tmp);
                 if (value) {
                     return message;
                 }
@@ -91,9 +94,9 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         }
         boolean isWindowTest = ComponentCreator.getPropertyBooleanValue("window.fire.isTest");
         if (isWindowTest) {
-            System.out.println("output count is " + count.incrementAndGet());
+            LOGGER.info("[{}] output count is {}", getConfigureName(), count.incrementAndGet());
         }
-        /**
+        /*
          * 主要是输出可能影响线上数据，可以通过配置文件的开关，把所有的输出，都指定到一个其他输出中
          */
         if (openMockChannel()) {
@@ -109,7 +112,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
 
     @Override
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
-        ISink realSink = null;
+        ISink<?> realSink = null;
         if (openMockChannel() && mockSink != null) {
             realSink = mockSink;
         } else {
@@ -142,9 +145,8 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
 
     }
 
-
     @Override public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
-        ISink realSink = null;
+        ISink<?> realSink = null;
         if (openMockChannel() && mockSink != null) {
             realSink = mockSink;
         } else {
@@ -153,12 +155,13 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         realSink.flush();
 
     }
+
     @Override
     protected IStageHandle selectHandle(T t, AbstractContext context) {
         return handle;
     }
 
-    protected IChannel queryChannel() {
+    protected IChannel<?> queryChannel() {
         return configurableService.queryConfigurable(IChannel.TYPE, sinkName);
     }
 
@@ -178,15 +181,15 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         this.metaDataName = metaDataName;
     }
 
-    public IStageHandle getHandle() {
+    public IStageHandle<?> getHandle() {
         return handle;
     }
 
-    public void setHandle(IStageHandle handle) {
+    public void setHandle(IStageHandle<?> handle) {
         this.handle = handle;
     }
 
-    public void setSink(ISink channel) {
+    public void setSink(ISink<?> channel) {
         this.sink = channel;
         this.setNameSpace(channel.getNameSpace());
         this.setSinkName(channel.getConfigureName());
@@ -197,7 +200,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         this.metaData = metaData;
     }
 
-    public ISink getSink() {
+    public ISink<?> getSink() {
         return sink;
     }
 
@@ -212,12 +215,12 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         mockSink = getMockChannel(configurableService, sink.getNameSpace());
     }
 
-    protected ISink getMockChannel(IConfigurableService configurableService, String nameSpace) {
+    protected ISink<?> getMockChannel(IConfigurableService configurableService, String nameSpace) {
         String type = ComponentCreator.getProperties().getProperty("out.mock.type");
         if (type == null) {
             return null;
         }
-        ISink mockSink = configurableService.queryConfigurable(ISink.TYPE, OUT_MOCK_SWITCH + "_" + type);
+        ISink<?> mockSink = configurableService.queryConfigurable(ISink.TYPE, OUT_MOCK_SWITCH + "_" + type);
         if (mockSink == null) {
             mockSink = configurableService.queryConfigurable(IChannel.TYPE, OUT_MOCK_SWITCH + "_" + type);
         }
@@ -229,10 +232,7 @@ public class OutputChainStage<T extends IMessage> extends ChainStage<T> implemen
         if (swtich == null) {
             return false;
         }
-        if ("true".equals(swtich)) {
-            return true;
-        }
-        return false;
+        return "true".equals(swtich);
     }
 
     public String getCloseOutput() {

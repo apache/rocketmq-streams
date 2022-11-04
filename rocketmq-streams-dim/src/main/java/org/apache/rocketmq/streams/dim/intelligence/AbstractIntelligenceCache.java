@@ -30,13 +30,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -50,11 +47,13 @@ import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractIntelligenceCache extends BasedConfigurable implements
     IAfterConfigurableRefreshListener {
 
-    private static final Log LOG = LogFactory.getLog(AbstractIntelligenceCache.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractIntelligenceCache.class);
 
     public static final String TYPE = "intelligence";
 
@@ -77,7 +76,7 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
     protected int batchSize = 3000;
 
     @ENVDependence
-    protected Long pollingTimeMintue = 30L;
+    protected Long pollingTimeMinute = 30L;
 
     protected String datasourceName;//情报对应的存储
 
@@ -89,7 +88,7 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
 
     public AbstractIntelligenceCache() {
         setType(TYPE);
-        executorService = ThreadPoolFactory.createThreadPool(20);
+        executorService = ThreadPoolFactory.createFixedThreadPool(20, AbstractIntelligenceCache.class.getName() + "-intelligence");
         scheduledExecutorService = new ScheduledThreadPoolExecutor(3);
     }
 
@@ -97,11 +96,10 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
         try {
             String statisticalSQL = sql;
             int startIndex = sql.toLowerCase().indexOf("from");
-            statisticalSQL = "select count(1) as c, min(" + idFieldName + ") as min, max(" + idFieldName + ") as max "
-                + sql.substring(startIndex);
+            statisticalSQL = "select count(1) as c, min(" + idFieldName + ") as min, max(" + idFieldName + ") as max " + sql.substring(startIndex);
             List<Map<String, Object>> rows = resource.queryForList(statisticalSQL);
             Map<String, Object> row = rows.get(0);
-            int count = Integer.valueOf(row.get("c").toString());
+            int count = Integer.parseInt(row.get("c").toString());
             IntValueKV intValueKV = new IntValueKV(count);
             //int maxBatch=count/maxSyncCount;//每1w条数据，一个并发。如果数据量比较大，为了提高性能，并行执行
             if (count == 0) {
@@ -117,37 +115,31 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
                     }
                 };
             }
-            long min = Long.valueOf(row.get("min").toString());
-            long max = Long.valueOf(row.get("max").toString());
+            long min = Long.parseLong(row.get("min").toString());
+            long max = Long.parseLong(row.get("max").toString());
             int maxSyncCount = count / FILE_MAX_LINE + 1;
             long step = (max - min + 1) / maxSyncCount;
             CountDownLatch countDownLatch = new CountDownLatch(maxSyncCount + 1);
             AtomicInteger finishedCount = new AtomicInteger(0);
             String taskSQL = null;
-            if (sql.indexOf(" where ") != -1) {
-                taskSQL = sql + " and " + idFieldName + ">#{startIndex} and " + idFieldName + "<=#{endIndex} order by "
-                    + idFieldName + " limit " + batchSize;
+            if (sql.contains(" where ")) {
+                taskSQL = sql + " and " + idFieldName + ">#{startIndex} and " + idFieldName + "<=#{endIndex} order by " + idFieldName + " limit " + batchSize;
             } else {
-                taskSQL = sql + " where " + idFieldName + ">#{startIndex} and " + idFieldName
-                    + "<=#{endIndex} order by " + idFieldName + " limit " + batchSize;
+                taskSQL = sql + " where " + idFieldName + ">#{startIndex} and " + idFieldName + "<=#{endIndex} order by " + idFieldName + " limit " + batchSize;
             }
 
             int i = 0;
             for (; i < maxSyncCount; i++) {
-                FetchDataTask fetchDataTask = new FetchDataTask(taskSQL, (min - 1) + step * i,
-                    (min - 1) + step * (i + 1), countDownLatch, finishedCount, resource, i, intValueKV, this, count);
+                FetchDataTask fetchDataTask = new FetchDataTask(taskSQL, (min - 1) + step * i, (min - 1) + step * (i + 1), countDownLatch, finishedCount, resource, i, intValueKV, this, count);
                 executorService.execute(fetchDataTask);
             }
-            FetchDataTask fetchDataTask = new FetchDataTask(taskSQL, (min - 1) + step * i, (min - 1) + step * (i + 1),
-                countDownLatch, finishedCount, resource, i, intValueKV, this, count);
+            FetchDataTask fetchDataTask = new FetchDataTask(taskSQL, (min - 1) + step * i, (min - 1) + step * (i + 1), countDownLatch, finishedCount, resource, i, intValueKV, this, count);
             executorService.execute(fetchDataTask);
-
             countDownLatch.await();
-
-            LOG.info(getClass().getSimpleName() + " load data finish, load data line  size is " + intValueKV.getSize());
+            LOGGER.info("[{}] {} load data finish, load data line  size is {}", getConfigureName(), getClass().getSimpleName(), intValueKV.getSize());
             return intValueKV;
         } catch (Exception e) {
-            LOG.error("failed loading intelligence data!", e);
+            LOGGER.error("[{}] failed loading intelligence data!", getConfigureName(), e);
             return new IntValueKV(0) {
                 @Override
                 public Integer get(String key) {
@@ -202,7 +194,7 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
                 public void run() {
                     intValueKV = startLoadData(sql, outputDataSource);
                 }
-            }, pollingTimeMintue, pollingTimeMintue, TimeUnit.MINUTES);
+            }, pollingTimeMinute, pollingTimeMinute, TimeUnit.MINUTES);
         }
     }
 
@@ -210,22 +202,16 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
 
     /**
      * 查询情报需要的sql
-     *
-     * @return
      */
     protected abstract String getSQL();
 
     /**
      * 情报中的 情报字段名
-     *
-     * @return
      */
     public abstract String getKeyName();
 
     /**
      * 情报对应的表名
-     *
-     * @return
      */
     public abstract String getTableName();
 
@@ -263,21 +249,19 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
             msg.put("endIndex", endIndex);
             while (true) {
                 try {
-
                     msg.put("startIndex", currentIndex);
-
                     String sql = SQLUtil.parseIbatisSQL(msg, this.sql);
                     List<Map<String, Object>> rows = resource.queryForList(sql);
                     if (rows == null || rows.size() == 0) {
                         break;
                     }
-                    currentIndex = Long.valueOf(rows.get(rows.size() - 1).get(idFieldName).toString());
+                    currentIndex = Long.parseLong(rows.get(rows.size() - 1).get(idFieldName).toString());
 
                     int size = rows.size();
                     int count = finishedCount.addAndGet(size);
                     double progress = (double) count / (double) totalSize;
                     progress = progress * 100;
-                    System.out.println(cache.getClass().getSimpleName() + ", finished count is " + count + " the total count is " + totalSize + ", the progress is " + String.format("%.2f", progress) + "%");
+                    LOGGER.info("[{}] {}, finished count is {} the total count is {}, the progress is {}%", getConfigureName(), cache.getClass().getSimpleName(), count, totalSize, String.format("%.2f", progress));
                     if (size < batchSize) {
                         if (size > 0) {
                             doProccRows(intValueKV, rows, index);
@@ -298,12 +282,9 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
         try {
             int successCode = 200;
             String region = ComponentCreator.getProperties().getProperty(ConfigureFileKey.INTELLIGENCE_REGION);
-            String ak = ComponentCreator.getProperties().getProperty(
-                ConfigureFileKey.INTELLIGENCE_AK);
-            String sk = ComponentCreator.getProperties().getProperty(
-                ConfigureFileKey.INTELLIGENCE_SK);
-            String endpoint = ComponentCreator.getProperties().getProperty(
-                ConfigureFileKey.INTELLIGENCE_TIP_DB_ENDPOINT);
+            String ak = ComponentCreator.getProperties().getProperty(ConfigureFileKey.INTELLIGENCE_AK);
+            String sk = ComponentCreator.getProperties().getProperty(ConfigureFileKey.INTELLIGENCE_SK);
+            String endpoint = ComponentCreator.getProperties().getProperty(ConfigureFileKey.INTELLIGENCE_TIP_DB_ENDPOINT);
             if (StringUtils.isNotBlank(region) && StringUtils.isNotBlank(ak) && StringUtils.isNotBlank(sk) && StringUtils.isNotBlank(endpoint)) {
                 DefaultProfile profile = DefaultProfile.getProfile(region, ak, sk);
                 IAcsClient client = new DefaultAcsClient(profile);
@@ -319,8 +300,7 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
                         JSONObject obj = JSON.parseObject(content);
                         JSONObject dbInfo = obj.getJSONObject("dBInfo");
                         if (dbInfo != null) {
-                            String dbUrl = "jdbc:mysql://" + dbInfo.getString("dbConnection") + ":" + dbInfo.getInteger(
-                                "port") + "/" + dbInfo.getString("dBName");
+                            String dbUrl = "jdbc:mysql://" + dbInfo.getString("dbConnection") + ":" + dbInfo.getInteger("port") + "/" + dbInfo.getString("dBName");
                             String dbUserName = dbInfo.getString("userName");
                             String dbPassword = dbInfo.getString("passWord");
                             JDBCDriver dataSource = (JDBCDriver) this.outputDataSource;
@@ -329,25 +309,22 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
                             dataSource.setUserName(dbUserName);
                             dataSource.setHasInit(false);
                             dataSource.init();
-                            LOG.debug("succeed in getting db information from tip service!");
+                            LOGGER.debug("[{}] succeed in getting db information from tip service!", getConfigureName());
                             return true;
                         }
                     }
                 }
             }
-            LOG.error("failed in getting db information from tip service!");
+            LOGGER.error("[{}] failed in getting db information from tip service!", getConfigureName());
             return false;
         } catch (Exception e) {
-            LOG.error("failed in getting db information from tip service!", e);
+            LOGGER.error("[{}] failed in getting db information from tip service!", getConfigureName(), e);
             return false;
         }
     }
 
     /**
      * 把存储0/1字符串的值，转化成bit
-     *
-     * @param values
-     * @return
      */
     protected int createInt(List<String> values) {
         return NumberUtils.createBitMapInt(values);
@@ -355,10 +332,6 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
 
     /**
      * 获取某位的值，如果是1，返回字符串1，否则返回null
-     *
-     * @param num
-     * @param i
-     * @return
      */
     protected String getNumBitValue(int num, int i) {
         boolean exist = NumberUtils.getNumFromBitMapInt(num, i);
@@ -386,12 +359,12 @@ public abstract class AbstractIntelligenceCache extends BasedConfigurable implem
         this.batchSize = batchSize;
     }
 
-    public Long getPollingTimeMintue() {
-        return pollingTimeMintue;
+    public Long getPollingTimeMinute() {
+        return pollingTimeMinute;
     }
 
-    public void setPollingTimeMintue(Long pollingTimeMintue) {
-        this.pollingTimeMintue = pollingTimeMintue;
+    public void setPollingTimeMinute(Long pollingTimeMinute) {
+        this.pollingTimeMinute = pollingTimeMinute;
     }
 
     public String getDatasourceName() {

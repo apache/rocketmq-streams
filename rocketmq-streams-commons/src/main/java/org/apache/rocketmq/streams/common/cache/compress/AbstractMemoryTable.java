@@ -25,20 +25,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 压缩表，行数据以byte[][]存放
  */
 public abstract class AbstractMemoryTable {
 
-    private static final Log logger = LogFactory.getLog(AbstractMemoryTable.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractMemoryTable.class);
 
     /**
      * 列名和位置，根据列名生成一个位置
@@ -263,7 +263,6 @@ public abstract class AbstractMemoryTable {
                     object = dataType.byteToValue(decompressValue);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    logger.error(e);
                 }
             } else {
                 object = dataType.byteToValue(columnValue);

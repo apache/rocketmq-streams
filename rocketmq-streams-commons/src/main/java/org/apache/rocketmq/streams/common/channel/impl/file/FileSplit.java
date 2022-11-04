@@ -24,7 +24,7 @@ import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 public class FileSplit extends BasedConfigurable implements ISplit<FileSplit, File> {
     protected transient File file;
     private String filePath;
-    protected int splitId;
+    protected String splitId;
 
     @Override
     public String getQueueId() {
@@ -38,20 +38,19 @@ public class FileSplit extends BasedConfigurable implements ISplit<FileSplit, Fi
 
     @Override
     public int compareTo(FileSplit o) {
-        return splitId - o.splitId;
+        return splitId.compareTo( o.splitId);
     }
 
     @Override
     protected void getJsonObject(JSONObject jsonObject) {
         super.getJsonObject(jsonObject);
         File file = new File(filePath);
-        splitId = Integer.valueOf(file.getName().replace("split_", ""));
         this.file = file;
     }
 
     public FileSplit(File file) {
         this.filePath = file.getAbsolutePath();
-        splitId = Integer.valueOf(file.getName().replace("split_", ""));
+        splitId = this.filePath;
         this.file = file;
     }
 }

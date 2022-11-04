@@ -18,8 +18,10 @@ package org.apache.rocketmq.streams.mqtt.source;
 
 import com.alibaba.fastjson.JSONObject;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -190,7 +192,7 @@ public class PahoSource extends AbstractSource {
             }
             super.destroy();
         } catch (MqttException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Paho client close error", e);
         }
     }
 
@@ -200,6 +202,10 @@ public class PahoSource extends AbstractSource {
 
     @Override protected boolean isNotDataSplit(String queueId) {
         return false;
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
     public String getUrl() {

@@ -17,35 +17,21 @@
 package org.apache.rocketmq.streams.filter.engine.impl;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.common.monitor.group.MonitorCommander;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
-import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.engine.IRuleEngine;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.action.Action;
-import org.apache.rocketmq.streams.filter.operator.expression.Expression;
-import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
-import org.apache.rocketmq.streams.filter.optimization.dependency.CommonExpression;
-import org.apache.rocketmq.streams.filter.optimization.dependency.SimplePipelineTree;
-import org.apache.rocketmq.streams.filter.optimization.dependency.StateLessDependencyTree;
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultRuleEngine implements IRuleEngine {
 
-    private static final Log LOG = LogFactory.getLog(DefaultRuleEngine.class);
-    private static final Log RULEENGINE_MESSAGE_LOG = LogFactory.getLog("ruleengine_message");
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultRuleEngine.class);
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
@@ -90,11 +76,11 @@ public class DefaultRuleEngine implements IRuleEngine {
                     }
                 }
             } catch (Exception e) {
-                LOG.error("DefaultRuleEngine executeRule error,excuteRules size is " + excuteRules.size()
+                LOGGER.error("DefaultRuleEngine executeRule error,excuteRules size is " + excuteRules.size()
                     + " ,fireRules size is :" + fireRules.size(), e);
             }
         } catch (Exception e) {
-            LOG.error(
+            LOGGER.error(
                 "DefaultRuleEngine executeRule error: fireRules size is: " + fireRules.size() + "excuteRules size is : "
                     + excuteRules.size(), e);
 
@@ -116,7 +102,7 @@ public class DefaultRuleEngine implements IRuleEngine {
     @SuppressWarnings("rawtypes")
     private void fireAction(IMessage message, AbstractContext context, Rule rule) {
         if (rule == null) {
-            LOG.error("DefaultRuleEngine fireAction error: rules is null!");
+            LOGGER.error("DefaultRuleEngine fireAction error: rules is null!");
             return;
         }
         try {
@@ -136,7 +122,7 @@ public class DefaultRuleEngine implements IRuleEngine {
                         doAction(message, context, action, rule);
                     }
                 } catch (Exception e) {
-                    LOG.error("DefaultRuleEngine fire atciton error: ruleName is" + rule.getConfigureName(), e);
+                    LOGGER.error("DefaultRuleEngine fire atciton error: ruleName is" + rule.getConfigureName(), e);
                 }
             } else {
 
@@ -148,7 +134,7 @@ public class DefaultRuleEngine implements IRuleEngine {
             }
 
         } catch (Exception e) {
-            LOG.error("DefaultRuleEngine fireAction error: ruleName is" + rule.getConfigureName(), e);
+            LOGGER.error("DefaultRuleEngine fireAction error: ruleName is" + rule.getConfigureName(), e);
         }
 
     }

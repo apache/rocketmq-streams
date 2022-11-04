@@ -91,25 +91,6 @@ public class AbsFunction {
         return result;
     }
 
-    /**
-     * 求数值的绝对值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "abs", alias = "abs", comment = "求数值的绝对值")
-    public BigDecimal abs(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment =
-                              "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
-                              BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = number.abs();
-        return result;
-    }
+
 
 }

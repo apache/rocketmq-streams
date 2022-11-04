@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.lease;
 
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.ConfigureDescriptor;
@@ -40,7 +38,6 @@ import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 public class LeaseComponent extends AbstractComponent<ILeaseService> {
 
     private static LeaseComponent leaseComponent = null;
-    private static final Log LOG = LogFactory.getLog(LeaseComponent.class);
     private ILeaseService leaseService;
 
     public LeaseComponent() {

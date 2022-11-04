@@ -66,24 +66,7 @@ public class AsinFunction {
         return result;
     }
 
-    /**
-     * 求反正弦函数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "asin", alias = "asin", comment = "求反正弦函数")
-    public BigDecimal asin(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "BigDecimal常量") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null || number.intValue() < -1 || number.intValue() > 1) {
-            return result;
-        }
-        result = new BigDecimal(Math.asin(number.intValue()));
-        return result;
-    }
+
 
     /**
      * 求反正弦函数

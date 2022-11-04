@@ -40,7 +40,7 @@ public class RightJoinChainStage extends ChainStage implements IAfterConfigurabl
         @Override
         protected IMessage doProcess(IMessage message, AbstractContext context) {
             String joinFlag = MessageHeader.JOIN_RIGHT;
-            message.getHeader().setMsgRouteFromLable(joinFlag);
+            message.getHeader().setMsgRouteFromLabel(joinFlag);
             pipline.doMessage(message, context);
             context.breakExecute();
             return message;

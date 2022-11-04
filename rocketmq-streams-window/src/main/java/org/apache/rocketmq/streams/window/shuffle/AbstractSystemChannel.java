@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.builder.IShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.impl.memory.MemoryCache;
@@ -50,7 +48,6 @@ import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
 public abstract class AbstractSystemChannel implements IConfigurableIdentification, ISystemMessageProcessor, IStreamOperator {
 
-    protected static final Log LOG = LogFactory.getLog(AbstractSystemChannel.class);
 
     protected static final String CHANNEL_PROPERTY_KEY_PREFIX = "CHANNEL_PROPERTY_KEY_PREFIX";
     protected static final String CHANNEL_TYPE = "CHANNEL_TYPE";

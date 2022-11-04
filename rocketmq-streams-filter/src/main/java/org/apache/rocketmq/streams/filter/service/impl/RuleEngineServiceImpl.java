@@ -20,8 +20,6 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -40,7 +38,6 @@ import org.apache.rocketmq.streams.filter.service.IRuleEngineService;
 public class RuleEngineServiceImpl implements IRuleEngineService, Serializable {
 
     private static final long serialVersionUID = 5932020315482204865L;
-    private static final Log LOG = LogFactory.getLog(RuleEngineServiceImpl.class);
     protected IRuleEngine ruleEngine = new DefaultRuleEngine();
 
     private ContextConfigure contextConfigure = new ContextConfigure(null);

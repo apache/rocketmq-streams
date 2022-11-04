@@ -22,8 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
@@ -31,6 +29,7 @@ import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.HomologousVar;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -43,6 +42,8 @@ import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimi
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 一个函数，如a=now();就是一个表达式 这里是函数真正执行的地方
@@ -50,11 +51,11 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @SuppressWarnings("rawtypes")
 public class ScriptExpression implements IScriptExpression {
 
-    private static Log LOG = LogFactory.getLog(ScriptExpression.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScriptExpression.class);
 
     private String newFieldName;
 
-    protected transient Boolean ismutilField;//mutil fields eg :a.b.c
+    protected transient Boolean isMultiField;
 
     private String expressionStr;
 
@@ -68,14 +69,14 @@ public class ScriptExpression implements IScriptExpression {
     protected transient volatile CompileScriptExpression compileScriptExpression;
 
     protected transient volatile CompileParameter compileParameter;
-    private transient static ICache<String, Boolean> cache = new SoftReferenceCache<>();
+    private final static ICache<String, Boolean> cache = new SoftReferenceCache<>();
 
     @Override
     public Object executeExpression(IMessage message, FunctionContext context) {
-
+        String configName = message.getHeader().getPipelineName();
         try {
-            if (ismutilField == null && newFieldName != null) {
-                ismutilField = newFieldName.indexOf(".") != -1;
+            if (isMultiField == null && newFieldName != null) {
+                isMultiField = newFieldName.contains(".");
             }
             Boolean isMatch = null;
             if (this.homologousVar != null) {
@@ -107,9 +108,9 @@ public class ScriptExpression implements IScriptExpression {
                 value = execute(message, context);
             }
             long cost = System.currentTimeMillis() - startTime;
-            long timeout = 10;
+            long timeout = 100;
             if (ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT) != null) {
-                timeout = Long.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT));
+                timeout = Long.parseLong(ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT));
             }
             if (cost > timeout) {
                 String varValue = "";
@@ -117,17 +118,16 @@ public class ScriptExpression implements IScriptExpression {
                     varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
                     varValue = message.getMessageBody().getString(varValue);
                 }
-                LOG.warn("SLOW-" + cost + "----" + this.toString() + PrintUtil.LINE + "the var value is " + varValue);
+                LOGGER.warn("[{}][{}] Script_Exec_Slow_Script({})_Value({})", IdUtil.instanceId(), configName, this.toString(), varValue);
             }
             return value;
         } catch (Exception e) {
-            e.printStackTrace();
             String varValue = "";
             if (this.getScriptParamters() != null && this.getScriptParamters().size() > 0) {
                 varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
                 varValue = message.getMessageBody().getString(varValue);
             }
-            LOG.error("ERROR-" + this.toString() + PrintUtil.LINE + "the var value is " + varValue, e);
+            LOGGER.error("[{}][{}] Script_Exec_Error_Script({})_Value({})", IdUtil.instanceId(), configName, this.toString(), varValue, e);
             throw new RuntimeException(e);
         }
 
@@ -205,7 +205,7 @@ public class ScriptExpression implements IScriptExpression {
         if (newFieldName == null || value == null) {
             return;
         }
-        if (!ismutilField) {
+        if (!isMultiField) {
             message.getMessageBody().put(newFieldName, value);
             return;
         }
@@ -261,7 +261,7 @@ public class ScriptExpression implements IScriptExpression {
                 if (value == null) {
                     paras[i] = null;
                 }
-                if (String.class.isInstance(value)) {
+                if (value instanceof String) {
                     String str = (String) value;
                     Object object = FunctionUtils.getValue(message, context, str);
                     paras[i] = object;

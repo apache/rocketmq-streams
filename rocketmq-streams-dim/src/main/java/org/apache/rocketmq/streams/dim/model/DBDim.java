@@ -19,23 +19,21 @@ package org.apache.rocketmq.streams.dim.model;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
-import org.apache.rocketmq.streams.common.utils.IPUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.db.driver.batchloader.BatchRowLoader;
 import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DBDim extends AbstractDim {
 
-    private static final Log LOG = LogFactory.getLog(DBDim.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DBDim.class);
 
-    private String jdbcdriver = "com.mysql.jdbc.Driver";
+    private String jdbcDriver = "com.mysql.jdbc.Driver";
 
     @ENVDependence
     private String url;
@@ -58,23 +56,21 @@ public class DBDim extends AbstractDim {
     protected transient Boolean supportBatch = false;
 
     public DBDim() {
-        this.setConfigureName(MapKeyUtil.createKey(IPUtil.getLocalIdentification(), System.currentTimeMillis() + "",
-            nameCreator.incrementAndGet() + ""));
         this.setType(TYPE);
     }
 
     @Override
     protected void loadData2Memory(AbstractMemoryTable tableCompress) {
-        if (StringUtil.isNotEmpty(idFieldName)) {
-            BatchRowLoader batchRowLoader = new BatchRowLoader(idFieldName, sql, new IRowOperator() {
-                @Override
-                public synchronized void doProcess(Map<String, Object> row) {
-                    tableCompress.addRow(row);
-                }
-            });
-            batchRowLoader.startLoadData();
-            return;
-        }
+//        if (StringUtil.isNotEmpty(idFieldName)) {
+//            BatchRowLoader batchRowLoader = new BatchRowLoader(idFieldName, sql, new IRowOperator() {
+//                @Override
+//                public synchronized void doProcess(Map<String, Object> row) {
+//                    tableCompress.addRow(row);
+//                }
+//            }, DriverBuilder.DEFALUT_JDBC_DRIVER, url, userName, password);
+//            batchRowLoader.startLoadData();
+//            return;
+//        }
         List<Map<String, Object>> rows = executeQuery();
 
         for (Map<String, Object> row : rows) {
@@ -83,11 +79,11 @@ public class DBDim extends AbstractDim {
     }
 
     protected List<Map<String, Object>> executeQuery() {
-        JDBCDriver resource = createResouce();
+        JDBCDriver resource = createResource();
         try {
             List<Map<String, Object>> result = resource.queryForList(sql);
             ;
-            LOG.info("load configurable's count is " + result.size());
+            LOGGER.info("load configurable's count is " + result.size());
             return result;
         } finally {
             if (resource != null) {
@@ -97,12 +93,12 @@ public class DBDim extends AbstractDim {
 
     }
 
-    protected JDBCDriver createResouce() {
-        return DriverBuilder.createDriver(jdbcdriver, url, userName, password);
+    protected JDBCDriver createResource() {
+        return DriverBuilder.createDriver(jdbcDriver, url, userName, password);
     }
 
-    public void setJdbcdriver(String jdbcdriver) {
-        this.jdbcdriver = jdbcdriver;
+    public void setJdbcDriver(String jdbcDriver) {
+        this.jdbcDriver = jdbcDriver;
     }
 
     public void setUrl(String url) {
@@ -121,8 +117,8 @@ public class DBDim extends AbstractDim {
         this.sql = sql;
     }
 
-    public String getJdbcdriver() {
-        return jdbcdriver;
+    public String getJdbcDriver() {
+        return jdbcDriver;
     }
 
     public String getUrl() {

@@ -28,9 +28,9 @@ public interface ICheckPointStorage {
 
     String getStorageName();
 
-    <T> void save(List<T> checkPointState);
+    <T extends ISplitOffset> void save(List<T> checkPointState);
 
-    <T> T recover(ISource iSource, String queueID);
+    <T extends ISplitOffset> T recover(ISource<?> iSource, String queueID);
 
     void flush();
 

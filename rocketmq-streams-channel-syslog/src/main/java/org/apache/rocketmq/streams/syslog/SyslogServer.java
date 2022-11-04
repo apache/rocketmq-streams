@@ -22,14 +22,12 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
@@ -39,9 +37,11 @@ import org.graylog2.syslog4j.server.SyslogServerEventIF;
 import org.graylog2.syslog4j.server.SyslogServerIF;
 import org.graylog2.syslog4j.server.SyslogServerSessionEventHandlerIF;
 import org.graylog2.syslog4j.server.impl.net.tcp.TCPNetSyslogServerConfigIF;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SyslogServer extends AbstractUnreliableSource {
-    private static final Log LOG = LogFactory.getLog(SyslogServer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SyslogServer.class);
     @ENVDependence private String serverHost = IPUtil.getLocalAddress();
     @ENVDependence private String serverPort;
     private String protocol;
@@ -89,11 +89,11 @@ public class SyslogServer extends AbstractUnreliableSource {
         setReceiver(new IStreamOperator() {
             @Override public Object doMessage(IMessage message, AbstractContext context) {
                 String hostAddress = message.getMessageBody().getString("hostAddress");
-                if(hostAddress==null){
+                if (hostAddress == null) {
                     return null;
                 }
                 List<SyslogChannel> syslogChannels = cache.get(hostAddress);
-                LOG.info("receive syslog msg, ip is  " + hostAddress + " msg is " + message.getMessageBody());
+                LOGGER.info("receive syslog msg, ip is  " + hostAddress + " msg is " + message.getMessageBody());
                 boolean hasMatch = false;
                 if (syslogChannels == null) {
                     syslogChannels = new ArrayList<>();
@@ -108,7 +108,7 @@ public class SyslogServer extends AbstractUnreliableSource {
                     hasMatch = true;
                 }
                 if (!hasMatch) {
-                    LOG.warn("the syslog msg had been discard, beacuse not match ip list, the ip is  " + hostAddress + ". the msg is " + message.getMessageBody());
+                    LOGGER.warn("the syslog msg had been discard, beacuse not match ip list, the ip is  " + hostAddress + ". the msg is " + message.getMessageBody());
                     return message;
                 }
                 for (SyslogChannel channel : syslogChannels) {
@@ -121,8 +121,12 @@ public class SyslogServer extends AbstractUnreliableSource {
                 return message;
             }
         });
-        SyslogServerIF serverIF=org.graylog2.syslog4j.server.SyslogServer.getThreadedInstance(protocol);
+        SyslogServerIF serverIF = org.graylog2.syslog4j.server.SyslogServer.getThreadedInstance(protocol);
         return true;
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
     private static final String PREFIX = "dipper.upgrade.channel.syslog.envkey";
@@ -134,7 +138,7 @@ public class SyslogServer extends AbstractUnreliableSource {
                 syslogServer.shutdown();
                 Thread.sleep(30 * 1000);
             } catch (Exception e) {
-
+                throw new RuntimeException("syslog destroy error", e);
             }
 
         }
@@ -234,7 +238,7 @@ public class SyslogServer extends AbstractUnreliableSource {
 
             }
             JSONObject msg = new JSONObject();
-            msg.put("data",message);
+            msg.put("data", message);
             msg.put("facility", var4.getFacility());
             msg.put("hostName", hostName);
             msg.put("hostAddress", hostAddress);

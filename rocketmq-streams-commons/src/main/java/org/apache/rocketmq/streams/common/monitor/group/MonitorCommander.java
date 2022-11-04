@@ -25,8 +25,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.datatype.BooleanDataType;
@@ -38,10 +36,12 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
 import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MonitorCommander {
 
-    private static final Log logger = LogFactory.getLog(MonitorCommander.class);
+    private static final Logger logger = LoggerFactory.getLogger(MonitorCommander.class);
 
     private final static MonitorCommander monitorManager = new MonitorCommander();
 

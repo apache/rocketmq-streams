@@ -72,6 +72,9 @@ public class PipelineHTMLUtil {
         html.append(baseTab+"\t\t 数据源信息\n");
         html.append(baseTab+"\t</button>\n");
         hideHtmlBuilder.append(baseTab+"\t<li class=\"hide\" style=\"white-space: pre-line;\" id=\"menu_"+i+"\">\n");
+        if(pipeline==null||pipeline.getSource()==null){
+            return "";
+        }
         JSONObject jsonObject=JSON.parseObject(pipeline.getSource().toJson());
         jsonObject.remove("metaData");
         hideHtmlBuilder.append(baseTab+"\t\t"+JsonableUtil.formatJson(jsonObject)+"\n");

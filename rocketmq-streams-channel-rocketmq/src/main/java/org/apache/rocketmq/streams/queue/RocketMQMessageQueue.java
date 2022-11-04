@@ -28,19 +28,17 @@ public class RocketMQMessageQueue extends BasedConfigurable implements ISplit<Ro
     protected String topic;
     protected int mqQueueId;
 
-
     @Override
     protected void getJsonObject(JSONObject jsonObject) {
         super.getJsonObject(jsonObject);
-        queue=new MessageQueue(topic,brokeName,mqQueueId);
+        queue = new MessageQueue(topic, brokeName, mqQueueId);
     }
-
 
     public RocketMQMessageQueue(MessageQueue queue) {
         this.queue = queue;
-        this.brokeName=queue.getBrokerName();
-        this.topic=queue.getTopic();
-        this.mqQueueId=queue.getQueueId();
+        this.brokeName = queue.getBrokerName();
+        this.topic = queue.getTopic();
+        this.mqQueueId = queue.getQueueId();
     }
 
     public RocketMQMessageQueue() {
@@ -57,36 +55,35 @@ public class RocketMQMessageQueue extends BasedConfigurable implements ISplit<Ro
         return queue.compareTo(o.queue);
     }
 
-
-
     @Override
     public String getQueueId() {
         return getQueueId(this.queue);
     }
 
-
-    public static String getQueueId(MessageQueue queue){
+    public static String getQueueId(MessageQueue queue) {
 
         String[] topic = queue.getTopic().split("%");
         if (topic.length > 1) {
-            return MapKeyUtil.createKeyBySign("_",topic[1],queue.getBrokerName(),getSplitNumerStr(queue.getQueueId())+"");
+            return MapKeyUtil.createKeyBySign("_", topic[1], queue.getBrokerName(), getSplitNumerStr(queue.getQueueId()) + "");
         }
-        return MapKeyUtil.createKeyBySign("_",queue.getTopic(),queue.getBrokerName(),getSplitNumerStr(queue.getQueueId())+"");
+        return MapKeyUtil.createKeyBySign("_", queue.getTopic(), queue.getBrokerName(), getSplitNumerStr(queue.getQueueId()) + "");
     }
+
     /**
      * 获取分片的字符串格式，需要3位对齐
+     *
      * @param splitNumer
      * @return
      */
-    private static String getSplitNumerStr(int splitNumer){
-        int len=(splitNumer+"").length();
-        if(len==3){
-            return splitNumer+"";
+    private static String getSplitNumerStr(int splitNumer) {
+        int len = (splitNumer + "").length();
+        if (len == 3) {
+            return splitNumer + "";
         }
-        String splitNumerStr=splitNumer+"";
-        while (len<3){
-            splitNumerStr="0"+splitNumerStr;
-            len=splitNumerStr.length();
+        String splitNumerStr = splitNumer + "";
+        while (len < 3) {
+            splitNumerStr = "0" + splitNumerStr;
+            len = splitNumerStr.length();
         }
         return splitNumerStr;
     }
@@ -114,6 +111,5 @@ public class RocketMQMessageQueue extends BasedConfigurable implements ISplit<Ro
     public void setMqQueueId(int mqQueueId) {
         this.mqQueueId = mqQueueId;
     }
-
 
 }

@@ -33,19 +33,26 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.offset.WindowMaxValue;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SplitSQLElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * save receiver messages into cachefilter when checkpoint/autoflush/flush， process cachefilter message
  */
 public class ShuffleCache extends AbstractSink {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShuffleCache.class);
+
     protected AbstractShuffleWindow window;
 
     public ShuffleCache(AbstractShuffleWindow window) {
         this.window = window;
     }
 
+    protected transient AtomicLong count = new AtomicLong(0);
+
     @Override
     protected boolean batchInsert(List<IMessage> messageList) {
+        LOGGER.info("[{}] the count is {}", getConfigureName(), count.addAndGet(messageList.size()));
         Map<Pair<String, String>, List<IMessage>> instance2Messages = new HashMap<>();
         Map<String, WindowInstance> windowInstanceMap = new HashMap<>();
         groupByWindowInstanceAndQueueId(messageList, instance2Messages, windowInstanceMap);
@@ -59,9 +66,9 @@ public class ShuffleCache extends AbstractSink {
             DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window, messages, windowInstance);
             window.shuffleCalculate(messages, windowInstance, queueId);
             saveSplitProgress(queueId, messages);
-            window.saveMsgContext(queueId,windowInstance,messages);
+            window.saveMsgContext(queueId, windowInstance, messages);
         }
-            return true;
+        return true;
     }
 
     /**
@@ -80,10 +87,9 @@ public class ShuffleCache extends AbstractSink {
             queueId2OrigOffset.put(oriQueueId, oriOffset);
         }
         Map<String, WindowMaxValue> windowMaxValueMap = window.getWindowMaxValueManager().saveMaxOffset(isLong, window.getConfigureName(), queueId, queueId2OrigOffset);
-        window.getSqlCache().addCache(new SplitSQLElement(queueId, ORMUtil.createBatchReplacetSQL(new ArrayList<>(windowMaxValueMap.values()))));
+        window.getSqlCache().addCache(new SplitSQLElement(queueId, ORMUtil.createBatchReplaceSQL(new ArrayList<>(windowMaxValueMap.values()))));
 
     }
-
 
     /**
      * 根据message，把message分组到不同的group，分别处理

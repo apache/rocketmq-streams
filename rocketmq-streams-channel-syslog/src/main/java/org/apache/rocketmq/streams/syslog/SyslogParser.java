@@ -82,14 +82,6 @@ public class SyslogParser {
         if (index == -1) {
             return null;
         }
-        String tags = message.substring(0, index);
-        return tags;
-    }
-
-    public static void main(String[] args) {
-        String dateFormat = "HH:mm:ss";
-        String dateStr = DateUtil.format(new Date(), dateFormat);
-
-        System.out.println(parseHost(dateStr));
+        return message.substring(0, index);
     }
 }

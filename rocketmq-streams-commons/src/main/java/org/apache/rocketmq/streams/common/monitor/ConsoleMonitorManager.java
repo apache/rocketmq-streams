@@ -16,22 +16,15 @@
  */
 package org.apache.rocketmq.streams.common.monitor;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -39,12 +32,15 @@ import org.apache.rocketmq.streams.common.monitor.model.JobStage;
 import org.apache.rocketmq.streams.common.monitor.model.TraceIdsDO;
 import org.apache.rocketmq.streams.common.monitor.model.TraceMonitorDO;
 import org.apache.rocketmq.streams.common.monitor.service.MonitorDataSyncService;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConsoleMonitorManager {
 
-    private static final Log LOG = LogFactory.getLog(ConsoleMonitorManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ConsoleMonitorManager.class);
 
     public static final int MSG_FILTERED = -1;
     public static final int MSG_NOT_FLOWED = 0;
@@ -72,14 +68,15 @@ public class ConsoleMonitorManager {
             return;
         }
 
-        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+        ScheduledExecutorService executorService = ThreadPoolFactory.createScheduledThreadPool(1, ConsoleMonitorManager.class.getName() + "-console_monitor");
         executorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+            @Override public void run() {
                 try {
                     queryValidTraceIds();
                     Map<String, JobStage> jobStageMap = cache;
-                    cache = new ConcurrentHashMap();
+                    synchronized (this) {
+                        cache = new ConcurrentHashMap();
+                    }
                     long current = System.currentTimeMillis();
                     for (JobStage jobStage : jobStageMap.values()) {
                         jobStage.setMachineName("");
@@ -168,7 +165,7 @@ public class ConsoleMonitorManager {
 //        }
 
         jobStage.getSafeInput().incrementAndGet();
-        jobStage.setLastInputMsgObj(msg);
+//        jobStage.setLastInputMsgObj(msg);
         if (clientTime != 0) {
             jobStage.setLastInputMsgTime(new Date(clientTime));
         } else {
@@ -208,8 +205,8 @@ public class ConsoleMonitorManager {
         JSONObject msg = message.getMessageBody();
         JobStage jobStage = getJobStage(stage.getLabel());
         jobStage.getSafeInput().incrementAndGet();
-        jobStage.setLastInputMsgObj(msg);
-        jobStage.setLastInputMsg(msg.toJSONString());
+//        jobStage.setLastInputMsgObj(msg);
+//        jobStage.setLastInputMsg(msg.toJSONString());
         jobStage.setLastInputMsgTime(new Date());
 
         String traceId = message.getHeader().getTraceId();
@@ -263,7 +260,7 @@ public class ConsoleMonitorManager {
         }
     }
 
-    public JobStage getJobStage(String uniqKey) {
+    public synchronized JobStage getJobStage(String uniqKey) {
 //        String key = createKey(uniqKey);
         JobStage jobStage = cache.get(uniqKey);
         if (jobStage == null) {
@@ -316,9 +313,7 @@ public class ConsoleMonitorManager {
 
     private boolean isConsoleOpen() {
         String configurableServiceType = ComponentCreator.getProperties().getProperty(DataSyncConstants.UPDATE_TYPE);
-        if (DataSyncConstants.UPDATE_TYPE_ROCKETMQ.equalsIgnoreCase(configurableServiceType) ||
-            DataSyncConstants.UPDATE_TYPE_HTTP.equalsIgnoreCase(configurableServiceType) ||
-            DataSyncConstants.UPDATE_TYPE_DB.equalsIgnoreCase(configurableServiceType)) {
+        if (DataSyncConstants.UPDATE_TYPE_ROCKETMQ.equalsIgnoreCase(configurableServiceType) || DataSyncConstants.UPDATE_TYPE_HTTP.equalsIgnoreCase(configurableServiceType) || DataSyncConstants.UPDATE_TYPE_DB.equalsIgnoreCase(configurableServiceType)) {
             return true;
         }
         return false;

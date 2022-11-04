@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>rocketmq-streams</artifactId>
+        <groupId>org.apache.rocketmq</groupId>
+        <version>1.0.3-dispatcher-SNAPSHOT</version>
+    </parent>
+    <artifactId>rocketmq-streams-sts</artifactId>
+    <name>ROCKETMQ STREAMS :: sts</name>
+    <packaging>jar</packaging>
+    <dependencies>
+
+
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-streams-serviceloader</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-sts-internal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun.ram</groupId>
+            <artifactId>ram-auth-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-ram-inner</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-core</artifactId>
+        </dependency>
+    </dependencies>
+</project>

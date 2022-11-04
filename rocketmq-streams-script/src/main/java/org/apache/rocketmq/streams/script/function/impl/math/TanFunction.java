@@ -85,22 +85,4 @@ public class TanFunction {
         return result;
     }
 
-    /**
-     * 正切函数，输入为弧度值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "tan", comment = "正切函数，输入为弧度值")
-    public BigDecimal tan(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.tan(number.intValue()));
-        return result;
-    }
 }

@@ -25,8 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
@@ -35,10 +33,12 @@ import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.state.impl.JoinLeftState;
 import org.apache.rocketmq.streams.window.state.impl.JoinRightState;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DBOperator implements Operator {
 
-    private static final Log LOG = LogFactory.getLog(DBOperator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DBOperator.class);
 
     /**
      * 根据join流对原始数据进行处理并入库
@@ -50,7 +50,7 @@ public class DBOperator implements Operator {
         List<JoinLeftState> joinLeftStates = new ArrayList<JoinLeftState>();
         List<JoinRightState> joinRightStates = new ArrayList<JoinRightState>();
         for (IMessage message : messageList) {
-            String routeLabel = message.getHeader().getMsgRouteFromLable();
+            String routeLabel = message.getHeader().getMsgRouteFromLabel();
             JoinState state = dealMessge(message, routeLabel);
             if ("left".equalsIgnoreCase(routeLabel)) {
                 joinLeftStates.add((JoinLeftState) state);
@@ -363,7 +363,7 @@ public class DBOperator implements Operator {
             try {
                 bodys.add(Message.parseObject(tmp.getMessageBody()));
             } catch (Exception e) {
-                LOG.error("json parase error:", e);
+                LOGGER.error("json parase error:", e);
             }
 
         }
@@ -392,8 +392,8 @@ public class DBOperator implements Operator {
         params.put("startTime", start);
         params.put("windowNameSpace", windowNameSpace);
         params.put("windowName", windowName);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("dboperata delete param is " + JSONObject.toJSONString(params));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("dboperata delete param is " + JSONObject.toJSONString(params));
         }
 
         List<JoinLeftState> joinLeftStates = ORMUtil.queryForList("select id from join_left_state where window_name_space = #{windowNameSpace} and " +

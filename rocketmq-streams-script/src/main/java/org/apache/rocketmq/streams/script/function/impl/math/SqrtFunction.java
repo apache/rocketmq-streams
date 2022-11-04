@@ -85,22 +85,4 @@ public class SqrtFunction {
         return result;
     }
 
-    /**
-     * 计算平方根
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "sqrt", comment = "计算平方根")
-    public BigDecimal sqrt(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.sqrt(number.intValue()));
-        return result;
-    }
 }

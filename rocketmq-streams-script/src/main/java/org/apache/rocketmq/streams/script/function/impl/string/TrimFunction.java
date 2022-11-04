@@ -27,6 +27,17 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class TrimFunction {
 
+
+    public static boolean isTrimFunction(String functionName){
+        if(functionName==null){
+            return false;
+        }
+        if("trim".equals(functionName.toLowerCase())){
+            return true;
+        }
+        return false;
+    }
+
     /**
      * 将输入字符串str去除左右空格
      *

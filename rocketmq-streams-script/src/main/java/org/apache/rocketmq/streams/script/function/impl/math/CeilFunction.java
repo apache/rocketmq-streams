@@ -66,24 +66,7 @@ public class CeilFunction {
         return result;
     }
 
-    /**
-     * 返回不小于输入值value的最小整数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "ceil", alias = "ceil", comment = "返回不小于输入值value的最小整数")
-    public BigDecimal ceil(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "代表要求值的BigDecimal常量") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.ceil(number.intValue()));
-        return result;
-    }
+
 
     /**
      * 返回不小于输入值value的最小整数

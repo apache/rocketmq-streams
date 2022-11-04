@@ -48,10 +48,12 @@ public class FileDim extends AbstractDim {
         }
     }
 
+    @Override
     public String getFilePath() {
         return filePath;
     }
 
+    @Override
     public void setFilePath(String filePath) {
         this.filePath = filePath;
     }

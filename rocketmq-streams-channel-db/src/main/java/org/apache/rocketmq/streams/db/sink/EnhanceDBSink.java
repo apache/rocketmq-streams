@@ -21,8 +21,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
@@ -41,13 +39,15 @@ import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.ISqlTemplate;
 import org.apache.rocketmq.streams.db.sink.sqltemplate.SqlTemplateFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description enhance db sink, support atomic sink and multiple sink
  */
 public class EnhanceDBSink extends AbstractSink {
 
-    static final Log logger = LogFactory.getLog(EnhanceDBSink.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(EnhanceDBSink.class);
     protected MetaData metaData;//可以指定meta data，和insertSQL二选一
     protected String tableName; //指定要插入的数据表
     boolean isAtomic = false; //是否原子写入
@@ -100,47 +100,45 @@ public class EnhanceDBSink extends AbstractSink {
     @Override
     protected boolean initConfigurable() {
 
-        if(isAtomic && isMultiple){
+        if (isAtomic && isMultiple) {
             String errMsg = String.format("atomic is not support multiple.");
-            logger.error(errMsg);
+            LOGGER.error(errMsg);
             throw new RuntimeException(errMsg);
         }
         //如果是多表, 根据逻辑表名创建分区表
-        if(isMultiple){
+        if (isMultiple) {
             createMultiTable();
         }
 
         //如果是原子写入,根据结果表创建临时表
-        if(isAtomic){
+        if (isAtomic) {
             createTmpTable();
         }
 
         //如果未设置metadata, 则从db搜索元数据, 创建metadata
-        if(metaData == null){
+        if (metaData == null) {
             createMetaData();
         }
 
-        if(iSqlTemplate == null){
+        if (iSqlTemplate == null) {
             try {
                 iSqlTemplate = SqlTemplateFactory.newSqlTemplate(sqlMode, metaData, isContainsId);
             } catch (Exception e) {
-                e.printStackTrace();
-                logger.error(e);
+                LOGGER.error("get sql template error", e);
             }
         }
 
-        if(openSqlCache){
+        if (openSqlCache) {
             initSqlCache();
         }
         return super.initConfigurable();
     }
 
-
-    private void initSqlCache(){
+    private void initSqlCache() {
         this.sqlCache = new MessageCache<>(sqls -> {
             JDBCDriver dataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
             try {
-                dataSource.executSqls(sqls);
+                dataSource.executeSqls(sqls);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
@@ -157,53 +155,52 @@ public class EnhanceDBSink extends AbstractSink {
     /**
      * create
      */
-    private void createMetaData(){
+    private void createMetaData() {
         String realInsertTableName = isAtomic ? tmpTableName : tableName;
         metaData = MetaDataUtils.createMetaData(url, userName, password, realInsertTableName);
     }
 
-    private void createMultiTable(){
+    private void createMultiTable() {
         String logicTable = subStrLogicTableName(tableName);
         copyAndCreateTableSchema(logicTable, tableName);
     }
 
-    private void createTmpTable(){
+    private void createTmpTable() {
         String tmpTable = createTmpTableName(tableName);
         copyAndCreateTableSchema(tableName, tmpTable);
 
     }
 
-    private void copyAndCreateTableSchema(String sourceTableName, String targetTableName){
+    private void copyAndCreateTableSchema(String sourceTableName, String targetTableName) {
         List<String> tables = MetaDataUtils.listTableNameByPattern(url, userName, password, targetTableName);
-        if(tables == null || tables.size() == 0){
+        if (tables == null || tables.size() == 0) {
             String createTableSql = getCreateTableSqlFromOther(sourceTableName, tableName);
             createTable(createTableSql);
         }
     }
 
-    private final String getCreateTableSqlFromOther(String sourceTableName, String targetTableName){
+    private final String getCreateTableSqlFromOther(String sourceTableName, String targetTableName) {
         String createTableSql = MetaDataUtils.getCreateTableSqlByTableName(url, userName, password, sourceTableName);
         createTableSql = createTableSql.replace(sourceTableName, targetTableName);
-        logger.info(String.format("createTableSql is %s", createTableSql));
+        LOGGER.info(String.format("createTableSql is %s", createTableSql));
         return createTableSql;
 
     }
 
-    private final String subStrLogicTableName(String realTableName){
+    private final String subStrLogicTableName(String realTableName) {
         int len = realTableName.lastIndexOf("_");
         String logicTableName = realTableName.substring(0, len);
         return logicTableName;
     }
 
-    private final String createTmpTableName(String tableName){
+    private final String createTmpTableName(String tableName) {
         return "tmp" + "_" + tableName;
     }
 
     /**
-     *
      * @param createTableSql
      */
-    private final void createTable(String createTableSql){
+    private final void createTable(String createTableSql) {
         ORMUtil.executeSQL(url, userName, password, createTableSql, null);
     }
 
@@ -214,14 +211,14 @@ public class EnhanceDBSink extends AbstractSink {
         return false;
     }
 
-    private String genInsertSql(List<IMessage> messages){
+    private String genInsertSql(List<IMessage> messages) {
         String sql = iSqlTemplate.createSql(convertJsonObjectFromMessage(messages));
         return sql;
     }
 
-    protected List<JSONObject> convertJsonObjectFromMessage(List<IMessage> messageList){
+    protected List<JSONObject> convertJsonObjectFromMessage(List<IMessage> messageList) {
         List<JSONObject> messages = new ArrayList<>();
-        for(IMessage message:messageList){
+        for (IMessage message : messageList) {
             messages.add(message.getMessageBody());
         }
         return messages;
@@ -234,7 +231,7 @@ public class EnhanceDBSink extends AbstractSink {
             JDBCDriver dbDataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
             try {
                 dbDataSource.execute(sql);
-            }finally {
+            } finally {
                 dbDataSource.destroy();
             }
         }
@@ -336,21 +333,21 @@ public class EnhanceDBSink extends AbstractSink {
         this.jdbcDriver = jdbcDriver;
     }
 
-    public void rename(String suffix){
+    public void rename(String suffix) {
         SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
         String rename1 = String.format("rename table %s to %s", tableName, tmpTableName.replace("tmp_", "re_") + "_" + suffix + "_" + format.format(new Date()));
         String rename2 = String.format("rename table %s to %s", tmpTableName, tableName);
-        logger.info(String.format("exec rename1 %s", rename1));
-        logger.info(String.format("exec rename2 %s", rename2));
+        LOGGER.info(String.format("exec rename1 %s", rename1));
+        LOGGER.info(String.format("exec rename2 %s", rename2));
         ORMUtil.executeSQL(rename1, null);
         ORMUtil.executeSQL(rename2, null);
 
     }
 
     @Override
-    public void atomicSink(ISystemMessage iMessage){
-        if(isAtomic){
-            ChangeTableNameMessage message = (ChangeTableNameMessage)iMessage;
+    public void atomicSink(ISystemMessage iMessage) {
+        if (isAtomic) {
+            ChangeTableNameMessage message = (ChangeTableNameMessage) iMessage;
             rename(message.getScheduleCycle());
             try {
                 super.finish();
@@ -360,9 +357,9 @@ public class EnhanceDBSink extends AbstractSink {
         }
     }
 
-    public static boolean isAtomicConfiguration(){
+    public static boolean isAtomicConfiguration() {
         String isAtomicDBSink = ComponentCreator.getProperties().getProperty(ConfigureFileKey.IS_ATOMIC_DB_SINK);
-        if(isAtomicDBSink == null){
+        if (isAtomicDBSink == null) {
             return false;
         }
         return Boolean.parseBoolean(isAtomicDBSink);

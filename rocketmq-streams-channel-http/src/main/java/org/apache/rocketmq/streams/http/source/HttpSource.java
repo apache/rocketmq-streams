@@ -19,9 +19,8 @@ package org.apache.rocketmq.streams.http.source;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.http.source.server.HttpServerManager;
@@ -30,7 +29,6 @@ import org.apache.rocketmq.streams.http.source.server.HttpServerManager;
  * receive http(s) post data
  **/
 public class HttpSource extends AbstractUnreliableSource {
-    private static final Log LOG = LogFactory.getLog(HttpSource.class);
     protected boolean isHttps = false;//发送的请求是否是https的
 
     /**
@@ -98,6 +96,10 @@ public class HttpSource extends AbstractUnreliableSource {
     protected boolean startSource() {
         HttpServerManager.startServer(isHttps);
         return true;
+    }
+
+    @Override public List<ISplit<?, ?>> getAllSplits() {
+        return null;
     }
 
     public boolean isHttps() {

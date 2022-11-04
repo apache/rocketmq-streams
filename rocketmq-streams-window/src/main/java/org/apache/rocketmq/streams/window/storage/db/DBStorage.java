@@ -45,14 +45,14 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         if (CollectionUtil.isEmpty(values)) {
             return null;
         }
-        String sql = ORMUtil.createBatchReplacetSQL(new ArrayList<>(values.values()));
+        String sql = ORMUtil.createBatchReplaceSQL(new ArrayList<>(values.values()));
         return sql;
     }
 
     @Override public String multiPutListSQL(Map<String, List<T>> infoMap) {
         if (CollectionUtil.isNotEmpty(infoMap)) {
             List<T> valueList = duplicate(infoMap);
-            return ORMUtil.createBatchReplacetSQL(valueList);
+            return ORMUtil.createBatchReplaceSQL(valueList);
         }
         return null;
     }

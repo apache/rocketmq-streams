@@ -352,6 +352,14 @@ public class MapDataType extends GenericParameterDataType<Map> {
 
     }
 
+    public DataType getKeyParadigmType() {
+        return keyParadigmType;
+    }
+
+    public DataType getValueParadigmType() {
+        return valueParadigmType;
+    }
+
     public void setKeyParadigmType(DataType keyParadigmType) {
         this.keyParadigmType = keyParadigmType;
     }

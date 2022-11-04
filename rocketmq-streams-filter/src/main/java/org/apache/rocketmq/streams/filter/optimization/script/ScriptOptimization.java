@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.optimization.casewhen.IFExpressionOptimization;
 import org.apache.rocketmq.streams.filter.optimization.dependency.BlinkRuleV2Expression;
 import org.apache.rocketmq.streams.filter.optimization.executor.GroupByVarExecutor;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
@@ -45,10 +46,11 @@ public class ScriptOptimization implements IScriptOptimization {
     @Override public IOptimizationCompiler compile(List<IScriptExpression> expressions,
         IConfigurableIdentification configurableIdentification) {
         if (expressions != null) {
-            GroupByVarExecutor groupByVarExecutor = new GroupByVarExecutor(configurableIdentification.getNameSpace(), configurableIdentification.getConfigureName(), expressions);
-            expressions = blinkRuleV2ExpressionOptimizate(expressions, configurableIdentification);
-            groupByVarExecutor.setScriptExpressions(expressions);
-            return groupByVarExecutor;
+//            GroupByVarExecutor groupByVarExecutor = new GroupByVarExecutor(configurableIdentification.getNameSpace(), configurableIdentification.getConfigureName(), expressions);
+//            expressions = blinkRuleV2ExpressionOptimizate(expressions, configurableIdentification);
+//            groupByVarExecutor.setScriptExpressions(expressions);
+//            return groupByVarExecutor;
+            return new IFExpressionOptimization(configurableIdentification.getNameSpace(),configurableIdentification.getConfigureName(),expressions);
         }
         return null;
     }

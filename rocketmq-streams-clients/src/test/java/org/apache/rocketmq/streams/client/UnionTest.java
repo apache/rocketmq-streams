@@ -21,6 +21,7 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.functions.FilterFunction;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.junit.Test;
 
 public class UnionTest implements Serializable {
@@ -29,27 +30,19 @@ public class UnionTest implements Serializable {
     public void testUnion() {
         DataStream leftStream = (StreamBuilder.dataStream("namespace", "name")
             .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
-            .filter(new FilterFunction<JSONObject>() {
-
-                @Override
-                public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
-                        return true;
-                    }
-                    return false;
+            .map(new MapFunction<JSONObject, JSONObject>() {
+                @Override public JSONObject map(JSONObject message) throws Exception {
+                    message.put("left",true);
+                    return message;
                 }
             }));
 
         DataStream rightStream = (StreamBuilder.dataStream("namespace", "name2")
             .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
-            .filter(new FilterFunction<JSONObject>() {
-
-                @Override
-                public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {
-                        return true;
-                    }
-                    return false;
+            .map(new MapFunction<JSONObject, JSONObject>() {
+                @Override public JSONObject map(JSONObject message) throws Exception {
+                    message.put("rigth",true);
+                    return message;
                 }
             }));
 

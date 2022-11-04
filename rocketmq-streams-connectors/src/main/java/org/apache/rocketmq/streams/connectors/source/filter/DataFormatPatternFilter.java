@@ -19,8 +19,8 @@ package org.apache.rocketmq.streams.connectors.source.filter;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description
@@ -29,7 +29,7 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
 
     private static final long serialVersionUID = 3604787588465242642L;
 
-    static final Log logger = LogFactory.getLog(DataFormatPatternFilter.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(DataFormatPatternFilter.class);
 
     static final String yyyyMMddHHmmss = "yyyyMMddHHmmss";
     static final String yyyyMMdd = "yyyyMMdd";
@@ -76,7 +76,7 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
         }
 
         if (isFilter) {
-            logger.info(String.format("filter sourceName %s, logicTableName %s, suffix %s", sourceName, logicTableName, tableNameSuffix));
+            LOGGER.info(String.format("filter sourceName %s, logicTableName %s, suffix %s", sourceName, logicTableName, tableNameSuffix));
             return true;
         }
         if (next != null) {

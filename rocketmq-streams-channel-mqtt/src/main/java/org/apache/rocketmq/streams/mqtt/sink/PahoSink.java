@@ -25,8 +25,12 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PahoSink extends AbstractSink {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PahoSink.class);
 
     private String broker;
     private String clientId;
@@ -70,9 +74,9 @@ public class PahoSink extends AbstractSink {
                     connOpts.setUserName(this.username);
                     connOpts.setPassword(this.password.toCharArray());
                 }
-                System.out.println("Connecting to broker: " + broker);
+                LOGGER.info("Connecting to broker: " + broker);
                 this.client.connect(connOpts);
-                System.out.println("Connected");
+                LOGGER.info("Connected");
             }
 
             for (IMessage msg : messages) {
@@ -88,11 +92,11 @@ public class PahoSink extends AbstractSink {
             }
             return true;
         } catch (MqttException e) {
-            System.err.println("reason " + e.getReasonCode());
-            System.err.println("msg " + e.getMessage());
-            System.err.println("loc " + e.getLocalizedMessage());
-            System.err.println("cause " + e.getCause());
-            System.err.println("exception " + e);
+            LOGGER.error("reason " + e.getReasonCode());
+            LOGGER.error("msg " + e.getMessage());
+            LOGGER.error("loc " + e.getLocalizedMessage());
+            LOGGER.error("cause " + e.getCause());
+            LOGGER.error("exception " + e);
             e.printStackTrace();
         }
         return false;
@@ -106,9 +110,10 @@ public class PahoSink extends AbstractSink {
                 this.client.disconnect();
                 this.client.close();
             }
-        } catch (MqttException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException("Paho close error", e);
         }
+
     }
 
     public String getBroker() {

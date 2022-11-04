@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
@@ -38,11 +36,13 @@ import org.apache.rocketmq.streams.common.topology.metric.StageMetric;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable implements IStreamOperator<T, T>, ISystemMessageProcessor {
     protected String filterFieldNames;
 
-    private static final Log LOG = LogFactory.getLog(AbstractStage.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractStage.class);
 
     public static final String TYPE = "stage";
 
@@ -86,21 +86,21 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      * 主要用于排错，把stage按sql分组，可以快速定位问题
      */
     protected String sql;
-    protected StageGroup stageGroup;
+    protected transient StageGroup stageGroup;
     /**
      * 前置指纹记录
      */
     protected transient PreFingerprint preFingerprint = null;
 
     //监控信息
-    protected transient StageMetric stageMetric=new StageMetric();
+    protected transient StageMetric stageMetric = new StageMetric();
 
     public AbstractStage() {
         setType(TYPE);
     }
 
     @Override public T doMessage(T t, AbstractContext context) {
-        long startTime=stageMetric.startCalculate(t);
+        long startTime = stageMetric.startCalculate(t);
         try {
             TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
         } catch (Exception e) {
@@ -113,7 +113,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         Object result = handle.doMessage(t, context);
         stageMetric.endCalculate(startTime);
         if (!context.isContinue() || result == null) {
-            if(context.getNotFireReason()!=null){
+            if (context.getNotFireReason() != null) {
                 stageMetric.filterCalculate(context.getNotFireReason());
             }
             return (T) context.breakExecute();
@@ -184,10 +184,9 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             return this.nextStageLabels;
         }
 
-
         List<String> labels = new ArrayList<>(this.nextStageLabels);
         if (StringUtil.isNotEmpty(routeLabel)) {
-            Set<String> routeLabelSet=t.getHeader().createRouteLableSet(routeLabel);
+            Set<String> routeLabelSet = t.getHeader().createRouteLabelSet(routeLabel);
             labels = new ArrayList<>();
             for (String tempLabel : this.nextStageLabels) {
                 if (routeLabelSet.contains(tempLabel)) {
@@ -196,7 +195,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
         }
         if (StringUtil.isNotEmpty(filterLabel)) {
-            Set<String> routeFilterLabelSet=t.getHeader().createRouteLableSet(filterLabel);
+            Set<String> routeFilterLabelSet = t.getHeader().createRouteLabelSet(filterLabel);
             for (String tempLabel : this.nextStageLabels) {
                 if (routeFilterLabelSet.contains(label)) {
                     labels.remove(tempLabel);
@@ -334,6 +333,14 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
 
     public StageMetric getStageMetric() {
         return stageMetric;
+    }
+
+    public Long calculateInCount() {
+        return stageMetric.getInCount();
+    }
+
+    public double calculateInQPS() {
+        return stageMetric.getQps();
     }
 
     public String getSql() {

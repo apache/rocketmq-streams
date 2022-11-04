@@ -22,27 +22,26 @@ package org.apache.rocketmq.streams.examples.mutilconsumer;
 import com.alibaba.fastjson.JSONObject;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.rocketmq.streams.client.StreamBuilder;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class MultiStreamsExample {
-    private static ExecutorService producerPool = Executors.newFixedThreadPool(1);
-    private static ExecutorService consumerPool = Executors.newCachedThreadPool();
+    private static ExecutorService producerPool = ThreadPoolFactory.createFixedThreadPool(1, MultiStreamsExample.class.getName() + "-test_producer");
+    private static ExecutorService consumerPool = ThreadPoolFactory.createCachedThreadPool(MultiStreamsExample.class.getName() + "-test_consumer");
     private static Random random = new Random();
 
     public static void main(String[] args) {
         //producer
         producerPool.submit(new Runnable() {
-            @Override
-            public void run() {
+            @Override public void run() {
                 Producer.produceInLoop("data.txt");
             }
         });
@@ -50,8 +49,7 @@ public class MultiStreamsExample {
         //consumer
         for (int i = 0; i < 2; i++) {
             consumerPool.submit(new Runnable() {
-                @Override
-                public void run() {
+                @Override public void run() {
                     runOneStreamsClient(random.nextInt(100));
                 }
             });
@@ -61,12 +59,7 @@ public class MultiStreamsExample {
 
     private static void runOneStreamsClient(int index) {
         DataStreamSource source = StreamBuilder.dataStream("namespace" + index, "pipeline" + index);
-        source.fromRocketmq(
-                RMQ_TOPIC,
-                RMQ_CONSUMER_GROUP_NAME,
-                false,
-                NAMESRV_ADDRESS)
-            .filter((message) -> {
+        source.fromRocketmq(RMQ_TOPIC, RMQ_CONSUMER_GROUP_NAME, false, NAMESRV_ADDRESS).filter((message) -> {
                 try {
                     JSONObject.parseObject((String) message);
                 } catch (Throwable t) {
@@ -76,17 +69,6 @@ public class MultiStreamsExample {
                 return false;
             })
             //must convert message to json.
-            .map(message -> JSONObject.parseObject((String) message))
-            .window(TumblingWindow.of(Time.seconds(10)))
-            .groupBy("ProjectName", "LogStore")
-            .sum("OutFlow", "OutFlow")
-            .sum("InFlow", "InFlow")
-            .count("total")
-            .waterMark(5)
-            .setLocalStorageOnly(true)
-            .toDataSteam()
-            .toPrint(1)
-            .with(WindowStrategy.highPerformance())
-            .start();
+            .map(message -> JSONObject.parseObject((String) message)).window(TumblingWindow.of(Time.seconds(10))).groupBy("ProjectName", "LogStore").sum("OutFlow", "OutFlow").sum("InFlow", "InFlow").count("total").waterMark(5).setLocalStorageOnly(true).toDataSteam().toPrint(1).with(WindowStrategy.highPerformance()).start();
     }
 }

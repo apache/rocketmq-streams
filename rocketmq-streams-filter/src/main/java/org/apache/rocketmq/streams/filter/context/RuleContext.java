@@ -30,8 +30,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -39,7 +37,6 @@ import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataAdapter;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
@@ -49,10 +46,12 @@ import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.function.service.impl.ScanFunctionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RuleContext extends AbstractContext<Message> implements Serializable {
 
-    private static final Log LOG = LogFactory.getLog(RuleContext.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RuleContext.class);
 
     /**
      * 观察者对应的configure
@@ -106,8 +105,6 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
 
     private static volatile boolean initflag = false;
 
-
-
     public static void initSuperRuleContext(ContextConfigure contextConfigure) {
         if (!initflag) {
             synchronized (RuleContext.class) {
@@ -115,10 +112,9 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
                     RuleContext staticRuleContext = new RuleContext(DEFALUT_NAME_SPACE, contextConfigure);
                     ThreadFactory actionFactory = new ThreadFactoryBuilder().setNameFormat("RuleContext-Action-Poo-%d").build();
                     int threadSize = contextConfigure.getActionPoolSize();
-                    ExecutorService actionExecutor = new ThreadPoolExecutor(threadSize, threadSize, 0L, TimeUnit.MILLISECONDS,
-                        new LinkedBlockingQueue<>(1024), actionFactory, new ThreadPoolExecutor.AbortPolicy());
+                    ExecutorService actionExecutor = new ThreadPoolExecutor(threadSize, threadSize, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1024), actionFactory, new ThreadPoolExecutor.AbortPolicy());
                     staticRuleContext.actionExecutor = actionExecutor;
-                    staticRuleContext.functionService.scanePackage("org.apache.rocketmq.streams.filter.function");
+                    staticRuleContext.functionService.scanPackage("org.apache.rocketmq.streams.filter.function");
                     superRuleContext = staticRuleContext;
                     initflag = true;
                 }
@@ -230,7 +226,7 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
             }
             return (ExpressionFunction) fc.getBean();
         } catch (Exception e) {
-            LOG.error("RuleContext getExpressionFunction error,name is: " + name, e);
+            LOGGER.error("RuleContext getExpressionFunction error,name is: " + name, e);
             return null;
         }
 
@@ -398,25 +394,25 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
     }
 
     public static void addNotFireExpressionMonitor(
-        Object expression,AbstractContext context) {
+        Object expression, AbstractContext context) {
 
-        if(RelationExpression.class.isInstance(expression)){
-            List<String> notFireExpressionMonitor=new ArrayList<>();
-            RelationExpression relationExpression=(RelationExpression) expression;
-            for(String expressionName:notFireExpressionMonitor){
-                if(!relationExpression.getValue().contains(expressionName)){
+        if (RelationExpression.class.isInstance(expression)) {
+            List<String> notFireExpressionMonitor = new ArrayList<>();
+            RelationExpression relationExpression = (RelationExpression) expression;
+            for (String expressionName : notFireExpressionMonitor) {
+                if (!relationExpression.getValue().contains(expressionName)) {
                     notFireExpressionMonitor.add(expressionName);
                 }
             }
             notFireExpressionMonitor.add(relationExpression.getConfigureName());
             context.setNotFireExpressionMonitor(notFireExpressionMonitor);
-        }else if(Expression.class.isInstance(expression)) {
-            Expression e=(Expression)expression;
+        } else if (Expression.class.isInstance(expression)) {
+            Expression e = (Expression) expression;
             context.getNotFireExpressionMonitor().add(e.getConfigureName());
-        }else if(String.class.isInstance(expression)){
-            context.getNotFireExpressionMonitor().add((String)expression);
-        }else {
-            LOG.warn("can not support the express "+expression);
+        } else if (String.class.isInstance(expression)) {
+            context.getNotFireExpressionMonitor().add((String) expression);
+        } else {
+            LOGGER.warn("can not support the express " + expression);
         }
 
     }

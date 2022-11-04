@@ -51,7 +51,6 @@ import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.Union;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.ShuffleConsumerChainStage;
@@ -102,24 +101,22 @@ public class DataStream implements Serializable {
         this.currentChainStage = currentChainStage;
     }
 
-
-    public DataStream increaseConcurrencyByShuffle(int shuffleConcurrentCount){
-        if(this.mainPipelineBuilder.getPipeline().getChannelNextStageLabel().size()>0||currentChainStage!=null){
+    public DataStream increaseConcurrencyByShuffle(int shuffleConcurrentCount) {
+        if (this.mainPipelineBuilder.getPipeline().getChannelNextStageLabel().size() > 0 || currentChainStage != null) {
             throw new RuntimeException("can only set after source");
         }
         ChainStage<?> stage = new ShuffleProducerChainStage();
-        ((ShuffleProducerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(),this.mainPipelineBuilder.getPipelineName(),this.mainPipelineBuilder.getPipeline().getChannelName()));
+        ((ShuffleProducerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(), this.mainPipelineBuilder.getPipelineName(), this.mainPipelineBuilder.getPipeline().getChannelName()));
         ((ShuffleProducerChainStage) stage).setSplitCount(shuffleConcurrentCount);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
 
         this.currentChainStage = stage;
 
         stage = new ShuffleConsumerChainStage<>();
-        ((ShuffleConsumerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(),this.mainPipelineBuilder.getPipelineName(),this.mainPipelineBuilder.getPipeline().getChannelName()));
+        ((ShuffleConsumerChainStage) stage).setShuffleOwnerName(MapKeyUtil.createKey(this.mainPipelineBuilder.getPipelineNameSpace(), this.mainPipelineBuilder.getPipelineName(), this.mainPipelineBuilder.getPipeline().getChannelName()));
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
-
 
     public DataStream with(Strategy... strategies) {
         Properties properties = new Properties();
@@ -403,7 +400,6 @@ public class DataStream implements Serializable {
      * @param sqlOrTableName
      * @return
      */
-    @Deprecated
     public JoinStream join(String url, String userName, String password, String sqlOrTableName,
         long pollingTimeMintue) {
         return join(url, userName, password, sqlOrTableName, null, pollingTimeMintue);
@@ -418,7 +414,6 @@ public class DataStream implements Serializable {
      * @param sqlOrTableName
      * @return
      */
-    @Deprecated
     public JoinStream join(String url, String userName, String password, String sqlOrTableName, String jdbcDriver,
         long pollingTimeMinute) {
         DBDim dbDim = new DBDim();
@@ -427,7 +422,7 @@ public class DataStream implements Serializable {
         dbDim.setPassword(password);
         dbDim.setSql(sqlOrTableName);
         dbDim.setPollingTimeMinute(pollingTimeMinute);
-        dbDim.setJdbcdriver(jdbcDriver);
+        dbDim.setJdbcDriver(jdbcDriver);
         this.mainPipelineBuilder.addConfigurables(dbDim);
         return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true);
     }
@@ -476,7 +471,7 @@ public class DataStream implements Serializable {
         dbDim.setPassword(password);
         dbDim.setSql(sqlOrTableName);
         dbDim.setPollingTimeMinute(pollingTimeMinute);
-        dbDim.setJdbcdriver(jdbcDriver);
+        dbDim.setJdbcDriver(jdbcDriver);
         this.mainPipelineBuilder.addConfigurables(dbDim);
         return new JoinStream(dbDim, mainPipelineBuilder, otherPipelineBuilders, currentChainStage, true, joinType);
     }
@@ -520,7 +515,7 @@ public class DataStream implements Serializable {
                 return null;
             }
         };
-        ChainStage stage = this.mainPipelineBuilder.createStage(selfChainStage);
+        ChainStage<?> stage = this.mainPipelineBuilder.createStage(selfChainStage);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
@@ -540,7 +535,7 @@ public class DataStream implements Serializable {
                 return null;
             }
         };
-        ChainStage stage = this.mainPipelineBuilder.createStage(selfChainStage);
+        ChainStage<?> stage = this.mainPipelineBuilder.createStage(selfChainStage);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
@@ -551,7 +546,7 @@ public class DataStream implements Serializable {
      * @param fieldNames
      */
     public DataStream selectFields(String... fieldNames) {
-        ChainStage stage = this.mainPipelineBuilder.createStage(new ScriptOperator("retain(" + MapKeyUtil.createKeyBySign(",", fieldNames) + ")"));
+        ChainStage<?> stage = this.mainPipelineBuilder.createStage(new ScriptOperator("retain(" + MapKeyUtil.createKeyBySign(",", fieldNames) + ")"));
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, stage);
     }
@@ -603,7 +598,7 @@ public class DataStream implements Serializable {
         if (batchSize > 0) {
             outputPrintChannel.setBatchSize(batchSize);
         }
-        ChainStage output = this.mainPipelineBuilder.createStage(outputPrintChannel);
+        ChainStage<?> output = this.mainPipelineBuilder.createStage(outputPrintChannel);
         this.mainPipelineBuilder.setTopologyStages(currentChainStage, output);
         return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, output);
     }
@@ -735,28 +730,40 @@ public class DataStream implements Serializable {
         }
 
         ConfigurableComponent configurableComponent = ComponentCreator.getComponent(mainPipelineBuilder.getPipelineNameSpace(), ConfigurableComponent.class, ConfigureFileKey.CONNECT_TYPE + ":memory");
-        ChainPipeline pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
+        ChainPipeline<?> pipeline = this.mainPipelineBuilder.build(configurableComponent.getService());
 
         if (this.otherPipelineBuilders != null) {
             Thread mainThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    pipeline.startChannel();
+                    try {
+                        pipeline.startChannel();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             });
             mainThread.start();
             for (PipelineBuilder builder : otherPipelineBuilders) {
-                ChainPipeline otherPipeline = builder.build(configurableComponent.getService());
+                ChainPipeline<?> otherPipeline = builder.build(configurableComponent.getService());
                 Thread thread = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        otherPipeline.startChannel();
+                        try {
+                            otherPipeline.startChannel();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 });
                 thread.start();
             }
         } else {
-            pipeline.startChannel();
+            try {
+                pipeline.startChannel();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         if (isAsyn) {
             return;

@@ -20,15 +20,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.utils.ENVUtile;
 import org.apache.rocketmq.streams.common.utils.PropertiesUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFileKey {
 
-    private static final Log LOG = LogFactory.getLog(AbstractComponent.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractComponent.class);
 
     public final static String ENV_JDBC_URL = "rocketmq_streams_sync_jdbc_url";
 

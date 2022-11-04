@@ -85,22 +85,4 @@ public class SinHFunction {
         return result;
     }
 
-    /**
-     * 双曲正弦函数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "sinh", comment = "双曲正弦函数")
-    public BigDecimal sinh(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.sinh(number.intValue()));
-        return result;
-    }
 }

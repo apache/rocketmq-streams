@@ -85,22 +85,5 @@ public class CosHFunction {
         return result;
     }
 
-    /**
-     * 双曲余弦函数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "cosh", alias = "cosh", comment = "双曲余弦函数")
-    public BigDecimal cosh(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.cosh(number.intValue()));
-        return result;
-    }
+
 }

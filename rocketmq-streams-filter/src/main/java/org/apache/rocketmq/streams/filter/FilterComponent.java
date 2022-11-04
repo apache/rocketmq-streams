@@ -19,8 +19,6 @@ package org.apache.rocketmq.streams.filter;
 import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.IgnoreNameSpace;
@@ -37,7 +35,6 @@ import org.apache.rocketmq.streams.filter.service.impl.RuleEngineServiceImpl;
  */
 public class FilterComponent extends AbstractComponent<IRuleEngineService> implements IRuleEngineService, IgnoreNameSpace {
 
-    private static final Log LOG = LogFactory.getLog(FilterComponent.class);
 
     private static final FilterComponent filterComponent = ComponentCreator.getComponent(null, FilterComponent.class);
 

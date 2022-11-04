@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.PropertiesUtils;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 创建组件，如果参数未发生变化（如果未传入，则是配置文件的参数），返回同一个组件对象，如果发生变化，返回不同的组件对象
@@ -39,7 +39,7 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ComponentCreator {
 
-    private static final Log LOG = LogFactory.getLog(ComponentCreator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ComponentCreator.class);
 
     /**
      * 代理dbchannel的class，需要继承JDBCDataSource抽象类。如果配置这个参数，则会给dbchannel增加一层代理，所有需要db访问的，都是通过open api发送sql给代理
@@ -55,7 +55,13 @@ public class ComponentCreator {
     /**
      * blink jar包所在的路径
      */
-    public static final String BLINK_UDF_JAR_PATH = "dipper.blink.udf.jar.path";
+
+    public static final String UDF_JAR_PATH = "dipper.udf.jar.path";
+
+    public static final String UDF_JAR_OSS_ACCESS_ID = "dipper.udf.jar.oss.access.id";
+
+    public static final String UDF_JAR_OSS_ACCESS_KEY = "dipper.udf.jar.oss.access.key";
+
     private static final Map<String, IComponent> key2Component = new HashMap<>();
     private static Properties properties;
     public static String propertiesPath;//属性文件位置，便于定期刷新
@@ -180,8 +186,7 @@ public class ComponentCreator {
         return (T) getComponentInner(namespace, componentType, true, propertiesPath);
     }
 
-    private static IComponent getComponentInner(String namespace, Class<IComponent> componentType, boolean needStart,
-        Object o) {
+    private static IComponent getComponentInner(String namespace, Class<IComponent> componentType, boolean needStart, Object o) {
         String key = createKey(componentType, namespace, o);
         if (key2Component.containsKey(key) && key2Component.get(key) != null) {
             return key2Component.get(key);

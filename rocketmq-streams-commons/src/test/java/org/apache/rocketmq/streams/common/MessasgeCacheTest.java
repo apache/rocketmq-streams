@@ -18,9 +18,9 @@ package org.apache.rocketmq.streams.common;
 
 import com.alibaba.fastjson.JSONObject;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.rocketmq.streams.common.channel.impl.OutputPrintChannel;
 import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.junit.Test;
 
 public class MessasgeCacheTest {
@@ -30,7 +30,7 @@ public class MessasgeCacheTest {
         OutputPrintChannel second = new OutputPrintChannel();
         first.init();
         second.init();
-        ExecutorService executorService = Executors.newFixedThreadPool(100);
+        ExecutorService executorService = ThreadPoolFactory.createFixedThreadPool(100, MessasgeCacheTest.class.getName() + "-sink_test");
         for (int i = 0; i < 10; i++) {
             JSONObject msg = new JSONObject();
             msg.put("name", "chris" + i);

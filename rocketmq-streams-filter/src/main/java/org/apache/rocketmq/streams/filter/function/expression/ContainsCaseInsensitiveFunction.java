@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
@@ -25,11 +23,13 @@ import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Function
 public class ContainsCaseInsensitiveFunction extends AbstractExpressionFunction {
 
-    private static final Log LOG = LogFactory.getLog(ContainsCaseInsensitiveFunction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainsCaseInsensitiveFunction.class);
 
     @Override
     @FunctionMethod("containsCaseInsensitiveFunction")
@@ -65,7 +65,7 @@ public class ContainsCaseInsensitiveFunction extends AbstractExpressionFunction 
                 return false;
             }
         } catch (Exception e) {
-            LOG.error("ContainsCaseInsensitiveFunction error: rule name is: " + expression.getConfigureName(), e);
+            LOGGER.error("ContainsCaseInsensitiveFunction error: rule name is: " + expression.getConfigureName(), e);
             return false;
         }
 

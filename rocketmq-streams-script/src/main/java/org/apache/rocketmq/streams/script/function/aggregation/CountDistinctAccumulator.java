@@ -20,6 +20,8 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import java.util.Iterator;
 import net.agkn.hll.HLL;
+import org.apache.rocketmq.streams.common.interfaces.ISerialize;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
@@ -66,7 +68,7 @@ public class CountDistinctAccumulator implements IAccumulator<Long, CountDistinc
 
     }
 
-    public static class CountDistinctAccum {
+    public static class CountDistinctAccum  implements ISerialize {
         private final HLL hll = new HLL(30, 8);
     }
 }

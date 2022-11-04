@@ -31,6 +31,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.functions.FlatMapFunction;
 import org.apache.rocketmq.streams.common.functions.ForEachMessageFunction;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.sink.RocketMQSink;
 import org.junit.Test;
 
@@ -85,7 +86,7 @@ public class RocketMQTest implements Serializable {
             })
             .forEachMessage(new ForEachMessageFunction() {
                 MultiSplitMessageCache messageCache = null;
-                RocketMQSink sink = new RocketMQSink("localhost:9876", "dipper_test_write_merge4");
+                RocketMQSink sink = new RocketMQSink("11.166.49.226:9876", "dipper_test_write_merge4");
 
                 @Override public void foreach(IMessage message, AbstractContext context) {
                     if (messageCache == null) {
@@ -127,7 +128,7 @@ public class RocketMQTest implements Serializable {
     @Test
     public void testConsumer() {
         DataStreamSource.create("tmp", "tmp")
-            .fromRocketmq("dipper_test_write_merge", "dipper_group", true, "localhost:9876")
+            .fromRocketmq("dipper_test_write_merge", "dipper_group", true, "11.166.49.226:9876")
             .flatMap(new FlatMapFunction<JSONObject, JSONObject>() {
                 @Override public List<JSONObject> flatMap(JSONObject message) throws Exception {
                     JSONArray jsonArray = message.getJSONArray("data");
@@ -192,5 +193,20 @@ public class RocketMQTest implements Serializable {
                 }
             })
             .start();
+    }
+
+    @Test
+    public void testSink() throws InterruptedException {
+        DataStreamSource.create("tmp", "tmp").fromFile("window_msg_10.txt")
+            .toPrint().toRocketmq("tmp_topic","11.166.49.226:9876").start();
+        Thread.sleep(5000);
+    }
+
+    @Test
+    public void testSource(){
+        String groupName="group6";
+        System.out.println(groupName+" start time is "+ DateUtil.getCurrentTimeString());
+        DataStreamSource.create("tmp", "tmp").fromRocketmq("tmp_topic",groupName,"*",true,"11.166.49.226:9876",true)
+            .toPrint().start();
     }
 }

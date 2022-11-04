@@ -70,7 +70,7 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
     protected Map<String, BitSetCache.BitSet> homologousResult;
 
     //未触发规则的表达式
-    protected List<String> notFireExpressionMonitor=new ArrayList<>();
+    protected List<String> notFireExpressionMonitor = new ArrayList<>();
 
     public AbstractContext(T message) {
         this.message = message;
@@ -100,8 +100,8 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         this.isBreak = subContext.isBreak;
         this.quickFilterResult = subContext.quickFilterResult;
         this.homologousResult = subContext.homologousResult;
-        this.isContinue=subContext.isContinue;
-        this.notFireExpressionMonitor=subContext.notFireExpressionMonitor;
+        this.isContinue = subContext.isContinue;
+        this.notFireExpressionMonitor = subContext.notFireExpressionMonitor;
     }
 
     public <C extends AbstractContext<T>> C syncSubContext(C subContext) {
@@ -115,8 +115,8 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         subContext.isBreak = isBreak;
         subContext.quickFilterResult = quickFilterResult;
         subContext.homologousResult = homologousResult;
-        subContext.isContinue=isContinue;
-        subContext.notFireExpressionMonitor=notFireExpressionMonitor;
+        subContext.isContinue = isContinue;
+        subContext.notFireExpressionMonitor = notFireExpressionMonitor;
         return subContext;
     }
 
@@ -271,8 +271,6 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        // System.out.println("================="+(System.currentTimeMillis()-start));
         if (!context.isContinue()) {
             context.setSplitModel(isSplitMode || context.isSplitModel());
             return null;
@@ -416,19 +414,18 @@ public abstract class AbstractContext<T extends IMessage> extends HashMap {
         return monitor.createChildren(configurable);
     }
 
-    public NotFireReason getNotFireReason(){
-        return (NotFireReason)this.get("NotFireReason");
+    public NotFireReason getNotFireReason() {
+        return (NotFireReason) this.get("NotFireReason");
     }
 
-
-    public void setNotFireReason(NotFireReason notFireReason){
-        this.put("NotFireReason",notFireReason);
+    public void setNotFireReason(NotFireReason notFireReason) {
+        this.put("NotFireReason", notFireReason);
     }
 
-
-    public void removeNotFireReason(){
+    public void removeNotFireReason() {
         this.remove("NotFireReason");
     }
+
     public boolean isBreak() {
         return isBreak;
     }
