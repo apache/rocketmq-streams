@@ -47,10 +47,6 @@ public class ShuffleProcessorNode<T> extends ProcessorNode<T> {
         String shuffleSourceName = OperatorNameMaker.makeName(SHUFFLE_SOURCE_PREFIX);
         builder.addRealSource(shuffleSourceName, topicName, new SourceSupplier<>(topicName, new KVJsonDeserializer<>()));
 
-        //构造一个状态存储
-//        RocksDBStore<K,V> rocksDBStore = new RocksDBStore<>();
-//        DefaultStore<K,V> store = new DefaultStore<>(rocksDBStore);
-//        builder.addStatefulRealNode(name, parentName, store, supplier);
         builder.addRealNode(name, shuffleSourceName, supplier);
     }
 }

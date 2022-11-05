@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.metadata.Data;
@@ -69,6 +70,7 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
 
         @Override
         public long getTimestamp(MessageExt originData, TimeType timeType) {
+
             if (timeType == null) {
                 return System.currentTimeMillis();
             } else if (timeType == TimeType.EVENT_TIME) {

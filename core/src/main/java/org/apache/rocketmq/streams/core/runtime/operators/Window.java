@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.runtime.operators;
 
+import org.apache.rocketmq.streams.core.util.Utils;
+
 public class Window {
     private long startTime;
 
@@ -47,9 +49,9 @@ public class Window {
     public String toString() {
 
         return "[" +
-                startTime +
+                "startTime=" + Utils.format(startTime) +
                 "," +
-                endTime +
+                "endTime=" + Utils.format(endTime) +
                 "]";
     }
 }

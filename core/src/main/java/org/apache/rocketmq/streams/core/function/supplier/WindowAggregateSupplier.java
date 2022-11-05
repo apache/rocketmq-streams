@@ -115,6 +115,8 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             //f(time) -> List<Window>
             List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
+                System.out.println("timestamp=" + time + ".time -> window: " + Utils.format(time) + "->" + window);
+
                 //f(Window + key, store) -> oldValue
                 //todo key 怎么转化成对应的string，只和key的值有关系
                 String windowKey = Utils.buildKey(key.toString(), String.valueOf(window.getEndTime()), String.valueOf(window.getStartTime()));
@@ -164,13 +166,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 //删除状态
                 this.windowStore.deleteByKey(pair.getObject1());
             }
-        }
-
-        private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        private String format(long timestamp) {
-            Date date = new Date(timestamp);
-            return df.format(date);
         }
 
     }

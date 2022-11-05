@@ -37,4 +37,6 @@ public class Constant {
     public static final String EMPTY_BODY = "empty_body";
 
     public static final String TRUE = "true";
+
+    public static final String SOURCE_TIMESTAMP = "source_timestamp";
 }

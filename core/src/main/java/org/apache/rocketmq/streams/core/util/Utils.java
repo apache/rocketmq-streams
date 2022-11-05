@@ -22,6 +22,9 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class Utils {
     public static final String pattern = "%s@%s@%s";
 
@@ -67,5 +70,11 @@ public class Utils {
 
     public static <B> B byte2Object(byte[] source, Class<B> clazz) {
         return JSON.parseObject(source, clazz);
+    }
+
+    public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static String format(long timestamp) {
+        Date date = new Date(timestamp);
+        return df.format(date);
     }
 }

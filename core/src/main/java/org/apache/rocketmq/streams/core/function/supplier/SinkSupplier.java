@@ -21,7 +21,6 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.selector.SelectMessageQueueByHash;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
@@ -56,6 +55,7 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
 
         @Override
         public void preProcess(StreamContext<T> context) {
+            this.context = context;
             this.producer = context.getDefaultMQProducer();
             this.key = context.getKey();
         }
@@ -72,6 +72,9 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
 
                     message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, null);
                     message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, data.getClass().getName());
+                    if (this.topicName.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
+                        message.putUserProperty(Constant.SOURCE_TIMESTAMP, String.valueOf(this.context.getDataTime()));
+                    }
 
                     producer.send(message);
                 } else {
@@ -79,8 +82,14 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
 
                     message.setKeys(String.valueOf(this.key.hashCode()));
 
+
                     message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, this.key.getClass().getName());
                     message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, data.getClass().getName());
+
+                    //todo 丑陋
+                    if (this.topicName.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
+                        message.putUserProperty(Constant.SOURCE_TIMESTAMP, String.valueOf(this.context.getDataTime()));
+                    }
 
                     producer.send(message, new SelectMessageQueueByHash(), this.key);
                 }

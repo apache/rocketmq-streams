@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core.running;
  * limitations under the License.
  */
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -163,6 +164,7 @@ public class WorkerThread extends Thread {
                     String brokerName = messageExt.getBrokerName();
                     MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
                     set.add(queue);
+                    System.out.println("source topic queue: " + queue);
 
 
                     String key = Utils.buildKey(brokerName, topic, queueId);
@@ -173,22 +175,38 @@ public class WorkerThread extends Thread {
                     processor.preProcess(context);
 
                     Pair<K, V> pair = processor.deserialize(keyClassName, valueClassName, body);
-                    long timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
+
+                    long timestamp;
+                    String userProperty = messageExt.getUserProperty(Constant.SOURCE_TIMESTAMP);
+                    if (!StringUtils.isEmpty(userProperty)) {
+                        timestamp = Long.parseLong(userProperty);
+                    } else {
+                        timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
+                    }
 
                     String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
                     long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));
                     context.setWatermark(watermark);
 
                     Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp);
+                    if (topic.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
+                        System.out.println("shuffle data: " + data);
+                    }
                     context.forward(data);
                 }
 
                 //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
+                for (MessageQueue messageQueue : set) {
+                    System.out.println("commit messageQueue: " + messageQueue);
+                }
                 this.unionConsumer.commit(set, true);
                 this.stateStore.persist(set);
                 //todo 提交消费位点、写出sink数据、写出状态、需要保持原子
             }
         }
+
+
+
 
         void createShuffleTopic() throws Throwable {
             Set<String> total = WorkerThread.this.topologyBuilder.getSourceTopic();
