@@ -17,10 +17,14 @@
 package org.apache.rocketmq.streams.core.running;
 
 
+import org.apache.rocketmq.streams.core.runtime.operators.Time;
 import org.apache.rocketmq.streams.core.runtime.operators.Window;
+import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V> {
@@ -30,10 +34,10 @@ public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V>
         long slideInterval = windowInfo.getWindowSlide().toMillSecond();
 
         List<Window> result = new ArrayList<>((int) (sizeInterval / slideInterval));
-        long lastStart = valueTime - (valueTime + sizeInterval) % sizeInterval;
+        long lastStart = valueTime - (valueTime + slideInterval) % slideInterval;
 
         for (long start = lastStart; start > valueTime - sizeInterval; start -= slideInterval) {
-            long end = start + slideInterval;
+            long end = start + sizeInterval;
             Window window = new Window(start, end);
             result.add(window);
         }

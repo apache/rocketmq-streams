@@ -63,7 +63,7 @@
     </appender>
 
     <root>
-        <level value="INFO"/>
+        <level value="DEBUG"/>
         <appender-ref ref="console"/>
         <appender-ref ref="DefaultAppender"/>
     </root>
