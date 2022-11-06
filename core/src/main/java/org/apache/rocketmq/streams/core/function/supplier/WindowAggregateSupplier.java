@@ -30,14 +30,15 @@ import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
+    private static final Logger logger = LoggerFactory.getLogger(WindowAggregateSupplier.class.getName());
     private final String currentName;
     private final String parentName;
     private WindowInfo windowInfo;
@@ -115,7 +116,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             //f(time) -> List<Window>
             List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
-                System.out.println("timestamp=" + time + ".time -> window: " + Utils.format(time) + "->" + window);
+                logger.debug("timestamp=" + time + ".time -> window: " + Utils.format(time) + "->" + window);
 
                 //f(Window + key, store) -> oldValue
                 //todo key 怎么转化成对应的string，只和key的值有关系
@@ -135,7 +136,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 WindowState<K, OV> state = new WindowState<>(key, newValue, time);
                 this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
 
-                System.out.println("put key into store, key: " + windowKey);
+                logger.debug("put key into store, key: " + windowKey);
             }
 
             try {

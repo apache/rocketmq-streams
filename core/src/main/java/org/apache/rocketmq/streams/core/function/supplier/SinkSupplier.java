@@ -79,8 +79,8 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
                     producer.send(message);
                 } else {
                     message = new Message(this.topicName, value);
-
-                    message.setKeys(String.valueOf(this.key.hashCode()));
+                    //tostring 是否精准
+                    message.setKeys(String.valueOf(this.key.toString()));
 
 
                     message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, this.key.getClass().getName());
@@ -95,5 +95,7 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
                 }
             }
         }
+
+
     }
 }

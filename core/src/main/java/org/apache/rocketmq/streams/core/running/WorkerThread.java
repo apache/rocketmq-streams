@@ -16,6 +16,9 @@ package org.apache.rocketmq.streams.core.running;
  * limitations under the License.
  */
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
@@ -43,11 +46,11 @@ import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -55,10 +58,24 @@ import java.util.Set;
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
 public class WorkerThread extends Thread {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(WorkerThread.class.getName());
     private final TopologyBuilder topologyBuilder;
     private final PlanetaryEngine<?, ?> planetaryEngine;
     private final Properties properties;
+
+//    public static void main(String[] args) throws JoranException {
+//        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+//        JoranConfigurator configurator = new JoranConfigurator();
+//        configurator.setContext(lc);
+//        lc.reset();
+//        //https://logback.qos.ch/manual/configuration.html
+//        lc.setPackagingDataEnabled(false);
+//        ClassLoader loader = WorkerThread.class.getClassLoader();
+//        URL url = loader.getResource("logback.xml");
+//        configurator.doConfigure( url.getPath());
+//
+//        logger.info("error");
+//    }
 
     public WorkerThread(TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
         this.topologyBuilder = topologyBuilder;
@@ -90,10 +107,10 @@ public class WorkerThread extends Thread {
 
             this.planetaryEngine.runInLoop();
         } catch (Throwable e) {
-            System.out.println("planetaryEngine error.");
+            logger.error("planetaryEngine error.", e);
             throw new RuntimeException(e);
         } finally {
-            System.out.println("planetaryEngine stop.");
+            logger.info("planetaryEngine stop.");
             this.planetaryEngine.stop();
         }
     }
@@ -124,8 +141,7 @@ public class WorkerThread extends Thread {
                     PlanetaryEngine.this.stateStore.recover(addQueue, removeQueue);
                     return null;
                 } catch (Throwable e) {
-                    System.out.println("error happen.");
-                    e.printStackTrace();
+                    logger.error("recover error.", e);
                     return e;
                 }
             });
@@ -164,7 +180,7 @@ public class WorkerThread extends Thread {
                     String brokerName = messageExt.getBrokerName();
                     MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
                     set.add(queue);
-                    System.out.println("source topic queue: " + queue);
+                    logger.debug("source topic queue:[{}]", queue);
 
 
                     String key = Utils.buildKey(brokerName, topic, queueId);
@@ -190,14 +206,14 @@ public class WorkerThread extends Thread {
 
                     Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp);
                     if (topic.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
-                        System.out.println("shuffle data: " + data);
+                        logger.debug("shuffle data: [{}]", data);
                     }
                     context.forward(data);
                 }
 
                 //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
                 for (MessageQueue messageQueue : set) {
-                    System.out.println("commit messageQueue: " + messageQueue);
+                    logger.debug("commit messageQueue: [{}]", messageQueue);
                 }
                 this.unionConsumer.commit(set, true);
                 this.stateStore.persist(set);
@@ -232,7 +248,7 @@ public class WorkerThread extends Thread {
                     throw new RuntimeException("examine state topic route info error.", e);
                 } catch (MQClientException exception) {
                     if (exception.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
-                        System.out.println("shuffle topic does not exist.");
+                        logger.info("shuffle topic [{}] does not exist, create it.", topic);
                         notExistShuffleTopic.add(topic);
                     } else {
                         throw new RuntimeException(exception);
@@ -247,7 +263,9 @@ public class WorkerThread extends Thread {
                 topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic.get(0));
             } catch (Throwable t) {
                 if (t instanceof MQClientException && ((MQClientException) t).getResponseCode() == 17) {
-                    System.out.println("source topic not exist, can not create shuffle topic, create topic when write.");
+                    logger.error("source topic [{}] not exist, can not create shuffle topic, create topic when write.", sourceTopic.get(0));
+                } else {
+                    throw t;
                 }
                 return;
             }
@@ -276,8 +294,7 @@ public class WorkerThread extends Thread {
                 this.producer.shutdown();
                 this.mqAdmin.shutdown();
             } catch (Throwable e) {
-                //todo
-                e.printStackTrace();
+                logger.error("error when stop.", e);
             }
         }
     }

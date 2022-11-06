@@ -20,13 +20,16 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.running.WorkerThread;
+import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 public class RocketMQStream {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(RocketMQStream.class.getName());
     private final TopologyBuilder topologyBuilder;
     private final Properties properties;
 
@@ -46,8 +49,7 @@ public class RocketMQStream {
                 thread.start();
             }
         } catch (Throwable t) {
-            //todo
-            System.out.println("RocketMQStream error.");
+            logger.error("start RocketMQStream error.");
             throw new RuntimeException(t);
         }
 
@@ -61,7 +63,7 @@ public class RocketMQStream {
         try {
             count.await();
         } catch (InterruptedException e) {
-            log.error("wait shutdown error.", e);
+            logger.error("wait shutdown error.", e);
         }
     }
 

@@ -17,27 +17,22 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 class MessageQueueListenerWrapper implements MessageQueueListener {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(MessageQueueListenerWrapper.class.getName());
     private final MessageQueueListener originListener;
     private final TopologyBuilder topologyBuilder;
 
@@ -70,6 +65,7 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
             if (throwable != null) {
                 throw new RuntimeException(throwable);
             }
+            logger.info("recover messageQueue finish, addQueue: [{}], removeQueue:[{}].", addQueue, removeQueue);
         }
 
         buildTask(addQueue);

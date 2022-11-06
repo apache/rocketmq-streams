@@ -38,6 +38,8 @@ import org.apache.rocketmq.streams.core.serialization.serImpl.KVJsonSerializer;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -53,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class RocketMQStore extends AbstractStore implements StateStore {
+    private static final Logger logger = LoggerFactory.getLogger(RocketMQStore.class.getName());
     private final DefaultMQProducer producer;
     private final DefaultMQAdminExt mqAdmin;
     private final RocksDBStore rocksDBStore;
@@ -100,7 +103,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         } finally {
             long cost = end - start;
             if (cost > 2000) {
-                System.out.println("recover finish, consume time:" + cost + " ms.");
+                logger.error("recover finish, consume time:" + cost + " ms.");
             }
         }
     }
@@ -155,7 +158,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         //删除内存中的key
         super.deleteAllMappingByKey(key);
 
-        System.out.println("delete key: " + key + ",MessageQueue: " + queue);
+        logger.debug("delete key: " + key + ",MessageQueue: " + queue);
     }
 
     @Override
@@ -194,7 +197,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, clazzPair.getObject2().getName());
 
 
-                System.out.println("persist key: " + key + ",messageQueue: " + stateTopicQueue);
+                logger.debug("persist key: " + key + ",messageQueue: " + stateTopicQueue);
                 this.producer.send(message, stateTopicQueue);
             }
         }
@@ -225,9 +228,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             try {
                 pullToLast(consumer);
             } catch (Throwable e) {
-                System.out.println("loadState state error.");
-                e.printStackTrace();
-                //todo 记录日志
+                logger.error("pull to last error.", e);
                 throw new RuntimeException(e);
             } finally {
                 consumer.shutdown();
@@ -264,7 +265,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                     this.recoveringQueueMutex.remove(stateMessageQueue);
                 }
             } catch (Throwable e) {
-                e.printStackTrace();
+                logger.error("remove state error", e);
                 throw new RuntimeException(e);
             }
         });
@@ -347,7 +348,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 //放入rocksdb
                 MessageQueue stateTopicQueue = new MessageQueue(result.getTopic(), result.getBrokerName(), result.getQueueId());
 
-                System.out.println("recover state, key: " + key + ", stateTopicQueue: " + stateTopicQueue);
+                logger.debug("recover state, key: " + key + ", stateTopicQueue: " + stateTopicQueue);
                 this.put(stateTopicQueue, key, value);
             }
         }
@@ -391,11 +392,11 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             existStateTopic.add(stateTopic);
             return;
         } catch (RemotingException | InterruptedException e) {
-            e.printStackTrace();
+            logger.error("examine state topic route info error.", e);
             throw new RuntimeException("examine state topic route info error.", e);
         } catch (MQClientException exception) {
             if (exception.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
-                System.out.println("state topic does not exist.");
+                logger.info("state topic does not exist, create it.");
             } else {
                 throw new RuntimeException(exception);
             }
@@ -433,7 +434,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
             existStateTopic.add(stateTopic);
         } catch (Throwable t) {
-            t.printStackTrace();
+            logger.error("create state topic error.");
             throw new RuntimeException("create state topic error.", t);
         }
 
