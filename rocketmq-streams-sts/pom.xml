@@ -19,8 +19,6 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-streams-serviceloader</artifactId>
         </dependency>
-
-
         <dependency>
             <groupId>com.aliyun</groupId>
             <artifactId>aliyun-java-sdk-sts</artifactId>
