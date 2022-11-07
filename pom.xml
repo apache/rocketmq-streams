@@ -118,10 +118,9 @@
         <aliyun-log.version>0.6.74</aliyun-log.version>
         <aliyun-log-producer.version>0.3.11</aliyun-log-producer.version>
         <loghub.version>0.6.33</loghub.version>
-        <sts.version>3.2.0</sts.version>
-        <ram-auth-client.version>1.2.8</ram-auth-client.version>
-        <ram-inner.version>1.0.0</ram-inner.version>
-        <aliyun-java-sdk-core.version>4.5.1</aliyun-java-sdk-core.version>
+        <sts.version>3.1.0</sts.version>
+        <ram.version>3.3.1</ram.version>
+        <aliyun-java-sdk-core.version>4.6.2</aliyun-java-sdk-core.version>
         <oss.version>3.10.2</oss.version>
     </properties>
 
@@ -635,18 +634,13 @@
             <!--RAM dependency-->
             <dependency>
                 <groupId>com.aliyun</groupId>
-                <artifactId>aliyun-java-sdk-sts-internal</artifactId>
+                <artifactId>aliyun-java-sdk-sts</artifactId>
                 <version>${sts.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.aliyun.ram</groupId>
-                <artifactId>ram-auth-client</artifactId>
-                <version>${ram-auth-client.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.aliyun</groupId>
-                <artifactId>aliyun-java-sdk-ram-inner</artifactId>
-                <version>${ram-inner.version}</version>
+                <artifactId>aliyun-java-sdk-ram</artifactId>
+                <version>${ram.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.aliyun</groupId>

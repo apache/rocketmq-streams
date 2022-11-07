@@ -17,12 +17,12 @@
 package org.apache.rocketmq.streams.sts;
 
 import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.auth.sts.AssumeRoleRequest;
+import com.aliyuncs.auth.sts.AssumeRoleResponse;
 import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.http.MethodType;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
-import com.aliyuncs.sts.model.v20150401.AssumeRoleWithServiceIdentityRequest;
-import com.aliyuncs.sts.model.v20150401.AssumeRoleWithServiceIdentityResponse;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -160,13 +160,12 @@ public class StsService {
 
         @Override public StsIdentity load(String s) throws ClientException {
             DefaultAcsClient client = getRamClient();
-            final AssumeRoleWithServiceIdentityRequest request = new AssumeRoleWithServiceIdentityRequest();
+            final AssumeRoleRequest request = new AssumeRoleRequest();
             request.setMethod(MethodType.POST);
             request.setRoleArn(roleArn);
             request.setRoleSessionName(refreshSessionName());
-            request.setAssumeRoleFor(stsAssumeRoleFor);
             request.setDurationSeconds((long) stsExpireSeconds);
-            final AssumeRoleWithServiceIdentityResponse response = client.getAcsResponse(request);
+            final AssumeRoleResponse response = client.getAcsResponse(request);
             StsIdentity stsIdentity = new StsIdentity(response.getCredentials().getAccessKeyId(), response.getCredentials().getAccessKeySecret(), response.getCredentials().getSecurityToken(), response.getCredentials().getExpiration());
             logger.info("CacheLoader refresh stsToken success, accessId is {}. ", stsIdentity.getAccessKeyId());
             return stsIdentity;

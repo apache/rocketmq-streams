@@ -23,15 +23,11 @@
 
         <dependency>
             <groupId>com.aliyun</groupId>
-            <artifactId>aliyun-java-sdk-sts-internal</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.aliyun.ram</groupId>
-            <artifactId>ram-auth-client</artifactId>
+            <artifactId>aliyun-java-sdk-sts</artifactId>
         </dependency>
         <dependency>
             <groupId>com.aliyun</groupId>
-            <artifactId>aliyun-java-sdk-ram-inner</artifactId>
+            <artifactId>aliyun-java-sdk-ram</artifactId>
         </dependency>
         <dependency>
             <groupId>com.aliyun</groupId>
