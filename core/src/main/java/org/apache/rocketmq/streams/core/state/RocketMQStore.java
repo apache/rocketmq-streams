@@ -132,10 +132,14 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
 
-    public <V> List<Pair<String, V>> searchByKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable {
-        return this.rocksDBStore.searchByKeyPrefix(keyPrefix, valueClazz);
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable {
+        return this.rocksDBStore.searchLessThanKeyPrefix(keyPrefix, valueClazz);
     }
 
+    @Override
+    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable {
+        return this.rocksDBStore.searchMatchKeyPrefix(keyPrefix, valueClazz);
+    }
 
     @Override
     public <K> void delete(K key) throws Throwable {

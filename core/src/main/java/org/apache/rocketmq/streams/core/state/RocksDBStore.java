@@ -19,11 +19,11 @@ package org.apache.rocketmq.streams.core.state;
 
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
+import org.apache.rocketmq.streams.core.runtime.operators.SessionWindowState;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
-import org.checkerframework.checker.units.qual.K;
 import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -38,6 +38,7 @@ public class RocksDBStore extends AbstractStore {
     private static final String ROCKSDB_PATH = "/tmp/rocksdb";
     private RocksDB rocksDB;
     private WriteOptions writeOptions;
+    private ReadOptions readOptions;
 
     public RocksDBStore() {
         createRocksDB();
@@ -74,7 +75,6 @@ public class RocksDBStore extends AbstractStore {
     }
 
 
-
     public byte[] get(byte[] key) throws RocksDBException {
         if (key == null) {
             return null;
@@ -88,18 +88,46 @@ public class RocksDBStore extends AbstractStore {
         rocksDB.put(writeOptions, key, value);
     }
 
-    public <V> List<Pair<String, V>> searchByKeyPrefix(String keyPrefix, Class<V> valueClazz) {
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) {
         byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
-
-        RocksIterator rocksIterator = rocksDB.newIterator();
+        readOptions = new ReadOptions();
+        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
+        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
 
         rocksIterator.seekForPrev(keyPrefixBytes);
+
+        return iteratorAndDes(rocksIterator, valueClazz);
+    }
+
+    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) {
+        byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
+
+        readOptions = new ReadOptions();
+        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
+        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
+
+        rocksIterator.seek(keyPrefixBytes);
 
         List<Pair<String, V>> temp = new ArrayList<>();
         while (rocksIterator.isValid()) {
             byte[] keyBytes = rocksIterator.key();
             byte[] valueBytes = rocksIterator.value();
 
+            String key = Utils.byte2Object(keyBytes, String.class);
+            V v = Utils.byte2Object(valueBytes, valueClazz);
+
+            temp.add(new Pair<>(key, v));
+
+            rocksIterator.next();
+        }
+        return temp;
+    }
+
+    private <V> List<Pair<String, V>> iteratorAndDes(RocksIterator rocksIterator, Class<V> valueClazz) {
+        List<Pair<String, V>> temp = new ArrayList<>();
+        while (rocksIterator.isValid()) {
+            byte[] keyBytes = rocksIterator.key();
+            byte[] valueBytes = rocksIterator.value();
 
             String key = Utils.byte2Object(keyBytes, String.class);
             V v = Utils.byte2Object(valueBytes, valueClazz);
@@ -108,7 +136,6 @@ public class RocksDBStore extends AbstractStore {
 
             rocksIterator.prev();
         }
-
         return temp;
     }
 
@@ -125,4 +152,37 @@ public class RocksDBStore extends AbstractStore {
 
     }
 
+
+    public static void main(String[] args) throws Throwable {
+        RocksDBStore rocksDBStore = new RocksDBStore();
+
+        String key = "key@1667810684454@1";
+        String key2 = "key@1667810684454@2";
+        Object value = "1";
+        Object value2 = "2";
+
+        byte[] keyBytes = rocksDBStore.object2Bytes(key);
+        byte[] valueBytes = rocksDBStore.object2Bytes(value);
+
+        byte[] keyBytes2 = rocksDBStore.object2Bytes(key2);
+        byte[] valueBytes2 = rocksDBStore.object2Bytes(value2);
+
+
+        rocksDBStore.put(keyBytes, valueBytes);
+        rocksDBStore.put(keyBytes2, valueBytes2);
+
+        byte[] bytes = rocksDBStore.get(keyBytes);
+        Object result = rocksDBStore.byte2Object(bytes, Object.class);
+        System.out.println(result);
+
+        byte[] bytes2 = rocksDBStore.get(keyBytes2);
+        Object result2 = rocksDBStore.byte2Object(bytes2, Object.class);
+        System.out.println(result2);
+
+        List<Pair<String, Object>> pairs = rocksDBStore.searchMatchKeyPrefix("key@1667810684454", Object.class);
+        for (Pair<String, Object> pair : pairs) {
+            System.out.println(pair);
+        }
+
+    }
 }

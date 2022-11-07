@@ -51,7 +51,10 @@ public interface StateStore extends AutoCloseable {
 
     <K, V> void put(MessageQueue messageQueue, K key, V value) throws Throwable;
 
-    <V> List<Pair<String, V>> searchByKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable;
+    //只能查询到 < keyPrefix的结果，不包含等于
+    <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable;
+
+    <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable;
 
     <K> void delete(K key) throws Throwable;
 

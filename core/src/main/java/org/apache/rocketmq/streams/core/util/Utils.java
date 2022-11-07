@@ -69,6 +69,10 @@ public class Utils {
 
 
     public static <B> B byte2Object(byte[] source, Class<B> clazz) {
+        if (source == null || source.length ==0) {
+            return null;
+        }
+
         return JSON.parseObject(source, clazz);
     }
 

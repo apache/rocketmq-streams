@@ -162,10 +162,14 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
          * @param key
          * @throws Throwable
          */
+        @SuppressWarnings("unchecked")
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
-            List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchByKeyPrefix(keyPrefix);
+            Class<?> temp = WindowState.class;
+            Class<WindowState<K, OV>> type = (Class<WindowState<K, OV>>) temp;
+
+            List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanKeyPrefix(keyPrefix, type);
 
             //pairs中最后一个时间最小，应该最先触发
             for (int i = pairs.size() - 1; i >= 0; i--) {
@@ -229,17 +233,19 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 long sessionEndTime = time + windowInfo.getSessionTimeout().toMilliseconds();
                 String windowKey = Utils.buildKey(key.toString(), String.valueOf(sessionEndTime), String.valueOf(time));
 
-                logger.info("new session window, with key={}, valueTime={}, windowKey={}", key, time, windowKey);
-
+                logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, time, time, sessionEndTime);
                 store(windowKey, state);
             }
         }
 
 
         //使用前缀查询找到session state, 触发已经session out的 watermark
+        @SuppressWarnings("unchecked")
         private boolean fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
-            String windowKeyPrefix = Utils.buildKey(key.toString());
-            List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchByKeyPrefix(windowKeyPrefix);
+            Class<?> temp = SessionWindowState.class;
+            Class<SessionWindowState<K, OV>> type = (Class<SessionWindowState<K, OV>>) temp;
+
+            List<Pair<String, SessionWindowState<K, OV>>> pairs = this.windowStore.searchMatchKeyPrefix(key.toString(), type);
 
             if (pairs.size() == 0) {
                 return true;
@@ -251,12 +257,12 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             boolean calculated = false;
 
             //sessionEndTime小的先触发
-            for (int i = pairs.size() - 1; i >= 0; i--) {
-                Pair<String, WindowState<K, OV>> pair = pairs.get(i);
+            for (int i = 0; i < pairs.size(); i++) {
+                Pair<String, SessionWindowState<K, OV>> pair = pairs.get(i);
                 logger.debug("fire session state=[{}]", pair);
 
                 String windowKey = pair.getObject1();
-                SessionWindowState<K, OV> state = (SessionWindowState<K, OV>) pair.getObject2();
+                SessionWindowState<K, OV> state = pair.getObject2();
 
                 String[] split = Utils.split(windowKey);
                 long sessionEnd = Long.parseLong(split[1]);

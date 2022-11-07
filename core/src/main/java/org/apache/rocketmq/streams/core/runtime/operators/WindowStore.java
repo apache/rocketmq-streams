@@ -22,7 +22,6 @@ import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.rocksdb.RocksDB;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class WindowStore {
@@ -44,19 +43,13 @@ public class WindowStore {
         return this.stateStore.get(key);
     }
 
-
-    @SuppressWarnings("unchecked")
-    public <K, V> List<Pair<String, WindowState<K, V>>> searchByKeyPrefix(String keyPrefix) throws Throwable {
-        List<Pair<String, WindowState>> pairs = this.stateStore.searchByKeyPrefix(keyPrefix, WindowState.class);
-
-        List<Pair<String, WindowState<K, V>>> result = new ArrayList<>();
-        for (Pair<String, WindowState> pair : pairs) {
-            WindowState<K, V> object2 = (WindowState<K, V>) pair.getObject2();
-            result.add(new Pair<>(pair.getObject1(), object2));
-        }
-        return result;
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> type) throws Throwable {
+        return this.stateStore.searchLessThanKeyPrefix(keyPrefix, type);
     }
 
+    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> type) throws Throwable {
+        return this.stateStore.searchMatchKeyPrefix(keyPrefix, type);
+    }
 
     public void deleteByKey(String key) throws Throwable {
         this.stateStore.delete(key);

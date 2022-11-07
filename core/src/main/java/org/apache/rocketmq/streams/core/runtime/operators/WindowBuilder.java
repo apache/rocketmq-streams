@@ -43,8 +43,7 @@ public class WindowBuilder {
         WindowInfo info = new WindowInfo();
 
         info.setWindowType(WindowInfo.WindowType.SESSION_WINDOW);
-        info.setWindowSize(size);
-        info.setWindowSlide(size);
+        info.setSessionTimeout(size);
 
         return info;
     }
