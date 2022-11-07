@@ -24,6 +24,7 @@ import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractWindowProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
+import org.apache.rocketmq.streams.core.runtime.operators.SessionWindowState;
 import org.apache.rocketmq.streams.core.runtime.operators.Window;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
@@ -45,8 +46,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     private Supplier<OV> initAction;
     private AggregateAction<K, V, OV> aggregateAction;
 
-    public WindowAggregateSupplier(String currentName, String parentName, WindowInfo windowInfo,
-                                   Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+    public WindowAggregateSupplier(String currentName, String parentName, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
         this.currentName = currentName;
         this.parentName = parentName;
         this.windowInfo = windowInfo;
@@ -56,7 +56,16 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
     @Override
     public Processor<V> get() {
-        return new WindowAggregateProcessor(currentName, parentName, windowInfo, initAction, aggregateAction);
+        WindowInfo.WindowType windowType = windowInfo.getWindowType();
+        switch (windowType) {
+            case SLIDING_WINDOW:
+            case TUMBLING_WINDOW:
+                return new WindowAggregateProcessor(currentName, parentName, windowInfo, initAction, aggregateAction);
+            case SESSION_WINDOW:
+                return new SessionWindowAggregateProcessor(windowInfo, initAction, aggregateAction);
+            default:
+                throw new RuntimeException("window type is error, WindowType=" + windowType);
+        }
     }
 
 
@@ -72,8 +81,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
-        public WindowAggregateProcessor(String currentName, String parentName, WindowInfo windowInfo,
-                                        Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+        public WindowAggregateProcessor(String currentName, String parentName, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
             this.currentName = currentName;
             this.parentName = parentName;
             this.windowInfo = windowInfo;
@@ -116,7 +124,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             //f(time) -> List<Window>
             List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
-                logger.debug("timestamp=" + time + ".time -> window: " + Utils.format(time) + "->" + window);
+                logger.debug("timestamp=" + time + ". time -> window: " + Utils.format(time) + "->" + window);
 
                 //f(Window + key, store) -> oldValue
                 //todo key 怎么转化成对应的string，只和key的值有关系
@@ -147,12 +155,19 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             }
         }
 
+        /**
+         * 触发窗口结束时间 <= watermark 的窗口
+         *
+         * @param watermark
+         * @param key
+         * @throws Throwable
+         */
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
             List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchByKeyPrefix(keyPrefix);
 
-            //需要倒序向后算子传递，pairs中最后一个结果的key，entTime最小，应该最先触发
+            //pairs中最后一个时间最小，应该最先触发
             for (int i = pairs.size() - 1; i >= 0; i--) {
 
                 Pair<String, WindowState<K, OV>> pair = pairs.get(i);
@@ -168,8 +183,132 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 this.windowStore.deleteByKey(pair.getObject1());
             }
         }
-
     }
 
 
+    private class SessionWindowAggregateProcessor extends AbstractWindowProcessor<K, V> {
+        private final WindowInfo windowInfo;
+        private Supplier<OV> initAction;
+        private AggregateAction<K, V, OV> aggregateAction;
+
+        private MessageQueue stateTopicMessageQueue;
+        private WindowStore windowStore;
+
+        private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
+
+        public SessionWindowAggregateProcessor(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+            this.windowInfo = windowInfo;
+            this.initAction = initAction;
+            this.aggregateAction = aggregateAction;
+        }
+
+        @Override
+        public void preProcess(StreamContext<V> context) throws Throwable {
+            super.preProcess(context);
+            this.windowStore = new WindowStore(super.waitStateReplay());
+
+            String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
+        }
+
+        @Override
+        public void process(V data) throws Throwable {
+            K key = this.context.getKey();
+            long time = this.context.getDataTime();
+            long watermark = this.context.getWatermark();
+
+            //本地存储里面搜索下
+            boolean createNewSessionWindow = fireIfSessionOut(key, data, time, watermark);
+
+            if (createNewSessionWindow) {
+                OV oldValue = this.initAction.get();
+                OV newValue = this.aggregateAction.calculate(key, data, oldValue);
+
+                SessionWindowState<K, OV> state = new SessionWindowState<>(key, newValue, time, time);
+
+                long sessionEndTime = time + windowInfo.getSessionTimeout().toMilliseconds();
+                String windowKey = Utils.buildKey(key.toString(), String.valueOf(sessionEndTime), String.valueOf(time));
+
+                logger.info("new session window, with key={}, valueTime={}, windowKey={}", key, time, windowKey);
+
+                store(windowKey, state);
+            }
+        }
+
+
+        //使用前缀查询找到session state, 触发已经session out的 watermark
+        private boolean fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
+            String windowKeyPrefix = Utils.buildKey(key.toString());
+            List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchByKeyPrefix(windowKeyPrefix);
+
+            if (pairs.size() == 0) {
+                return true;
+            }
+
+            logger.debug("session state num={}", pairs.size());
+
+            long lastSessionEndTime = Long.MAX_VALUE;
+            boolean calculated = false;
+
+            //sessionEndTime小的先触发
+            for (int i = pairs.size() - 1; i >= 0; i--) {
+                Pair<String, WindowState<K, OV>> pair = pairs.get(i);
+                logger.debug("fire session state=[{}]", pair);
+
+                String windowKey = pair.getObject1();
+                SessionWindowState<K, OV> state = (SessionWindowState<K, OV>) pair.getObject2();
+
+                String[] split = Utils.split(windowKey);
+                long sessionEnd = Long.parseLong(split[1]);
+                long sessionBegin = Long.parseLong(split[2]);
+
+                if (i == 0) {
+                    lastSessionEndTime = sessionEnd;
+                }
+
+                if (sessionBegin <= dataTime && dataTime < sessionEnd) {
+                    logger.info("find session state with dataTime=[{}], result windowKey=[{}]", dataTime, windowKey);
+                    calculated = true;
+
+                    OV newValue = this.aggregateAction.calculate(key, data, state.getValue());
+                    state.setValue(newValue);
+                    state.setTimestamp(dataTime);
+
+                    store(windowKey, state);
+                }
+
+                if (sessionEnd < watermark) {
+                    //触发state
+                    fire(windowKey, state);
+                }
+            }
+
+            boolean createNewSessionWindow = dataTime > lastSessionEndTime;
+            if (!createNewSessionWindow && !calculated) {
+                logger.warn("discard data: key=[{}], data=[{}], dataTime=[{}], watermark=[{}]", key, data, dataTime, watermark);
+            }
+            return createNewSessionWindow;
+        }
+
+
+        //存储状态
+        private void store(String windowKey, SessionWindowState<K, OV> state) throws Throwable {
+            this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
+            logger.debug("put key into store, key: " + windowKey);
+        }
+
+        private void fire(String windowKey, SessionWindowState<K, OV> state) throws Throwable {
+            String[] split = Utils.split(windowKey);
+            long windowEnd = Long.parseLong(split[1]);
+            long windowBegin = state.getEarliestTimestamp();
+
+            Data<K, OV> result = new Data<>(state.getKey(), state.getValue(), state.getTimestamp());
+            Data<K, V> convert = super.convert(result);
+
+            this.context.forward(convert);
+
+            //删除状态
+            this.windowStore.deleteByKey(windowKey);
+        }
+    }
 }

@@ -59,7 +59,7 @@ public class WindowInfo {
         this.sessionTimeout = sessionTimeout;
     }
 
-    enum WindowType {
+    public enum WindowType {
         SLIDING_WINDOW,
         TUMBLING_WINDOW,
         SESSION_WINDOW

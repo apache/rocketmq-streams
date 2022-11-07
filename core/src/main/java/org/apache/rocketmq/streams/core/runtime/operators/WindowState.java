@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.core.runtime.operators;
 
 public class WindowState<K, V> {
-    private long timestamp;
+    private long timestamp;//上一个被计算元素的时间；
 
     private K key;
     private V value;
@@ -54,5 +54,14 @@ public class WindowState<K, V> {
 
     public void setValue(V value) {
         this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return "WindowState{" +
+                "timestamp=" + timestamp +
+                ", key=" + key +
+                ", value=" + value +
+                '}';
     }
 }

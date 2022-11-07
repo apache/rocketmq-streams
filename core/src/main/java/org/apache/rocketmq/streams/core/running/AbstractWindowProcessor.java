@@ -17,14 +17,11 @@
 package org.apache.rocketmq.streams.core.running;
 
 
-import org.apache.rocketmq.streams.core.runtime.operators.Time;
 import org.apache.rocketmq.streams.core.runtime.operators.Window;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
-import org.apache.rocketmq.streams.core.util.Utils;
+import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V> {
@@ -43,5 +40,7 @@ public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V>
         }
         return result;
     }
+
+
 
 }
