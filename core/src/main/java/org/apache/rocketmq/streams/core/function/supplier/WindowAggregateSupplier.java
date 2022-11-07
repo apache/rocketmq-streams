@@ -268,7 +268,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 long sessionEnd = Long.parseLong(split[1]);
                 long sessionBegin = Long.parseLong(split[2]);
 
-                if (i == 0) {
+                if (i == pairs.size() - 1) {
                     lastSessionEndTime = sessionEnd;
                 }
 

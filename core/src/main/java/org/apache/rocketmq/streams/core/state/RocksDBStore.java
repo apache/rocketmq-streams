@@ -156,9 +156,9 @@ public class RocksDBStore extends AbstractStore {
     public static void main(String[] args) throws Throwable {
         RocksDBStore rocksDBStore = new RocksDBStore();
 
-        String key = "key@1667810684454@1";
-        String key2 = "key@1667810684454@2";
-        Object value = "1";
+        String key = "key@1@1";
+        String key2 = "key@1@2";
+        Object value = "3";
         Object value2 = "2";
 
         byte[] keyBytes = rocksDBStore.object2Bytes(key);
@@ -167,9 +167,9 @@ public class RocksDBStore extends AbstractStore {
         byte[] keyBytes2 = rocksDBStore.object2Bytes(key2);
         byte[] valueBytes2 = rocksDBStore.object2Bytes(value2);
 
-
-        rocksDBStore.put(keyBytes, valueBytes);
         rocksDBStore.put(keyBytes2, valueBytes2);
+        rocksDBStore.put(keyBytes, valueBytes);
+
 
         byte[] bytes = rocksDBStore.get(keyBytes);
         Object result = rocksDBStore.byte2Object(bytes, Object.class);
@@ -179,7 +179,7 @@ public class RocksDBStore extends AbstractStore {
         Object result2 = rocksDBStore.byte2Object(bytes2, Object.class);
         System.out.println(result2);
 
-        List<Pair<String, Object>> pairs = rocksDBStore.searchMatchKeyPrefix("key@1667810684454", Object.class);
+        List<Pair<String, Object>> pairs = rocksDBStore.searchMatchKeyPrefix("key", Object.class);
         for (Pair<String, Object> pair : pairs) {
             System.out.println(pair);
         }
