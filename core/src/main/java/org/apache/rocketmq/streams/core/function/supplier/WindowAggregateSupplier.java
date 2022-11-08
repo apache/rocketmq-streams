@@ -259,6 +259,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             Iterator<Pair<String, SessionWindowState<K, OV>>> iterator = pairs.iterator();
             int count = 0;
             long lastStateSessionEnd = 0;
+            long maxFireSessionEnd = Long.MIN_VALUE;
 
             while (iterator.hasNext()) {
                 Pair<String, SessionWindowState<K, OV>> pair = iterator.next();
@@ -278,30 +279,33 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                     //触发state
                     fire(windowKey, state);
                     iterator.remove();
+                    maxFireSessionEnd = Long.max(sessionEnd, maxFireSessionEnd);
                 }
             }
 
-            boolean calculated = false;
-            boolean discard = false;
+            if (dataTime < maxFireSessionEnd) {
+                logger.warn("late data, discard. key=[{}], data=[{}], dataTime < maxFireSessionEnd: [{}] < [{}]", key, data, dataTime, maxFireSessionEnd);
+                return null;
+            }
+
+            boolean createNewSessionWindow = false;
             String needToDelete = null;
+
             //再次遍历，找到数据属于某个窗口，如果窗口已经关闭，则只计算新的值，如果窗口没有关闭则计算新值、更新窗口边界、存储状态、删除老值
             for (int i = 0; i < pairs.size(); i++) {
                 Pair<String, SessionWindowState<K, OV>> pair = pairs.get(i);
 
                 String windowKey = pair.getObject1();
                 SessionWindowState<K, OV> state = pair.getObject2();
-                boolean closed = state.isClosed();
 
                 String[] split = Utils.split(windowKey);
                 long sessionEnd = Long.parseLong(split[1]);
                 long sessionBegin = Long.parseLong(split[2]);
 
                 if (sessionEnd < dataTime) {
-                    state.setClosed(true);
+                    createNewSessionWindow = true;
                 } else if (sessionBegin <= dataTime) {
-                    calculated = true;
                     logger.debug("data belong to exist session window.dataTime=[{}], window:[{} - {}]", dataTime, Utils.format(sessionBegin), Utils.format(sessionEnd));
-
                     OV newValue = this.aggregateAction.calculate(key, data, state.getValue());
 
                     //更新state
@@ -312,31 +316,27 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                         state.setEarliestTimestamp(dataTime);
                     }
 
-                    if (!closed) {
-                        //更新session窗口结束时间
+                    //如果是最后一个窗口，更新窗口结束时间
+                    if (i == pairs.size() - 1) {
                         long mayBeSessionEnd = dataTime + windowInfo.getSessionTimeout().toMilliseconds();
                         if (sessionEnd < mayBeSessionEnd) {
                             logger.debug("update exist session window, before:[{} - {}], after:[{} - {}]", Utils.format(sessionBegin), Utils.format(sessionEnd),
                                     Utils.format(sessionBegin), Utils.format(mayBeSessionEnd));
                             //删除老状态
-                            needToDelete =windowKey;
+                            needToDelete = windowKey;
                             windowKey = Utils.buildKey(key.toString(), String.valueOf(mayBeSessionEnd), String.valueOf(sessionBegin));
                         }
                     }
                 } else {
-                    discard = true;
+                    logger.warn("discard data: key=[{}], data=[{}], dataTime=[{}], watermark=[{}]", key, data, dataTime, watermark);
                 }
 
                 store(windowKey, state);
                 this.windowStore.deleteByKey(needToDelete);
             }
 
-            if (!calculated && !discard) {
+            if (createNewSessionWindow) {
                 return new Pair<>(lastStateSessionEnd, dataTime + windowInfo.getSessionTimeout().toMilliseconds());
-            }
-
-            if (!calculated) {
-                logger.warn("discard data: key=[{}], data=[{}], dataTime=[{}], watermark=[{}]", key, data, dataTime, watermark);
             }
             return null;
         }
