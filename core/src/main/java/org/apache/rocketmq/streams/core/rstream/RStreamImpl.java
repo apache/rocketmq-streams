@@ -122,6 +122,13 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
+    public RStream<T> join(RStream<T> rightStream) {
+
+
+        return null;
+    }
+
+    @Override
     public <K> void sink(String topicName, KeyValueSerializer<K, T> serializer) {
         String name = OperatorNameMaker.makeName(SINK_PREFIX);
 

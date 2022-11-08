@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.examples;
 
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
+import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
@@ -31,7 +32,7 @@ import java.util.Properties;
 
 public class WordCount {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder();
+        StreamBuilder builder = new StreamBuilder("wordCount");
 
         builder.source("sourceTopic",  total -> {
                     String value = new String(total, StandardCharsets.UTF_8);
@@ -49,7 +50,7 @@ public class WordCount {
         TopologyBuilder topologyBuilder = builder.build();
 
         Properties properties = new Properties();
-        properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        properties.put(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 

@@ -31,7 +31,7 @@ import java.util.Properties;
 
 public class SlideWindowCount {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder();
+        StreamBuilder builder = new StreamBuilder("slideWindowCount");
         builder.source("windowCount", source -> {
                     String value = new String(source, StandardCharsets.UTF_8);
                     int result = Integer.parseInt(value);

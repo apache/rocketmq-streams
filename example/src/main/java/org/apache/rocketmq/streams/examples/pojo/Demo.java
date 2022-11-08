@@ -31,7 +31,7 @@ import java.util.Properties;
 
 public class Demo {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder();
+        StreamBuilder builder = new StreamBuilder("demo");
 
         builder.source("sourceTopic", new KeyValueDeserializer<Void, User>() {
                     @Override

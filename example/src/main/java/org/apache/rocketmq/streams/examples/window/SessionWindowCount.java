@@ -31,7 +31,7 @@ import java.util.Properties;
 
 public class SessionWindowCount {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder();
+        StreamBuilder builder = new StreamBuilder("sessionWindowCount");
         builder.source("windowCount", source -> {
                     String value = new String(source, StandardCharsets.UTF_8);
                     int result = Integer.parseInt(value);

@@ -17,6 +17,8 @@ package org.apache.rocketmq.streams.core.metadata;
  */
 
 public class StreamConfig {
+    private static String jobId;
+
     public static final String ROCKETMQ_STREAMS_CONSUMER_GROUP = "rocketmq_streams_consumer_group";
 
     public static final String ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP = "rocketmq_streams_state_consumer_group";
@@ -25,4 +27,12 @@ public class StreamConfig {
 
 
     public static final Integer SHUFFLE_TOPIC_QUEUE_NUM = Integer.valueOf(System.getProperty("shuffle_topic_queue_num","4"));
+
+    public static String getJobId() {
+        return jobId;
+    }
+
+    public static void setJobId(String jobId) {
+        StreamConfig.jobId = jobId;
+    }
 }

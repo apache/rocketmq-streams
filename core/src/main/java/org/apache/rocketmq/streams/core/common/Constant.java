@@ -18,6 +18,8 @@
 package org.apache.rocketmq.streams.core.common;
 
 public class Constant {
+    public static final String JOB_ID = "job_id";
+
     public static final String SHUFFLE_KEY_CLASS_NAME = "shuffle.key.class.name";
 
     public static final String SHUFFLE_VALUE_CLASS_NAME = "shuffle.value.class.name";

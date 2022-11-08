@@ -21,6 +21,7 @@ import org.apache.rocketmq.streams.core.function.ForeachAction;
 import org.apache.rocketmq.streams.core.function.KeySelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
+import org.checkerframework.checker.units.qual.K;
 
 public interface RStream<T> {
 
@@ -36,6 +37,8 @@ public interface RStream<T> {
     void print();
 
     RStream<T> foreach(ForeachAction<T> foreachAction);
+
+    RStream<T> join(RStream<T> rightStream);
 
     <K> void sink(String topicName, KeyValueSerializer<K, T> serializer);
 }

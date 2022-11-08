@@ -16,6 +16,8 @@ package org.apache.rocketmq.streams.core;
  * limitations under the License.
  */
 
+import org.apache.rocketmq.streams.core.metadata.StreamConfig;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class OperatorNameMaker {
@@ -31,6 +33,8 @@ public class OperatorNameMaker {
     public static final String SHUFFLE_SINK_PREFIX = "ROCKETMQ-SHUFFLE-SINK-";
     public static final String WINDOW_COUNT_PREFIX = "ROCKETMQ-WINDOW-COUNT-";
 
+    public static final String pattern = "%s-%s%s";
+
     private static final ThreadLocal<AtomicInteger> index = ThreadLocal.withInitial(() -> new AtomicInteger(0));
 
 
@@ -40,6 +44,9 @@ public class OperatorNameMaker {
 
 
     public static String makeName(String prefix) {
-        return prefix + String.format("%010d", incrementAndGet());
+        String jobId = StreamConfig.getJobId();
+        String number = String.format("%010d", incrementAndGet());
+
+        return String.format(pattern, jobId, prefix, number);
     }
 }

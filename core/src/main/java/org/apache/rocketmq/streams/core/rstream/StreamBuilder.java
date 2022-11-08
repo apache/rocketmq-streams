@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
@@ -31,7 +32,8 @@ public class StreamBuilder {
     private final TopologyBuilder topologyBuilder;
 
 
-    public StreamBuilder() {
+    public StreamBuilder(String jobId) {
+        StreamConfig.setJobId(jobId);
         this.pipeline = new Pipeline();
         this.topologyBuilder = new TopologyBuilder();
     }
