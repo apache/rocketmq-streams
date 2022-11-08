@@ -335,7 +335,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 this.windowStore.deleteByKey(needToDelete);
             }
 
-            if (createNewSessionWindow) {
+            if (pairs.size() == 0 || createNewSessionWindow) {
                 return new Pair<>(lastStateSessionEnd, dataTime + windowInfo.getSessionTimeout().toMilliseconds());
             }
             return null;
