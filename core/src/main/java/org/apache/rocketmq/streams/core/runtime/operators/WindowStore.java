@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.runtime.operators;
 
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
@@ -52,6 +53,9 @@ public class WindowStore {
     }
 
     public void deleteByKey(String key) throws Throwable {
+        if (StringUtils.isEmpty(key)) {
+            return;
+        }
         this.stateStore.delete(key);
     }
 

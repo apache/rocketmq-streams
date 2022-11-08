@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.runtime.operators;
 
 public class SessionWindowState<K, V> extends WindowState<K, V> {
     private long earliestTimestamp;
+    private boolean closed = false;
 
     public SessionWindowState(K key, V value, long timestamp, long earliestTimestamp) {
         super(key, value, timestamp);
@@ -33,5 +34,18 @@ public class SessionWindowState<K, V> extends WindowState<K, V> {
         this.earliestTimestamp = earliestTimestamp;
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
 
+    public void setClosed(boolean closed) {
+        this.closed = closed;
+    }
+
+    @Override
+    public String toString() {
+        return "earliestTimestamp=" + earliestTimestamp
+                + "," + super.toString();
+
+    }
 }

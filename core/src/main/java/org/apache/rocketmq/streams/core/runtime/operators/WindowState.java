@@ -23,7 +23,7 @@ public class WindowState<K, V> {
     private V value;
 
     //only for Serializer/Deserializer
-    public WindowState(){
+    public WindowState() {
     }
 
     public WindowState(K key, V value, long timestamp) {
@@ -58,10 +58,8 @@ public class WindowState<K, V> {
 
     @Override
     public String toString() {
-        return "WindowState{" +
-                "timestamp=" + timestamp +
-                ", key=" + key +
-                ", value=" + value +
-                '}';
+        return "timestamp=" + timestamp +
+                        ", key=" + key +
+                        ", value=" + value;
     }
 }

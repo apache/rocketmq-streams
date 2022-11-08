@@ -34,6 +34,7 @@ import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -222,18 +223,19 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             long watermark = this.context.getWatermark();
 
             //本地存储里面搜索下
-            boolean createNewSessionWindow = fireIfSessionOut(key, data, time, watermark);
+            Pair<Long, Long> newSessionWindowTime = fireIfSessionOut(key, data, time, watermark);
 
-            if (createNewSessionWindow) {
+            if (newSessionWindowTime != null) {
                 OV oldValue = this.initAction.get();
                 OV newValue = this.aggregateAction.calculate(key, data, oldValue);
 
                 SessionWindowState<K, OV> state = new SessionWindowState<>(key, newValue, time, time);
 
-                long sessionEndTime = time + windowInfo.getSessionTimeout().toMilliseconds();
-                String windowKey = Utils.buildKey(key.toString(), String.valueOf(sessionEndTime), String.valueOf(time));
+                Long sessionBegin = newSessionWindowTime.getObject1();
+                Long sessionEnd = newSessionWindowTime.getObject2();
+                String windowKey = Utils.buildKey(key.toString(), String.valueOf(sessionEnd), String.valueOf(sessionBegin));
 
-                logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, time, time, sessionEndTime);
+                logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, time, sessionBegin, sessionEnd);
                 store(windowKey, state);
             }
         }
@@ -241,59 +243,102 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
         //使用前缀查询找到session state, 触发已经session out的 watermark
         @SuppressWarnings("unchecked")
-        private boolean fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
+        private Pair<Long/*sessionBegin*/, Long/*sessionEnd*/> fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
             Class<?> temp = SessionWindowState.class;
             Class<SessionWindowState<K, OV>> type = (Class<SessionWindowState<K, OV>>) temp;
 
             List<Pair<String, SessionWindowState<K, OV>>> pairs = this.windowStore.searchMatchKeyPrefix(key.toString(), type);
 
             if (pairs.size() == 0) {
-                return true;
+                return new Pair<>(dataTime, dataTime + windowInfo.getSessionTimeout().toMilliseconds());
             }
 
-            logger.debug("session state num={}", pairs.size());
-
-            long lastSessionEndTime = Long.MAX_VALUE;
-            boolean calculated = false;
+            logger.debug("exist session state num={}", pairs.size());
 
             //sessionEndTime小的先触发
-            for (int i = 0; i < pairs.size(); i++) {
-                Pair<String, SessionWindowState<K, OV>> pair = pairs.get(i);
-                logger.debug("fire session state=[{}]", pair);
+            Iterator<Pair<String, SessionWindowState<K, OV>>> iterator = pairs.iterator();
+            int count = 0;
+            long lastStateSessionEnd = 0;
+
+            while (iterator.hasNext()) {
+                Pair<String, SessionWindowState<K, OV>> pair = iterator.next();
+                logger.debug("exist session state{}=[{}]", count++, pair);
 
                 String windowKey = pair.getObject1();
                 SessionWindowState<K, OV> state = pair.getObject2();
 
                 String[] split = Utils.split(windowKey);
                 long sessionEnd = Long.parseLong(split[1]);
-                long sessionBegin = Long.parseLong(split[2]);
-
-                if (i == pairs.size() - 1) {
-                    lastSessionEndTime = sessionEnd;
+                if (count == pairs.size()) {
+                    lastStateSessionEnd = sessionEnd;
                 }
 
-                if (sessionBegin <= dataTime && dataTime < sessionEnd) {
-                    logger.info("find session state with dataTime=[{}], result windowKey=[{}]", dataTime, windowKey);
-                    calculated = true;
-
-                    OV newValue = this.aggregateAction.calculate(key, data, state.getValue());
-                    state.setValue(newValue);
-                    state.setTimestamp(dataTime);
-
-                    store(windowKey, state);
-                }
-
+                //先触发一遍，触发后从集合中删除
                 if (sessionEnd < watermark) {
                     //触发state
                     fire(windowKey, state);
+                    iterator.remove();
                 }
             }
 
-            boolean createNewSessionWindow = dataTime > lastSessionEndTime;
-            if (!createNewSessionWindow && !calculated) {
+            boolean calculated = false;
+            boolean discard = false;
+            String needToDelete = null;
+            //再次遍历，找到数据属于某个窗口，如果窗口已经关闭，则只计算新的值，如果窗口没有关闭则计算新值、更新窗口边界、存储状态、删除老值
+            for (int i = 0; i < pairs.size(); i++) {
+                Pair<String, SessionWindowState<K, OV>> pair = pairs.get(i);
+
+                String windowKey = pair.getObject1();
+                SessionWindowState<K, OV> state = pair.getObject2();
+                boolean closed = state.isClosed();
+
+                String[] split = Utils.split(windowKey);
+                long sessionEnd = Long.parseLong(split[1]);
+                long sessionBegin = Long.parseLong(split[2]);
+
+                if (sessionEnd < dataTime) {
+                    state.setClosed(true);
+                } else if (sessionBegin <= dataTime) {
+                    calculated = true;
+                    logger.debug("data belong to exist session window.dataTime=[{}], window:[{} - {}]", dataTime, Utils.format(sessionBegin), Utils.format(sessionEnd));
+
+                    OV newValue = this.aggregateAction.calculate(key, data, state.getValue());
+
+                    //更新state
+                    state.setValue(newValue);
+                    state.setTimestamp(dataTime);
+                    if (dataTime < state.getEarliestTimestamp()) {
+                        //更新最早时间戳，用于状态触发时候，作为session 窗口的begin时间戳
+                        state.setEarliestTimestamp(dataTime);
+                    }
+
+                    if (!closed) {
+                        //更新session窗口结束时间
+                        long mayBeSessionEnd = dataTime + windowInfo.getSessionTimeout().toMilliseconds();
+                        if (sessionEnd < mayBeSessionEnd) {
+                            logger.debug("update exist session window, before:[{} - {}], after:[{} - {}]", Utils.format(sessionBegin), Utils.format(sessionEnd),
+                                    Utils.format(sessionBegin), Utils.format(mayBeSessionEnd));
+                            //删除老状态
+                            needToDelete =windowKey;
+                            windowKey = Utils.buildKey(key.toString(), String.valueOf(mayBeSessionEnd), String.valueOf(sessionBegin));
+                        }
+                    }
+                } else {
+                    discard = true;
+                }
+
+                store(windowKey, state);
+                this.windowStore.deleteByKey(needToDelete);
+            }
+
+            if (!calculated && !discard) {
+                return new Pair<>(lastStateSessionEnd, dataTime + windowInfo.getSessionTimeout().toMilliseconds());
+            }
+
+            if (!calculated) {
                 logger.warn("discard data: key=[{}], data=[{}], dataTime=[{}], watermark=[{}]", key, data, dataTime, watermark);
             }
-            return createNewSessionWindow;
+            return null;
         }
 
 
@@ -307,6 +352,8 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             String[] split = Utils.split(windowKey);
             long windowEnd = Long.parseLong(split[1]);
             long windowBegin = state.getEarliestTimestamp();
+
+            logger.info("fire session,windowKey={}, window: [{} - {}]", windowKey, Utils.format(windowBegin), Utils.format(windowEnd));
 
             Data<K, OV> result = new Data<>(state.getKey(), state.getValue(), state.getTimestamp());
             Data<K, V> convert = super.convert(result);
