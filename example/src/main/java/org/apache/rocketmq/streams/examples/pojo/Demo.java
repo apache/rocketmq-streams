@@ -33,9 +33,10 @@ public class Demo {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("demo");
 
-        builder.source("sourceTopic", new KeyValueDeserializer<Void, User>() {
+        builder.source("user", new KeyValueDeserializer<Void, User>() {
                     @Override
                     public Pair<Void, User> deserialize(byte[] total) throws Throwable {
+                        //对象需要有默认构造器
                         User user = JSON.parseObject(total, User.class);
                         return new Pair<>(null, user);
                     }

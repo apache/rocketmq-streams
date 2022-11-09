@@ -82,7 +82,7 @@
 
     <properties>
         <rocketmq.version>5.0.0</rocketmq.version>
-        <rocksdbjni.version>6.6.4</rocksdbjni.version>
+        <rocksdbjni.version>7.6.0</rocksdbjni.version>
     </properties>
 
 

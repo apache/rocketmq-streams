@@ -16,13 +16,14 @@
  */
 package org.apache.rocketmq.streams.core.serialization.deImpl;
 
-import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 
 public class KVJsonDeserializer<K, V> extends ShuffleProtocol implements KeyValueDeserializer<K, V> {
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private Class<K> keyType;
     private Class<V> valueType;
 
@@ -48,12 +49,12 @@ public class KVJsonDeserializer<K, V> extends ShuffleProtocol implements KeyValu
         K key = null;
         byte[] keyBytes = pair.getObject1();
         if (keyBytes != null && keyBytes.length != 0) {
-            key = JSON.parseObject(keyBytes, keyType);
+            key = objectMapper.readValue(keyBytes, keyType);
         }
 
         V value;
         byte[] valueBytes = pair.getObject2();
-        value = JSON.parseObject(valueBytes, valueType);
+        value = objectMapper.readValue(valueBytes, valueType);
 
         return new Pair<>(key, value);
     }

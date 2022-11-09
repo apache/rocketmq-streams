@@ -17,15 +17,17 @@
 package org.apache.rocketmq.streams.core.util;
 
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class Utils {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     public static final String pattern = "%s@%s@%s";
 
     public static String buildKey(String brokerName, String topic, int queueId) {
@@ -59,21 +61,21 @@ public class Utils {
         return source.split(Constant.SPLIT);
     }
 
-    public static byte[] object2Byte(Object target) {
+    public static byte[] object2Byte(Object target) throws JsonProcessingException {
         if (target == null) {
             return new byte[]{};
         }
 
-        return JSON.toJSONBytes(target, SerializerFeature.WriteClassName);
+        return objectMapper.writeValueAsBytes(target);
     }
 
 
-    public static <B> B byte2Object(byte[] source, Class<B> clazz) {
+    public static <B> B byte2Object(byte[] source, Class<B> clazz) throws IOException {
         if (source == null || source.length ==0) {
             return null;
         }
 
-        return JSON.parseObject(source, clazz);
+        return objectMapper.readValue(source, clazz);
     }
 
     public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

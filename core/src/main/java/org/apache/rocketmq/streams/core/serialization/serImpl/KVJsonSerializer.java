@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.streams.core.serialization.serImpl;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 
 public class KVJsonSerializer<K, V> extends ShuffleProtocol implements KeyValueSerializer<K, V> {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
     public byte[] serialize(K key, V value) throws Throwable {
         byte[] keyBytes;
@@ -31,7 +32,7 @@ public class KVJsonSerializer<K, V> extends ShuffleProtocol implements KeyValueS
         } else if (key instanceof byte[]) {
             keyBytes = (byte[]) key;
         } else {
-            keyBytes = JSON.toJSONBytes(key, SerializerFeature.WriteClassName);
+            keyBytes = objectMapper.writeValueAsBytes(key);
         }
 
         byte[] valueBytes;
@@ -40,7 +41,7 @@ public class KVJsonSerializer<K, V> extends ShuffleProtocol implements KeyValueS
         } else if (value instanceof byte[]) {
             valueBytes = (byte[]) value;
         } else {
-            valueBytes = JSON.toJSONBytes(value, SerializerFeature.WriteClassName);
+            valueBytes = objectMapper.writeValueAsBytes(value);
         }
 
 

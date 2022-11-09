@@ -186,10 +186,18 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getTimestamp());
                 Data<K, V> convert = super.convert(result);
 
+                String windowKey = pair.getObject1();
+                if (logger.isDebugEnabled()) {
+                    String[] split = Utils.split(windowKey);
+                    long windowBegin = Long.parseLong(split[2]);
+                    long windowEnd = Long.parseLong(split[1]);
+                    logger.debug("fire window, windowKey={}, window: [{} - {}], data to next:[{}]", windowKey, Utils.format(windowBegin), Utils.format(windowEnd), convert);
+                }
+
                 this.context.forward(convert);
 
                 //删除状态
-                this.windowStore.deleteByKey(pair.getObject1());
+                this.windowStore.deleteByKey(windowKey);
             }
         }
     }

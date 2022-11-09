@@ -20,6 +20,10 @@ public class Num {
     private String name;
     private Integer num;
 
+    public Num(){
+
+    }
+
     public Num(String name, Integer num) {
         this.name = name;
         this.num = num;

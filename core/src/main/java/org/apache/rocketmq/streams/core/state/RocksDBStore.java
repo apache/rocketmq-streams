@@ -17,6 +17,7 @@ package org.apache.rocketmq.streams.core.state;
  */
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.streams.core.runtime.operators.SessionWindowState;
@@ -31,6 +32,7 @@ import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,7 +90,7 @@ public class RocksDBStore extends AbstractStore {
         rocksDB.put(writeOptions, key, value);
     }
 
-    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) {
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) throws IOException {
         byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
         readOptions = new ReadOptions();
         readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
@@ -99,7 +101,7 @@ public class RocksDBStore extends AbstractStore {
         return iteratorAndDes(rocksIterator, valueClazz);
     }
 
-    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) {
+    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) throws IOException {
         byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
 
         readOptions = new ReadOptions();
@@ -123,7 +125,7 @@ public class RocksDBStore extends AbstractStore {
         return temp;
     }
 
-    private <V> List<Pair<String, V>> iteratorAndDes(RocksIterator rocksIterator, Class<V> valueClazz) {
+    private <V> List<Pair<String, V>> iteratorAndDes(RocksIterator rocksIterator, Class<V> valueClazz) throws IOException {
         List<Pair<String, V>> temp = new ArrayList<>();
         while (rocksIterator.isValid()) {
             byte[] keyBytes = rocksIterator.key();

@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -23,6 +24,7 @@ import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,11 +34,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class AbstractStore {
     private final Wrapper wrapper = new Wrapper();
 
-    public <V> V byte2Object(byte[] bytes, Class<V> clazz) {
+    public <V> V byte2Object(byte[] bytes, Class<V> clazz) throws IOException {
         return Utils.byte2Object(bytes, clazz);
     }
 
-    public byte[] object2Bytes(Object target) {
+    public byte[] object2Bytes(Object target) throws JsonProcessingException {
         return Utils.object2Byte(target);
     }
 

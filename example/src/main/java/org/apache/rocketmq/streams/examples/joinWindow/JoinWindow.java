@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.examples.joinWindow;
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
-import org.apache.rocketmq.streams.core.rstream.JoinedStream;
 import org.apache.rocketmq.streams.core.rstream.RStream;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.runtime.operators.Time;

@@ -4,6 +4,10 @@ public class User {
     private String name;
     private Integer age;
 
+    //序列化/反序列化使用
+    public User() {
+    }
+
     public User(String name, Integer age) {
         this.name = name;
         this.age = age;
