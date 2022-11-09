@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.core.rstream;
 
 
-import org.apache.rocketmq.streams.core.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ForeachAction;
 import org.apache.rocketmq.streams.core.function.KeySelectAction;
@@ -29,16 +29,17 @@ import org.apache.rocketmq.streams.core.function.supplier.PrintSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.TimestampSelectorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
+import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.FILTER_PREFIX;
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.FOR_EACH_PREFIX;
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.GROUPBY_PREFIX;
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.MAP_PREFIX;
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.SINK_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FOR_EACH_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
 
 public class RStreamImpl<T> implements RStream<T> {
     private final Pipeline pipeline;
@@ -122,10 +123,22 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public RStream<T> join(RStream<T> rightStream) {
+    public <T2> JoinedStream<T, T2> join(RStream<T2> rightStream) {
+        String name = OperatorNameMaker.makeName("join");
 
+        return new JoinedStream<>(this, rightStream, JoinType.INNER_JOIN);
+    }
 
-        return null;
+    @Override
+    public <T2> JoinedStream<T, T2> leftJoin(RStream<T2> rightStream) {
+        String name = OperatorNameMaker.makeName("leftJoin");
+
+        return new JoinedStream<>(this, rightStream, JoinType.LEFT_JOIN);
+    }
+
+    @Override
+    public Pipeline getPipeline() {
+        return pipeline;
     }
 
     @Override

@@ -16,19 +16,27 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.OperatorNameMaker;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.streams.core.util.CommonNameMaker;
+import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.WINDOW_COUNT_PREFIX;
+import java.util.Properties;
+
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AGGREGATE_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_COUNT_PREFIX;
 
 public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     private final Pipeline pipeline;
     private final GraphNode parent;
     private final WindowInfo windowInfo;
+    private final Properties properties = new Properties();
 
     public WindowStreamImpl(Pipeline pipeline, GraphNode parent, WindowInfo windowInfo) {
         this.pipeline = pipeline;
@@ -38,7 +46,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public WindowStream<K, Long> count() {
-        String name = OperatorNameMaker.makeName(WINDOW_COUNT_PREFIX);
+        String name = makeName(WINDOW_COUNT_PREFIX);
 
         WindowAggregateSupplier<K, V, Long> supplier = new WindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> 0L, (K key, V value, Long agg) -> agg + 1L);
 
@@ -54,12 +62,46 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     }
 
     @Override
-    public void aggregate() {
+    public <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
+        String name = makeName(WINDOW_AGGREGATE_PREFIX);
 
+        WindowAggregateSupplier<K, V, OUT> supplier = new WindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> null, aggregateAction);
+
+        //是否需要分组计算
+        ProcessorNode<V> node;
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
     }
 
     @Override
     public RStream<V> toRStream() {
         return new RStreamImpl<>(this.pipeline, parent);
+    }
+
+    private String makeName(String prefix) {
+        String name;
+
+        /**
+         * 左右流join时，需要保证左右流shuffle到相同的topic中，这样，相同key才能到一个计算实例上，所以需要这个name一致
+         * 移除是因为避免影响后续算子；
+         */
+        CommonNameMaker commonName = (CommonNameMaker) this.properties.remove(Constant.COMMON_NAME_MAKER);
+        if (commonName != null) {
+            name = OperatorNameMaker.makeCommonName(commonName.getPrefix(), commonName.getLocalIndex());
+        } else {
+            name = OperatorNameMaker.makeName(prefix);
+        }
+
+        return name;
+    }
+
+    @Override
+    public void setProperties(Properties properties) {
+        this.properties.putAll(properties);
     }
 }

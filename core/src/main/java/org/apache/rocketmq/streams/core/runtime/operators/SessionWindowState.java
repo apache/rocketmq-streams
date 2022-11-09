@@ -18,7 +18,11 @@ package org.apache.rocketmq.streams.core.runtime.operators;
 
 
 public class SessionWindowState<K, V> extends WindowState<K, V> {
+    private static final long serialVersionUID = -4702245149208414466L;
     private long earliestTimestamp;
+
+    public SessionWindowState() {
+    }
 
     public SessionWindowState(K key, V value, long timestamp, long earliestTimestamp) {
         super(key, value, timestamp);

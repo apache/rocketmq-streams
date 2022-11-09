@@ -14,18 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.rstream;
+package org.apache.rocketmq.streams.examples.pojo;
 
-import org.apache.rocketmq.streams.core.function.AggregateAction;
+public class Num {
+    private String name;
+    private Integer num;
 
-import java.util.Properties;
+    public Num(String name, Integer num) {
+        this.name = name;
+        this.num = num;
+    }
 
-public interface WindowStream<K, V> {
-    WindowStream<K, Long> count();
+    public String getName() {
+        return name;
+    }
 
-    <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction);
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    RStream<V> toRStream();
+    public Integer getNum() {
+        return num;
+    }
 
-    void setProperties(Properties properties);
+    public void setNum(Integer num) {
+        this.num = num;
+    }
+
+    @Override
+    public String toString() {
+        return "Num{" +
+                "name='" + name + '\'' +
+                ", num=" + num +
+                '}';
+    }
 }

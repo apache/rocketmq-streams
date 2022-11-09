@@ -14,18 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.rstream;
+package org.apache.rocketmq.streams.core.runtime.operators;
 
-import org.apache.rocketmq.streams.core.function.AggregateAction;
-
-import java.util.Properties;
-
-public interface WindowStream<K, V> {
-    WindowStream<K, Long> count();
-
-    <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction);
-
-    RStream<V> toRStream();
-
-    void setProperties(Properties properties);
+public enum JoinType {
+    INNER_JOIN,
+    LEFT_JOIN
 }

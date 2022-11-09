@@ -21,10 +21,8 @@ import org.apache.rocketmq.streams.core.function.ForeachAction;
 import org.apache.rocketmq.streams.core.function.KeySelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
-import org.checkerframework.checker.units.qual.K;
 
 public interface RStream<T> {
-
     RStream<T> selectTimestamp(ValueMapperAction<T, Long> timestampSelector);
     <O> RStream<O> map(ValueMapperAction<T, O> mapperAction);
 
@@ -38,7 +36,11 @@ public interface RStream<T> {
 
     RStream<T> foreach(ForeachAction<T> foreachAction);
 
-    RStream<T> join(RStream<T> rightStream);
+    <T2> JoinedStream<T, T2> join(RStream<T2> rightStream);
+
+    <T2> JoinedStream<T, T2> leftJoin(RStream<T2> rightStream);
+
+    Pipeline getPipeline();
 
     <K> void sink(String topicName, KeyValueSerializer<K, T> serializer);
 }

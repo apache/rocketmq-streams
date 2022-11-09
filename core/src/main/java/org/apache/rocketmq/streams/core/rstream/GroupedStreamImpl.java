@@ -16,14 +16,14 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
-import org.apache.rocketmq.streams.core.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.COUNT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
 
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     private final Pipeline pipeline;

@@ -14,18 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.rstream;
+package org.apache.rocketmq.streams.core.util;
 
-import org.apache.rocketmq.streams.core.function.AggregateAction;
+import java.util.concurrent.atomic.AtomicLong;
 
-import java.util.Properties;
+public class CommonNameMaker {
+    private static  final AtomicLong globalIndex = new AtomicLong(0);
+    private final Long localIndex;
+    private final String prefix;
 
-public interface WindowStream<K, V> {
-    WindowStream<K, Long> count();
+    public CommonNameMaker(String prefix) {
+        this.prefix = prefix;
+        this.localIndex = globalIndex.getAndAdd(1);
+    }
 
-    <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction);
+    public Long getLocalIndex() {
+        return localIndex;
+    }
 
-    RStream<V> toRStream();
-
-    void setProperties(Properties properties);
+    public String getPrefix() {
+        return prefix;
+    }
 }

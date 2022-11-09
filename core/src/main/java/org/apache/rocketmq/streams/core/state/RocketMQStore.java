@@ -49,9 +49,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class RocketMQStore extends AbstractStore implements StateStore {
@@ -228,7 +231,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             consumer.seekToBegin(queue);
         }
 
-        this.executor.execute(() -> {
+        Future<?> future = this.executor.submit(() -> {
             try {
                 pullToLast(consumer);
             } catch (Throwable e) {
@@ -239,6 +242,10 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             }
         });
 
+        try {
+            future.get(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+        }
     }
 
     public void removeState(Set<MessageQueue> removeQueues) throws Throwable {
@@ -246,7 +253,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             return;
         }
 
-        this.executor.submit(() -> {
+        Future<?> future = this.executor.submit(() -> {
             try {
                 if (removeQueues.size() == 0) {
                     return;
@@ -273,6 +280,11 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 throw new RuntimeException(e);
             }
         });
+
+        try {
+            future.get(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+        }
     }
 
     private void pullToLast(DefaultLitePullConsumer consumer) throws Throwable {

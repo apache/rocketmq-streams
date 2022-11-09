@@ -16,29 +16,32 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SourceGraphNode;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.rocketmq.streams.core.OperatorNameMaker.SOURCE_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SOURCE_PREFIX;
 
 public class StreamBuilder {
-    private final Pipeline pipeline;
+    private final List<Pipeline> pipelines = new ArrayList<>();
     private final TopologyBuilder topologyBuilder;
 
 
     public StreamBuilder(String jobId) {
         StreamConfig.setJobId(jobId);
-        this.pipeline = new Pipeline();
         this.topologyBuilder = new TopologyBuilder();
     }
 
     public <OUT> RStream<OUT> source(String topicName, KeyValueDeserializer<Void, OUT> deserializer) {
+        Pipeline pipeline = new Pipeline();
+        this.pipelines.add(pipeline);
+
         String name = OperatorNameMaker.makeName(SOURCE_PREFIX);
 
         GraphNode sourceGraphNode = new SourceGraphNode<>(name, topicName, deserializer);
@@ -47,7 +50,9 @@ public class StreamBuilder {
     }
 
     public TopologyBuilder build() {
-        doBuild(pipeline.getRoot());
+        for (Pipeline pipeline : pipelines) {
+            doBuild(pipeline.getRoot());
+        }
         return topologyBuilder;
     }
 

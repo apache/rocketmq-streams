@@ -16,30 +16,50 @@
  */
 package org.apache.rocketmq.streams.examples.joinWindow;
 
+import com.alibaba.fastjson.JSON;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.streams.core.RocketMQStream;
+import org.apache.rocketmq.streams.core.rstream.JoinedStream;
 import org.apache.rocketmq.streams.core.rstream.RStream;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
+import org.apache.rocketmq.streams.core.runtime.operators.Time;
+import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
+import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.examples.pojo.Num;
+import org.apache.rocketmq.streams.examples.pojo.User;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 public class JoinWindow {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("joinWindow");
 
-        RStream<Integer> leftTopic = builder.source("leftTopic", source -> {
-            String value = new String(source, StandardCharsets.UTF_8);
-            int result = Integer.parseInt(value);
-            return new Pair<>(null, result);
+        RStream<User> user = builder.source("user", total -> {
+            User user1 = JSON.parseObject(total, User.class);
+            return new Pair<>(null, user1);
         });
 
-
-        RStream<Integer> rightTopic = builder.source("rightTopic", source -> {
-            String value = new String(source, StandardCharsets.UTF_8);
-            int result = Integer.parseInt(value);
-            return new Pair<>(null, result);
+        RStream<Num> num = builder.source("num", source -> {
+            Num user12 = JSON.parseObject(source, Num.class);
+            return new Pair<>(null, user12);
         });
 
+        user.join(num)
+                .where(User::getName)
+                .equalTo(Num::getName)
+                .window(WindowBuilder.tumblingWindow(Time.seconds(10)))
+                .count()
+                .toRStream()
+                .print();
 
+        TopologyBuilder topologyBuilder = builder.build();
 
+        Properties properties = new Properties();
+        properties.put(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+
+        RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
+
+        rocketMQStream.start();
     }
 }

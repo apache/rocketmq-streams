@@ -18,7 +18,10 @@
 package org.apache.rocketmq.streams.core.common;
 
 public class Constant {
-    public static final String JOB_ID = "job_id";
+    public enum StreamSide {
+        RIGHT,
+        LEFT
+    }
 
     public static final String SHUFFLE_KEY_CLASS_NAME = "shuffle.key.class.name";
 
@@ -41,4 +44,14 @@ public class Constant {
     public static final String TRUE = "true";
 
     public static final String SOURCE_TIMESTAMP = "source_timestamp";
+
+    public static final String WINDOW_FOR_JOIN = "window_for_join";
+
+    public static final String WINDOW_JOIN_TYPE = "window_join_type";
+
+    public static final String JOIN_STREAM_SIDE = "join_stream_side";
+    public static final String JOIN_COMMON_SHUFFLE_TOPIC = "join_common_shuffle_topic";
+
+    public static final String COMMON_NAME_MAKER = "common_name_maker";
+
 }

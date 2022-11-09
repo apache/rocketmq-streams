@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.streams.core.runtime.operators;
 
-public class WindowState<K, V> {
+
+import java.io.Serializable;
+
+public class WindowState<K, V> implements Serializable {
+    private static final long serialVersionUID = 1669344441528746814L;
     private long timestamp;//上一个被计算元素的时间；
 
     private K key;

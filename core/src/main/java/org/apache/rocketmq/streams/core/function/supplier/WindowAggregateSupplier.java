@@ -141,6 +141,10 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 }
 
                 OV newValue = this.aggregateAction.calculate(key, data, oldValue);
+                if (newValue != null && newValue.equals(oldValue)) {
+                    continue;
+                }
+
                 //f(Window + key, newValue, store)
                 WindowState<K, OV> state = new WindowState<>(key, newValue, time);
                 this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);

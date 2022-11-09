@@ -1,4 +1,4 @@
-package org.apache.rocketmq.streams.core;
+package org.apache.rocketmq.streams.core.util;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,19 +21,20 @@ import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class OperatorNameMaker {
-    public static final String SOURCE_PREFIX = "ROCKETMQ-SOURCE-";
-    public static final String SHUFFLE_SOURCE_PREFIX = "ROCKETMQ-SHUFFLE-SOURCE-";
-    public static final String MAP_PREFIX = "ROCKETMQ-MAP-";
-    public static final String FLAT_MAP_PREFIX = "ROCKETMQ-FLAT-MAP-";
-    public static final String FILTER_PREFIX = "ROCKETMQ-FILTER-";
-    public static final String GROUPBY_PREFIX = "ROCKETMQ-GROUPBY-";
-    public static final String COUNT_PREFIX = "ROCKETMQ-COUNT-";
-    public static final String FOR_EACH_PREFIX = "ROCKETMQ-FOR-EACH-";
-    public static final String SINK_PREFIX = "ROCKETMQ-SINK-";
-    public static final String SHUFFLE_SINK_PREFIX = "ROCKETMQ-SHUFFLE-SINK-";
-    public static final String WINDOW_COUNT_PREFIX = "ROCKETMQ-WINDOW-COUNT-";
+    public static final String SOURCE_PREFIX = "ROCKETMQ-SOURCE";
+    public static final String SHUFFLE_SOURCE_PREFIX = "ROCKETMQ-SHUFFLE-SOURCE";
+    public static final String MAP_PREFIX = "ROCKETMQ-MAP";
+    public static final String FLAT_MAP_PREFIX = "ROCKETMQ-FLAT-MAP";
+    public static final String FILTER_PREFIX = "ROCKETMQ-FILTER";
+    public static final String GROUPBY_PREFIX = "ROCKETMQ-GROUPBY";
+    public static final String COUNT_PREFIX = "ROCKETMQ-COUNT";
+    public static final String FOR_EACH_PREFIX = "ROCKETMQ-FOR-EACH";
+    public static final String SINK_PREFIX = "ROCKETMQ-SINK";
+    public static final String SHUFFLE_SINK_PREFIX = "ROCKETMQ-SHUFFLE-SINK";
+    public static final String WINDOW_COUNT_PREFIX = "ROCKETMQ-WINDOW-COUNT";
+    public static final String WINDOW_AGGREGATE_PREFIX = "WINDOW_AGGREGATE_PREFIX";
 
-    public static final String pattern = "%s-%s%s";
+    public static final String pattern = "%s-%s-%s";
 
     private static final ThreadLocal<AtomicInteger> index = ThreadLocal.withInitial(() -> new AtomicInteger(0));
 
@@ -46,6 +47,13 @@ public class OperatorNameMaker {
     public static String makeName(String prefix) {
         String jobId = StreamConfig.getJobId();
         String number = String.format("%010d", incrementAndGet());
+
+        return String.format(pattern, jobId, prefix, number);
+    }
+
+    public static String makeCommonName(String prefix, Long index) {
+        String jobId = StreamConfig.getJobId();
+        String number = String.format("%010d", index);
 
         return String.format(pattern, jobId, prefix, number);
     }
