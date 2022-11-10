@@ -16,16 +16,16 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
-import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.util.CommonNameMaker;
-import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
+import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
+import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
+import org.apache.rocketmq.streams.core.util.CommonNameMaker;
+import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.Properties;
 import java.util.function.Supplier;
@@ -48,20 +48,15 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     @Override
     public WindowStream<K, Integer> count() {
         String name = makeName(WINDOW_COUNT_PREFIX);
-        Supplier<Processor<V>> supplier;
-        if (windowInfo.getJoinStream() == null) {
-            supplier = new WindowAggregateSupplier<>(windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
-        } else {
-            supplier = new JoinWindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
-        }
+        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
         //是否需要分组计算
-        ProcessorNode<V> node = new ProcessorNode<>(name, parent.getName(), supplier);
-//        if (this.parent.shuffleNode()) {
-//            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
-//        } else {
-//            node = new ProcessorNode<>(name, parent.getName(), supplier);
-//        }
+        ProcessorNode<V> node;
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
 
         return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
     }
@@ -70,21 +65,16 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     public <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
         String name = makeName(WINDOW_AGGREGATE_PREFIX);
 
-        Supplier<Processor<V>> supplier;
-        if (windowInfo.getJoinStream() == null) {
-            supplier = new WindowAggregateSupplier<>(windowInfo, () -> null, aggregateAction);
-        } else {
-            supplier = new JoinWindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> null, aggregateAction);
-        }
+        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(windowInfo, () -> null, aggregateAction);
 
         //是否需要分组计算
-        ProcessorNode<V> node = new ProcessorNode<>(name, parent.getName(), supplier);
+        ProcessorNode<V> node;
 
-//        if (this.parent.shuffleNode()) {
-//            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
-//        } else {
-//            node = new ProcessorNode<>(name, parent.getName(), supplier);
-//        }
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
 
         return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
     }

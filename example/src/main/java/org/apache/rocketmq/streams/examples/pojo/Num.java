@@ -21,7 +21,6 @@ public class Num {
     private Integer num;
 
     public Num(){
-
     }
 
     public Num(String name, Integer num) {

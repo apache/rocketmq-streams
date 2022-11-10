@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.examples.joinWindow;
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
+import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.rstream.RStream;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.runtime.operators.Time;
@@ -48,8 +49,12 @@ public class JoinWindow {
                 .where(User::getName)
                 .equalTo(Num::getName)
                 .window(WindowBuilder.tumblingWindow(Time.seconds(10)))
-                .count()
-                .toRStream()
+                .apply(new ValueJoinAction<User, Num, Object>() {
+                    @Override
+                    public Object apply(User value1, Num value2) {
+                        return null;
+                    }
+                })
                 .print();
 
         TopologyBuilder topologyBuilder = builder.build();

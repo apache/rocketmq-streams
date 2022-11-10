@@ -24,7 +24,7 @@ import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractWindowProcessor<K, V> extends AbstractProcessor<V> {
+public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
 
     protected List<Window> calculateWindow(WindowInfo windowInfo, long valueTime) {
         long sizeInterval = windowInfo.getWindowSize().toMillSecond();

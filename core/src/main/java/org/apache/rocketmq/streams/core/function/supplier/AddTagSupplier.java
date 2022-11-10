@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
-import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 

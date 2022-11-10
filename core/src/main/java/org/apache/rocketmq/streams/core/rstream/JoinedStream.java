@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.KeySelectAction;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
-import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
 import org.apache.rocketmq.streams.core.runtime.operators.StreamType;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
@@ -58,9 +57,29 @@ public class JoinedStream<V1, V2> {
             return this;
         }
 
-        public <T> WindowStream<K, T> window(WindowInfo windowInfo) {
+        public <T> JoinWindow<K, T> window(WindowInfo windowInfo) {
+            return new JoinWindow<>(this.leftKeySelectAction, this.rightKeySelectAction, windowInfo);
+
+        }
+    }
+
+    public class JoinWindow<K, OUT> {
+        private KeySelectAction<K, V1> leftKeySelectAction;
+        private KeySelectAction<K, V2> rightKeySelectAction;
+        private WindowInfo windowInfo;
+
+        public JoinWindow(KeySelectAction<K, V1> leftKeySelectAction, KeySelectAction<K, V2> rightKeySelectAction, WindowInfo windowInfo) {
+            this.leftKeySelectAction = leftKeySelectAction;
+            this.rightKeySelectAction = rightKeySelectAction;
+            this.windowInfo = windowInfo;
+        }
+
+        public RStream<OUT> apply(ValueJoinAction<V1, V2, OUT> joinAction) {
             List<String> temp = new ArrayList<>();
-            GraphNode commChild = new ProcessorNode<>("comm", temp, new AddTagSupplier<>());
+            WindowInfo.JoinStream joinStream = new WindowInfo.JoinStream(JoinedStream.this.joinType, null);
+            windowInfo.setJoinStream(joinStream);
+
+            GraphNode commChild = new ProcessorNode<>("comm", temp, new JoinWindowAggregateSupplier<>(windowInfo, joinAction));
 
             Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
             {
@@ -94,12 +113,13 @@ public class JoinedStream<V1, V2> {
                 GraphNode lastNode = rightStreamPipeline.getLastNode();
                 temp.add(lastNode.getName());
                 commChild.addParent(lastNode);
+
                 lastNode.addChild(commChild);
             }
 
-            return new WindowStreamImpl<>(leftStreamPipeline, commChild, windowInfo);
-        }
+            return new RStreamImpl<>(leftStreamPipeline, commChild);
 
+        }
 
         private WindowInfo copy(WindowInfo windowInfo) {
             WindowInfo result = new WindowInfo();

@@ -67,7 +67,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     }
 
 
-    private class WindowAggregateProcessor extends AbstractWindowProcessor<K, V> {
+    private class WindowAggregateProcessor extends AbstractWindowProcessor<V> {
         private final WindowInfo windowInfo;
 
         private Supplier<OV> initAction;
@@ -196,7 +196,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     }
 
 
-    private class SessionWindowAggregateProcessor extends AbstractWindowProcessor<K, V> {
+    private class SessionWindowAggregateProcessor extends AbstractWindowProcessor<V> {
         private final WindowInfo windowInfo;
         private Supplier<OV> initAction;
         private AggregateAction<K, V, OV> aggregateAction;

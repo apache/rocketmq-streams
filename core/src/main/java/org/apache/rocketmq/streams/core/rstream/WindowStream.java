@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 
 import java.util.Properties;
 
