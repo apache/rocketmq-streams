@@ -207,6 +207,8 @@ public class WorkerThread extends Thread {
                     Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp);
                     if (topic.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                         logger.debug("shuffle data: [{}]", data);
+                    } else {
+                        logger.debug("source data: [{}]", data);
                     }
                     context.forward(data);
                 }

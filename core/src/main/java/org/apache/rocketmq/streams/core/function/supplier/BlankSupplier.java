@@ -14,18 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.rstream;
+package org.apache.rocketmq.streams.core.function.supplier;
 
-import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.metadata.Data;
+import org.apache.rocketmq.streams.core.running.AbstractProcessor;
+import org.apache.rocketmq.streams.core.running.Processor;
 
-import java.util.Properties;
+import java.util.function.Supplier;
 
-public interface WindowStream<K, V> {
-    WindowStream<K, Integer> count();
+public class BlankSupplier<T> implements Supplier<Processor<T>> {
 
-    <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction);
+    @Override
+    public Processor<T> get() {
+        return new BlankProcessor();
+    }
 
-    RStream<V> toRStream();
+    private class BlankProcessor extends AbstractProcessor<T> {
 
-    void setProperties(Properties properties);
+        @Override
+        public void process(T data) throws Throwable {
+            Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime());
+            this.context.forward(result);
+        }
+    }
 }

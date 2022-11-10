@@ -47,22 +47,22 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     }
 
     @Override
-    public WindowStream<K, Long> count() {
+    public WindowStream<K, Integer> count() {
         String name = makeName(WINDOW_COUNT_PREFIX);
         Supplier<Processor<V>> supplier;
         if (windowInfo.getJoinStream() == null) {
-            supplier = new WindowAggregateSupplier<>(windowInfo, () -> 0L, (K key, V value, Long agg) -> agg + 1L);
+            supplier = new WindowAggregateSupplier<>(windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
         } else {
-            supplier = new JoinWindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> 0L, (K key, V value, Long agg) -> agg + 1L);
+            supplier = new JoinWindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
         }
 
         //是否需要分组计算
-        ProcessorNode<V> node;
-        if (this.parent.shuffleNode()) {
-            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
-        } else {
-            node = new ProcessorNode<>(name, parent.getName(), supplier);
-        }
+        ProcessorNode<V> node = new ProcessorNode<>(name, parent.getName(), supplier);
+//        if (this.parent.shuffleNode()) {
+//            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+//        } else {
+//            node = new ProcessorNode<>(name, parent.getName(), supplier);
+//        }
 
         return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
     }
@@ -79,12 +79,13 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
         }
 
         //是否需要分组计算
-        ProcessorNode<V> node;
-        if (this.parent.shuffleNode()) {
-            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
-        } else {
-            node = new ProcessorNode<>(name, parent.getName(), supplier);
-        }
+        ProcessorNode<V> node = new ProcessorNode<>(name, parent.getName(), supplier);
+
+//        if (this.parent.shuffleNode()) {
+//            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+//        } else {
+//            node = new ProcessorNode<>(name, parent.getName(), supplier);
+//        }
 
         return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
     }

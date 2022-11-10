@@ -39,7 +39,7 @@ public class windowCount {
                 })
                 .filter(value -> value > 0)
                 .keyBy(value -> "key")
-                .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
+                .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
                 .count()
                 .toRStream()
                 .print();

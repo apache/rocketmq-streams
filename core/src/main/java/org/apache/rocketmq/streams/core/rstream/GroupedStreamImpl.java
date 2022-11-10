@@ -17,6 +17,7 @@ package org.apache.rocketmq.streams.core.rstream;
  */
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.streams.core.function.supplier.BlankSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_PREFIX;
 
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     private final Pipeline pipeline;
@@ -39,10 +41,10 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     }
 
     @Override
-    public GroupedStream<K, Long> count() {
+    public GroupedStream<K, Integer> count() {
         String name = OperatorNameMaker.makeName(COUNT_PREFIX);
 
-        AggregateSupplier<K, V, Long> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0L, (K key, V value, Long agg) -> agg + 1L);
+        AggregateSupplier<K, V, Integer> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
@@ -57,7 +59,17 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public WindowStream<K, V> window(WindowInfo windowInfo) {
-        return new WindowStreamImpl<>(this.pipeline, parent, windowInfo);
+        //需要在window里面shuffle
+        String name = OperatorNameMaker.makeName(WINDOW_PREFIX);
+
+        ProcessorNode<V> node;
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), new BlankSupplier<>());
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), new BlankSupplier<>());
+        }
+
+        return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
     }
 
     @Override
