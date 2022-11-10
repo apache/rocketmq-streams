@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.core.serialization.deImpl.KVJsonDeserializer;
 import org.apache.rocketmq.streams.core.serialization.serImpl.KVJsonSerializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SHUFFLE_SINK_PREFIX;
@@ -43,8 +44,9 @@ public class ShuffleProcessorNode<T> extends ProcessorNode<T> {
         //join的时候需要一个相同的topicName
 
         String shuffleSinkName = OperatorNameMaker.makeName(SHUFFLE_SINK_PREFIX);
-        builder.addRealSink(shuffleSinkName, parentName, topicName, new SinkSupplier<>(topicName, new KVJsonSerializer<>()));
-
+        for (String parentName : parentNames) {
+            builder.addRealSink(shuffleSinkName, parentName, topicName, new SinkSupplier<>(topicName, new KVJsonSerializer<>()));
+        }
         String shuffleSourceName = OperatorNameMaker.makeName(SHUFFLE_SOURCE_PREFIX);
         builder.addRealSource(shuffleSourceName, topicName, new SourceSupplier<>(topicName, new KVJsonDeserializer<>()));
 

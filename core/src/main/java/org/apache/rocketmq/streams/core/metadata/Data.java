@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.streams.core.metadata;
 
+import java.util.Properties;
+
 public class Data<K, V> {
+    private Properties header = new Properties();
     private K key;
     private V value;
     private long timestamp;
@@ -25,6 +28,11 @@ public class Data<K, V> {
         this.key = key;
         this.value = value;
         this.timestamp = timestamp;
+    }
+
+    public Data(K key, V value, long timestamp, Properties header) {
+        this(key, value, timestamp);
+        this.header = header;
     }
 
     public K getKey() {
@@ -51,12 +59,20 @@ public class Data<K, V> {
         this.timestamp = timestamp;
     }
 
-    public <NK> Data<NK,V> key(NK key) {
-        return new Data<>(key, value, timestamp);
+    public Properties getHeader() {
+        return header;
     }
 
-    public <NV> Data<K,NV> value(NV value) {
-        return new Data<>(key, value, timestamp);
+    public void setHeader(Properties header) {
+        this.header = header;
+    }
+
+    public <NK> Data<NK, V> key(NK key) {
+        return new Data<>(key, value, timestamp, new Properties(this.header));
+    }
+
+    public <NV> Data<K, NV> value(NV value) {
+        return new Data<>(key, value, timestamp, new Properties(this.header));
     }
 
     @Override

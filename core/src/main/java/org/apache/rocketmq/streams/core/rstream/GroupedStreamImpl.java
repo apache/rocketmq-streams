@@ -16,8 +16,7 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.streams.core.function.supplier.BlankSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
@@ -63,10 +62,13 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
         String name = OperatorNameMaker.makeName(WINDOW_PREFIX);
 
         ProcessorNode<V> node;
-        if (this.parent.shuffleNode()) {
-            node = new ShuffleProcessorNode<>(name, parent.getName(), new BlankSupplier<>());
+
+        if (!this.parent.shuffleNode()) {
+            node = new ProcessorNode<>(name, parent.getName(), new AddTagSupplier<>());
+        } else if (windowInfo.getJoinStream() != null) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>("", windowInfo::getJoinStream));
         } else {
-            node = new ProcessorNode<>(name, parent.getName(), new BlankSupplier<>());
+            node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>());
         }
 
         return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
@@ -74,7 +76,14 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public GroupedStream<K, V> addGraphNode(String name, Supplier<Processor<V>> supplier) {
-        GraphNode graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            //todo  这个supplier提供出去的processor需要包含状态
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
         return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 

@@ -19,24 +19,38 @@ package org.apache.rocketmq.streams.core.topology.virtual;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class ProcessorNode<T> extends AbstractGraphNode {
     protected final Supplier<Processor<T>> supplier;
-    protected String parentName;
+    protected List<String> parentNames = new ArrayList<>();
     protected boolean shuffle = false;
 
-    //todo 为什么parentName只有一个
+
     public ProcessorNode(String name, String parentName, Supplier<Processor<T>> supplier) {
         super(name);
         this.supplier = supplier;
-        this.parentName = parentName;
+        this.parentNames.add(parentName);
+    }
+    public ProcessorNode(String name, List<String> parentNames, Supplier<Processor<T>> supplier) {
+        super(name);
+        this.supplier = supplier;
+        this.parentNames.addAll(parentNames);
+    }
+
+    public ProcessorNode(String name, List<String> parentNames, boolean shuffle, Supplier<Processor<T>> supplier) {
+        super(name);
+        this.supplier = supplier;
+        this.parentNames.addAll(parentNames);
+        this.shuffle = shuffle;
     }
 
     public ProcessorNode(String name, String parentName, boolean shuffle, Supplier<Processor<T>> supplier) {
         super(name);
         this.supplier = supplier;
-        this.parentName = parentName;
+        this.parentNames.add(parentName);
         this.shuffle = shuffle;
     }
 
@@ -45,17 +59,12 @@ public class ProcessorNode<T> extends AbstractGraphNode {
         return this.shuffle;
     }
 
-    public String getParentName() {
-        return parentName;
-    }
-
-    public void setParentName(String parentName) {
-        this.parentName = parentName;
-    }
 
     @Override
     public void addRealNode(TopologyBuilder builder) {
-        builder.addRealNode(name, parentName, supplier);
+        for (String parentName : parentNames) {
+            builder.addRealNode(name, parentName, supplier);
+        }
     }
 
     @Override

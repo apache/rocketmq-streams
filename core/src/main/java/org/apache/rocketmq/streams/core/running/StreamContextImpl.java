@@ -23,6 +23,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * 1、可以获得当前processor；
@@ -38,7 +39,7 @@ public class StreamContextImpl<T> implements StreamContext<T> {
 
     private Object key;
     private long dataTime;
-
+    private Properties header = new Properties();
     private long watermark;
 
     private final List<Processor<T>> childList = new ArrayList<>();

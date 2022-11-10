@@ -20,20 +20,35 @@ import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 
+import java.util.Properties;
 import java.util.function.Supplier;
 
-public class BlankSupplier<T> implements Supplier<Processor<T>> {
+public class AddTagSupplier<T> implements Supplier<Processor<T>> {
+    private final Properties properties = new Properties();
+
+    public AddTagSupplier(String name, Supplier<Object> value) {
+        properties.put(name, value.get());
+    }
+
+    public AddTagSupplier() {
+    }
 
     @Override
     public Processor<T> get() {
-        return new BlankProcessor();
+        return new AddTagProcessor(properties);
     }
 
-    private class BlankProcessor extends AbstractProcessor<T> {
+    class AddTagProcessor extends AbstractProcessor<T> {
+        private final Properties properties = new Properties();
+
+        public AddTagProcessor(Properties properties) {
+            this.properties.putAll(properties);
+        }
 
         @Override
         public void process(T data) throws Throwable {
             Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime());
+            result.getHeader().putAll(properties);
             this.context.forward(result);
         }
     }
