@@ -73,6 +73,16 @@ public class Pipeline {
         return this.root;
     }
 
+    public GraphNode getByName(String name) {
+        for (GraphNode virtualNode : virtualNodes) {
+            if (virtualNode.getName().equals(name)) {
+                return virtualNode;
+            }
+        }
+
+        return null;
+    }
+
     public GraphNode getLastNode() {
         return this.virtualNodes.get(virtualNodes.size() - 1);
     }

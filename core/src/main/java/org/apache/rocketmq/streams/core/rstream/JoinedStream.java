@@ -59,8 +59,10 @@ public class JoinedStream<V1, V2> {
         }
 
         public <T> WindowStream<K, T> window(WindowInfo windowInfo) {
-           List<String> temp = new ArrayList<>();
+            List<String> temp = new ArrayList<>();
+            GraphNode commChild = new ProcessorNode<>("comm", temp, new AddTagSupplier<>());
 
+            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
             {
                 GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftKeySelectAction);
 
@@ -71,8 +73,9 @@ public class JoinedStream<V1, V2> {
 
                 leftGroupedStream.window(leftWindowInfo);
 
-                String leftParentName = getParentGraphNodeName(JoinedStream.this.leftStream.getPipeline());
-                temp.add(leftParentName);
+                GraphNode lastNode = leftStreamPipeline.getLastNode();
+                temp.add(lastNode.getName());
+                commChild.addParent(lastNode);
             }
 
             {
@@ -86,46 +89,28 @@ public class JoinedStream<V1, V2> {
 
                 rightGroupedStream.window(rightWindowInfo);
 
-                String rightParentName = getParentGraphNodeName(JoinedStream.this.leftStream.getPipeline());
-                temp.add(rightParentName);
+                Pipeline rightStreamPipeline = JoinedStream.this.rightStream.getPipeline();
+
+                GraphNode lastNode = rightStreamPipeline.getLastNode();
+                temp.add(lastNode.getName());
+                commChild.addParent(lastNode);
+                lastNode.addChild(commChild);
             }
 
-            Pipeline total = new Pipeline();
-
-            GraphNode node = new ProcessorNode<>("comm", temp, new AddTagSupplier<>());
-
-            return new WindowStreamImpl<>(total, node, windowInfo);
+            return new WindowStreamImpl<>(leftStreamPipeline, commChild, windowInfo);
         }
 
-        private <T> AggregateAction<K, T, T> createCommonAgg() {
-            return (key, value, accumulator) -> value;
-        }
-
-        private <T> ValueJoinAction<V1, V2, T> createThreeWayPipeAction() {
-            ValueJoinAction<V1, V2, T> action = new ValueJoinAction<V1, V2, T>() {
-                @Override
-                public T apply(V1 value1, V2 value2) {
-                    return null;
-                }
-            };
-
-            return action;
-        }
-
-        private String getParentGraphNodeName(Pipeline pipeline) {
-            GraphNode leftLastNode = pipeline.getLastNode();
-            List<GraphNode> allParent = leftLastNode.getAllParent();
-
-            return allParent.get(0).getName();
-        }
 
         private WindowInfo copy(WindowInfo windowInfo) {
             WindowInfo result = new WindowInfo();
 
             WindowInfo.JoinStream joinStream = windowInfo.getJoinStream();
-            WindowInfo.JoinStream stream = new WindowInfo.JoinStream(joinStream.getJoinType(), joinStream.getStreamType());
 
-            result.setJoinStream(stream);
+            if (joinStream != null) {
+                WindowInfo.JoinStream stream = new WindowInfo.JoinStream(joinStream.getJoinType(), joinStream.getStreamType());
+                result.setJoinStream(stream);
+            }
+
             result.setSessionTimeout(windowInfo.getSessionTimeout());
             result.setWindowType(windowInfo.getWindowType());
             result.setWindowSize(windowInfo.getWindowSize());

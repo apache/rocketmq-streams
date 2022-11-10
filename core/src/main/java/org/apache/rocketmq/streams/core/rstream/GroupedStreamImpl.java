@@ -66,7 +66,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
         if (!this.parent.shuffleNode()) {
             node = new ProcessorNode<>(name, parent.getName(), new AddTagSupplier<>());
         } else if (windowInfo.getJoinStream() != null) {
-            node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>("", windowInfo::getJoinStream));
+            node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>("addTagToStream", windowInfo::getJoinStream));
         } else {
             node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>());
         }

@@ -60,7 +60,9 @@ public class TopologyBuilder {
         realNodeFactory.put(name, processorFactory);
 
         RealProcessorFactory<T> parentFactory = (RealProcessorFactory<T>) realNodeFactory.get(parentName);
-        parentFactory.addChild(processorFactory);
+        if (parentFactory != null) {//join时两个parent，但是当前流中只有一个parent
+            parentFactory.addChild(processorFactory);
+        }
 
         grouping(name, parentName);
     }

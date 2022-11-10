@@ -25,31 +25,34 @@ import java.util.function.Supplier;
 
 public class ProcessorNode<T> extends AbstractGraphNode {
     protected final Supplier<Processor<T>> supplier;
-    protected List<String> parentNames = new ArrayList<>();
+    protected final List<String> parentNames;
     protected boolean shuffle = false;
 
 
     public ProcessorNode(String name, String parentName, Supplier<Processor<T>> supplier) {
         super(name);
         this.supplier = supplier;
+        this.parentNames = new ArrayList<>();
         this.parentNames.add(parentName);
     }
+
     public ProcessorNode(String name, List<String> parentNames, Supplier<Processor<T>> supplier) {
         super(name);
         this.supplier = supplier;
-        this.parentNames.addAll(parentNames);
+        this.parentNames = parentNames;
     }
 
     public ProcessorNode(String name, List<String> parentNames, boolean shuffle, Supplier<Processor<T>> supplier) {
         super(name);
         this.supplier = supplier;
-        this.parentNames.addAll(parentNames);
+        this.parentNames = parentNames;
         this.shuffle = shuffle;
     }
 
     public ProcessorNode(String name, String parentName, boolean shuffle, Supplier<Processor<T>> supplier) {
         super(name);
         this.supplier = supplier;
+        this.parentNames = new ArrayList<>();
         this.parentNames.add(parentName);
         this.shuffle = shuffle;
     }
