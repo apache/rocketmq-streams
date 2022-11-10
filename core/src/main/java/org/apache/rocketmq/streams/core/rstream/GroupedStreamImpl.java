@@ -16,12 +16,16 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
+
+import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
 
@@ -54,6 +58,12 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     @Override
     public WindowStream<K, V> window(WindowInfo windowInfo) {
         return new WindowStreamImpl<>(this.pipeline, parent, windowInfo);
+    }
+
+    @Override
+    public GroupedStream<K, V> addGraphNode(String name, Supplier<Processor<V>> supplier) {
+        GraphNode graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 
     @Override

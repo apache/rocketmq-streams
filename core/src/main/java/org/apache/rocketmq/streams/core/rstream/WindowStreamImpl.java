@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
+import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.util.CommonNameMaker;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.common.Constant;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AGGREGATE_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_COUNT_PREFIX;
@@ -47,8 +49,12 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     @Override
     public WindowStream<K, Long> count() {
         String name = makeName(WINDOW_COUNT_PREFIX);
-
-        WindowAggregateSupplier<K, V, Long> supplier = new WindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> 0L, (K key, V value, Long agg) -> agg + 1L);
+        Supplier<Processor<V>> supplier;
+        if (windowInfo.getJoinStream() == null) {
+            supplier = new WindowAggregateSupplier<>(windowInfo, () -> 0L, (K key, V value, Long agg) -> agg + 1L);
+        } else {
+            supplier = new JoinWindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> 0L, (K key, V value, Long agg) -> agg + 1L);
+        }
 
         //是否需要分组计算
         ProcessorNode<V> node;
@@ -65,7 +71,12 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     public <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
         String name = makeName(WINDOW_AGGREGATE_PREFIX);
 
-        WindowAggregateSupplier<K, V, OUT> supplier = new WindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> null, aggregateAction);
+        Supplier<Processor<V>> supplier;
+        if (windowInfo.getJoinStream() == null) {
+            supplier = new WindowAggregateSupplier<>(windowInfo, () -> null, aggregateAction);
+        } else {
+            supplier = new JoinWindowAggregateSupplier<>(name, parent.getName(), windowInfo, () -> null, aggregateAction);
+        }
 
         //是否需要分组计算
         ProcessorNode<V> node;

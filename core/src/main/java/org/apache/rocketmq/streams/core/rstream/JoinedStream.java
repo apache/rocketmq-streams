@@ -16,14 +16,32 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
+import com.fasterxml.jackson.databind.util.BeanUtil;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.KeySelectAction;
+import org.apache.rocketmq.streams.core.function.ValueJoinAction;
+import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
+import org.apache.rocketmq.streams.core.running.AbstractProcessor;
+import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
+import org.apache.rocketmq.streams.core.runtime.operators.StreamType;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
-import org.apache.rocketmq.streams.core.util.CommonNameMaker;
+import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
+import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
+import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
+import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
-import java.util.Properties;
+import java.util.List;
+import java.util.function.Supplier;
+
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.NAKED_NODE_PREFIX;
 
 public class JoinedStream<V1, V2> {
     private RStream<V1> leftStream;
@@ -54,31 +72,111 @@ public class JoinedStream<V1, V2> {
             return this;
         }
 
-        public WindowStream<K, V1> window(WindowInfo windowInfo) {
-            //左右侧流进入同一个topic，相同key进入同一个queue
-            GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftKeySelectAction);
-            GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightKeySelectAction);
+        public <T> WindowStream<K, T> window(WindowInfo windowInfo) {
+            String name = OperatorNameMaker.makeName(NAKED_NODE_PREFIX);
+            Supplier<Processor<Object>> supplier = new FilterSupplier<>(value -> true);
+            Supplier<Processor<V1>> supplierV1 = new FilterSupplier<>(value -> true);
+            Supplier<Processor<V2>> supplierV2 = new FilterSupplier<>(value -> true);
+//            Supplier<Processor<T>> supplier = new WindowAggregateSupplier<>(windowInfo, () -> null, createCommonAgg());
+            {
+//                Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+//                GraphNode leftLastNode = leftStreamPipeline.getLastNode();
+//                List<GraphNode> allParent = leftLastNode.getAllParent();
+//                String parentName = allParent.get(0).getName();
 
-            //只保证window算子后的第一个算子，左右流具有相同的name
-            Properties properties = new Properties();
-            properties.put(Constant.COMMON_NAME_MAKER, new CommonNameMaker("windowJoin"));
+                GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftKeySelectAction);
+                leftGroupedStream.addGraphNode(name, supplierV1);
 
-            WindowStream<K, V1> leftWindow = leftGroupedStream.window(windowInfo);
-            leftWindow.setProperties(properties);
-            //右侧的流把KV保存到RocksDB中就好
-            WindowStream<K, V2> rightWindow = rightGroupedStream.window(windowInfo);
-            rightWindow.setProperties(properties);
-
-            rightWindow.aggregate(new AggregateAction<K, V2, V2>() {
-                @Override
-                public V2 calculate(K key, V2 value, V2 accumulator) {
-                    return value;
-                }
-            });
-
+//                Supplier<Processor<V1>> supplier = new WindowAggregateSupplier<>("join", leftLastNode.getName(), windowInfo, () -> null, createCommonAgg());
+//                Supplier<Processor<V1>> supplier = new AggregateSupplier<>("join", leftLastNode.getName(), () -> null, createCommonAgg());
+//                ShuffleProcessorNode<T> leftShuffleNode = new ShuffleProcessorNode<>("test", leftLastNode.getName(), supplier);
+//
+//                leftGroupedStream.addGraphNode(leftShuffleNode);
 
 
-            return leftWindow;
+//                WindowInfo leftWindowInfo = this.copy(windowInfo);
+//
+//                WindowInfo.JoinStream leftStream = new WindowInfo.JoinStream(JoinedStream.this.joinType, StreamType.LEFT_STREAM);
+//                leftWindowInfo.setJoinStream(leftStream);
+//
+//
+//                leftWindow = leftGroupedStream.window(leftWindowInfo);
+            }
+
+            {
+//                Pipeline rightStreamPipeline = JoinedStream.this.rightStream.getPipeline();
+//                GraphNode rightLastNode = rightStreamPipeline.getLastNode();
+//                test.addParent(rightLastNode);
+
+//                Supplier<Processor<V2>> supplier = new WindowAggregateSupplier<>("join", rightLastNode.getName(), windowInfo, () -> null, createCommonAgg());
+//                Supplier<Processor<V2>> supplier = new AggregateSupplier<>("join", rightLastNode.getName(), () -> null, createCommonAgg());
+//                ShuffleProcessorNode<T> rightShuffleNode = new ShuffleProcessorNode<>("test", rightLastNode.getName(), supplier);
+//
+                GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightKeySelectAction);
+                rightGroupedStream.addGraphNode(name, supplierV2);
+            }
+
+            Pipeline total = new Pipeline();
+            return null;
         }
+
+        private <T> AggregateAction<K, T, T> createCommonAgg() {
+            return (key, value, accumulator) -> value;
+        }
+
+//        private <T> ValueJoinAction<V1, V2, T> createThreeWayPipeAction() {
+//            ValueJoinAction<V1, V2, T> action = new ValueJoinAction<V1, V2, T>() {
+//                @Override
+//                public T apply(V1 value1, V2 value2) {
+//                    return value1 + value2;
+//                }
+//            };
+//
+//            return action;
+//        }
+
+        private WindowInfo copy(WindowInfo windowInfo) {
+            WindowInfo result = new WindowInfo();
+
+            WindowInfo.JoinStream joinStream = windowInfo.getJoinStream();
+            WindowInfo.JoinStream stream = new WindowInfo.JoinStream(joinStream.getJoinType(), joinStream.getStreamType());
+
+            result.setJoinStream(stream);
+            result.setSessionTimeout(windowInfo.getSessionTimeout());
+            result.setWindowType(windowInfo.getWindowType());
+            result.setWindowSize(windowInfo.getWindowSize());
+            result.setWindowSlide(windowInfo.getWindowSlide());
+
+            return result;
+        }
+
+
+//        public class ThreeWayPipeSupplier<T> implements Supplier<Processor<T>> {
+//            private ValueJoinAction<V1, V2, T> valueJoinAction;
+//
+//            public ThreeWayPipeSupplier(ValueJoinAction<V1, V2, T> valueJoinAction) {
+//                this.valueJoinAction = valueJoinAction;
+//            }
+//
+//            @Override
+//            public Processor<T> get() {
+//                return new ThreeWayProcessor(valueJoinAction);
+//            }
+//
+//            public class ThreeWayProcessor extends AbstractProcessor<T> {
+//                private ValueJoinAction<V1, V2, T> valueJoinAction;
+//
+//                public ThreeWayProcessor(ValueJoinAction<V1, V2, T> valueJoinAction) {
+//                    this.valueJoinAction = valueJoinAction;
+//                }
+//
+//                @Override
+//                public void process(T data) throws Throwable {
+//
+//                }
+//            }
+//
+//        }
+
     }
 }

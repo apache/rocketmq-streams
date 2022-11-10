@@ -41,15 +41,12 @@ import java.util.function.Supplier;
 
 public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
     private static final Logger logger = LoggerFactory.getLogger(WindowAggregateSupplier.class.getName());
-    private final String currentName;
-    private final String parentName;
+
     private WindowInfo windowInfo;
     private Supplier<OV> initAction;
     private AggregateAction<K, V, OV> aggregateAction;
 
-    public WindowAggregateSupplier(String currentName, String parentName, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
-        this.currentName = currentName;
-        this.parentName = parentName;
+    public WindowAggregateSupplier(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
         this.windowInfo = windowInfo;
         this.initAction = initAction;
         this.aggregateAction = aggregateAction;
@@ -61,7 +58,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         switch (windowType) {
             case SLIDING_WINDOW:
             case TUMBLING_WINDOW:
-                return new WindowAggregateProcessor(currentName, parentName, windowInfo, initAction, aggregateAction);
+                return new WindowAggregateProcessor(windowInfo, initAction, aggregateAction);
             case SESSION_WINDOW:
                 return new SessionWindowAggregateProcessor(windowInfo, initAction, aggregateAction);
             default:
@@ -71,8 +68,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
 
     private class WindowAggregateProcessor extends AbstractWindowProcessor<K, V> {
-        private final String currentName;
-        private final String parentName;
         private final WindowInfo windowInfo;
 
         private Supplier<OV> initAction;
@@ -82,9 +77,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
-        public WindowAggregateProcessor(String currentName, String parentName, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
-            this.currentName = currentName;
-            this.parentName = parentName;
+        public WindowAggregateProcessor(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
             this.windowInfo = windowInfo;
             this.initAction = initAction;
             this.aggregateAction = aggregateAction;

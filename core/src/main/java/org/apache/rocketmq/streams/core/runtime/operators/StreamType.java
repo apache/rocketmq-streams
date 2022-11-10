@@ -1,4 +1,3 @@
-package org.apache.rocketmq.streams.core.topology.virtual;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,26 +14,9 @@ package org.apache.rocketmq.streams.core.topology.virtual;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.core.runtime.operators;
 
-import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
-
-import java.util.List;
-
-public interface GraphNode {
-    String getName();
-
-    void addParent(GraphNode graphNode);
-
-
-    void addChild(GraphNode graphNode);
-
-    List<GraphNode> getAllChild();
-
-    List<GraphNode> getAllParent();
-
-    boolean shuffleNode();
-
-
-    void addRealNode(TopologyBuilder builder);
-
+public enum StreamType {
+    LEFT_STREAM,
+    RIGHT_STREAM
 }

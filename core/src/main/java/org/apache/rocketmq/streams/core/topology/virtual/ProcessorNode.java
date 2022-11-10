@@ -23,9 +23,10 @@ import java.util.function.Supplier;
 
 public class ProcessorNode<T> extends AbstractGraphNode {
     protected final Supplier<Processor<T>> supplier;
-    protected final String parentName;
+    protected String parentName;
     protected boolean shuffle = false;
 
+    //todo 为什么parentName只有一个
     public ProcessorNode(String name, String parentName, Supplier<Processor<T>> supplier) {
         super(name);
         this.supplier = supplier;
@@ -44,7 +45,13 @@ public class ProcessorNode<T> extends AbstractGraphNode {
         return this.shuffle;
     }
 
+    public String getParentName() {
+        return parentName;
+    }
 
+    public void setParentName(String parentName) {
+        this.parentName = parentName;
+    }
 
     @Override
     public void addRealNode(TopologyBuilder builder) {

@@ -56,7 +56,7 @@ public class Pipeline {
         return new GroupedStreamImpl<>(this, currentNode);
     }
 
-    public <K,V> WindowStream<K,V> addWindowStreamVirtualNode(GraphNode currentNode, GraphNode parentNode, WindowInfo windowInfo) {
+    public <K, V> WindowStream<K, V> addWindowStreamVirtualNode(GraphNode currentNode, GraphNode parentNode, WindowInfo windowInfo) {
         parentNode.addChild(currentNode);
         currentNode.addParent(parentNode);
 
@@ -71,5 +71,9 @@ public class Pipeline {
 
     public GraphNode getRoot() {
         return this.root;
+    }
+
+    public GraphNode getLastNode() {
+        return this.virtualNodes.get(virtualNodes.size() - 1);
     }
 }

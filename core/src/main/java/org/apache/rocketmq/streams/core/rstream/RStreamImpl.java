@@ -39,6 +39,7 @@ import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PRE
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FOR_EACH_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.PRINT_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
 
 public class RStreamImpl<T> implements RStream<T> {
@@ -103,7 +104,7 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public void print() {
-        String name = OperatorNameMaker.makeName(SINK_PREFIX);
+        String name = OperatorNameMaker.makeName(PRINT_PREFIX);
 
         PrintSupplier<T> printSupplier = new PrintSupplier<>();
         GraphNode sinkGraphNode = new SinkGraphNode<>(name, parent.getName(), null, printSupplier);

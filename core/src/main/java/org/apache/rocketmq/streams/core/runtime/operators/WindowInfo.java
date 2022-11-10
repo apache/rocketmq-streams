@@ -20,6 +20,8 @@ package org.apache.rocketmq.streams.core.runtime.operators;
 public class WindowInfo {
     private WindowType windowType;
 
+    private JoinStream joinStream = null;
+
     private Time windowSize;//窗口大小
 
     private Time windowSlide;//滑动大小
@@ -59,9 +61,43 @@ public class WindowInfo {
         this.sessionTimeout = sessionTimeout;
     }
 
+    public JoinStream getJoinStream() {
+        return joinStream;
+    }
+
+    public void setJoinStream(JoinStream joinStream) {
+        this.joinStream = joinStream;
+    }
+
     public enum WindowType {
         SLIDING_WINDOW,
         TUMBLING_WINDOW,
         SESSION_WINDOW
+    }
+
+    public static class JoinStream {
+        private JoinType joinType;
+        private StreamType streamType;
+
+        public JoinStream(JoinType joinType, StreamType streamType) {
+            this.joinType = joinType;
+            this.streamType = streamType;
+        }
+
+        public JoinType getJoinType() {
+            return joinType;
+        }
+
+        public void setJoinType(JoinType joinType) {
+            this.joinType = joinType;
+        }
+
+        public StreamType getStreamType() {
+            return streamType;
+        }
+
+        public void setStreamType(StreamType streamType) {
+            this.streamType = streamType;
+        }
     }
 }

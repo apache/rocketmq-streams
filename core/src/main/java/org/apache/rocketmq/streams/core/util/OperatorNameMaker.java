@@ -30,9 +30,11 @@ public class OperatorNameMaker {
     public static final String COUNT_PREFIX = "ROCKETMQ-COUNT";
     public static final String FOR_EACH_PREFIX = "ROCKETMQ-FOR-EACH";
     public static final String SINK_PREFIX = "ROCKETMQ-SINK";
+    public static final String PRINT_PREFIX = "ROCKETMQ-PRINT";
     public static final String SHUFFLE_SINK_PREFIX = "ROCKETMQ-SHUFFLE-SINK";
     public static final String WINDOW_COUNT_PREFIX = "ROCKETMQ-WINDOW-COUNT";
-    public static final String WINDOW_AGGREGATE_PREFIX = "WINDOW_AGGREGATE_PREFIX";
+    public static final String WINDOW_AGGREGATE_PREFIX = "ROCKETMQ-WINDOW-AGGREGATE";
+    public static final String NAKED_NODE_PREFIX = "NAKED-NODE";
 
     public static final String pattern = "%s-%s-%s";
 

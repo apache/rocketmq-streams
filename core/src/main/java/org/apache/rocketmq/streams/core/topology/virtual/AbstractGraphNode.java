@@ -16,15 +16,17 @@ package org.apache.rocketmq.streams.core.topology.virtual;
  * limitations under the License.
  */
 
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 public abstract class AbstractGraphNode implements GraphNode {
-    private static final InternalLogger log = ClientLogger.getLog();
+    private static final Logger logger = LoggerFactory.getLogger(AbstractGraphNode.class.getName());
+
     private final List<GraphNode> parents = new ArrayList<>();
     private final List<GraphNode> children = new ArrayList<>();
 
@@ -47,7 +49,7 @@ public abstract class AbstractGraphNode implements GraphNode {
         if (!parents.contains(graphNode)) {
             parents.add(graphNode);
         } else {
-            log.error("GraphNode: [" + graphNode + "] has exist in parent set.");
+            logger.error("GraphNode: [" + graphNode + "] has exist in parent set.");
         }
     }
 
@@ -56,14 +58,19 @@ public abstract class AbstractGraphNode implements GraphNode {
         if (!children.contains(graphNode)) {
             children.add(graphNode);
         } else {
-            log.error("GraphNode: [" + graphNode + "] has exist in children set.");
+            logger.error("GraphNode: [" + graphNode + "] has exist in children set.");
         }
     }
 
 
     @Override
     public List<GraphNode> getAllChild() {
-        return this.children;
+        return Collections.unmodifiableList(this.children);
+    }
+
+    @Override
+    public List<GraphNode> getAllParent() {
+        return Collections.unmodifiableList(this.parents);
     }
 
     @Override

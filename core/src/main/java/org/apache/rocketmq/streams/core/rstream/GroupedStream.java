@@ -16,13 +16,21 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
+import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
+
+import java.util.function.Supplier;
 
 public interface GroupedStream<K, V> {
 
     GroupedStream<K,Long> count();
 
     WindowStream<K,V> window(WindowInfo windowInfo);
+
+
+
+    GroupedStream<K,V> addGraphNode(String name, Supplier<Processor<V>> supplier);
 
     RStream<V> toRStream();
 
