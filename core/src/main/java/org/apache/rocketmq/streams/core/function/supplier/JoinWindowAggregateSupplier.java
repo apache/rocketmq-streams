@@ -178,7 +178,7 @@ public class JoinWindowAggregateSupplier<K, V, OV> implements Supplier<Processor
                     logger.debug("fire window, windowKey={}, window: [{} - {}], data to next:[{}]", windowKey, Utils.format(windowBegin), Utils.format(windowEnd), convert);
                 }
 
-                this.context.forward(convert);
+                this.context.forward(convert.getValue());
 
                 //删除状态
                 this.windowStore.deleteByKey(windowKey);

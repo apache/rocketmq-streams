@@ -60,6 +60,11 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp());
     }
 
+    @SuppressWarnings("unchecked")
+    protected T convert(Object data) {
+        return (T) data;
+    }
+
     @Override
     public void close() throws Exception {
 

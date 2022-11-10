@@ -43,13 +43,11 @@ public class KeySelectSupplier<KEY, T> implements Supplier<Processor<T>> {
             this.keySelectAction = keySelectAction;
         }
 
-
-
         @Override
         public void process(T data) throws Throwable {
             KEY newKey = keySelectAction.select(data);
-            Data<KEY, T> temp = new Data<>(newKey, data, this.context.getDataTime());
-            this.context.forward(temp);
+            this.context.setKey(newKey);
+            this.context.forward(data);
         }
     }
 }

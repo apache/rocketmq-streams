@@ -59,12 +59,12 @@ public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
                 for (O item : iterable) {
                     Data<Object, O> before = originData.value(item);
                     Data<Object, T> result = convert(before);
-                    this.context.forward(result);
+                    this.context.forward(result.getValue());
                 }
             } else {
                 Data<Object, O> before = originData.value(convert);
                 Data<Object, T> result = convert(before);
-                this.context.forward(result);
+                this.context.forward(result.getValue());
             }
         }
     }

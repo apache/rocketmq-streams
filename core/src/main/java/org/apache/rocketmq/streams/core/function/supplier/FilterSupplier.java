@@ -46,8 +46,7 @@ public class FilterSupplier<T> implements Supplier<Processor<T>> {
         public  void process(T data) throws Throwable {
             boolean pass = filterAction.apply(data);
             if (pass) {
-                Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime());
-                this.context.forward(result);
+                this.context.forward(data);
             }
         }
     }

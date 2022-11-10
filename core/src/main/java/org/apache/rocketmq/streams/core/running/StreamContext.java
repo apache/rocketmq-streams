@@ -17,12 +17,10 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
 
 public interface StreamContext<V> {
     void init(List<Processor<V>> childrenProcessors);
@@ -31,13 +29,19 @@ public interface StreamContext<V> {
 
     long getDataTime();
 
+    void setDataTime(long dataTime);
+
     <K> K getKey();
 
+    <K> void setKey(K key);
+
     long getWatermark();
+
+    Properties getHeader();
 
     DefaultMQProducer getDefaultMQProducer();
 
     String getMessageFromWhichSourceTopicQueue();
 
-    <K> void forward(Data<K, V> data) throws Throwable;
+    void forward(V data) throws Throwable;
 }

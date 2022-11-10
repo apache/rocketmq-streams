@@ -187,7 +187,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                     logger.debug("fire window, windowKey={}, window: [{} - {}], data to next:[{}]", windowKey, Utils.format(windowBegin), Utils.format(windowEnd), convert);
                 }
 
-                this.context.forward(convert);
+                this.context.forward(convert.getValue());
 
                 //删除状态
                 this.windowStore.deleteByKey(windowKey);
@@ -363,7 +363,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             Data<K, OV> result = new Data<>(state.getKey(), state.getValue(), state.getTimestamp());
             Data<K, V> convert = super.convert(result);
 
-            this.context.forward(convert);
+            this.context.forward(convert.getValue());
 
             //删除状态
             this.windowStore.deleteByKey(windowKey);

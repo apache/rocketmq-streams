@@ -88,7 +88,7 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
             Data<K, OV> temp = new Data<>(key, result, this.context.getDataTime());
             Data<K, V> convert = super.convert(temp);
 
-            this.context.forward(convert);
+            this.context.forward(convert.getValue());
         }
 
     }

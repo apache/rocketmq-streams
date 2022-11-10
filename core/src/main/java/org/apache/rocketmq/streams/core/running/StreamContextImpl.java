@@ -83,9 +83,19 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     }
 
     @Override
+    public void setDataTime(long dataTime) {
+        this.dataTime = dataTime;
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <K> K getKey() {
         return (K) key;
+    }
+
+    @Override
+    public <K> void setKey(K key) {
+        this.key = key;
     }
 
     @Override
@@ -94,17 +104,19 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     }
 
     @Override
-    public <K> void forward(Data<K, T> data) throws Throwable {
-        this.key = data.getKey();
-        this.dataTime = data.getTimestamp();
+    public Properties getHeader() {
+        return header;
+    }
 
+    @Override
+    public void forward(T data) throws Throwable {
         List<Processor<T>> store = new ArrayList<>(childList);
 
         for (Processor<T> processor : childList) {
 
             try {
                 processor.preProcess(this);
-                processor.process(data.getValue());
+                processor.process(data);
             } finally {
                 this.childList.clear();
                 this.childList.addAll(store);

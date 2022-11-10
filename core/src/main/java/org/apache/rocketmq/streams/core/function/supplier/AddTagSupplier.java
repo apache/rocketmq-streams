@@ -47,9 +47,8 @@ public class AddTagSupplier<T> implements Supplier<Processor<T>> {
 
         @Override
         public void process(T data) throws Throwable {
-            Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime());
-            result.getHeader().putAll(properties);
-            this.context.forward(result);
+            this.context.getHeader().putAll(properties);
+            this.context.forward(data);
         }
     }
 }

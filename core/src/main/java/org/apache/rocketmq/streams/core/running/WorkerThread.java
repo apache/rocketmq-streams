@@ -199,18 +199,20 @@ public class WorkerThread extends Thread {
                     } else {
                         timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
                     }
+                    context.setDataTime(timestamp);
 
                     String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
                     long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));
                     context.setWatermark(watermark);
 
                     Data<K, V> data = new Data<>(pair.getObject1(), pair.getObject2(), timestamp);
+                    context.setKey(pair.getObject1());
                     if (topic.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                         logger.debug("shuffle data: [{}]", data);
                     } else {
                         logger.debug("source data: [{}]", data);
                     }
-                    context.forward(data);
+                    context.forward(pair.getObject2());
                 }
 
                 //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
