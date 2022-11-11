@@ -27,7 +27,7 @@ public class JacksonTest {
 
     public static void main(String[] args) throws Throwable {
         User nize = new User("nize", 23);
-        WindowState<String, User> state = new WindowState<>("testKey",nize, 1L);
+        WindowState<Object, Object> state = new WindowState<>("testKey",nize, 1L);
 
         byte[] bytes = Utils.object2Byte(state);
 

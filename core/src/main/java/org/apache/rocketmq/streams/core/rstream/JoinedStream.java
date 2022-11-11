@@ -59,13 +59,13 @@ public class JoinedStream<V1, V2> {
             return this;
         }
 
-        public <T> JoinWindow<K, T> window(WindowInfo windowInfo) {
+        public JoinWindow<K> window(WindowInfo windowInfo) {
             return new JoinWindow<>(this.leftKeySelectAction, this.rightKeySelectAction, windowInfo);
 
         }
     }
 
-    public class JoinWindow<K, OUT> {
+    public class JoinWindow<K> {
         private KeySelectAction<K, V1> leftKeySelectAction;
         private KeySelectAction<K, V2> rightKeySelectAction;
         private WindowInfo windowInfo;
@@ -76,13 +76,13 @@ public class JoinedStream<V1, V2> {
             this.windowInfo = windowInfo;
         }
 
-        public RStream<OUT> apply(ValueJoinAction<V1, V2, ? extends OUT> joinAction) {
+        public <OUT> RStream<OUT> apply(ValueJoinAction<V1, V2, OUT> joinAction) {
             List<String> temp = new ArrayList<>();
             WindowInfo.JoinStream joinStream = new WindowInfo.JoinStream(JoinedStream.this.joinType, null);
             windowInfo.setJoinStream(joinStream);
 
-            Supplier<Processor<Object>> supplier = new JoinWindowAggregateSupplier<>(windowInfo, joinAction);
-            GraphNode commChild = new ProcessorNode<>("comm", temp, supplier);
+            Supplier<Processor<? super OUT>> supplier = new JoinWindowAggregateSupplier<>(windowInfo, joinAction);
+            ProcessorNode<OUT> commChild = new ProcessorNode("comm", temp, supplier);
 
             Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
             {
@@ -120,9 +120,7 @@ public class JoinedStream<V1, V2> {
                 lastNode.addChild(commChild);
             }
 
-            RStreamImpl<OUT> stream = new RStreamImpl<>(leftStreamPipeline, commChild);
-
-            return stream;
+            return new RStreamImpl<>(leftStreamPipeline, commChild);
         }
 
         private WindowInfo copy(WindowInfo windowInfo) {

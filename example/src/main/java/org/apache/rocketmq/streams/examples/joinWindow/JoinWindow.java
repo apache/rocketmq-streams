@@ -46,34 +46,38 @@ public class JoinWindow {
             return new Pair<>(null, user12);
         });
 
-        ValueJoinAction<User, Num, Union> action = (value1, value2) -> {
-            if (value1 != null && value2 != null) {
-                System.out.println("name in user: " + value1.getName());
-                System.out.println("name in num: " + value2.getName());
+        ValueJoinAction<User, Num, Union> action = new ValueJoinAction<User, Num, Union>() {
+            @Override
+            public Union apply(User value1, Num value2) {
+                if (value1 != null && value2 != null) {
+                    System.out.println("name in user: " + value1.getName());
+                    System.out.println("name in num: " + value2.getName());
 
-                return new Union(value1.getName(), value1.getAge(), value2.getNum());
+                    return new Union(value1.getName(), value1.getAge(), value2.getNum());
+                }
+
+                if (value2 != null) {
+                    System.out.println("name in num: " + value2.getName());
+                    return new Union(value2.getName(), 0, value2.getNum());
+                }
+
+
+                if (value1 != null) {
+                    System.out.println("name in num: " + value1.getName());
+                    return new Union(value1.getName(), value1.getAge(), 0);
+                }
+
+                throw new IllegalStateException();
             }
-
-            if (value2 != null) {
-                System.out.println("name in num: " + value2.getName());
-                return new Union(value2.getName(), 0, value2.getNum());
-            }
-
-
-            if (value1 != null) {
-                System.out.println("name in num: " + value1.getName());
-                return new Union(value1.getName(), value1.getAge(), 0);
-            }
-
-            throw new IllegalStateException();
         };
 
-        user.join(num)
+        RStream<Union> apply = user.join(num)
                 .where(User::getName)
                 .equalTo(Num::getName)
                 .window(WindowBuilder.tumblingWindow(Time.seconds(10)))
-                .apply(action)
-                .print();
+                .apply(action);
+
+        apply.print();
 
         TopologyBuilder topologyBuilder = builder.build();
 

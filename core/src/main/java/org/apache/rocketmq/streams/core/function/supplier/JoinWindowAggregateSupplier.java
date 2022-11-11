@@ -34,14 +34,13 @@ import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor<Object>> {
+public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor<? super OUT>> {
     private static final Logger logger = LoggerFactory.getLogger(JoinWindowAggregateSupplier.class.getName());
 
     private WindowInfo windowInfo;
