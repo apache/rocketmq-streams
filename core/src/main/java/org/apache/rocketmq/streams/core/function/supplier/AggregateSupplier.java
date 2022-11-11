@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
@@ -25,7 +24,6 @@ import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.state.StateStore;
-import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.util.function.Supplier;
 

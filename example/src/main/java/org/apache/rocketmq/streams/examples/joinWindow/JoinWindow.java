@@ -27,6 +27,7 @@ import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.examples.pojo.Num;
+import org.apache.rocketmq.streams.examples.pojo.Union;
 import org.apache.rocketmq.streams.examples.pojo.User;
 
 import java.util.Properties;
@@ -45,16 +46,33 @@ public class JoinWindow {
             return new Pair<>(null, user12);
         });
 
+        ValueJoinAction<User, Num, Union> action = (value1, value2) -> {
+            if (value1 != null && value2 != null) {
+                System.out.println("name in user: " + value1.getName());
+                System.out.println("name in num: " + value2.getName());
+
+                return new Union(value1.getName(), value1.getAge(), value2.getNum());
+            }
+
+            if (value2 != null) {
+                System.out.println("name in num: " + value2.getName());
+                return new Union(value2.getName(), 0, value2.getNum());
+            }
+
+
+            if (value1 != null) {
+                System.out.println("name in num: " + value1.getName());
+                return new Union(value1.getName(), value1.getAge(), 0);
+            }
+
+            throw new IllegalStateException();
+        };
+
         user.join(num)
                 .where(User::getName)
                 .equalTo(Num::getName)
                 .window(WindowBuilder.tumblingWindow(Time.seconds(10)))
-                .apply(new ValueJoinAction<User, Num, Object>() {
-                    @Override
-                    public Object apply(User value1, Num value2) {
-                        return null;
-                    }
-                })
+                .apply(action)
                 .print();
 
         TopologyBuilder topologyBuilder = builder.build();

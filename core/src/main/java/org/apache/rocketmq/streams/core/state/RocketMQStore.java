@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -135,13 +136,13 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
 
-    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable {
-        return this.rocksDBStore.searchLessThanKeyPrefix(keyPrefix, valueClazz);
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {
+        return this.rocksDBStore.searchLessThanKeyPrefix(keyPrefix, valueTypeRef);
     }
 
     @Override
-    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable {
-        return this.rocksDBStore.searchMatchKeyPrefix(keyPrefix, valueClazz);
+    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {
+        return this.rocksDBStore.searchMatchKeyPrefix(keyPrefix, valueTypeRef);
     }
 
     @Override

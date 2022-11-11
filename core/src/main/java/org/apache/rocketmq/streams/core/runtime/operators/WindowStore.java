@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.runtime.operators;
 
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.state.StateStore;
@@ -44,12 +45,12 @@ public class WindowStore {
         return this.stateStore.get(key);
     }
 
-    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> type) throws Throwable {
-        return this.stateStore.searchLessThanKeyPrefix(keyPrefix, type);
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {
+        return this.stateStore.searchLessThanKeyPrefix(keyPrefix, valueTypeRef);
     }
 
-    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> type) throws Throwable {
-        return this.stateStore.searchMatchKeyPrefix(keyPrefix, type);
+    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {
+        return this.stateStore.searchMatchKeyPrefix(keyPrefix, valueTypeRef);
     }
 
     public void deleteByKey(String key) throws Throwable {

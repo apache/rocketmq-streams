@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.function.supplier;
 
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
@@ -160,13 +161,11 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
          * @param key
          * @throws Throwable
          */
-        @SuppressWarnings("unchecked")
+
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
-            Class<?> temp = WindowState.class;
-            Class<WindowState<K, OV>> type = (Class<WindowState<K, OV>>) temp;
-
+            TypeReference<WindowState<K, OV>> type = new TypeReference<WindowState<K, OV>>() {};
             List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanKeyPrefix(keyPrefix, type);
 
             //pairs中最后一个时间最小，应该最先触发
@@ -249,9 +248,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         //使用前缀查询找到session state, 触发已经session out的 watermark
         @SuppressWarnings("unchecked")
         private Pair<Long/*sessionBegin*/, Long/*sessionEnd*/> fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
-            Class<?> temp = SessionWindowState.class;
-            Class<SessionWindowState<K, OV>> type = (Class<SessionWindowState<K, OV>>) temp;
-
+            TypeReference<SessionWindowState<K, OV>> type = new TypeReference<SessionWindowState<K, OV>>() {};
             List<Pair<String, SessionWindowState<K, OV>>> pairs = this.windowStore.searchMatchKeyPrefix(key.toString(), type);
 
             if (pairs.size() == 0) {

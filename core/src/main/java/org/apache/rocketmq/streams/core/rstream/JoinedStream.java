@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.rstream;
 import org.apache.rocketmq.streams.core.function.KeySelectAction;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
+import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
 import org.apache.rocketmq.streams.core.runtime.operators.StreamType;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
@@ -27,6 +28,7 @@ import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class JoinedStream<V1, V2> {
     private RStream<V1> leftStream;
@@ -74,12 +76,13 @@ public class JoinedStream<V1, V2> {
             this.windowInfo = windowInfo;
         }
 
-        public RStream<OUT> apply(ValueJoinAction<V1, V2, OUT> joinAction) {
+        public RStream<OUT> apply(ValueJoinAction<V1, V2, ? extends OUT> joinAction) {
             List<String> temp = new ArrayList<>();
             WindowInfo.JoinStream joinStream = new WindowInfo.JoinStream(JoinedStream.this.joinType, null);
             windowInfo.setJoinStream(joinStream);
 
-            GraphNode commChild = new ProcessorNode<>("comm", temp, new JoinWindowAggregateSupplier<>(windowInfo, joinAction));
+            Supplier<Processor<Object>> supplier = new JoinWindowAggregateSupplier<>(windowInfo, joinAction);
+            GraphNode commChild = new ProcessorNode<>("comm", temp, supplier);
 
             Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
             {
@@ -117,8 +120,9 @@ public class JoinedStream<V1, V2> {
                 lastNode.addChild(commChild);
             }
 
-            return new RStreamImpl<>(leftStreamPipeline, commChild);
+            RStreamImpl<OUT> stream = new RStreamImpl<>(leftStreamPipeline, commChild);
 
+            return stream;
         }
 
         private WindowInfo copy(WindowInfo windowInfo) {

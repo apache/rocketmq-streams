@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.util.Pair;
 
@@ -52,9 +53,9 @@ public interface StateStore extends AutoCloseable {
     <K, V> void put(MessageQueue messageQueue, K key, V value) throws Throwable;
 
     //只能查询到 < keyPrefix的结果，不包含等于
-    <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable;
+    <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable;
 
-    <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) throws Throwable;
+    <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable;
 
     <K> void delete(K key) throws Throwable;
 

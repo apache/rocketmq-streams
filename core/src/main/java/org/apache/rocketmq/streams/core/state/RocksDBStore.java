@@ -17,10 +17,9 @@ package org.apache.rocketmq.streams.core.state;
  */
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
-import org.apache.rocketmq.streams.core.runtime.operators.SessionWindowState;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.rocksdb.Options;
@@ -90,7 +89,7 @@ public class RocksDBStore extends AbstractStore {
         rocksDB.put(writeOptions, key, value);
     }
 
-    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, Class<V> valueClazz) throws IOException {
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws IOException {
         byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
         readOptions = new ReadOptions();
         readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
@@ -98,10 +97,10 @@ public class RocksDBStore extends AbstractStore {
 
         rocksIterator.seekForPrev(keyPrefixBytes);
 
-        return iteratorAndDes(rocksIterator, valueClazz);
+        return iteratorAndDes(rocksIterator, valueTypeRef);
     }
 
-    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, Class<V> valueClazz) throws IOException {
+    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws IOException {
         byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
 
         readOptions = new ReadOptions();
@@ -116,7 +115,7 @@ public class RocksDBStore extends AbstractStore {
             byte[] valueBytes = rocksIterator.value();
 
             String key = Utils.byte2Object(keyBytes, String.class);
-            V v = Utils.byte2Object(valueBytes, valueClazz);
+            V v = Utils.byte2Object(valueBytes, valueTypeRef);
 
             temp.add(new Pair<>(key, v));
 
@@ -125,14 +124,14 @@ public class RocksDBStore extends AbstractStore {
         return temp;
     }
 
-    private <V> List<Pair<String, V>> iteratorAndDes(RocksIterator rocksIterator, Class<V> valueClazz) throws IOException {
+    private <V> List<Pair<String, V>> iteratorAndDes(RocksIterator rocksIterator, TypeReference<V> valueTypeRef) throws IOException {
         List<Pair<String, V>> temp = new ArrayList<>();
         while (rocksIterator.isValid()) {
             byte[] keyBytes = rocksIterator.key();
             byte[] valueBytes = rocksIterator.value();
 
             String key = Utils.byte2Object(keyBytes, String.class);
-            V v = Utils.byte2Object(valueBytes, valueClazz);
+            V v = Utils.byte2Object(valueBytes, valueTypeRef);
 
             temp.add(new Pair<>(key, v));
 
@@ -181,7 +180,8 @@ public class RocksDBStore extends AbstractStore {
         Object result2 = rocksDBStore.byte2Object(bytes2, Object.class);
         System.out.println(result2);
 
-        List<Pair<String, Object>> pairs = rocksDBStore.searchMatchKeyPrefix("key", Object.class);
+        TypeReference<Object> typeReference = new TypeReference<Object>() {};
+        List<Pair<String, Object>> pairs = rocksDBStore.searchMatchKeyPrefix("key", typeReference);
         for (Pair<String, Object> pair : pairs) {
             System.out.println(pair);
         }

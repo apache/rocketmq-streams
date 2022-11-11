@@ -47,7 +47,6 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
-            //todo  这个supplier提供出去的processor需要包含状态
             graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
         } else {
             graphNode = new ProcessorNode<>(name, parent.getName(), supplier);

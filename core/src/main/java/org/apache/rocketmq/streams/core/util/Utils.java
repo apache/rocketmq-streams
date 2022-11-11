@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.core.util;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -43,12 +44,14 @@ public class Utils {
         StringBuilder builder = new StringBuilder();
         builder.append(key);
 
-        if (args != null && args.length != 0) {
+        if (args == null || args.length == 0) {
+            return builder.toString();
+        }
+
+        builder.append(Constant.SPLIT);
+        for (String arg : args) {
+            builder.append(arg);
             builder.append(Constant.SPLIT);
-            for (String arg : args) {
-                builder.append(arg);
-                builder.append(Constant.SPLIT);
-            }
         }
 
         return builder.substring(0, builder.lastIndexOf(Constant.SPLIT));
@@ -72,11 +75,19 @@ public class Utils {
 
 
     public static <B> B byte2Object(byte[] source, Class<B> clazz) throws IOException {
-        if (source == null || source.length ==0) {
+        if (source == null || source.length ==0 || clazz == null) {
             return null;
         }
 
         return objectMapper.readValue(source, clazz);
+    }
+
+    public static <B> B byte2Object(byte[] source, TypeReference<B> valueTypeRef) throws IOException {
+        if (source == null || source.length ==0 || valueTypeRef == null) {
+            return null;
+        }
+
+        return objectMapper.readValue(source, valueTypeRef);
     }
 
     public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
