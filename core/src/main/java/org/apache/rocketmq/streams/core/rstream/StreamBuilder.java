@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
+import org.apache.rocketmq.streams.core.typeUtil.TypeExtractor;
+import org.apache.rocketmq.streams.core.typeUtil.TypeWrapper;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
@@ -46,6 +48,7 @@ public class StreamBuilder {
 
         GraphNode sourceGraphNode = new SourceGraphNode<>(name, topicName, deserializer);
 
+        TypeWrapper source = TypeExtractor.find(this, "source");
         return pipeline.addVirtualSource(sourceGraphNode);
     }
 

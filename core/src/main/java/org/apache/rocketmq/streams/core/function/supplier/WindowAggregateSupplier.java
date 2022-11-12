@@ -30,11 +30,15 @@ import org.apache.rocketmq.streams.core.runtime.operators.Window;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
+import org.apache.rocketmq.streams.core.typeUtil.TypeExtractor;
+import org.apache.rocketmq.streams.core.typeUtil.TypeWrapper;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
+import java.lang.reflect.Type;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,11 +50,13 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     private WindowInfo windowInfo;
     private Supplier<OV> initAction;
     private AggregateAction<K, V, OV> aggregateAction;
+    private TypeWrapper wrapper;
 
     public WindowAggregateSupplier(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
         this.windowInfo = windowInfo;
         this.initAction = initAction;
         this.aggregateAction = aggregateAction;
+        this.wrapper = TypeExtractor.find(aggregateAction, "calculate");
     }
 
     @Override
@@ -59,9 +65,9 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         switch (windowType) {
             case SLIDING_WINDOW:
             case TUMBLING_WINDOW:
-                return new WindowAggregateProcessor(windowInfo, initAction, aggregateAction);
+                return new WindowAggregateProcessor(windowInfo, initAction, aggregateAction, wrapper);
             case SESSION_WINDOW:
-                return new SessionWindowAggregateProcessor(windowInfo, initAction, aggregateAction);
+                return new SessionWindowAggregateProcessor(windowInfo, initAction, aggregateAction, wrapper);
             default:
                 throw new RuntimeException("window type is error, WindowType=" + windowType);
         }
@@ -76,12 +82,15 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private MessageQueue stateTopicMessageQueue;
         private WindowStore windowStore;
 
+        private TypeWrapper wrapper;
+
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
-        public WindowAggregateProcessor(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+        public WindowAggregateProcessor(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction, TypeWrapper wrapper) {
             this.windowInfo = windowInfo;
             this.initAction = initAction;
             this.aggregateAction = aggregateAction;
+            this.wrapper = wrapper;
         }
 
         @Override
@@ -165,7 +174,16 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
-            TypeReference<WindowState<K, OV>> type = new TypeReference<WindowState<K, OV>>() {};
+
+            TypeReference<WindowState<K, OV>> type = new TypeReference<WindowState<K, OV>>() {
+                @Override
+                public Type getType() {
+                    Type[] types = new Type[2];
+                    types[0] = key.getClass();
+                    types[1] = wrapper.getReturnType();
+                    return ParameterizedTypeImpl.make(WindowState.class, types, null);
+                }
+            };
             List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanKeyPrefix(keyPrefix, type);
 
             //pairs中最后一个时间最小，应该最先触发
@@ -202,13 +220,15 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
         private MessageQueue stateTopicMessageQueue;
         private WindowStore windowStore;
+        private TypeWrapper wrapper;
 
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
-        public SessionWindowAggregateProcessor(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+        public SessionWindowAggregateProcessor(WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction, TypeWrapper wrapper) {
             this.windowInfo = windowInfo;
             this.initAction = initAction;
             this.aggregateAction = aggregateAction;
+            this.wrapper = wrapper;
         }
 
         @Override
@@ -248,7 +268,16 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         //使用前缀查询找到session state, 触发已经session out的 watermark
         @SuppressWarnings("unchecked")
         private Pair<Long/*sessionBegin*/, Long/*sessionEnd*/> fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
-            TypeReference<SessionWindowState<K, OV>> type = new TypeReference<SessionWindowState<K, OV>>() {};
+
+            TypeReference<SessionWindowState<K, OV>> type = new TypeReference<SessionWindowState<K, OV>>() {
+                @Override
+                public Type getType() {
+                    Type[] types = new Type[2];
+                    types[0] = key.getClass();
+                    types[1] = wrapper.getReturnType();
+                    return ParameterizedTypeImpl.make(WindowState.class, types, null);
+                }
+            };
             List<Pair<String, SessionWindowState<K, OV>>> pairs = this.windowStore.searchMatchKeyPrefix(key.toString(), type);
 
             if (pairs.size() == 0) {

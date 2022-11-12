@@ -62,7 +62,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     }
 
     @Override
-    public <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
+    public <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
         String name = makeName(WINDOW_AGGREGATE_PREFIX);
 
         Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(windowInfo, () -> null, aggregateAction);

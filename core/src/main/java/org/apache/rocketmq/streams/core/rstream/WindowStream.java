@@ -24,7 +24,7 @@ import java.util.Properties;
 public interface WindowStream<K, V> {
     WindowStream<K, Integer> count();
 
-    <OUT> WindowStream<K, V> aggregate(AggregateAction<K, V, OUT> aggregateAction);
+    <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction);
 
     RStream<V> toRStream();
 

@@ -21,6 +21,7 @@ import org.apache.rocketmq.streams.core.runtime.operators.Window;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 

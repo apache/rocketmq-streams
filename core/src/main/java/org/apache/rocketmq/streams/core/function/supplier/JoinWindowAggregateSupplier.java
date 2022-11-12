@@ -29,11 +29,15 @@ import org.apache.rocketmq.streams.core.runtime.operators.Window;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
+import org.apache.rocketmq.streams.core.typeUtil.TypeExtractor;
+import org.apache.rocketmq.streams.core.typeUtil.TypeWrapper;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
+import java.lang.reflect.Type;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
@@ -46,16 +50,18 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
     private WindowInfo windowInfo;
     private final ValueJoinAction<V1, V2, OUT> joinAction;
     private JoinType joinType;
+    private TypeWrapper wrapper;
 
     public JoinWindowAggregateSupplier(WindowInfo windowInfo, ValueJoinAction<V1, V2, OUT> joinAction) {
         this.windowInfo = windowInfo;
         this.joinType = windowInfo.getJoinStream().getJoinType();
         this.joinAction = joinAction;
+        this.wrapper = TypeExtractor.find(joinAction, "apply");
     }
 
     @Override
     public Processor<Object> get() {
-        return new JoinStreamWindowAggregateProcessor(windowInfo, joinType, joinAction);
+        return new JoinStreamWindowAggregateProcessor(windowInfo, joinType, joinAction, wrapper);
     }
 
 
@@ -65,14 +71,16 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
         private ValueJoinAction<V1, V2, OUT> joinAction;
         private MessageQueue stateTopicMessageQueue;
         private WindowStore windowStore;
+        private TypeWrapper wrapper;
 
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
 
-        public JoinStreamWindowAggregateProcessor(WindowInfo windowInfo, JoinType joinType, ValueJoinAction<V1, V2, OUT> joinAction) {
+        public JoinStreamWindowAggregateProcessor(WindowInfo windowInfo, JoinType joinType, ValueJoinAction<V1, V2, OUT> joinAction, TypeWrapper wrapper) {
             this.windowInfo = windowInfo;
             this.joinType = joinType;
             this.joinAction = joinAction;
+            this.wrapper = wrapper;
         }
 
         @Override
@@ -133,11 +141,27 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             String leftKeyPrefix = Utils.buildKey(StreamType.LEFT_STREAM.name(), String.valueOf(watermark));
             String rightKeyPrefix = Utils.buildKey(StreamType.RIGHT_STREAM.name(), String.valueOf(watermark));
 
-            TypeReference<WindowState<K, V1>> leftType = new TypeReference<WindowState<K, V1>>() {};
+            TypeReference<WindowState<K, V1>> leftType = new TypeReference<WindowState<K, V1>>() {
+                @Override
+                public Type getType() {
+                    Type[] types = new Type[2];
+                    types[0] = JoinStreamWindowAggregateProcessor.this.context.getKey().getClass();
+                    types[1] = wrapper.getParameterTypes()[0];
+                    return ParameterizedTypeImpl.make(WindowState.class, types, null);
+                }
+            };
             List<Pair<String, WindowState<K, V1>>> leftPairs = this.windowStore.searchLessThanKeyPrefix(leftKeyPrefix, leftType);
 
 
-            TypeReference<WindowState<K, V2>> rightType = new TypeReference<WindowState<K, V2>>() {};
+            TypeReference<WindowState<K, V2>> rightType = new TypeReference<WindowState<K, V2>>() {
+                @Override
+                public Type getType() {
+                    Type[] types = new Type[2];
+                    types[0] = JoinStreamWindowAggregateProcessor.this.context.getKey().getClass();
+                    types[1] = wrapper.getParameterTypes()[1];
+                    return ParameterizedTypeImpl.make(WindowState.class, types, null);
+                }
+            };
             List<Pair<String, WindowState<K, V2>>> rightPairs = this.windowStore.searchLessThanKeyPrefix(rightKeyPrefix, rightType);
 
 

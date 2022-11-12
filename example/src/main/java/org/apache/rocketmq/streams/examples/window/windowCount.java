@@ -16,31 +16,37 @@
  */
 package org.apache.rocketmq.streams.examples.window;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
+import org.apache.rocketmq.streams.core.rstream.WindowStream;
 import org.apache.rocketmq.streams.core.runtime.operators.Time;
 import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
+import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.examples.pojo.Num;
+import org.apache.rocketmq.streams.examples.pojo.User;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 public class windowCount {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder("windowCount");
-        builder.source("windowCount", source -> {
-                    String value = new String(source, StandardCharsets.UTF_8);
-                    int result = Integer.parseInt(value);
-                    return new Pair<>(null, result);
+        StreamBuilder builder = new StreamBuilder("windowCountUser");
+        builder.source("user", source -> {
+                    User user1 = JSON.parseObject(source, User.class);
+                    return new Pair<>(null, user1);
                 })
-                .filter(value -> value > 0)
+                .filter(value -> value.getAge() > 0)
                 .keyBy(value -> "key")
                 .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
-                .count()
+                .aggregate((key, value, accumulator) -> new Num(value.getName(), 100))
                 .toRStream()
                 .print();
 
@@ -54,7 +60,6 @@ public class windowCount {
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
         rocketMQStream.start();
-
     }
 
 

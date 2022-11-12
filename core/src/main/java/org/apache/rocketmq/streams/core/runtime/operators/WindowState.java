@@ -26,6 +26,9 @@ public class WindowState<K, V> implements Serializable {
     private K key;
     private V value;
 
+    private Class<?> keyClazz;
+    private Class<?> valueClazz;
+
     //only for Serializer/Deserializer
     public WindowState() {
     }
@@ -34,6 +37,8 @@ public class WindowState<K, V> implements Serializable {
         this.timestamp = timestamp;
         this.key = key;
         this.value = value;
+        this.keyClazz = key.getClass();
+        this.valueClazz = value.getClass();
     }
 
     public long getTimestamp() {
@@ -62,8 +67,12 @@ public class WindowState<K, V> implements Serializable {
 
     @Override
     public String toString() {
-        return "timestamp=" + timestamp +
-                        ", key=" + key +
-                        ", value=" + value;
+        return "WindowState{" +
+                "timestamp=" + timestamp +
+                ", key=" + key +
+                ", value=" + value +
+                ", keyClazz=" + keyClazz.getName() +
+                ", valueClazz=" + valueClazz.getName() +
+                '}';
     }
 }
