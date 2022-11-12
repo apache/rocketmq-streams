@@ -48,7 +48,6 @@ public class StreamBuilder {
 
         GraphNode sourceGraphNode = new SourceGraphNode<>(name, topicName, deserializer);
 
-        TypeWrapper source = TypeExtractor.find(this, "source");
         return pipeline.addVirtualSource(sourceGraphNode);
     }
 

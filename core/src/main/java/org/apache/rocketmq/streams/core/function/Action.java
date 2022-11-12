@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.function;
 
-@FunctionalInterface
-public interface AggregateAction<K, V, OUT> extends Action {
-    OUT calculate(K key, V value, OUT accumulator);
+import java.io.Serializable;
+
+public interface Action extends Serializable {
 }

@@ -16,13 +16,10 @@
  */
 package org.apache.rocketmq.streams.examples.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
 import org.apache.rocketmq.streams.core.typeUtil.TypeExtractor;
 import org.apache.rocketmq.streams.core.typeUtil.TypeWrapper;
-import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.examples.pojo.Num;
 import org.apache.rocketmq.streams.examples.pojo.Union;
 import org.apache.rocketmq.streams.examples.pojo.User;
@@ -92,7 +89,7 @@ public class JacksonTest {
             }
         };
 
-        TypeWrapper typeWrapper = TypeExtractor.firstParameterSmart(joinAction, "apply");
+        TypeWrapper typeWrapper = TypeExtractor.find(action, "apply");
 
         System.out.println(typeWrapper);
     }

@@ -19,13 +19,17 @@ package org.apache.rocketmq.streams.core.typeUtil;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static jdk.internal.org.objectweb.asm.Type.getConstructorDescriptor;
+import static jdk.internal.org.objectweb.asm.Type.getMethodDescriptor;
 
 public class TypeExtractor {
 
-    public static TypeWrapper find(Object function, String name) {
+    private static TypeWrapper findInNormal(Object function, String name) {
         Class<?> functionClass = function.getClass();
 
         Method[] declaredMethods = functionClass.getDeclaredMethods();
@@ -53,35 +57,80 @@ public class TypeExtractor {
         return null;
     }
 
-
-    public static TypeWrapper firstParameterSmart(Object function, String methodName) {
-        String functionClassName = function.getClass().getName();
-        int lambdaMarkerIndex = functionClassName.indexOf("$$Lambda$");
-        if (lambdaMarkerIndex == -1) { // Not a lambda
-            return find(function, methodName);
-        }
-
-        String declaringClassName = functionClassName.substring(0, lambdaMarkerIndex);
-        int lambdaIndex = Integer.parseInt(functionClassName.substring(lambdaMarkerIndex + 9, functionClassName.lastIndexOf('/')));
-
-        Class<?> declaringClass;
+    public static TypeWrapper find(Object function, String name) throws IllegalArgumentException {
         try {
-            declaringClass = Class.forName(declaringClassName);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Unable to find lambda's parent class " + declaringClassName);
-        }
+            // get serialized lambda
+            SerializedLambda serializedLambda = null;
+            for (Class<?> clazz = function.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
+                try {
+                    Method replaceMethod = clazz.getDeclaredMethod("writeReplace");
+                    replaceMethod.setAccessible(true);
+                    Object serialVersion = replaceMethod.invoke(function);
 
-        for (Method method : declaringClass.getDeclaredMethods()) {
-            if (method.isSynthetic()
-                    && method.getName().startsWith("lambda$")
-                    && method.getName().endsWith("$" + lambdaIndex)
-                    && Modifier.isStatic(method.getModifiers())) {
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                Class<?> returnType = method.getReturnType();
-                return new TypeWrapper(parameterTypes, returnType);
+                    // check if class is a lambda function
+                    if (serialVersion != null && serialVersion.getClass() == SerializedLambda.class) {
+                        serializedLambda = (SerializedLambda) serialVersion;
+                        break;
+                    }
+                } catch (NoSuchMethodException e) {
+                    // thrown if the method is not there. fall through the loop
+                }
             }
-        }
 
-        throw new IllegalStateException("Unable to find lambda's implementation method");
+            // not a lambda method -> return null
+            if (serializedLambda == null) {
+                return findInNormal(function, name);
+            }
+
+            // find lambda method
+            String className = serializedLambda.getImplClass();
+            String methodName = serializedLambda.getImplMethodName();
+            String methodSig = serializedLambda.getImplMethodSignature();
+
+            Class<?> implClass = Class.forName(className.replace('/', '.'), true, Thread.currentThread().getContextClassLoader());
+
+            // find constructor
+            if (methodName.equals("<init>")) {
+                Constructor<?>[] constructors = implClass.getDeclaredConstructors();
+                for (Constructor<?> constructor : constructors) {
+                    if (getConstructorDescriptor(constructor).equals(methodSig)) {
+                        Class<?>[] parameterTypes = constructor.getParameterTypes();
+                        Class<?> declaringClass = constructor.getDeclaringClass();
+                        return new TypeWrapper(parameterTypes, declaringClass);
+                    }
+                }
+            }
+            // find method
+            else {
+                List<Method> methods = getAllDeclaredMethods(implClass);
+                for (Method method : methods) {
+                    if (method.getName().equals(methodName)
+                            && getMethodDescriptor(method).equals(methodSig)) {
+                        Class<?>[] parameterTypes = method.getParameterTypes();
+                        Class<?> returnType = method.getReturnType();
+                        return new TypeWrapper(parameterTypes, returnType);
+                    }
+                }
+            }
+            throw new IllegalArgumentException("No lambda method found.");
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                    "Could not extract lambda method out of function: "
+                            + e.getClass().getSimpleName()
+                            + " - "
+                            + e.getMessage(),
+                    e);
+        }
     }
+
+    public static List<Method> getAllDeclaredMethods(Class<?> clazz) {
+        List<Method> result = new ArrayList<>();
+        while (clazz != null) {
+            Method[] methods = clazz.getDeclaredMethods();
+            Collections.addAll(result, methods);
+            clazz = clazz.getSuperclass();
+        }
+        return result;
+    }
+
 }

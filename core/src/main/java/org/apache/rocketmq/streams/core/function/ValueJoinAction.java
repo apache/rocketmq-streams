@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.function;
 
-import java.io.Serializable;
 
-public interface ValueJoinAction<V1, V2, OUT> extends Serializable {
+public interface ValueJoinAction<V1, V2, OUT> extends Action {
+
     OUT apply(final V1 value1, final V2 value2);
 }

@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.core.function;
 
 @FunctionalInterface
-public interface FilterAction<T> {
+public interface FilterAction<T> extends Action {
     /**
      *
      * @param value
