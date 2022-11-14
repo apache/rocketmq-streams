@@ -140,6 +140,38 @@ public class RocksDBStore extends AbstractStore {
         return temp;
     }
 
+    //todo store 层没有屏蔽key的组成细节，需要屏蔽，只做无脑查找。
+    public  <V> List<Pair<String, V>> searchByKeyAndLessThanWatermark(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws IOException {
+        byte[] keyPrefixBytes = super.object2Bytes(keyObject);
+        readOptions = new ReadOptions();
+        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
+
+        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
+        rocksIterator.seek(keyPrefixBytes);
+
+        List<Pair<String, V>> temp = new ArrayList<>();
+        while (rocksIterator.isValid()) {
+            byte[] keyBytes = rocksIterator.key();
+            byte[] valueBytes = rocksIterator.value();
+
+            rocksIterator.prev();
+
+            String key = Utils.byte2Object(keyBytes, String.class);
+            String[] split = Utils.split(key);
+            if (!split[0].equals(keyObject)) {
+                continue;
+            }
+            if (Long.parseLong(split[1]) >= watermark) {
+                continue;
+            }
+
+            V v = Utils.byte2Object(valueBytes, valueTypeRef);
+
+            temp.add(new Pair<>(key, v));
+        }
+        return temp;
+    }
+
     public void deleteByKey(byte[] key) throws RocksDBException {
         rocksDB.delete(key);
     }
@@ -157,8 +189,8 @@ public class RocksDBStore extends AbstractStore {
     public static void main(String[] args) throws Throwable {
         RocksDBStore rocksDBStore = new RocksDBStore();
 
-        String key = "key@1@1";
-        String key2 = "key@1@2";
+        String key = "time@1668249210000@1668249195000";
+        String key2 = "ewwwwe@1668249600481@1";
         Object value = "3";
         Object value2 = "2";
 
@@ -180,8 +212,9 @@ public class RocksDBStore extends AbstractStore {
         Object result2 = rocksDBStore.byte2Object(bytes2, Object.class);
         System.out.println(result2);
 
-        TypeReference<Object> typeReference = new TypeReference<Object>() {};
-        List<Pair<String, Object>> pairs = rocksDBStore.searchMatchKeyPrefix("key", typeReference);
+        TypeReference<Object> typeReference = new TypeReference<Object>() {
+        };
+        List<Pair<String, Object>> pairs = rocksDBStore.searchByKeyAndLessThanWatermark("time", 1668249210001L, typeReference);
         for (Pair<String, Object> pair : pairs) {
             System.out.println(pair);
         }

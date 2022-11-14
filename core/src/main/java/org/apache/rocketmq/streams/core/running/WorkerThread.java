@@ -16,14 +16,10 @@ package org.apache.rocketmq.streams.core.running;
  * limitations under the License.
  */
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -32,7 +28,6 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
@@ -48,12 +43,12 @@ import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-
 
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
@@ -62,6 +57,7 @@ public class WorkerThread extends Thread {
     private final TopologyBuilder topologyBuilder;
     private final PlanetaryEngine<?, ?> planetaryEngine;
     private final Properties properties;
+    private final String groupName = StreamConfig.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
 //    public static void main(String[] args) throws JoranException {
 //        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -85,13 +81,14 @@ public class WorkerThread extends Thread {
 
         Set<String> topicNames = topologyBuilder.getSourceTopic();
 
-        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(ROCKETMQ_STREAMS_CONSUMER_GROUP, topicNames);
+
+        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(groupName, topicNames);
 
         MessageQueueListener originListener = unionConsumer.getMessageQueueListener();
         MessageQueueListenerWrapper wrapper = new MessageQueueListenerWrapper(originListener, topologyBuilder);
         unionConsumer.setMessageQueueListener(wrapper);
 
-        DefaultMQProducer producer = rocketMQClient.producer(ROCKETMQ_STREAMS_CONSUMER_GROUP);
+        DefaultMQProducer producer = rocketMQClient.producer(groupName);
         DefaultMQAdminExt mqAdmin = rocketMQClient.getMQAdmin();
 
         RocksDBStore rocksDBStore = new RocksDBStore();

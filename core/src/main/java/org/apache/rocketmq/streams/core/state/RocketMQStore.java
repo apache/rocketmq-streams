@@ -136,8 +136,8 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
 
-    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {
-        return this.rocksDBStore.searchLessThanKeyPrefix(keyPrefix, valueTypeRef);
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws Throwable {
+        return this.rocksDBStore.searchByKeyAndLessThanWatermark(keyObject, watermark, valueTypeRef);
     }
 
     @Override

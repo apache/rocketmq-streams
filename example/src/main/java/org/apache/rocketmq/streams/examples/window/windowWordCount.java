@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.examples.window;
 
-import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.common.Constant;
@@ -27,13 +26,10 @@ import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
-import org.apache.rocketmq.streams.examples.pojo.Num;
-import org.apache.rocketmq.streams.examples.pojo.User;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Properties;
 
 public class windowWordCount {
@@ -58,7 +54,7 @@ public class windowWordCount {
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
         properties.put(Constant.TIME_TYPE, TimeType.EVENT_TIME);
-        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 2000);
+        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 5000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 

@@ -150,7 +150,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                     return ParameterizedTypeImpl.make(WindowState.class, types, null);
                 }
             };
-            List<Pair<String, WindowState<K, V1>>> leftPairs = this.windowStore.searchLessThanKeyPrefix(leftKeyPrefix, leftType);
+            List<Pair<String, WindowState<K, V1>>> leftPairs = this.windowStore.searchLessThanKeyPrefix(StreamType.LEFT_STREAM.name(), watermark, leftType);
 
 
             TypeReference<WindowState<K, V2>> rightType = new TypeReference<WindowState<K, V2>>() {
@@ -162,7 +162,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                     return ParameterizedTypeImpl.make(WindowState.class, types, null);
                 }
             };
-            List<Pair<String, WindowState<K, V2>>> rightPairs = this.windowStore.searchLessThanKeyPrefix(rightKeyPrefix, rightType);
+            List<Pair<String, WindowState<K, V2>>> rightPairs = this.windowStore.searchLessThanKeyPrefix(StreamType.RIGHT_STREAM.name(), watermark, rightType);
 
 
             if (leftPairs.size() == 0 && rightPairs.size() == 0) {

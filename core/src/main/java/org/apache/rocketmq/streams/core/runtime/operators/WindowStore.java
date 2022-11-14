@@ -22,19 +22,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
-import org.rocksdb.RocksDB;
-
 import java.util.List;
 
 public class WindowStore {
     private StateStore stateStore;
 
-    private RocksDB rocksDB;
-
 
     public WindowStore(StateStore stateStore) {
         this.stateStore = stateStore;
-        this.rocksDB = this.stateStore.getRocksDBStore().getRocksDB();
     }
 
     public <K, V> void put(MessageQueue stateTopicMessageQueue, String key, WindowState<K, V> value) throws Throwable {
@@ -45,8 +40,8 @@ public class WindowStore {
         return this.stateStore.get(key);
     }
 
-    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {
-        return this.stateStore.searchLessThanKeyPrefix(keyPrefix, valueTypeRef);
+    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws Throwable {
+        return this.stateStore.searchLessThanKeyPrefix(keyObject, watermark, valueTypeRef);
     }
 
     public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {

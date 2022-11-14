@@ -119,6 +119,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             long watermark = this.context.getWatermark();
             if (time < watermark) {
                 //已经触发，丢弃数据
+                logger.warn("discard data:[{}], watermark[{}] > time[{}],", data, watermark, time);
                 return;
             }
 
@@ -152,7 +153,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 WindowState<K, OV> state = new WindowState<>(key, newValue, time);
                 this.windowStore.put(this.stateTopicMessageQueue, windowKey, state);
 
-                logger.debug("put key into store, key: " + windowKey);
+                logger.debug("put key into store, key:[{}], WindowState:[{}]", windowKey, state);
             }
 
             try {
@@ -174,7 +175,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private void fireWindowEndTimeLassThanWatermark(long watermark, K key) throws Throwable {
             String keyPrefix = Utils.buildKey(key.toString(), String.valueOf(watermark));
 
-
             TypeReference<WindowState<K, OV>> type = new TypeReference<WindowState<K, OV>>() {
                 @Override
                 public Type getType() {
@@ -184,7 +184,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                     return ParameterizedTypeImpl.make(WindowState.class, types, null);
                 }
             };
-            List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanKeyPrefix(keyPrefix, type);
+            List<Pair<String, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanKeyPrefix(key.toString(), watermark, type);
 
             //pairs中最后一个时间最小，应该最先触发
             for (int i = pairs.size() - 1; i >= 0; i--) {
@@ -201,7 +201,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                     String[] split = Utils.split(windowKey);
                     long windowBegin = Long.parseLong(split[2]);
                     long windowEnd = Long.parseLong(split[1]);
-                    logger.debug("fire window, windowKey={}, window: [{} - {}], data to next:[{}]", windowKey, Utils.format(windowBegin), Utils.format(windowEnd), convert);
+                    logger.debug("fire window, windowKey={}, search keyPrefix={}, window: [{} - {}], data to next:[{}]", windowKey, keyPrefix, Utils.format(windowBegin), Utils.format(windowEnd), convert);
                 }
 
                 this.context.forward(convert.getValue());
@@ -308,7 +308,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 //先触发一遍，触发后从集合中删除
                 if (sessionEnd < watermark) {
                     //触发state
-                    fire(windowKey, state);
+                    fire(key, windowKey, state);
                     iterator.remove();
                     maxFireSessionEnd = Long.max(sessionEnd, maxFireSessionEnd);
                 }
@@ -379,12 +379,12 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             logger.debug("put key into store, key: " + windowKey);
         }
 
-        private void fire(String windowKey, SessionWindowState<K, OV> state) throws Throwable {
+        private void fire(K key, String windowKey, SessionWindowState<K, OV> state) throws Throwable {
             String[] split = Utils.split(windowKey);
             long windowEnd = Long.parseLong(split[1]);
             long windowBegin = state.getEarliestTimestamp();
 
-            logger.info("fire session,windowKey={}, window: [{} - {}]", windowKey, Utils.format(windowBegin), Utils.format(windowEnd));
+            logger.info("fire session,windowKey={}, search keyPrefix={}, window: [{} - {}]", windowKey, key.toString(), Utils.format(windowBegin), Utils.format(windowEnd));
 
             Data<K, OV> result = new Data<>(state.getKey(), state.getValue(), state.getTimestamp());
             Data<K, V> convert = super.convert(result);
