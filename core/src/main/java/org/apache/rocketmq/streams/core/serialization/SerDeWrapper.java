@@ -16,13 +16,10 @@
  */
 package org.apache.rocketmq.streams.core.serialization;
 
-import java.io.Closeable;
+import java.io.IOException;
 
-public interface Serializer<T> extends Closeable {
-    byte[] serialize(T data) throws Throwable;
+public interface SerDeWrapper {
+    <T> byte[] serialize(T data) throws Throwable;
 
-    @Override
-    default void close() {
-        // intentionally left blank
-    }
+    <T> T deserialize(byte[] source, Class<T> clazz) throws IOException;
 }

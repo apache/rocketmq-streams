@@ -17,35 +17,35 @@
 package org.apache.rocketmq.streams.core.util;
 
 public class Pair<T1, T2> {
-    private T1 object1;
-    private T2 object2;
+    private T1 key;
+    private T2 value;
 
-    public Pair(T1 object1, T2 object2) {
-        this.object1 = object1;
-        this.object2 = object2;
+    public Pair(T1 key, T2 value) {
+        this.key = key;
+        this.value = value;
     }
 
-    public T1 getObject1() {
-        return object1;
+    public T1 getKey() {
+        return key;
     }
 
-    public void setObject1(T1 object1) {
-        this.object1 = object1;
+    public void setKey(T1 key) {
+        this.key = key;
     }
 
-    public T2 getObject2() {
-        return object2;
+    public T2 getValue() {
+        return value;
     }
 
-    public void setObject2(T2 object2) {
-        this.object2 = object2;
+    public void setValue(T2 value) {
+        this.value = value;
     }
 
     @Override
     public String toString() {
         return "Pair{" +
-                "object1=" + object1 +
-                ", object2=" + object2 +
+                "object1=" + key +
+                ", object2=" + value +
                 '}';
     }
 }

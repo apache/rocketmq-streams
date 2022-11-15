@@ -17,11 +17,17 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Utils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,5 +92,81 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
         String[] split = Utils.split(sourceTopicQueue);
         return Integer.parseInt(split[2]);
+    }
+
+
+    private final ByteBuf buf = Unpooled.buffer(16);
+    /**
+     * encode
+     * <pre>
+     * +-----------+---------------+-------------+-------------+
+     * | Int(4)    |   className  | Int(4)       | value bytes |
+     * | classname |              |object length |             |
+     * +-----------+--------------+---------------+-------------+
+     * </pre>
+     */
+    protected byte[] object2Byte(Object obj) throws JsonProcessingException {
+        if (obj == null) {
+            return new byte[]{};
+        }
+
+        String name = obj.getClass().getName();
+        byte[] className = name.getBytes(StandardCharsets.UTF_8);
+        byte[] objBytes = Utils.object2Byte(obj);
+
+
+        buf.writeInt(className.length);
+        buf.writeBytes(className);
+        buf.writeInt(objBytes.length);
+        buf.writeBytes(objBytes);
+
+
+        byte[] bytes = new byte[buf.readableBytes()];
+        buf.readBytes(bytes);
+
+        buf.clear();
+        return bytes;
+    }
+
+    /**
+     * decode
+     * <pre>
+     * +-----------+---------------+-------------+-------------+
+     * | Int(4)    |   className  | Int(4)       | value bytes |
+     * | classname |              |object length |             |
+     * +-----------+--------------+---------------+-------------+
+     * </pre>
+     */
+    @SuppressWarnings("unchecked")
+    public <V> V byte2Object(byte[] bytes) throws Throwable {
+        ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
+
+        int classNameLength = byteBuf.readInt();
+        ByteBuf classNameBuf = byteBuf.readBytes(classNameLength);
+
+        byte[] clazzNameBytes = new byte[classNameBuf.readableBytes()];
+        classNameBuf.readBytes(clazzNameBytes);
+        //实例化
+        String className = new String(clazzNameBytes, StandardCharsets.UTF_8);
+        Class<V> clazz = (Class<V>)Class.forName(className);
+
+        int objectLength = byteBuf.readInt();
+        ByteBuf objBuf = byteBuf.readBytes(objectLength);
+        byte[] objectBytes = new byte[objectLength];
+        objBuf.readBytes(objectBytes);
+
+        return Utils.byte2Object(objectBytes, clazz);
+    }
+
+    protected String toHexString(Object source) throws JsonProcessingException {
+        if (source == null) {
+            return null;
+        }
+        if (source instanceof String) {
+            return (String) source;
+        }
+        byte[] sourceByte = this.object2Byte(source);
+
+        return Utils.toHexString(sourceByte);
     }
 }

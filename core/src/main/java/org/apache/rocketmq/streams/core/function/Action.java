@@ -19,4 +19,7 @@ package org.apache.rocketmq.streams.core.function;
 import java.io.Serializable;
 
 public interface Action extends Serializable {
+    default Class<?> returnType() {
+        return null;
+    }
 }

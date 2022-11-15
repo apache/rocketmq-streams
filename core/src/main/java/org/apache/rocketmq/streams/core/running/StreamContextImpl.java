@@ -17,7 +17,8 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.streams.core.metadata.Data;
+import org.apache.rocketmq.streams.core.serialization.JsonSerDe;
+import org.apache.rocketmq.streams.core.serialization.SerDeWrapper;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
@@ -41,6 +42,7 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     private long dataTime;
     private Properties header = new Properties();
     private long watermark;
+    private SerDeWrapper serDeWrapper = new JsonSerDe();
 
     private final List<Processor<T>> childList = new ArrayList<>();
 
@@ -101,6 +103,11 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     @Override
     public long getWatermark() {
         return watermark;
+    }
+
+    @Override
+    public SerDeWrapper getSerDeWrapper() {
+        return this.serDeWrapper;
     }
 
     @Override

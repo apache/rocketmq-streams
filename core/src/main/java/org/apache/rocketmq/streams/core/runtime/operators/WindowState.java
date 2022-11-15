@@ -17,31 +17,52 @@
 package org.apache.rocketmq.streams.core.runtime.operators;
 
 
-import java.io.Serializable;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
+import org.apache.rocketmq.streams.core.util.Utils;
 
+import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * windowState data how to encode KV
+ * <pre>
+ * +-----------+---------------+-----------+-------------+
+ * | Int(4)    | Int(4)        | key bytes | value bytes |
+ * | key length| value length  |           |             |
+ * +-----------+---------------+-----------+-------------+
+ * </pre>
+ */
 public class WindowState<K, V> implements Serializable {
     private static final long serialVersionUID = 1669344441528746814L;
-    private long timestamp;//上一个被计算元素的时间；
-
+    private long recordEarliestTimestamp;
+    private long recordLastTimestamp;
     private K key;
     private V value;
+    private byte[] keyBytes;
+    private byte[] valueBytes;
+    private Class<?> keyClazz;
+    private Class<?> valueClazz;
 
     //only for Serializer/Deserializer
     public WindowState() {
     }
 
-    public WindowState(K key, V value, long timestamp) {
-        this.timestamp = timestamp;
+    public WindowState(K key, V value, long recordLastTimestamp) throws JsonProcessingException {
         this.key = key;
         this.value = value;
-    }
+        this.recordLastTimestamp = recordLastTimestamp;
+        if (key != null) {
+            this.keyBytes = Utils.object2Byte(key);
+            this.keyClazz = key.getClass();
+        }
 
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+        if (value != null) {
+            this.valueBytes = Utils.object2Byte(value);
+            this.valueClazz = value.getClass();
+        }
     }
 
     public K getKey() {
@@ -50,6 +71,7 @@ public class WindowState<K, V> implements Serializable {
 
     public void setKey(K key) {
         this.key = key;
+
     }
 
     public V getValue() {
@@ -60,12 +82,165 @@ public class WindowState<K, V> implements Serializable {
         this.value = value;
     }
 
-    @Override
-    public String toString() {
-        return "WindowState{" +
-                "timestamp=" + timestamp +
-                ", key=" + key +
-                ", value=" + value +
-                '}';
+    public byte[] getKeyBytes() {
+        return keyBytes;
+    }
+
+    public void setKeyBytes(byte[] keyBytes) {
+        this.keyBytes = keyBytes;
+    }
+
+    public byte[] getValueBytes() {
+        return valueBytes;
+    }
+
+
+    public void setValueBytes(byte[] valueBytes) {
+        this.valueBytes = valueBytes;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Class<V> getValueClazz() {
+        return (Class<V>) valueClazz;
+    }
+
+    public void setValueClazz(Class<?> valueClazz) {
+        this.valueClazz = valueClazz;
+    }
+
+    public void setKeyClazz(Class<?> keyClazz) {
+        this.keyClazz = keyClazz;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Class<K> getKeyClazz() {
+        return (Class<K>) keyClazz;
+    }
+
+    public long getRecordEarliestTimestamp() {
+        return recordEarliestTimestamp;
+    }
+
+    public void setRecordEarliestTimestamp(long recordEarliestTimestamp) {
+        this.recordEarliestTimestamp = recordEarliestTimestamp;
+    }
+
+    public long getRecordLastTimestamp() {
+        return recordLastTimestamp;
+    }
+
+    public void setRecordLastTimestamp(long recordLastTimestamp) {
+        this.recordLastTimestamp = recordLastTimestamp;
+    }
+
+    private static final ByteBuf buf = Unpooled.buffer(16);
+    public static byte[] windowState2Byte(WindowState<?, ?> state) throws Throwable {
+        if (state == null) {
+            return new byte[0];
+        }
+
+        Class<?> keyClazz = state.getKeyClazz();
+        if (keyClazz == null) {
+            keyClazz = state.getKey().getClass();
+        }
+        byte[] keyClazzBytes = keyClazz.getName().getBytes(StandardCharsets.UTF_8);
+
+        byte[] keyBytes = state.getKeyBytes();
+        if (keyBytes == null) {
+            keyBytes = Utils.object2Byte(state.getKey());
+        }
+
+        Class<?> valueClazz = state.getValueClazz();
+        if (valueClazz == null) {
+            valueClazz = state.getValue().getClass();
+        }
+        byte[] valueClazzBytes = valueClazz.getName().getBytes(StandardCharsets.UTF_8);
+
+        byte[] valueBytes = state.getValueBytes();
+        if (valueBytes == null) {
+            valueBytes = Utils.object2Byte(state.getValue());
+        }
+
+
+        int length = 4 + 8 + 4 + keyClazzBytes.length + 4 + keyBytes.length + 4 + valueClazzBytes.length + 4 + valueBytes.length;
+
+        buf.writeInt(length);
+
+        buf.writeLong(state.getRecordLastTimestamp());
+
+        //key class
+        buf.writeInt(keyClazzBytes.length);
+        buf.writeBytes(keyClazzBytes);
+
+        //key
+        buf.writeInt(keyBytes.length);
+        buf.writeBytes(keyBytes);
+
+        //value class
+        buf.writeInt(valueClazzBytes.length);
+        buf.writeBytes(valueClazzBytes);
+
+        //value
+        buf.writeInt(valueBytes.length);
+        buf.writeBytes(valueBytes);
+
+        byte[] bytes = new byte[buf.readableBytes()];
+        buf.readBytes(bytes);
+
+        buf.clear();
+        return bytes;
+    }
+
+    public static <K,V> WindowState<K,V> byte2WindowState(byte[] bytes) throws Throwable {
+        ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
+        int totalLength = byteBuf.readInt();
+        if (bytes.length < totalLength) {
+            System.out.println("less than normal.");
+        }
+
+        long timestamp = byteBuf.readLong();
+
+        //key class
+        int keyClazzLength = byteBuf.readInt();
+        ByteBuf buf = byteBuf.readBytes(keyClazzLength);
+        byte[] keyClazzBytes = new byte[keyClazzLength];
+        buf.readBytes(keyClazzBytes);
+        //实例化
+        String keyClassName = new String(keyClazzBytes, StandardCharsets.UTF_8);
+        Class<?> keyClazz = Class.forName(keyClassName);
+
+        //key
+        int keyLength = byteBuf.readInt();
+        ByteBuf keyBuf = byteBuf.readBytes(keyLength);
+        byte[] keyBytes = new byte[keyLength];
+        keyBuf.readBytes(keyBytes);
+
+        //value class
+        int valueClazzLength = byteBuf.readInt();
+        ByteBuf valueClazzBuf = byteBuf.readBytes(valueClazzLength);
+        byte[] valueClazzBytes = new byte[valueClazzLength];
+        valueClazzBuf.readBytes(valueClazzBytes);
+        //实例化
+        String valueClassName = new String(valueClazzBytes, StandardCharsets.UTF_8);
+        Class<?> valueClazz = Class.forName(valueClassName);
+
+        //value
+        int valueLength = byteBuf.readInt();
+        ByteBuf valueBuf = byteBuf.readBytes(valueLength);
+        byte[] valueBytes = new byte[valueLength];
+        valueBuf.readBytes(valueBytes);
+
+        WindowState<K, V> result = new WindowState<>();
+        result.setRecordLastTimestamp(timestamp);
+        result.setKeyBytes(keyBytes);
+        result.setValueBytes(valueBytes);
+        result.setKeyClazz(keyClazz);
+        result.setValueClazz(valueClazz);
+        result.setKey(Utils.byte2Object(keyBytes, result.getKeyClazz()));
+        result.setValue(Utils.byte2Object(valueBytes, result.getValueClazz()));
+
+        byteBuf.release();
+
+        return result;
     }
 }

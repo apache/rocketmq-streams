@@ -14,29 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.serialization.serImpl;
+package org.apache.rocketmq.streams.core.serialization;
 
-import org.apache.avro.io.BinaryEncoder;
-import org.apache.avro.io.EncoderFactory;
-import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.rocketmq.streams.core.serialization.Serializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
-public class AvroSerializer<T> implements Serializer<T> {
-    private final EncoderFactory encoderFactory = EncoderFactory.get();
-    private final SpecificDatumWriter<T> writer = new SpecificDatumWriter<>();
+public class JsonSerDe implements SerDeWrapper {
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public byte[] serialize(T data) throws Throwable {
-
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            BinaryEncoder encoder = this.encoderFactory.directBinaryEncoder(out, null);
-
-            writer.write(data, encoder);
-            encoder.flush();
-
-            return out.toByteArray();
+    public <T> byte[] serialize(T data) throws Throwable {
+        if (data == null) {
+            return new byte[0];
         }
+
+        return objectMapper.writeValueAsBytes(data);
     }
+
+    @Override
+    public <T> T deserialize(byte[] source, Class<T> clazz) throws IOException {
+        if (source == null || source.length == 0 || clazz == null) {
+            return null;
+        }
+        return objectMapper.readValue(source, clazz);
+    }
+
+
 }

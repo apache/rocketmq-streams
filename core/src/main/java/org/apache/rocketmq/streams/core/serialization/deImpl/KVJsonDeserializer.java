@@ -47,13 +47,13 @@ public class KVJsonDeserializer<K, V> extends ShuffleProtocol implements KeyValu
         Pair<byte[], byte[]> pair = split(total);
 
         K key = null;
-        byte[] keyBytes = pair.getObject1();
+        byte[] keyBytes = pair.getKey();
         if (keyBytes != null && keyBytes.length != 0) {
             key = objectMapper.readValue(keyBytes, keyType);
         }
 
         V value;
-        byte[] valueBytes = pair.getObject2();
+        byte[] valueBytes = pair.getValue();
         value = objectMapper.readValue(valueBytes, valueType);
 
         return new Pair<>(key, value);

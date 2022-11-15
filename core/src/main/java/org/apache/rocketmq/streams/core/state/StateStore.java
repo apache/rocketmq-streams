@@ -18,6 +18,8 @@ package org.apache.rocketmq.streams.core.state;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
+import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
 
 import java.util.List;
@@ -48,16 +50,22 @@ public interface StateStore extends AutoCloseable {
     void waitIfNotReady(MessageQueue messageQueue) throws Throwable;
 
 
-    <K, V> V get(K key) throws Throwable;
+    byte[] get(byte[] key) throws Throwable;
+//    <K, V> V get(K key) throws Throwable;
 
-    <K, V> void put(MessageQueue messageQueue, K key, V value) throws Throwable;
+//    <K, V> void put(MessageQueue messageQueue, K key, V value) throws Throwable;
 
+    void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable;
     //只能查询到 < keyPrefix的结果，不包含等于
     <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws Throwable;
 
+    List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String operatorName, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable;
+
     <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable;
 
-    <K> void delete(K key) throws Throwable;
+//    <K> void delete(K key) throws Throwable;
+
+    void delete(byte[] key) throws Throwable;
 
     void persist(Set<MessageQueue> messageQueue) throws Throwable;
 }

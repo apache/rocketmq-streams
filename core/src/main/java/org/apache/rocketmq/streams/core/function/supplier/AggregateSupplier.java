@@ -74,14 +74,21 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
         @Override
         public void process(V data) throws Throwable {
             K key = this.context.getKey();
-            OV value = stateStore.get(key);
-            if (value == null) {
+            OV value;
+
+            byte[] keyBytes = super.object2Byte(key);
+
+            byte[] valueBytes = stateStore.get(keyBytes);
+            if (valueBytes == null || valueBytes.length == 0) {
                 value = initAction.get();
+            } else {
+                value = super.byte2Object(valueBytes);
             }
 
             OV result = aggregateAction.calculate(key, data, value);
+            byte[] newValueBytes = super.object2Byte(result);
 
-            stateStore.put(this.stateTopicMessageQueue, key, result);
+            stateStore.put(this.stateTopicMessageQueue, keyBytes, newValueBytes);
 
             Data<K, OV> temp = new Data<>(key, result, this.context.getDataTime());
             Data<K, V> convert = super.convert(temp);

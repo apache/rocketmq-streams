@@ -14,33 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.runtime.operators;
+package org.apache.rocketmq.streams.core.runtime;
 
+import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
+import org.apache.rocketmq.streams.core.util.Num;
+import org.apache.rocketmq.streams.core.util.User;
 
-public class SessionWindowState<K, V> extends WindowState<K, V> {
-    private static final long serialVersionUID = -4702245149208414466L;
-    private long earliestTimestamp;
+public class WindowStateTests {
+    public static void main(String[] args) throws Throwable {
+        WindowState<Num, User> state = new WindowState<>();
+        Num num = new Num();
+        num.setNumber(10);
+        User user = new User();
+        user.setName("zeni");
+        state.setKey(num);
+        state.setValue(user);
 
-    public SessionWindowState() {
+        byte[] bytes = WindowState.windowState2Byte(state);
+
+        WindowState<Num, User> state1 = WindowState.byte2WindowState(bytes);
+
+        System.out.println(state1);
     }
 
-    public SessionWindowState(K key, V value, long timestamp, long earliestTimestamp) {
-        super(key, value, timestamp);
-        this.earliestTimestamp = earliestTimestamp;
-    }
-
-    public long getEarliestTimestamp() {
-        return earliestTimestamp;
-    }
-
-    public void setEarliestTimestamp(long earliestTimestamp) {
-        this.earliestTimestamp = earliestTimestamp;
-    }
-
-    @Override
-    public String toString() {
-        return "earliestTimestamp=" + earliestTimestamp
-                + "," + super.toString();
-
-    }
 }

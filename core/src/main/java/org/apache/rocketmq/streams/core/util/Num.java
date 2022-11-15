@@ -14,20 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.serialization.serImpl;
+package org.apache.rocketmq.streams.core.util;
 
-import org.apache.rocketmq.streams.core.serialization.Serializer;
+public class Num {
+    private Integer number;
 
-import java.nio.charset.StandardCharsets;
+    public Integer getNumber() {
+        return number;
+    }
 
-public class StringSerializer implements Serializer<String> {
-
-    @Override
-    public byte[] serialize(String data) throws Throwable {
-        if (data == null) {
-            return new byte[0];
-        }
-
-        return data.getBytes(StandardCharsets.UTF_8);
+    public void setNumber(Integer number) {
+        this.number = number;
     }
 }

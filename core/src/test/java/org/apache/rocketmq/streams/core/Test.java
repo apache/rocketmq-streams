@@ -14,15 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.serialization;
+package org.apache.rocketmq.streams.core;
 
-import java.io.Closeable;
-
-public interface Deserializer<T> extends Closeable {
-    T deserialize(byte[] data) throws Throwable;
-
-    @Override
-    default void close() {
-        // intentionally left blank
-    }
+public class Test {
 }

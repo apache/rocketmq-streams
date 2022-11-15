@@ -76,7 +76,7 @@ public class KVAvroDeserializer<K, V> extends ShuffleProtocol implements KeyValu
         Pair<byte[], byte[]> pair = split(total);
 
         K key = null;
-        byte[] keyBytes = pair.getObject1();
+        byte[] keyBytes = pair.getKey();
         if (keyBytes != null && keyBytes.length != 0) {
             try (ByteArrayInputStream bais = new ByteArrayInputStream(keyBytes)) {
                 BinaryDecoder decoder = factory.binaryDecoder(bais, null);
@@ -86,7 +86,7 @@ public class KVAvroDeserializer<K, V> extends ShuffleProtocol implements KeyValu
 
 
         V value;
-        byte[] valueBytes = pair.getObject2();
+        byte[] valueBytes = pair.getValue();
         try (ByteArrayInputStream bais = new ByteArrayInputStream(valueBytes)) {
             BinaryDecoder decoder = factory.binaryDecoder(bais, null);
 

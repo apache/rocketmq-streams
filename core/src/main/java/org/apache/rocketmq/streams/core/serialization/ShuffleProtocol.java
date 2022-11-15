@@ -30,8 +30,9 @@ import org.apache.rocketmq.streams.core.util.Pair;
  * +-----------+---------------+-----------+-------------+
  * </pre>
  */
-public abstract class ShuffleProtocol {
-    protected byte[] merge(byte[] keyBytes, byte[] valueBytes) {
+public class ShuffleProtocol {
+    private final ByteBuf buf = Unpooled.buffer(16);
+    public byte[] merge(byte[] keyBytes, byte[] valueBytes) {
         if (keyBytes == null || keyBytes.length ==0) {
             return valueBytes;
         }
@@ -40,7 +41,6 @@ public abstract class ShuffleProtocol {
             return keyBytes;
         }
 
-        ByteBuf buf = ByteBufAllocator.DEFAULT.heapBuffer(16);
         buf.writeInt(keyBytes.length);
         buf.writeInt(valueBytes.length);
         buf.writeBytes(keyBytes);
@@ -49,11 +49,11 @@ public abstract class ShuffleProtocol {
         byte[] bytes = new byte[buf.readableBytes()];
         buf.readBytes(bytes);
 
-        buf.release();
+        buf.clear();
         return bytes;
     }
 
-    protected Pair<byte[], byte[]> split(byte[] total) {
+    public Pair<byte[], byte[]> split(byte[] total) {
         ByteBuf byteBuf = Unpooled.wrappedBuffer(total);
 
         int keyLength = byteBuf.readInt();

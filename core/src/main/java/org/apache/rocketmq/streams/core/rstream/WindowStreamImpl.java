@@ -48,7 +48,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     @Override
     public WindowStream<K, Integer> count() {
         String name = makeName(WINDOW_COUNT_PREFIX);
-        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
+        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
         //是否需要分组计算
         ProcessorNode<V> node;
@@ -65,7 +65,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     public <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
         String name = makeName(WINDOW_AGGREGATE_PREFIX);
 
-        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(windowInfo, () -> null, aggregateAction);
+        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> null, aggregateAction);
 
         //是否需要分组计算
         ProcessorNode<V> node;

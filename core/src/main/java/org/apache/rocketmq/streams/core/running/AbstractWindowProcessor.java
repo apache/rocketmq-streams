@@ -19,13 +19,15 @@ package org.apache.rocketmq.streams.core.running;
 
 import org.apache.rocketmq.streams.core.runtime.operators.Window;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractWindowProcessor.class.getName());
+
 
     protected List<Window> calculateWindow(WindowInfo windowInfo, long valueTime) {
         long sizeInterval = windowInfo.getWindowSize().toMillSecond();
@@ -41,7 +43,5 @@ public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
         }
         return result;
     }
-
-
 
 }

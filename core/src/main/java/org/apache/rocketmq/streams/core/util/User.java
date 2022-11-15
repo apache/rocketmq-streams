@@ -14,23 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.serialization.deImpl;
+package org.apache.rocketmq.streams.core.util;
 
-import org.apache.rocketmq.streams.core.serialization.Deserializer;
+public class User {
+    private String name;
 
-import java.nio.charset.StandardCharsets;
+    public String getName() {
+        return name;
+    }
 
-public class StringDeserializer implements Deserializer<String> {
-    @Override
-    public String deserialize(byte[] data) {
-        if (data == null) {
-            return null;
-        }
-
-        try {
-            return new String(data, StandardCharsets.UTF_8);
-        } catch (Throwable t) {
-            throw new UnsupportedOperationException("encode data to string error.", t);
-        }
+    public void setName(String name) {
+        this.name = name;
     }
 }

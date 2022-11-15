@@ -16,15 +16,13 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 
-import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -34,39 +32,39 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class AbstractStore {
     private final Wrapper wrapper = new Wrapper();
 
-    public <V> V byte2Object(byte[] bytes, Class<V> clazz) throws IOException {
-        return Utils.byte2Object(bytes, clazz);
+
+    protected void putInRecover(String stateTopicQueueKey, byte[] key) {
+        wrapper.putInRecover(stateTopicQueueKey, key);
     }
 
-    public byte[] object2Bytes(Object target) throws JsonProcessingException {
-        return Utils.object2Byte(target);
+    protected void putInCalculating(String stateTopicQueueKey, byte[] key) {
+        wrapper.putInCalculating(stateTopicQueueKey, key);
     }
 
-    @SuppressWarnings("unchecked")
-    protected <K, V> Pair<Class<K>, Class<V>> getClazz(K key) {
-        Pair<Class<?>, Class<?>> clazzPair = wrapper.getClazz(key);
-
-        return new Pair<>((Class<K>) clazzPair.getObject1(), (Class<V>) clazzPair.getObject2());
+    protected Set<byte[]> getInCalculating(String stateTopicQueue) {
+        return wrapper.getInCalculating(stateTopicQueue);
     }
 
-    protected <K, V> void putClazz(String stateTopicQueueKey, K key, V value) {
-        wrapper.put(stateTopicQueueKey, key, value);
+    protected void removeCalculating(String stateTopicQueue) {
+        wrapper.removeCalculating(stateTopicQueue);
     }
 
-    protected Set<Object> whichKeyMap2StateTopicQueue(String stateTopicQueue) {
-        return wrapper.whichKeyMap2StateTopicQueue(stateTopicQueue);
+    protected Set<byte[]> getAll(String stateTopicQueue) {
+        return wrapper.getAll(stateTopicQueue);
     }
 
-    protected String whichStateTopicQueueBelongTo(Object key) {
+
+    protected String whichStateTopicQueueBelongTo(byte[] key) {
         return wrapper.whichStateTopicQueueBelongTo(key);
     }
 
-    protected <K> void deleteAllMappingByKey(K key) {
+    protected void removeAllKey(byte[] key) {
         wrapper.deleteByKey(key);
     }
 
-    protected void deleteAllMappingByStateTopicQueue(String stateTopicQueueKey) {
-        wrapper.deleteByStateQueue(stateTopicQueueKey);
+
+    protected void removeAll(String stateTopicQueue) {
+        wrapper.removeAll(stateTopicQueue);
     }
 
     protected MessageQueue convertSourceTopicQueue2StateTopicQueue(MessageQueue messageQueue) {
@@ -115,69 +113,101 @@ public abstract class AbstractStore {
     }
 
     static class Wrapper {
-        private final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<Object/*Key*/>> stateTopicQueue2Key = new ConcurrentHashMap<>();
-        private final ConcurrentHashMap<Object/*Key*/, Pair<Class<?>/*Key class*/, Class<?>/*value class*/>> key2Clazz = new ConcurrentHashMap<>();
+        //新增，写消费未提交保存的中间状态，提交时移除
+        private final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<byte[]/*Key*/>> calculating = new ConcurrentHashMap<>();
+        //全量, 与rocksdb报错同步
+        private final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<byte[]/*Key*/>> recover = new ConcurrentHashMap<>();
 
-        public void put(String stateTopicQueueKey, Object key, Object value) {
-            Set<Object> keySet = this.stateTopicQueue2Key.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+        public void putInRecover(String stateTopicQueueKey, byte[] key) {
+            Set<byte[]> allSet = this.recover.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+            allSet.add(key);
+        }
+
+        public void putInCalculating(String stateTopicQueueKey, byte[] key) {
+            Set<byte[]> keySet = this.calculating.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
             keySet.add(key);
 
-            if (!key2Clazz.containsKey(key)) {
-                this.key2Clazz.put(key, new Pair<>(key.getClass(), value.getClass()));
+            putInRecover(stateTopicQueueKey, key);
+        }
+
+        public Set<byte[]> getInCalculating(String stateTopicQueue) {
+            return calculating.get(stateTopicQueue);
+        }
+
+        public Set<byte[]> getAll(String stateTopicQueue) {
+            Set<byte[]> calculating = this.calculating.get(stateTopicQueue);
+            Set<byte[]> recover = this.recover.get(stateTopicQueue);
+
+            Set<byte[]> result = new HashSet<>();
+            result.addAll(calculating);
+            result.addAll(recover);
+
+            //可能有重复，不同byte[] 但是时一个key
+            return result;
+        }
+
+        public String whichStateTopicQueueBelongTo(byte[] key) {
+            for (String uniqueQueue : recover.keySet()) {
+                for (byte[] tempKeyByte : recover.get(uniqueQueue)) {
+                    if (Arrays.equals(tempKeyByte, key)) {
+                        return uniqueQueue;
+                    }
+                }
             }
-        }
 
-        public Set<Object> whichKeyMap2StateTopicQueue(String stateTopicQueue) {
-            return stateTopicQueue2Key.get(stateTopicQueue);
-        }
-
-        public Pair<Class<?>, Class<?>> getClazz(Object key) {
-            return key2Clazz.get(key);
-        }
-
-        public String whichStateTopicQueueBelongTo(Object key) {
-            for (String uniqueQueue : stateTopicQueue2Key.keySet()) {
-                if (stateTopicQueue2Key.get(uniqueQueue).contains(key)) {
-                    return uniqueQueue;
+            for (String uniqueQueue : calculating.keySet()) {
+                for (byte[] tempKeyByte : calculating.get(uniqueQueue)) {
+                    if (Arrays.equals(tempKeyByte, key)) {
+                        return uniqueQueue;
+                    }
                 }
             }
 
             return null;
         }
 
-        public Object getKeyObject(String stateTopicQueueKey) {
-            return stateTopicQueue2Key.get(stateTopicQueueKey);
-        }
 
-        public void deleteByKey(Object key) {
-            //删除 stateTopicQueue2Key
-            Set<Map.Entry<String, Set<Object>>> entries = stateTopicQueue2Key.entrySet();
-            Iterator<Map.Entry<String, Set<Object>>> iterator = entries.iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, Set<Object>> next = iterator.next();
+        public void deleteByKey(byte[] key) {
+            {
+                Set<Map.Entry<String, Set<byte[]>>> entries = calculating.entrySet();
+                Iterator<Map.Entry<String, Set<byte[]>>> iterator = entries.iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<String, Set<byte[]>> next = iterator.next();
 
-                Set<Object> keySet = next.getValue();
-                Iterator<Object> keySetIterator = keySet.iterator();
-                while (keySetIterator.hasNext()) {
-                    Object rocksDBKey = keySetIterator.next();
-                    if (rocksDBKey.equals(key)) {
-                         keySetIterator.remove();
+                    Set<byte[]> keySet = next.getValue();
+                    keySet.removeIf(rocksDBKey -> Arrays.equals(rocksDBKey, key));
+                    if (keySet.size() == 0) {
+                        iterator.remove();
                     }
                 }
-                if (keySet.size() == 0) {
-                    iterator.remove();
+            }
+
+            {
+                Set<Map.Entry<String, Set<byte[]>>> entries = recover.entrySet();
+                Iterator<Map.Entry<String, Set<byte[]>>> iterator = entries.iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<String, Set<byte[]>> next = iterator.next();
+
+                    Set<byte[]> keySet = next.getValue();
+                    keySet.removeIf(rocksDBKey -> Arrays.equals(rocksDBKey, key));
+                    if (keySet.size() == 0) {
+                        iterator.remove();
+                    }
                 }
             }
 
-            //删除key2Clazz
-            key2Clazz.remove(key);
+
+
         }
 
-        public void deleteByStateQueue(String uniqueQueue) {
-            Set<Object> remove = this.stateTopicQueue2Key.remove(uniqueQueue);
-            for (Object obj : remove) {
-                this.key2Clazz.remove(obj);
-            }
+        public void removeCalculating(String stateTopicQueueKey) {
+            this.calculating.remove(stateTopicQueueKey);
         }
+
+        public void removeAll(String stateTopicQueueKey) {
+            this.recover.remove(stateTopicQueueKey);
+            this.calculating.remove(stateTopicQueueKey);
+        }
+
     }
 }
