@@ -29,8 +29,6 @@ import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
-import org.apache.rocketmq.streams.core.typeUtil.TypeExtractor;
-import org.apache.rocketmq.streams.core.typeUtil.TypeWrapper;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;

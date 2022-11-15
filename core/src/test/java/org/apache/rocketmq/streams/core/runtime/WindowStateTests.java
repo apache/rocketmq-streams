@@ -17,8 +17,8 @@
 package org.apache.rocketmq.streams.core.runtime;
 
 import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
-import org.apache.rocketmq.streams.core.util.Num;
-import org.apache.rocketmq.streams.core.util.User;
+import org.apache.rocketmq.streams.core.Num;
+import org.apache.rocketmq.streams.core.User;
 
 public class WindowStateTests {
     public static void main(String[] args) throws Throwable {

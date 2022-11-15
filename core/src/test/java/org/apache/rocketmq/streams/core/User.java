@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.util;
+package org.apache.rocketmq.streams.core;
 
 public class User {
     private String name;

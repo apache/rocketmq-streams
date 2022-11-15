@@ -63,8 +63,6 @@ public interface StateStore extends AutoCloseable {
 
     <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable;
 
-//    <K> void delete(K key) throws Throwable;
-
     void delete(byte[] key) throws Throwable;
 
     void persist(Set<MessageQueue> messageQueue) throws Throwable;

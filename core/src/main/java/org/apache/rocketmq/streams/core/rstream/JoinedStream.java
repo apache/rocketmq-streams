@@ -25,8 +25,6 @@ import org.apache.rocketmq.streams.core.runtime.operators.StreamType;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
-import org.apache.rocketmq.streams.core.typeUtil.TypeExtractor;
-import org.apache.rocketmq.streams.core.typeUtil.TypeWrapper;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.ArrayList;

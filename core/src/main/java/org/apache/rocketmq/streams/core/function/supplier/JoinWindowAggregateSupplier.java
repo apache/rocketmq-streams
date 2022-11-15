@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
@@ -30,20 +29,15 @@ import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
-import org.apache.rocketmq.streams.core.typeUtil.TypeExtractor;
-import org.apache.rocketmq.streams.core.typeUtil.TypeWrapper;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
-import java.lang.reflect.Type;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor<? super OUT>> {
