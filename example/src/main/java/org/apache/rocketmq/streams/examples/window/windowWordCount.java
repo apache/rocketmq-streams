@@ -32,6 +32,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * 1、启动RocketMQ
+ * 2、创建topic
+ * 3、启动本例子运行
+ * 4、向topic中写入数据
+ * 5、观察输出结果
+ */
 public class windowWordCount {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("windowWordCount");

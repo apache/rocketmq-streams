@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.examples;
 
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
-import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
@@ -30,6 +29,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * 1、启动RocketMQ
+ * 2、创建topic
+ * 3、启动本例子运行
+ * 4、向topic中写入数据
+ * 5、观察输出结果
+ */
 public class WordCount {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("wordCount");
