@@ -71,25 +71,13 @@ public class WindowKey {
         this.key2String = key2String;
     }
 
-    public String getSearchKeyPrefixNameAndKey() {
-        StringBuilder builder = new StringBuilder();
-        builder.append(operatorName)
-                .append(Constant.SPLIT)
-                .append(key2String);
-
-        return builder.toString();
-    }
-
-    public String getSearchKeyPrefixName() {
-        return this.operatorName;
-    }
 
     public String getKeyAndWindow() {
         StringBuilder builder = new StringBuilder();
         builder.append(windowStart)
-                .append(Constant.SPLIT)
+                .append(WindowKey.SPLIT)
                 .append(windowEnd)
-                .append(Constant.SPLIT)
+                .append(WindowKey.SPLIT)
                 .append(key2String);
 
         return builder.toString();
