@@ -47,7 +47,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public WindowStream<K, Integer> count() {
-        String name = makeName(WINDOW_COUNT_PREFIX);
+        String name = OperatorNameMaker.makeName(WINDOW_COUNT_PREFIX);
         Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
         //是否需要分组计算
@@ -63,7 +63,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
-        String name = makeName(WINDOW_AGGREGATE_PREFIX);
+        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX);
 
         Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> null, aggregateAction);
 
@@ -84,22 +84,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
         return new RStreamImpl<>(this.pipeline, parent);
     }
 
-    private String makeName(String prefix) {
-        String name;
 
-        /**
-         * 左右流join时，需要保证左右流shuffle到相同的topic中，这样，相同key才能到一个计算实例上，所以需要这个name一致
-         * 移除是因为避免影响后续算子；
-         */
-        CommonNameMaker commonName = (CommonNameMaker) this.properties.remove(Constant.COMMON_NAME_MAKER);
-        if (commonName != null) {
-            name = OperatorNameMaker.makeCommonName(commonName.getPrefix(), commonName.getLocalIndex());
-        } else {
-            name = OperatorNameMaker.makeName(prefix);
-        }
-
-        return name;
-    }
 
     @Override
     public void setProperties(Properties properties) {

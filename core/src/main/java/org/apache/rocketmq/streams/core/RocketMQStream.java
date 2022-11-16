@@ -16,11 +16,8 @@ package org.apache.rocketmq.streams.core;
  * limitations under the License.
  */
 
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.running.WorkerThread;
-import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

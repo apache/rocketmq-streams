@@ -17,12 +17,10 @@ package org.apache.rocketmq.streams.core.topology;
  */
 
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.topology.real.ProcessorFactory;
 import org.apache.rocketmq.streams.core.topology.real.RealProcessorFactory;
 import org.apache.rocketmq.streams.core.topology.real.SinkFactory;
 import org.apache.rocketmq.streams.core.topology.real.SourceFactory;
-import org.apache.rocketmq.streams.core.topology.real.StatefulProcessorFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +39,6 @@ public class TopologyBuilder {
 
     private final HashMap<String/*source name*/, List<String/*subsequent processor without source*/>> source2Group = new HashMap<>();
 
-    private final HashMap<String, StatefulProcessorFactory<?>> name2StateStore = new HashMap<>();
 
     public <T> void addRealSource(String name, String topicName, Supplier<Processor<T>> supplier) {
         SourceFactory<T> sourceFactory = new SourceFactory<>(name, topicName, supplier);
@@ -54,43 +51,21 @@ public class TopologyBuilder {
         source2Group.put(name, new ArrayList<>());
     }
 
-    @SuppressWarnings("unchecked")
+
     public <T> void addRealNode(String name, String parentName, Supplier<? extends Processor<T>> supplier) {
         RealProcessorFactory<T> processorFactory = new ProcessorFactory<>(name, supplier);
         realNodeFactory.put(name, processorFactory);
-
-//        RealProcessorFactory<T> parentFactory = (RealProcessorFactory<T>) realNodeFactory.get(parentName);
-//        if (parentFactory != null) {//join时两个parent，但是当前流中只有一个parent
-//            parentFactory.addChild(processorFactory);
-//        }
 
         grouping(name, parentName);
     }
 
 
-//    @SuppressWarnings("unchecked")
-//    public <V> void addStatefulRealNode(String name, String parentName, StateStore stateStore, Supplier<Processor<V>> supplier) {
-//        StatefulProcessorFactory<V> processorFactory = new StatefulProcessorFactory<>(name, supplier);
-//        processorFactory.setStateStore(stateStore);
-//        realNodeFactory.put(name, processorFactory);
-//
-//        name2StateStore.put(name, processorFactory);
-//
-//        RealProcessorFactory<V> parentFactory = (RealProcessorFactory<V>) realNodeFactory.get(parentName);
-//        parentFactory.addChild(processorFactory);
-//
-//        grouping(name, parentName);
-//    }
 
-    @SuppressWarnings("unchecked")
+
     public <T> void addRealSink(String name, String parentName, String topicName, Supplier<Processor<T>> supplier) {
         SinkFactory<T> sinkFactory = new SinkFactory<>(name, supplier);
         realNodeFactory.put(name, sinkFactory);
         topic2SinkNodeFactory.put(topicName, sinkFactory);
-
-//        RealProcessorFactory<T> parentFactory = (RealProcessorFactory<T>) realNodeFactory.get(parentName);
-//        parentFactory.addChild(sinkFactory);
-
         grouping(name, parentName);
     }
 
@@ -113,37 +88,6 @@ public class TopologyBuilder {
         return Collections.unmodifiableSet(this.topic2SourceNodeFactory.keySet());
     }
 
-//    @SuppressWarnings("unchecked")
-//    public <K, V, OK, OV> List<RealProcessorFactory<K, V, OK, OV>> getProcessorFactoryGroup(String topicName) {
-//        SourceFactory<K, V, OK, OV> sourceFactory = (SourceFactory<K, V, OK, OV>) topic2SourceNodeFactory.get(topicName);
-//
-//        String sourceName = sourceFactory.getName();
-//        List<String> groupNames = source2Group.get(sourceName);
-//
-//        List<RealProcessorFactory<K, V, OK, OV>> result = new ArrayList<>();
-//        result.add(sourceFactory);
-//
-//        for (String name : groupNames) {
-//            RealProcessorFactory<K, V, OK, OV> processorFactory = (RealProcessorFactory<K, V, OK, OV>) realNodeFactory.get(name);
-//            result.add(processorFactory);
-//        }
-//
-//        return result;
-//    }
-
-
-//    @SuppressWarnings("unchecked")
-//    public <K, V, OK, OV> Task buildTask(String topicName) {
-//        SourceFactory<K, V, OK, OV> sourceFactory = (SourceFactory<K, V, OK, OV>) topic2SourceNodeFactory.get(topicName);
-//        Processor<K, V, OK, OV> sourceProcessor = sourceFactory.build();
-//
-//        List<RealProcessorFactory<K, V, OK, OV>> children = sourceFactory.getChildren();
-//        for (RealProcessorFactory<K, V, OK, OV> child : children) {
-//            Processor<K, V, OK, OV> build = child.build();
-//        }
-//
-//
-//    }
 
 
     @SuppressWarnings("unchecked")
@@ -166,16 +110,6 @@ public class TopologyBuilder {
 
         return sourceProcessor;
     }
-
-//    private <T> void doBuild(final Processor<T> parent, List<RealProcessorFactory<T>> childrenFactory) {
-//
-//        for (RealProcessorFactory<T> childRealProcessorFactory : childrenFactory) {
-//            Processor<T> child = childRealProcessorFactory.build();
-//            parent.addChild(child);
-//
-//            doBuild(child, childRealProcessorFactory.getChildren());
-//        }
-//    }
 
 
 }
