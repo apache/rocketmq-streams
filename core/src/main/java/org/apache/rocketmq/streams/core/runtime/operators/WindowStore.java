@@ -47,26 +47,26 @@ public class WindowStore<K, V> {
 
     public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey, WindowState<K, V> value) throws Throwable {
         logger.debug("put key into store, key: " + windowKey);
-        byte[] keyBytes = this.key2Byte(windowKey);
+        byte[] keyBytes = WindowKey.windowKey2Byte(windowKey);
         byte[] valueBytes = this.state2Bytes.convert(value);
 
         this.stateStore.put(stateTopicMessageQueue, keyBytes, valueBytes);
     }
 
     public WindowState<K, V> get(WindowKey windowKey) throws Throwable {
-        byte[] bytes = this.key2Byte(windowKey);
+        byte[] bytes = WindowKey.windowKey2Byte(windowKey);
         byte[] valueBytes = this.stateStore.get(bytes);
         return deserializerState(valueBytes);
     }
 
     public List<Pair<WindowKey, WindowState<K, V>>> searchLessThanWatermark(WindowKey windowKey) throws Throwable {
-        List<Pair<byte[], byte[]>> windowStateBytes = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), windowKey.getWindowEnd(), this::byte2WindowKey);
+        List<Pair<byte[], byte[]>> windowStateBytes = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), windowKey.getWindowEnd(), WindowKey::byte2WindowKey);
 
         return deserializerState(windowStateBytes);
     }
 
     public List<Pair<WindowKey, WindowState<K, V>>> searchMatchKeyPrefix(WindowKey windowKey) throws Throwable {
-        List<Pair<byte[], byte[]>> pairs = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), Long.MAX_VALUE, this::byte2WindowKey);
+        List<Pair<byte[], byte[]>> pairs = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), Long.MAX_VALUE, WindowKey::byte2WindowKey);
 
         return deserializerState(pairs);
     }
@@ -75,22 +75,8 @@ public class WindowStore<K, V> {
         if (windowKey == null) {
             return;
         }
-        byte[] keyBytes = this.key2Byte(windowKey);
+        byte[] keyBytes = WindowKey.windowKey2Byte(windowKey);
         this.stateStore.delete(keyBytes);
-    }
-
-    private WindowKey byte2WindowKey(byte[] source) {
-        String str = new String(source, StandardCharsets.UTF_8);
-        String[] split = Utils.split(str);
-        return new WindowKey(split[0], split[1],  Long.parseLong(split[2]), Long.parseLong(split[3]));
-    }
-
-    private byte[] key2Byte(WindowKey windowKey) {
-        if (windowKey == null) {
-            return new byte[0];
-        }
-
-        return windowKey.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     private List<Pair<WindowKey, WindowState<K, V>>> deserializerState(List<Pair<byte[], byte[]>> windowStateBytes)  throws Throwable{
@@ -102,7 +88,7 @@ public class WindowStore<K, V> {
 
         for (Pair<byte[], byte[]> pair : windowStateBytes) {
             byte[] keyBytes = pair.getKey();
-            WindowKey key = this.byte2WindowKey(keyBytes);
+            WindowKey key = WindowKey.byte2WindowKey(keyBytes);
             WindowState<K, V> state = this.deserializerState(pair.getValue());
 
             Pair<WindowKey, WindowState<K, V>> temp = new Pair<>(key, state);

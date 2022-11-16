@@ -29,7 +29,8 @@ public class ForeachSupplier<T> implements Supplier<Processor<T>> {
         @Override
         public void process(T data) throws Throwable {
             this.foreachAction.apply(data);
-            this.context.forward(data);
+            Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime(), this.context.getHeader());
+            this.context.forward(result);
         }
     }
 

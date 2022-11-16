@@ -19,19 +19,15 @@ package org.apache.rocketmq.streams.core.metadata;
 import java.util.Properties;
 
 public class Data<K, V> {
-    private Properties header = new Properties();
+    private Properties header;
     private K key;
     private V value;
     private long timestamp;
 
-    public Data(K key, V value, long timestamp) {
+    public Data(K key, V value, long timestamp, Properties header) {
         this.key = key;
         this.value = value;
         this.timestamp = timestamp;
-    }
-
-    public Data(K key, V value, long timestamp, Properties header) {
-        this(key, value, timestamp);
         this.header = header;
     }
 

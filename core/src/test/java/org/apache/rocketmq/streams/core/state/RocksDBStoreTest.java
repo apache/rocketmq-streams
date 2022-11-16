@@ -30,7 +30,7 @@ public class RocksDBStoreTest {
 //        String key = "time@1668249210000@1668249195000";
 //        String key2 = "ewwwwe@1668249600481@1";
         WindowKey key1 = new WindowKey("test1", "keyString1", 10l, 1l);
-        WindowKey key2 = new WindowKey("test2", "keyString2", 10l, 1l);
+        WindowKey key2 = new WindowKey("test1", "keyString2", 20l, 1l);
         Object value1 = "3";
         Object value2 = "2";
 
@@ -52,7 +52,7 @@ public class RocksDBStoreTest {
         Object result2 = Utils.byte2Object(bytes2, Object.class);
         System.out.println(result2);
 
-        WindowKey searchKey = new WindowKey("test", "keyString1", 10l, 1l);
+        WindowKey searchKey = new WindowKey("test1", "keyString1", 13l, 1l);
         String operatorName = searchKey.getOperatorName();
         List<Pair<byte[], byte[]>> pairs = rocksDBStore.searchStateLessThanWatermark(operatorName, 11l, RocksDBStoreTest::byte2WindowKey);
 

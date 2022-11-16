@@ -53,18 +53,19 @@ public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
         public void process(T data) throws Throwable {
             O convert = valueMapperAction.convert(data);
 
-            Data<Object, T> originData = new Data<>(this.context.getKey(), data, this.context.getDataTime());
+            Data<Object, T> originData = new Data<>(this.context.getKey(), data, this.context.getDataTime(), this.context.getHeader());
             if (convert instanceof Iterable) {
                 Iterable<? extends O> iterable = (Iterable<? extends O>) convert;
                 for (O item : iterable) {
                     Data<Object, O> before = originData.value(item);
                     Data<Object, T> result = convert(before);
-                    this.context.forward(result.getValue());
+
+                    this.context.forward(result);
                 }
             } else {
                 Data<Object, O> before = originData.value(convert);
                 Data<Object, T> result = convert(before);
-                this.context.forward(result.getValue());
+                this.context.forward(result);
             }
         }
     }

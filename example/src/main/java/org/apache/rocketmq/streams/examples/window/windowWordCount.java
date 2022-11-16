@@ -34,7 +34,7 @@ import java.util.Properties;
 
 public class windowWordCount {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder("windowCountUser");
+        StreamBuilder builder = new StreamBuilder("windowWordCount");
         builder.source("sourceTopic", source -> {
                     String value = new String(source, StandardCharsets.UTF_8);
                     return new Pair<>(null, value);

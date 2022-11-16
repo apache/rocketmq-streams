@@ -17,13 +17,11 @@ package org.apache.rocketmq.streams.core.state;
  */
 
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
-import org.apache.rocketmq.streams.core.util.Utils;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
@@ -33,7 +31,6 @@ import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -189,17 +186,19 @@ public class RocksDBStore extends AbstractStore {
             byte[] keyBytes = rocksIterator.key();
             byte[] valueBytes = rocksIterator.value();
 
-            rocksIterator.prev();
+            rocksIterator.next();
 
             WindowKey windowKey = deserializer.convert(keyBytes);
             if (!windowKey.getOperatorName().equals(name)) {
                 continue;
             }
 
-            if (windowKey.getWindowEnd() < lessThanThisTime) {
-                Pair<byte[], byte[]> pair = new Pair<>(keyBytes, valueBytes);
-                temp.add(pair);
+            if (windowKey.getWindowEnd() >= lessThanThisTime) {
+                continue;
             }
+
+            Pair<byte[], byte[]> pair = new Pair<>(keyBytes, valueBytes);
+            temp.add(pair);
         }
         return temp;
 

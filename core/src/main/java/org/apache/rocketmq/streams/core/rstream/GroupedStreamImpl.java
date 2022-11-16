@@ -28,7 +28,7 @@ import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
 
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     private final Pipeline pipeline;
@@ -58,14 +58,14 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     @Override
     public WindowStream<K, V> window(WindowInfo windowInfo) {
         //需要在window里面shuffle
-        String name = OperatorNameMaker.makeName(WINDOW_PREFIX);
+        String name = OperatorNameMaker.makeName(WINDOW_ADD_TAG);
 
         ProcessorNode<V> node;
 
         if (!this.parent.shuffleNode()) {
             node = new ProcessorNode<>(name, parent.getName(), new AddTagSupplier<>());
         } else if (windowInfo.getJoinStream() != null) {
-            node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>("addTagToStream", windowInfo::getJoinStream));
+            node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>(windowInfo::getJoinStream));
         } else {
             node = new ShuffleProcessorNode<>(name, parent.getName(), new AddTagSupplier<>());
         }

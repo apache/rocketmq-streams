@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
+import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 
@@ -25,8 +27,9 @@ import java.util.function.Supplier;
 public class AddTagSupplier<T> implements Supplier<Processor<T>> {
     private final Properties properties = new Properties();
 
-    public AddTagSupplier(String name, Supplier<Object> value) {
-        properties.put(name, value.get());
+    public AddTagSupplier(Supplier<Object> value) {
+
+        properties.put(Constant.STREAM_TAG, value.get());
     }
 
     public AddTagSupplier() {
@@ -46,8 +49,10 @@ public class AddTagSupplier<T> implements Supplier<Processor<T>> {
 
         @Override
         public void process(T data) throws Throwable {
-            this.context.getHeader().putAll(properties);
-            this.context.forward(data);
+            Properties header = this.context.getHeader();
+            header.putAll(properties);
+            Data<Object, T> result = new Data<>(this.context.getKey(), data, this.context.getDataTime(), header);
+            this.context.forward(result);
         }
     }
 }

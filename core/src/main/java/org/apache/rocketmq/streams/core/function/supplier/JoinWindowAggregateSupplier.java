@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractWindowProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
@@ -103,7 +104,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             long time = this.context.getDataTime();
             Properties header = this.context.getHeader();
             long watermark = this.context.getWatermark();
-            WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get("addTagToStream");
+            WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
 
             if (time < watermark) {
                 //已经触发，丢弃数据
@@ -131,9 +132,11 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                     case LEFT_STREAM:
                         WindowState<K, V1> leftState = new WindowState<>((K) key, (V1) data, time);
                         this.leftWindowStore.put(stateTopicMessageQueue, windowKey, leftState);
+                        break;
                     case RIGHT_STREAM:
                         WindowState<K, V2> rightState = new WindowState<>((K) key, (V2) data, time);
                         this.rightWindowStore.put(stateTopicMessageQueue, windowKey, rightState);
+                        break;
                 }
             }
         }
@@ -177,10 +180,17 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                                 V2 o2 = rightPair.getValue().getValue();
 
                                 OUT out = this.joinAction.apply(o1, o2);
-                                this.context.forward(out);
+
+                                Properties header = this.context.getHeader();
+                                header.put(Constant.WINDOW_START_TIME, leftPair.getKey().getWindowStart());
+                                header.put(Constant.WINDOW_END_TIME, leftPair.getKey().getWindowEnd());
+                                Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
+                                Data<K, Object> convert = super.convert(result);
+                                this.context.forward(convert);
                             }
                         }
                     }
+                    break;
                 case LEFT_JOIN:
                     switch (streamType) {
                         case LEFT_STREAM:
@@ -203,19 +213,27 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                                 }
 
                                 OUT out = this.joinAction.apply(o1, o2);
-                                this.context.forward(out);
+                                Properties header = this.context.getHeader();
+                                header.put(Constant.WINDOW_START_TIME, leftPair.getKey().getWindowStart());
+                                header.put(Constant.WINDOW_END_TIME, leftPair.getKey().getWindowEnd());
+                                Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
+                                Data<K, Object> convert = super.convert(result);
+                                this.context.forward(convert);
                             }
+                            break;
                         case RIGHT_STREAM:
                             //do nothing.
                     }
+                    break;
             }
 
             //删除状态
             for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
-                for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
-                    this.leftWindowStore.deleteByKey(leftPair.getKey());
-                    this.rightWindowStore.deleteByKey(rightPair.getKey());
-                }
+                this.leftWindowStore.deleteByKey(leftPair.getKey());
+            }
+
+            for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
+                this.rightWindowStore.deleteByKey(rightPair.getKey());
             }
         }
 

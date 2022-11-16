@@ -57,11 +57,15 @@ public class Utils {
     }
 
     public static String[] split(String source) {
-        if (StringUtils.isEmpty(source)) {
+        return split(source, Constant.SPLIT);
+    }
+
+    public static String[] split(String source, String split) {
+        if (StringUtils.isEmpty(source) || StringUtils.isEmpty(split)) {
             return new String[]{};
         }
 
-        return source.split(Constant.SPLIT);
+        return source.split(split);
     }
 
     public static byte[] object2Byte(Object target) throws JsonProcessingException {

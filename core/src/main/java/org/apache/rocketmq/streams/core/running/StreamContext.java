@@ -17,8 +17,7 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
-import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.serialization.SerDeWrapper;
 import org.apache.rocketmq.streams.core.state.StateStore;
 
@@ -32,15 +31,9 @@ public interface StreamContext<V> {
 
     long getDataTime();
 
-    void setDataTime(long dataTime);
-
     <K> K getKey();
 
-    <K> void setKey(K key);
-
     long getWatermark();
-
-    SerDeWrapper getSerDeWrapper();
 
     Properties getHeader();
 
@@ -48,5 +41,5 @@ public interface StreamContext<V> {
 
     String getMessageFromWhichSourceTopicQueue();
 
-    void forward(V data) throws Throwable;
+    <K> void forward(Data<K, V> data) throws Throwable;
 }

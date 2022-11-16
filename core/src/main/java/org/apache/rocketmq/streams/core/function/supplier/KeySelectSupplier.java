@@ -46,8 +46,8 @@ public class KeySelectSupplier<KEY, T> implements Supplier<Processor<T>> {
         @Override
         public void process(T data) throws Throwable {
             KEY newKey = keySelectAction.select(data);
-            this.context.setKey(newKey);
-            this.context.forward(data);
+            Data<KEY, T> result = new Data<>(newKey, data, this.context.getDataTime(), this.context.getHeader());
+            this.context.forward(result);
         }
     }
 }

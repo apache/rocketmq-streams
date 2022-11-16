@@ -17,8 +17,7 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.streams.core.serialization.JsonSerDe;
-import org.apache.rocketmq.streams.core.serialization.SerDeWrapper;
+import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
@@ -31,7 +30,7 @@ import java.util.Properties;
  * 2、可以获得下一个执行节点
  * 3、可获得动态的运行时信息，例如正在处理的数据来自那个topic，MQ，偏移量多少；
  */
-public class StreamContextImpl<T> implements StreamContext<T> {
+public class StreamContextImpl<V> implements StreamContext<V> {
 
     private final DefaultMQProducer producer;
     private final DefaultMQAdminExt mqAdmin;
@@ -42,9 +41,8 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     private long dataTime;
     private Properties header = new Properties();
     private long watermark;
-    private SerDeWrapper serDeWrapper = new JsonSerDe();
 
-    private final List<Processor<T>> childList = new ArrayList<>();
+    private final List<Processor<V>> childList = new ArrayList<>();
 
     StreamContextImpl(DefaultMQProducer producer, DefaultMQAdminExt mqAdmin, StateStore stateStore, String messageFromWhichSourceTopicQueue) {
         this.producer = producer;
@@ -58,7 +56,7 @@ public class StreamContextImpl<T> implements StreamContext<T> {
     }
 
     @Override
-    public void init(List<Processor<T>> childrenProcessors) {
+    public void init(List<Processor<V>> childrenProcessors) {
         this.childList.clear();
         if (childrenProcessors != null) {
             this.childList.addAll(childrenProcessors);
@@ -84,8 +82,8 @@ public class StreamContextImpl<T> implements StreamContext<T> {
         return this.dataTime;
     }
 
-    @Override
-    public void setDataTime(long dataTime) {
+
+    void setDataTime(long dataTime) {
         this.dataTime = dataTime;
     }
 
@@ -95,8 +93,7 @@ public class StreamContextImpl<T> implements StreamContext<T> {
         return (K) key;
     }
 
-    @Override
-    public <K> void setKey(K key) {
+    <K> void setKey(K key) {
         this.key = key;
     }
 
@@ -105,25 +102,28 @@ public class StreamContextImpl<T> implements StreamContext<T> {
         return watermark;
     }
 
-    @Override
-    public SerDeWrapper getSerDeWrapper() {
-        return this.serDeWrapper;
-    }
 
     @Override
     public Properties getHeader() {
-        return header;
+        Properties result = new Properties();
+        result.putAll(this.header);
+
+        return result;
     }
 
     @Override
-    public void forward(T data) throws Throwable {
-        List<Processor<T>> store = new ArrayList<>(childList);
+    public <K> void forward(Data<K, V> data) throws Throwable {
+        this.key = data.getKey();
+        this.dataTime = data.getTimestamp();
+        this.header = data.getHeader();
 
-        for (Processor<T> processor : childList) {
+        List<Processor<V>> store = new ArrayList<>(childList);
+
+        for (Processor<V> processor : childList) {
 
             try {
                 processor.preProcess(this);
-                processor.process(data);
+                processor.process(data.getValue());
             } finally {
                 this.childList.clear();
                 this.childList.addAll(store);

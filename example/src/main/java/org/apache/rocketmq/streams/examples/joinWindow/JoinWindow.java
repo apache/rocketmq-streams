@@ -71,13 +71,12 @@ public class JoinWindow {
             }
         };
 
-        RStream<Union> apply = user.join(num)
+        user.join(num)
                 .where(User::getName)
                 .equalTo(Num::getName)
-                .window(WindowBuilder.tumblingWindow(Time.seconds(10)))
-                .apply(action);
-
-        apply.print();
+                .window(WindowBuilder.tumblingWindow(Time.seconds(30)))
+                .apply(action)
+                .print();
 
         TopologyBuilder topologyBuilder = builder.build();
 

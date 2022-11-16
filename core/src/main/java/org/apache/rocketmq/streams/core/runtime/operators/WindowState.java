@@ -37,7 +37,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class WindowState<K, V> implements Serializable {
     private static final long serialVersionUID = 1669344441528746814L;
-    private long recordEarliestTimestamp;
+    private long recordEarliestTimestamp = Long.MAX_VALUE;
     private long recordLastTimestamp;
     private K key;
     private V value;
@@ -69,17 +69,24 @@ public class WindowState<K, V> implements Serializable {
         return key;
     }
 
-    public void setKey(K key) {
+    public void setKey(K key) throws JsonProcessingException {
         this.key = key;
-
+        this.keyBytes = Utils.object2Byte(key);
+        if (key != null) {
+            this.keyClazz = key.getClass();
+        }
     }
 
     public V getValue() {
         return value;
     }
 
-    public void setValue(V value) {
+    public void setValue(V value) throws JsonProcessingException {
         this.value = value;
+        this.valueBytes = Utils.object2Byte(value);
+        if (value != null) {
+            this.valueClazz = value.getClass();
+        }
     }
 
     public byte[] getKeyBytes() {
@@ -162,11 +169,12 @@ public class WindowState<K, V> implements Serializable {
         }
 
 
-        int length = 4 + 8 + 4 + keyClazzBytes.length + 4 + keyBytes.length + 4 + valueClazzBytes.length + 4 + valueBytes.length;
+        int length = 4 + 8 + 8 + 4 + keyClazzBytes.length + 4 + keyBytes.length + 4 + valueClazzBytes.length + 4 + valueBytes.length;
 
         buf.writeInt(length);
 
         buf.writeLong(state.getRecordLastTimestamp());
+        buf.writeLong(state.getRecordEarliestTimestamp());
 
         //key class
         buf.writeInt(keyClazzBytes.length);
@@ -198,7 +206,8 @@ public class WindowState<K, V> implements Serializable {
             System.out.println("less than normal.");
         }
 
-        long timestamp = byteBuf.readLong();
+        long recordLastTimestamp = byteBuf.readLong();
+        long recordEarliestTimestamp = byteBuf.readLong();
 
         //key class
         int keyClazzLength = byteBuf.readInt();
@@ -231,7 +240,8 @@ public class WindowState<K, V> implements Serializable {
         valueBuf.readBytes(valueBytes);
 
         WindowState<K, V> result = new WindowState<>();
-        result.setRecordLastTimestamp(timestamp);
+        result.setRecordLastTimestamp(recordLastTimestamp);
+        result.setRecordEarliestTimestamp(recordEarliestTimestamp);
         result.setKeyBytes(keyBytes);
         result.setValueBytes(valueBytes);
         result.setKeyClazz(keyClazz);

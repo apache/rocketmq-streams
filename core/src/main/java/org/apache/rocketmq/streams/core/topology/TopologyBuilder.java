@@ -59,28 +59,28 @@ public class TopologyBuilder {
         RealProcessorFactory<T> processorFactory = new ProcessorFactory<>(name, supplier);
         realNodeFactory.put(name, processorFactory);
 
-        RealProcessorFactory<T> parentFactory = (RealProcessorFactory<T>) realNodeFactory.get(parentName);
-        if (parentFactory != null) {//join时两个parent，但是当前流中只有一个parent
-            parentFactory.addChild(processorFactory);
-        }
+//        RealProcessorFactory<T> parentFactory = (RealProcessorFactory<T>) realNodeFactory.get(parentName);
+//        if (parentFactory != null) {//join时两个parent，但是当前流中只有一个parent
+//            parentFactory.addChild(processorFactory);
+//        }
 
         grouping(name, parentName);
     }
 
 
-    @SuppressWarnings("unchecked")
-    public <V> void addStatefulRealNode(String name, String parentName, StateStore stateStore, Supplier<Processor<V>> supplier) {
-        StatefulProcessorFactory<V> processorFactory = new StatefulProcessorFactory<>(name, supplier);
-        processorFactory.setStateStore(stateStore);
-        realNodeFactory.put(name, processorFactory);
-
-        name2StateStore.put(name, processorFactory);
-
-        RealProcessorFactory<V> parentFactory = (RealProcessorFactory<V>) realNodeFactory.get(parentName);
-        parentFactory.addChild(processorFactory);
-
-        grouping(name, parentName);
-    }
+//    @SuppressWarnings("unchecked")
+//    public <V> void addStatefulRealNode(String name, String parentName, StateStore stateStore, Supplier<Processor<V>> supplier) {
+//        StatefulProcessorFactory<V> processorFactory = new StatefulProcessorFactory<>(name, supplier);
+//        processorFactory.setStateStore(stateStore);
+//        realNodeFactory.put(name, processorFactory);
+//
+//        name2StateStore.put(name, processorFactory);
+//
+//        RealProcessorFactory<V> parentFactory = (RealProcessorFactory<V>) realNodeFactory.get(parentName);
+//        parentFactory.addChild(processorFactory);
+//
+//        grouping(name, parentName);
+//    }
 
     @SuppressWarnings("unchecked")
     public <T> void addRealSink(String name, String parentName, String topicName, Supplier<Processor<T>> supplier) {
@@ -88,8 +88,8 @@ public class TopologyBuilder {
         realNodeFactory.put(name, sinkFactory);
         topic2SinkNodeFactory.put(topicName, sinkFactory);
 
-        RealProcessorFactory<T> parentFactory = (RealProcessorFactory<T>) realNodeFactory.get(parentName);
-        parentFactory.addChild(sinkFactory);
+//        RealProcessorFactory<T> parentFactory = (RealProcessorFactory<T>) realNodeFactory.get(parentName);
+//        parentFactory.addChild(sinkFactory);
 
         grouping(name, parentName);
     }
@@ -108,10 +108,6 @@ public class TopologyBuilder {
         }
     }
 
-//    @SuppressWarnings("unchecked")
-//    public <K, V> StatefulProcessorFactory<K, V> getStatefulProcessorFactory(String name) {
-//        return (StatefulProcessorFactory<K, V>) this.name2StateStore.get(name);
-//    }
 
     public Set<String> getSourceTopic() {
         return Collections.unmodifiableSet(this.topic2SourceNodeFactory.keySet());
@@ -156,24 +152,30 @@ public class TopologyBuilder {
         Processor<T> sourceProcessor = sourceFactory.build();
 
         String sourceName = sourceFactory.getName();
+
         //集合中的顺序就是算子的父子顺序，前面的是后面的父亲节点
         List<String> groupNames = source2Group.get(sourceName);
 
-        doBuild(sourceProcessor, sourceFactory.getChildren());
+        Processor<T> parent = sourceProcessor;
+        for (String child : groupNames) {
+            RealProcessorFactory<T> childProcessorFactory = (RealProcessorFactory<T>) realNodeFactory.get(child);
+            Processor<T> childProcessor = childProcessorFactory.build();
+            parent.addChild(childProcessor);
+            parent = childProcessor;
+        }
 
         return sourceProcessor;
     }
 
-    private <T> void doBuild(final Processor<T> parent, List<RealProcessorFactory<T>> childrenFactory) {
-
-        for (RealProcessorFactory<T> childRealProcessorFactory : childrenFactory) {
-            Processor<T> child = childRealProcessorFactory.build();
-            parent.addChild(child);
-
-            doBuild(child, childRealProcessorFactory.getChildren());
-        }
-    }
-
+//    private <T> void doBuild(final Processor<T> parent, List<RealProcessorFactory<T>> childrenFactory) {
+//
+//        for (RealProcessorFactory<T> childRealProcessorFactory : childrenFactory) {
+//            Processor<T> child = childRealProcessorFactory.build();
+//            parent.addChild(child);
+//
+//            doBuild(child, childRealProcessorFactory.getChildren());
+//        }
+//    }
 
 
 }

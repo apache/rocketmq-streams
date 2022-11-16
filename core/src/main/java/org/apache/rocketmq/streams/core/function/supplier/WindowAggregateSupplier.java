@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -193,9 +194,14 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 OV newValue = this.aggregateAction.calculate(key, data, oldValue);
 
                 WindowState<K, OV> state = new WindowState<>(key, newValue, time);
+                if (time < state.getRecordEarliestTimestamp()) {
+                    //更新最早时间戳，用于状态触发时候，作为session 窗口的begin时间戳
+                    state.setRecordEarliestTimestamp(time);
+                }
 
                 WindowKey windowKey = new WindowKey(name, super.toHexString(key), newSessionWindowTime.getValue(), newSessionWindowTime.getKey());
-                logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, time, newSessionWindowTime.getValue(), newSessionWindowTime.getValue());
+                logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, time,
+                        Utils.format(newSessionWindowTime.getKey()), Utils.format(newSessionWindowTime.getValue()));
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
             }
         }
@@ -278,6 +284,8 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                                     Utils.format(windowKey.getWindowStart()), Utils.format(mayBeSessionEnd));
                             //删除老状态
                             needToDelete = windowKey;
+                            //需要保存的新状态
+                            windowKey = new WindowKey(windowKey.getOperatorName(), windowKey.getKey2String(), mayBeSessionEnd, windowKey.getWindowStart());
                         }
                     }
                 } else {
@@ -297,14 +305,23 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
         private void fire(K key, WindowKey windowKey, WindowState<K, OV> state) throws Throwable {
             long windowEnd = windowKey.getWindowEnd();
-            long windowBegin = state.getRecordEarliestTimestamp();
+            long windowBegin;
+            if (state.getRecordEarliestTimestamp() == Long.MAX_VALUE) {
+                windowBegin = windowKey.getWindowStart();
+            } else {
+                windowBegin = state.getRecordEarliestTimestamp();
+            }
 
             logger.info("fire session,windowKey={}, search keyPrefix={}, window: [{} - {}]", windowKey, key.toString(), Utils.format(windowBegin), Utils.format(windowEnd));
 
-            Data<K, OV> result = new Data<>(state.getKey(), state.getValue(), state.getRecordLastTimestamp());
+            Properties header = this.context.getHeader();
+            header.put(Constant.WINDOW_START_TIME, windowBegin);
+            header.put(Constant.WINDOW_END_TIME, windowEnd);
+
+            Data<K, OV> result = new Data<>(state.getKey(), state.getValue(), state.getRecordLastTimestamp(), header);
             Data<K, V> convert = super.convert(result);
 
-            this.context.forward(convert.getValue());
+            this.context.forward(convert);
 
             //删除状态
             this.windowStore.deleteByKey(windowKey);
@@ -334,7 +351,10 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 WindowKey windowKey = pair.getKey();
                 WindowState<K, OV> value = pair.getValue();
 
-                Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getRecordLastTimestamp());
+                Properties header = this.context.getHeader();
+                header.put(Constant.WINDOW_START_TIME, windowKey.getWindowStart());
+                header.put(Constant.WINDOW_END_TIME, windowKey.getWindowEnd());
+                Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getRecordLastTimestamp(), header);
                 Data<K, V> convert = super.convert(result);
 
 
@@ -343,7 +363,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                             watermark, Utils.format(windowKey.getWindowStart()), Utils.format(windowKey.getWindowEnd()), convert);
                 }
 
-                this.context.forward(convert.getValue());
+                this.context.forward(convert);
 
                 //删除状态
                 this.windowStore.deleteByKey(windowKey);

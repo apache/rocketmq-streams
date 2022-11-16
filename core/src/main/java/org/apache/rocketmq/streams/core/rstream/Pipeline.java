@@ -41,6 +41,10 @@ public class Pipeline {
     }
 
     public <T> RStream<T> addRStreamVirtualNode(GraphNode currentNode, GraphNode parentNode) {
+        if (!virtualNodes.contains(parentNode)) {
+            virtualNodes.add(parentNode);
+        }
+
         parentNode.addChild(currentNode);
         currentNode.addParent(parentNode);
 
@@ -49,6 +53,10 @@ public class Pipeline {
     }
 
     public <K, V> GroupedStreamImpl<K, V> addGroupedStreamVirtualNode(GraphNode currentNode, GraphNode parentNode) {
+        if (!virtualNodes.contains(parentNode)) {
+            virtualNodes.add(parentNode);
+        }
+
         parentNode.addChild(currentNode);
         currentNode.addParent(parentNode);
 
@@ -57,6 +65,10 @@ public class Pipeline {
     }
 
     public <K, V> WindowStream<K, V> addWindowStreamVirtualNode(GraphNode currentNode, GraphNode parentNode, WindowInfo windowInfo) {
+        if (!virtualNodes.contains(parentNode)) {
+            virtualNodes.add(parentNode);
+        }
+
         parentNode.addChild(currentNode);
         currentNode.addParent(parentNode);
 
@@ -65,6 +77,9 @@ public class Pipeline {
     }
 
     public void addVirtualSink(GraphNode currentNode, GraphNode parentNode) {
+        if (!virtualNodes.contains(parentNode)) {
+            virtualNodes.add(parentNode);
+        }
         parentNode.addChild(currentNode);
         virtualNodes.add(currentNode);
     }
@@ -73,15 +88,6 @@ public class Pipeline {
         return this.root;
     }
 
-    public GraphNode getByName(String name) {
-        for (GraphNode virtualNode : virtualNodes) {
-            if (virtualNode.getName().equals(name)) {
-                return virtualNode;
-            }
-        }
-
-        return null;
-    }
 
     public GraphNode getLastNode() {
         return this.virtualNodes.get(virtualNodes.size() - 1);

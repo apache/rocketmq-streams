@@ -17,8 +17,13 @@
 package org.apache.rocketmq.streams.core.runtime.operators;
 
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.util.Utils;
+
+import java.nio.charset.StandardCharsets;
 
 public class WindowKey {
+    private static final String SPLIT = "&&";
+
     private String operatorName;
 
     private Long windowStart;
@@ -90,15 +95,30 @@ public class WindowKey {
         return builder.toString();
     }
 
+    public static WindowKey byte2WindowKey(byte[] source) {
+        String str = new String(source, StandardCharsets.UTF_8);
+        String[] split = Utils.split(str, WindowKey.SPLIT);
+        return new WindowKey(split[0], split[1],  Long.parseLong(split[2]), Long.parseLong(split[3]));
+    }
+
+
+    public static byte[] windowKey2Byte(WindowKey windowKey) {
+        if (windowKey == null) {
+            return new byte[0];
+        }
+
+        return windowKey.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append(operatorName)
-                .append(Constant.SPLIT)
+                .append(WindowKey.SPLIT)
                 .append(key2String)
-                .append(Constant.SPLIT)
+                .append(WindowKey.SPLIT)
                 .append(windowEnd)
-                .append(Constant.SPLIT)
+                .append(WindowKey.SPLIT)
                 .append(windowStart)
         ;
 

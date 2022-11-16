@@ -81,9 +81,9 @@ public class JoinedStream<V1, V2> {
             List<String> temp = new ArrayList<>();
             WindowInfo.JoinStream joinStream = new WindowInfo.JoinStream(JoinedStream.this.joinType, null);
             windowInfo.setJoinStream(joinStream);
-            String name = OperatorNameMaker.makeName(OperatorNameMaker.WINDOW_APPLY_PREFIX);
+            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_WINDOW_PREFIX);
             Supplier<Processor<? super OUT>> supplier = new JoinWindowAggregateSupplier<>(name, windowInfo, joinAction);
-            ProcessorNode<OUT> commChild = new ProcessorNode("comm", temp, supplier);
+            ProcessorNode<OUT> commChild = new ProcessorNode(name, temp, supplier);
 
             Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
             {

@@ -202,14 +202,14 @@ public class WorkerThread extends Thread {
                     long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));
                     context.setWatermark(watermark);
 
-                    Data<K, V> data = new Data<>(pair.getKey(), pair.getValue(), timestamp);
+                    Data<K, V> data = new Data<>(pair.getKey(), pair.getValue(), timestamp, new Properties());
                     context.setKey(pair.getKey());
                     if (topic.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                         logger.debug("shuffle data: [{}]", data);
                     } else {
                         logger.debug("source data: [{}]", data);
                     }
-                    context.forward(pair.getValue());
+                    context.forward(data);
                 }
 
                 //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。

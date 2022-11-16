@@ -32,10 +32,10 @@ public class OperatorNameMaker {
     public static final String SINK_PREFIX = "ROCKETMQ-SINK";
     public static final String PRINT_PREFIX = "ROCKETMQ-PRINT";
     public static final String SHUFFLE_SINK_PREFIX = "ROCKETMQ-SHUFFLE-SINK";
-    public static final String WINDOW_PREFIX = "ROCKETMQ-WINDOW";
+    public static final String WINDOW_ADD_TAG = "ROCKETMQ-ADD-TAG";
     public static final String WINDOW_COUNT_PREFIX = "ROCKETMQ-WINDOW-COUNT";
     public static final String WINDOW_AGGREGATE_PREFIX = "ROCKETMQ-WINDOW-AGGREGATE";
-    public static final String WINDOW_APPLY_PREFIX = "JOIN-WINDOW-APPLY";
+    public static final String JOIN_WINDOW_PREFIX = "JOIN-WINDOW";
 
     public static final String pattern = "%s-%s-%s";
 

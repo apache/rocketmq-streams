@@ -90,10 +90,10 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
 
             stateStore.put(this.stateTopicMessageQueue, keyBytes, newValueBytes);
 
-            Data<K, OV> temp = new Data<>(key, result, this.context.getDataTime());
+            Data<K, OV> temp = new Data<>(key, result, this.context.getDataTime(), this.context.getHeader());
             Data<K, V> convert = super.convert(temp);
 
-            this.context.forward(convert.getValue());
+            this.context.forward(convert);
         }
 
     }
