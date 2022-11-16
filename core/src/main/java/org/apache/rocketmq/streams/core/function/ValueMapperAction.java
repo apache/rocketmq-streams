@@ -16,6 +16,6 @@
  */
 package org.apache.rocketmq.streams.core.function;
 
-public interface ValueMapperAction<T, O> extends Action {
+public interface ValueMapperAction<T, O> {
     O convert(final T value) throws Throwable;
 }

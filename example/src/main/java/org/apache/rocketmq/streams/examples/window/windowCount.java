@@ -39,15 +39,19 @@ import java.util.Properties;
 public class windowCount {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("windowCountUser");
-        builder.source("user", source -> {
+
+        AggregateAction<String,User, Num> aggregateAction = (key, value, accumulator) -> new Num(value.getName(), 100);
+
+        WindowStream<String, Num> user = builder.source("user", source -> {
                     User user1 = JSON.parseObject(source, User.class);
                     return new Pair<>(null, user1);
                 })
                 .filter(value -> value.getAge() > 0)
                 .keyBy(value -> "key")
                 .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
-                .aggregate((key, value, accumulator) -> new Num(value.getName(), 100))
-                .toRStream()
+                .aggregate(aggregateAction);
+
+        user.toRStream()
                 .print();
 
         TopologyBuilder topologyBuilder = builder.build();

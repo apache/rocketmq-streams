@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.core.function;
 
 
-public interface ValueJoinAction<V1, V2, OUT> extends Action {
+public interface ValueJoinAction<V1, V2, OUT> {
 
     OUT apply(final V1 value1, final V2 value2);
 }

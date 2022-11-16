@@ -17,6 +17,6 @@
 package org.apache.rocketmq.streams.core.function;
 
 @FunctionalInterface
-public interface ForeachAction<T> extends Action {
+public interface ForeachAction<T> {
     void apply(T value);
 }
