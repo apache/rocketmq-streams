@@ -115,7 +115,7 @@ public abstract class AbstractStore {
     static class Wrapper {
         //新增，写消费未提交保存的中间状态，提交时移除
         private final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<byte[]/*Key*/>> calculating = new ConcurrentHashMap<>();
-        //全量, 与rocksdb报错同步
+        //全量, 与rocksdb保持同步
         private final ConcurrentHashMap<String/*brokerName@topic@queueId of state topic*/, Set<byte[]/*Key*/>> recover = new ConcurrentHashMap<>();
 
         public void putInRecover(String stateTopicQueueKey, byte[] key) {

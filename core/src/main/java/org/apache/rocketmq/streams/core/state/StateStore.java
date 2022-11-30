@@ -16,7 +16,6 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
@@ -28,8 +27,6 @@ import java.util.Set;
 public interface StateStore extends AutoCloseable {
     void init() throws Throwable;
 
-    RocksDBStore getRocksDBStore();
-
     /**
      * @param addQueues    messageQueue of source topic
      * @param removeQueues messageQueue of source topic
@@ -40,10 +37,6 @@ public interface StateStore extends AutoCloseable {
 
     /**
      * @param messageQueue 检查source topic中该queue的状态是否已经加载好，如果没有加载好，等待加载
-     * @param key          可以不传入，使用messageQueue即可检查是否该queue的状态被恢复。
-     *                     即将使用这个key get/put，将该key放入与state topic queue形成映射，为后续使用queue清理状态做准备。
-     *                     多数情况下，recover时已经形成stateTopicQueue-key的映射，但是在处理数据过程中，仍然可能有新的key过来，为了清理的时候一并清理，
-     *                     不漏，这里在put key之前做这个操作，形成映射
      * @throws Throwable
      */
     //如果没准备好，会阻塞
@@ -51,17 +44,10 @@ public interface StateStore extends AutoCloseable {
 
 
     byte[] get(byte[] key) throws Throwable;
-//    <K, V> V get(K key) throws Throwable;
-
-//    <K, V> void put(MessageQueue messageQueue, K key, V value) throws Throwable;
 
     void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable;
-    //只能查询到 < keyPrefix的结果，不包含等于
-    <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws Throwable;
 
     List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String operatorName, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable;
-
-    <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable;
 
     void delete(byte[] key) throws Throwable;
 

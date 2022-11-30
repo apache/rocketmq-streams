@@ -24,8 +24,4 @@ public interface RealProcessorFactory<T> {
     String getName();
 
     Processor<T> build();
-
-    void addChild(RealProcessorFactory<T> factory);
-
-    List<RealProcessorFactory<T>> getChildren();
 }

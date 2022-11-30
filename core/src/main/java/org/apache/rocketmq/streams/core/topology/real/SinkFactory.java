@@ -43,13 +43,4 @@ public class SinkFactory<T> implements RealProcessorFactory<T> {
         return supplier.get();
     }
 
-    @Override
-    public void addChild(RealProcessorFactory<T> factory) {
-        this.children.add(factory);
-    }
-
-    @Override
-    public List<RealProcessorFactory<T>> getChildren() {
-        return this.children;
-    }
 }

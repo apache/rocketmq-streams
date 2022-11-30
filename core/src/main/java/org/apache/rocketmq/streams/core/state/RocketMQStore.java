@@ -83,11 +83,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
     @Override
-    public RocksDBStore getRocksDBStore() {
-        return rocksDBStore;
-    }
-
-    @Override
     public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
         this.loadState(addQueues);
         this.removeState(removeQueues);
@@ -113,17 +108,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
 
-//    @Override
-//    public <K, V> V get(K key) throws Throwable {
-//        byte[] bytes = super.object2Byte(key);
-//        byte[] valueBytes = this.rocksDBStore.get(bytes);
-//        if (valueBytes == null || valueBytes.length == 0) {
-//            return null;
-//        }
-//
-//        Pair<Class<K>, Class<V>> classPair = super.getClazz(key);
-//        return super.byte2Object(valueBytes, classPair.getValue());
-//    }
+
 
     @Override
     public byte[] get(byte[] key) throws Throwable {
@@ -133,15 +118,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         return this.rocksDBStore.get(key);
     }
 
-//    @Override
-//    public <K, V> void put(MessageQueue stateTopicMessageQueue, K key, V value) throws Throwable {
-////        String stateTopicQueueKey = buildKey(stateTopicMessageQueue);
-////        super.putClazz(stateTopicQueueKey, key, value);
-////
-////        byte[] keyBytes = super.object2Bytes(key);
-////        byte[] valueBytes = super.object2Bytes(value);
-////        this.rocksDBStore.put(keyBytes, valueBytes);
-//    }
 
     @Override
     public void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable {
@@ -150,10 +126,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         this.rocksDBStore.put(key, value);
     }
 
-    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws Throwable {
-//        return this.rocksDBStore.searchByKeyAndLessThanWatermark(keyObject, watermark, valueTypeRef);
-        return null;
-    }
+
 
     @Override
     public List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String keyPrefix, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable {
@@ -163,36 +136,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
         return this.rocksDBStore.searchStateLessThanWatermark(keyPrefix, lessThanThisTime, deserializer);
     }
-
-    @Override
-    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws Throwable {
-//        return this.rocksDBStore.searchMatchKeyPrefix(keyPrefix, valueTypeRef);
-        return null;
-    }
-
-//    @Override
-//    public <K> void delete(K key) throws Throwable {
-////        //删除远程
-////        String stateTopicQueue = super.whichStateTopicQueueBelongTo(key);
-////        String[] split = Utils.split(stateTopicQueue);
-////        String topic = split[1];
-////        MessageQueue queue = new MessageQueue(split[1], split[0], Integer.parseInt(split[2]));
-////
-////        Message message = new Message(topic, Constant.EMPTY_BODY.getBytes(StandardCharsets.UTF_8));
-////        message.setKeys(String.valueOf(key));
-////        message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, key.getClass().getName());
-////        message.putUserProperty(Constant.EMPTY_BODY, Constant.TRUE);
-////        producer.send(message, queue);
-////
-////        //删除rocksdb
-////        byte[] keyBytes = super.object2Bytes(key);
-////        this.rocksDBStore.deleteByKey(keyBytes);
-////
-////        //删除内存中的key
-////        super.deleteAllMappingByKey(key);
-////
-////        logger.debug("delete key: " + key + ",MessageQueue: " + queue);
-//    }
 
     @Override
     public void delete(byte[] key) throws Throwable {
@@ -269,7 +212,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             return;
         }
 
-        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer(StreamConfig.ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP);
+        final DefaultLitePullConsumer consumer = new DefaultLitePullConsumer(StreamConfig.ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP);
         consumer.setNamesrvAddr(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumer.setAutoCommit(false);

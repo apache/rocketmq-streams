@@ -25,7 +25,6 @@ import java.util.function.Supplier;
 
 public class ProcessorFactory<T> implements RealProcessorFactory<T> {
     private final String name;
-    private final List<RealProcessorFactory<T>> children = new ArrayList<>();
     private final Supplier<? extends Processor<T>> supplier;
 
     public ProcessorFactory(String name, Supplier<? extends Processor<T>> supplier) {
@@ -43,13 +42,4 @@ public class ProcessorFactory<T> implements RealProcessorFactory<T> {
         return supplier.get();
     }
 
-    @Override
-    public void addChild(RealProcessorFactory<T> factory) {
-        children.add(factory);
-    }
-
-    @Override
-    public List<RealProcessorFactory<T>> getChildren() {
-        return children;
-    }
 }

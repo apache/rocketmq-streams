@@ -72,9 +72,6 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
         private WindowStore<K, V1> leftWindowStore;
         private WindowStore<K, V2> rightWindowStore;
 
-        private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
-
-
         public JoinStreamWindowAggregateProcessor(String name, WindowInfo windowInfo, JoinType joinType, ValueJoinAction<V1, V2, OUT> joinAction) {
             this.name = Utils.buildKey(name, JoinStreamWindowAggregateProcessor.class.getSimpleName());
             this.windowInfo = windowInfo;
@@ -94,11 +91,6 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
 
         @Override
         public void process(Object data) throws Throwable {
-            Throwable throwable = errorReference.get();
-            if (throwable != null) {
-                errorReference.set(null);
-                throw throwable;
-            }
 
             Object key = this.context.getKey();
             long time = this.context.getDataTime();
