@@ -16,7 +16,6 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;

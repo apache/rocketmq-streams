@@ -22,6 +22,8 @@ import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
@@ -29,7 +31,8 @@ public class RocketMQStream {
     private static final Logger logger = LoggerFactory.getLogger(RocketMQStream.class.getName());
     private final TopologyBuilder topologyBuilder;
     private final Properties properties;
-
+    private final CountDownLatch count = new CountDownLatch(1);
+    private List<WorkerThread> workerThreads = new ArrayList<>();
 
     public RocketMQStream(TopologyBuilder topologyBuilder, Properties properties) {
         this.topologyBuilder = topologyBuilder;
@@ -44,6 +47,7 @@ public class RocketMQStream {
             for (int i = 0; i < threadNum; i++) {
                 WorkerThread thread = new WorkerThread(topologyBuilder, this.properties);
                 thread.start();
+                workerThreads.add(thread);
             }
         } catch (Throwable t) {
             logger.error("start RocketMQStream error.");
@@ -51,11 +55,6 @@ public class RocketMQStream {
         }
 
 
-        //线程中启动任务client
-
-        //利用client重平衡将启动task
-
-        CountDownLatch count = new CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(count::countDown));
         try {
             count.await();
@@ -64,5 +63,10 @@ public class RocketMQStream {
         }
     }
 
-
+    public void stop() {
+        for (WorkerThread thread : workerThreads) {
+            thread.shutdown();
+        }
+        count.countDown();
+    }
 }

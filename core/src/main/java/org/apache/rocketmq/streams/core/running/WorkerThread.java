@@ -59,19 +59,6 @@ public class WorkerThread extends Thread {
     private final Properties properties;
     private final String groupName = StreamConfig.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
-//    public static void main(String[] args) throws JoranException {
-//        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-//        JoranConfigurator configurator = new JoranConfigurator();
-//        configurator.setContext(lc);
-//        lc.reset();
-//        //https://logback.qos.ch/manual/configuration.html
-//        lc.setPackagingDataEnabled(false);
-//        ClassLoader loader = WorkerThread.class.getClassLoader();
-//        URL url = loader.getResource("logback.xml");
-//        configurator.doConfigure( url.getPath());
-//
-//        logger.info("error");
-//    }
 
     public WorkerThread(TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
         this.topologyBuilder = topologyBuilder;
