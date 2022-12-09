@@ -26,7 +26,7 @@ public class StreamConfig {
     public static final Integer STREAMS_PARALLEL_THREAD_NUM = Integer.valueOf(System.getProperty("streams_parallel_thread_num","1"));
 
 
-    public static final Integer SHUFFLE_TOPIC_QUEUE_NUM = Integer.valueOf(System.getProperty("shuffle_topic_queue_num","4"));
+    public static final Integer SHUFFLE_TOPIC_QUEUE_NUM = Integer.valueOf(System.getProperty("shuffle_topic_queue_num","16"));
 
     public static String getJobId() {
         return jobId;

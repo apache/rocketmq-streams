@@ -48,6 +48,7 @@ public class RocketMQUtil {
     private static final List<String> existStateCompactTopic = new ArrayList<>();
 
 
+
     public static void createStaticCompactTopic(DefaultMQAdminExt mqAdmin, String topicName, int queueNum, Set<String> clusters) throws Exception {
         if (check(mqAdmin, topicName)) {
             logger.info("topic[{}] already exist.", topicName);
@@ -61,14 +62,29 @@ public class RocketMQUtil {
 
         for (String cluster : clusters) {
             createStaticTopicWithCommand(topicName, queueNum, new HashSet<>(), cluster, mqAdmin.getNamesrvAddr());
-            logger.info("create static topic:[{}] in cluster:[{}] success, logic queue num:[{}].", topicName, cluster, queueNum);
+            logger.info("【step 1】create static topic:[{}] in cluster:[{}] success, logic queue num:[{}].", topicName, cluster, queueNum);
 
             update2CompactTopicWithCommand(topicName, cluster, mqAdmin.getNamesrvAddr());
-            logger.info("update static topic to compact topic success. topic:[{}], cluster:[{}]", topicName, cluster);
+            logger.info("【step 2】update static topic to compact topic success. topic:[{}], cluster:[{}]", topicName, cluster);
         }
 
         existStateCompactTopic.add(topicName);
         logger.info("create static-compact topic [{}] success, queue num [{}]", topicName, queueNum);
+    }
+
+    public static void createStaticTopic(DefaultMQAdminExt mqAdmin, String topicName, int queueNum) throws Exception {
+        if (check(mqAdmin, topicName)) {
+            logger.info("topic[{}] already exist.", topicName);
+            return;
+        }
+
+        Set<String> clusters = getCluster(mqAdmin);
+        for (String cluster : clusters) {
+            createStaticTopicWithCommand(topicName, queueNum, new HashSet<>(), cluster, mqAdmin.getNamesrvAddr());
+            logger.info("create static topic:[{}] in cluster:[{}] success, logic queue num:[{}].", topicName, cluster, queueNum);
+        }
+
+        existStateCompactTopic.add(topicName);
     }
 
     private static void createStaticTopicWithCommand(String topic, int queueNum, Set<String> brokers, String cluster, String nameservers) throws Exception {
@@ -118,19 +134,7 @@ public class RocketMQUtil {
         command.execute(commandLine, options, null);
     }
 
-    public static HashMap<String/* brokerName */, String/*masterAddr*/> getBrokerAddr(DefaultMQAdminExt mqAdmin) throws Exception {
-        ClusterInfo clusterInfo = mqAdmin.examineBrokerClusterInfo();
 
-        Map<String/* brokerName */, BrokerData> brokerAddrTable = clusterInfo.getBrokerAddrTable();
-
-        HashMap<String/* brokerName */, String/*masterAddr*/> brokerName2MaterBrokerAddr = new HashMap<>();
-        for (String key : brokerAddrTable.keySet()) {
-            BrokerData brokerData = brokerAddrTable.get(key);
-            HashMap<Long, String> brokerAddrs = brokerData.getBrokerAddrs();
-            brokerName2MaterBrokerAddr.put(key, brokerAddrs.get(0L));
-        }
-        return brokerName2MaterBrokerAddr;
-    }
 
     public static Set<String> getCluster(DefaultMQAdminExt mqAdmin) throws Exception {
         ClusterInfo clusterInfo = mqAdmin.examineBrokerClusterInfo();

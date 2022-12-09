@@ -39,6 +39,7 @@ import org.apache.rocketmq.streams.core.state.RocksDBStore;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.core.util.RocketMQUtil;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
@@ -210,67 +211,19 @@ public class WorkerThread extends Thread {
         }
 
 
-
-
         void createShuffleTopic() throws Throwable {
             Set<String> total = WorkerThread.this.topologyBuilder.getSourceTopic();
 
             List<String> shuffleTopic = new ArrayList<>();
-            List<String> sourceTopic = new ArrayList<>();
+
             for (String topic : total) {
                 if (topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                     shuffleTopic.add(topic);
-                } else {
-                    sourceTopic.add(topic);
                 }
             }
 
-            //检查是否存在shuffle topic
-            ArrayList<String> notExistShuffleTopic = new ArrayList<>();
-            for (String topic : shuffleTopic) {
-                //检查是否存在
-                try {
-                    mqAdmin.examineTopicRouteInfo(topic);
-                } catch (RemotingException | InterruptedException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException("examine state topic route info error.", e);
-                } catch (MQClientException exception) {
-                    if (exception.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
-                        logger.info("shuffle topic [{}] does not exist, create it.", topic);
-                        notExistShuffleTopic.add(topic);
-                    } else {
-                        throw new RuntimeException(exception);
-                    }
-                }
-            }
-
-
-            //只能对同一mq集群中的数据进行计算，找到brokerAddr
-            TopicRouteData topicRouteData;
-            try {
-                topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic.get(0));
-            } catch (Throwable t) {
-                if (t instanceof MQClientException && ((MQClientException) t).getResponseCode() == 17) {
-                    logger.error("source topic [{}] not exist, can not create shuffle topic, create topic when write.", sourceTopic.get(0));
-                } else {
-                    throw t;
-                }
-                return;
-            }
-
-            List<BrokerData> brokerData = topicRouteData.getBrokerDatas();
-            List<String> materBrokerAddr = new ArrayList<>();
-            for (BrokerData broker : brokerData) {
-                String masterBrokerAddr = broker.getBrokerAddrs().get(0L);
-                materBrokerAddr.add(masterBrokerAddr);
-            }
-
-            //create
-            for (String topic : notExistShuffleTopic) {
-                TopicConfig topicConfig = new TopicConfig(topic, StreamConfig.SHUFFLE_TOPIC_QUEUE_NUM, StreamConfig.SHUFFLE_TOPIC_QUEUE_NUM);
-                for (String brokerAddr : materBrokerAddr) {
-                    this.mqAdmin.createAndUpdateTopicConfig(brokerAddr, topicConfig);
-                }
+            for (String topicName : shuffleTopic) {
+                RocketMQUtil.createStaticTopic(mqAdmin, topicName, StreamConfig.SHUFFLE_TOPIC_QUEUE_NUM);
             }
         }
 
