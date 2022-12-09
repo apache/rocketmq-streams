@@ -23,12 +23,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
@@ -36,18 +32,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class RocketMQUtil {
-    private static final Logger logger = LoggerFactory.getLogger(RocketMQStore.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(RocketMQUtil.class.getName());
 
     private static final List<String> existStateCompactTopic = new ArrayList<>();
-
-
 
     public static void createStaticCompactTopic(DefaultMQAdminExt mqAdmin, String topicName, int queueNum, Set<String> clusters) throws Exception {
         if (check(mqAdmin, topicName)) {
