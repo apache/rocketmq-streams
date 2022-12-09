@@ -38,6 +38,7 @@ import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.core.util.RocketMQUtil;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
@@ -107,8 +108,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
 
-
-
     @Override
     public byte[] get(byte[] key) throws Throwable {
         if (key == null || key.length == 0) {
@@ -124,7 +123,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         super.putInCalculating(stateTopicQueueKey, key);
         this.rocksDBStore.put(key, value);
     }
-
 
 
     @Override
@@ -181,7 +179,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             }
 
             String stateTopic = stateTopicQueue.getTopic();
-            createStateTopicIfNotExist(stateTopic);
+            createStateTopic(stateTopic);
 
             for (byte[] key : keySet) {
 
@@ -219,7 +217,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
         Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(addQueues);
         for (MessageQueue messageQueue : stateTopicQueue) {
-            createStateTopicIfNotExist(messageQueue.getTopic());
+            createStateTopic(messageQueue.getTopic());
         }
 
         consumer.assign(stateTopicQueue);
@@ -384,68 +382,33 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         return target;
     }
 
+    private void createStateTopic(String stateTopic) throws Exception {
+        if (RocketMQUtil.checkWhetherExist(stateTopic)) {
+            return;
+        }
 
-    private final List<String> existStateTopic = new ArrayList<>();
-
-    private void createStateTopicIfNotExist(String stateTopic) {
         String sourceTopic = stateTopic2SourceTopic(stateTopic);
+        Pair<Integer, Set<String>> clustersPair = getTotalQueueNumAndClusters(sourceTopic);
 
-        if (existStateTopic.contains(stateTopic)) {
-            return;
+        RocketMQUtil.createStaticCompactTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+    }
+
+    private Pair<Integer, Set<String>> getTotalQueueNumAndClusters(String sourceTopic) throws Exception {
+        int queueNum = 0;
+
+        //找到brokerAddr
+        TopicRouteData topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic);
+        List<QueueData> queueData = topicRouteData.getQueueDatas();
+
+        List<BrokerData> brokerData = topicRouteData.getBrokerDatas();
+        Set<String> clusterSet = brokerData.stream().collect(Collectors.groupingBy(BrokerData::getCluster)).keySet();
+
+        for (QueueData data : queueData) {
+            //只看readQueue
+            queueNum += data.getReadQueueNums();
         }
 
-        //检查是否存在
-        try {
-            mqAdmin.examineTopicRouteInfo(stateTopic);
-            existStateTopic.add(stateTopic);
-            return;
-        } catch (RemotingException | InterruptedException e) {
-            logger.error("examine state topic route info error.", e);
-            throw new RuntimeException("examine state topic route info error.", e);
-        } catch (MQClientException exception) {
-            if (exception.getResponseCode() == ResponseCode.TOPIC_NOT_EXIST) {
-                logger.info("state topic does not exist, create it.");
-            } else {
-                throw new RuntimeException(exception);
-            }
-        }
-
-        //创建
-        try {
-
-            //找到brokerAddr
-            TopicRouteData topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic);
-            List<QueueData> queueData = topicRouteData.getQueueDatas();
-            List<BrokerData> brokerData = topicRouteData.getBrokerDatas();
-
-
-            HashMap<String, String> brokerName2MaterBrokerAddr = new HashMap<>();
-            for (BrokerData broker : brokerData) {
-                String masterBrokerAddr = broker.getBrokerAddrs().get(0L);
-                brokerName2MaterBrokerAddr.put(broker.getBrokerName(), masterBrokerAddr);
-            }
-
-            for (QueueData queue : queueData) {
-                int readQueueNums = queue.getReadQueueNums();
-                int writeQueueNums = queue.getWriteQueueNums();
-                String brokerName = queue.getBrokerName();
-
-                TopicConfig topicConfig = new TopicConfig(stateTopic, readQueueNums, writeQueueNums);
-
-                HashMap<String, String> temp = new HashMap<>();
-                //todo 暂时不能支持；
-//                temp.put("+delete.policy", "COMPACTION");
-                topicConfig.setAttributes(temp);
-
-                mqAdmin.createAndUpdateTopicConfig(brokerName2MaterBrokerAddr.get(brokerName), topicConfig);
-            }
-
-            existStateTopic.add(stateTopic);
-        } catch (Throwable t) {
-            logger.error("create state topic error.");
-            throw new RuntimeException("create state topic error.", t);
-        }
-
+        return new Pair<Integer, Set<String>>(queueNum, clusterSet);
     }
 
     @Override
