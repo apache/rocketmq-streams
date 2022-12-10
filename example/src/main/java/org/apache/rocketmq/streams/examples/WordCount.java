@@ -31,7 +31,7 @@ import java.util.Properties;
 
 /**
  * 1、启动RocketMQ
- * 2、创建topic
+ * 2、创建topic sh bin/mqadmin updateTopic -c DefaultCluster -t sourceTopic -r 8 -w 8 -n 127.0.0.1:9876
  * 3、启动本例子运行
  * 4、向topic中写入数据
  * 5、观察输出结果
