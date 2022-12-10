@@ -56,7 +56,7 @@ public class RocketMQUtil {
             createStaticTopicWithCommand(topicName, queueNum, new HashSet<>(), cluster, mqAdmin.getNamesrvAddr());
             logger.info("【step 1】create static topic:[{}] in cluster:[{}] success, logic queue num:[{}].", topicName, cluster, queueNum);
 
-            update2CompactTopicWithCommand(topicName, cluster, mqAdmin.getNamesrvAddr());
+            update2CompactTopicWithCommand(topicName, queueNum, cluster, mqAdmin.getNamesrvAddr());
             logger.info("【step 2】update static topic to compact topic success. topic:[{}], cluster:[{}]", topicName, cluster);
         }
 
@@ -108,12 +108,14 @@ public class RocketMQUtil {
         cmd.execute(commandLine, options, null);
     }
 
-    private static void update2CompactTopicWithCommand(String topic, String cluster, String nameservers) throws Exception {
+    private static void update2CompactTopicWithCommand(String topic, int queueNum, String cluster, String nameservers) throws Exception {
         UpdateTopicSubCommand command = new UpdateTopicSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] args = new String[]{
                 "-c", cluster,
                 "-t", topic,
+                "-r", String.valueOf(queueNum),
+                "-w", String.valueOf(queueNum),
                 "-n", nameservers
 //                todo 发布版本还不支持
 //                , "-a", "+delete.policy=COMPACTION"
@@ -125,7 +127,6 @@ public class RocketMQUtil {
 
         command.execute(commandLine, options, null);
     }
-
 
 
     public static Set<String> getCluster(DefaultMQAdminExt mqAdmin) throws Exception {
