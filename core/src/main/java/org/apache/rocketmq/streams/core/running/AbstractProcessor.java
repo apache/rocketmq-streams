@@ -150,6 +150,9 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         byte[] objectBytes = new byte[objectLength];
         objBuf.readBytes(objectBytes);
 
+        classNameBuf.release();
+        objBuf.release();
+
         return Utils.byte2Object(objectBytes, clazz);
     }
 

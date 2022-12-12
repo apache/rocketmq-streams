@@ -68,6 +68,8 @@ public class ShuffleProtocol {
         valueByteBuf.readBytes(valueBytes);
 
         byteBuf.release();
+        keyByteBuf.release();
+        valueByteBuf.release();
         return new Pair<>(keyBytes, valueBytes);
     }
 

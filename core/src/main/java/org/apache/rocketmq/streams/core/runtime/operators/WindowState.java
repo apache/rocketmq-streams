@@ -203,7 +203,8 @@ public class WindowState<K, V> implements Serializable {
         ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
         int totalLength = byteBuf.readInt();
         if (bytes.length < totalLength) {
-            System.out.println("less than normal.");
+            //上层已经拆好了包
+            throw new IllegalArgumentException("byteBuf length less than total");
         }
 
         long recordLastTimestamp = byteBuf.readLong();
@@ -250,7 +251,10 @@ public class WindowState<K, V> implements Serializable {
         result.setValue(Utils.byte2Object(valueBytes, result.getValueClazz()));
 
         byteBuf.release();
-
+        buf.release();
+        keyBuf.release();
+        valueBuf.release();
+        valueClazzBuf.release();
         return result;
     }
 }
