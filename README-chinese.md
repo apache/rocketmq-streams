@@ -7,7 +7,7 @@
 # Features
 
 * 轻量级部署：可以单独部署，也支持集群部署
-* 多种类型的数据输入以及输出，source 支持 rocketmq ， sink 支持db, rocketmq 等
+* 多种类型的数据输入以及输出;
 
 # Architecture
 - [整体架构](docs/design/1.RocketMQ-streams整体架构.md)： 介绍RocketMQ-streams总体构成；
@@ -20,31 +20,6 @@
 
 - [Window算子解析](docs/design/5.Window算子解析.md)： 介绍有状态算子window实例化、数据处理、窗口触发过程；
 
-
-# DataStream Example
-
-```java
-import org.apache.rocketmq.streams.client.transform.DataStream;
-
-DataStreamSource source=StreamBuilder.dataStream("namespace","pipeline");
-
-    source
-    .fromFile("～/admin/data/text.txt",false)
-    .map(message->message)
-    .toPrint(1)
-    .start();
-```
-
-# Maven Repository
-
-```xml
-
-<dependency>
-    <groupId>org.apache.rocketmq</groupId>
-    <artifactId>rocketmq-streams-clients</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-</dependency>
-```
 
 # Core API
 
@@ -123,7 +98,7 @@ DataStream实现了一系列常见的流计算算子
 
 #### Strategy
 
-策略机制主要用来控制计算引擎运行过程中的底层逻辑，如checkpoint，state的存储方式等，后续还会增加对窗口、双流join等的控制；所有的控制策略通过```with```算子传入，可以同时传入多个策略类型；
+策略机制主要用来控制计算引擎运行过程中的底层逻辑，如window存储方式，后续还会增加对state、双流join等的控制；所有的控制策略通过```with```算子传入，可以同时传入多个策略类型；
 
 ```java
 //指定checkpoint的存储策略
@@ -131,24 +106,63 @@ source
     .fromRocketmq("TSG_META_INFO","")
     .map(message->message+"--")
     .toPrint(1)
-    .with(CheckpointStrategy.db("jdbc:mysql://XXXXX:3306/XXXXX","","",0L))
+    .with(WindowStrategy.highPerformance())
     .start();
 ```
 
-# 运行
+# 构建本地运行环境
 
-Rocketmq-Streams 作为典型的java应用，既可以集成在业务系统里运行，也可以作为一个独立的jar包来运行；
+## 环境准备
+- JDK 1.8及以上
+- Maven 3.2及以上
+- 本地启动RocketMQ，[启动文档](https://rocketmq.apache.org/docs/quick-start/)
 
-首先对应用的源码进行编译
-
-```shell
-mvn -Prelease-all -DskipTests clean install -U
-```
-
-然后直接通过java指令来运行
+## 构建Rocketmq-streams
 
 ```shell
- java -jar jarName mainClass
+git clone https://github.com/apache/rocketmq-streams.git
+cd rocketmq-streams
+mvn clean -DskipTests install -U
 ```
 
-更多详细的案例可以看[这里](docs/SUMMARY.md)
+## pom依赖
+
+```xml
+ <dependencies>
+    <dependency>
+        <groupId>org.apache.rocketmq</groupId>
+        <artifactId>rocketmq-streams-clients</artifactId>
+          <!--替换成最新版本-->
+        <version>${version}</version>
+    </dependency>
+</dependencies>
+
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>3.2.1</version>
+            <executions>
+                <execution>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>shade</goal>
+                    </goals>
+                    <configuration>
+                        <minimizeJar>false</minimizeJar>
+                        <shadedArtifactAttached>true</shadedArtifactAttached>
+                        <artifactSet>
+                            <includes>
+                                <include>org.apache.rocketmq:rocketmq-streams-clients</include>
+                            </includes>
+                        </artifactSet>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
+
+## 详细的使用案例见[rocketmq-streams-examples](rocketmq-streams-examples/README.md)
