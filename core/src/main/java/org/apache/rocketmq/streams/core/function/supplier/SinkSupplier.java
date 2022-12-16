@@ -67,6 +67,11 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
 
                 //todo 异常体系，哪些可以不必中断线程，哪些是需要中断的？
                 byte[] value = this.serializer.serialize(key, data);
+                if (value == null) {
+                    //目前RocketMQ不支持发送body为null的消息；
+                    return;
+                }
+
                 if (this.key == null) {
                     message = new Message(this.topicName, value);
 
