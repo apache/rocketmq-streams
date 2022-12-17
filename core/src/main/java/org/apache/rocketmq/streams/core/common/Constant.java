@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.rocketmq.streams.core.common;
 
 public class Constant {
@@ -27,7 +28,6 @@ public class Constant {
 
     public static final String SHUFFLE_TOPIC_SUFFIX = "-shuffleTopic";
 
-    public static final String FIRED_TIME_PREFIX = "fired-time-";
 
     public static final String TIME_TYPE = "timeType";
 
