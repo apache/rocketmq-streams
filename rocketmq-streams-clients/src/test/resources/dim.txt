@@ -1,6 +1,0 @@
-{"address":"apache","name":"dipper","project":"project-0","projectId":1}
-{"address":"apache","name":"dipper","project":"project-1","projectId":1}
-{"address":"apache","name":"dipper","project":"project-2","projectId":1}
-{"address":"apache","name":"dipper","project":"project-62","projectId":1}
-{"address":"apache","name":"dipper","project":"project-63","projectId":1}
-{"address":"apache","name":"dipper","project":"project-64","projectId":1}
