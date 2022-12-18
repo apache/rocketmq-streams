@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
+import org.apache.rocketmq.streams.core.function.FilterAction;
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
 
@@ -23,11 +25,22 @@ import java.util.function.Supplier;
 
 public interface GroupedStream<K, V> {
 
-    GroupedStream<K,Integer> count();
+    GroupedStream<K, Integer> count();
 
-    WindowStream<K,V> window(WindowInfo windowInfo);
 
-    GroupedStream<K,V> addGraphNode(String name, Supplier<Processor<V>> supplier);
+    GroupedStream<K, Long> min();
+
+    GroupedStream<K, Long> max();
+
+    GroupedStream<K, Long> sum();
+
+    GroupedStream<K, V> filter(FilterAction<V> predictor);
+
+    <OUT> GroupedStream<K, OUT> map(ValueMapperAction<V, OUT> valueMapperAction);
+
+    WindowStream<K, V> window(WindowInfo windowInfo);
+
+    GroupedStream<K, V> addGraphNode(String name, Supplier<Processor<V>> supplier);
 
     RStream<V> toRStream();
 

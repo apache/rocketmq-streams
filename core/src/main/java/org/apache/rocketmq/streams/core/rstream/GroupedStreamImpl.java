@@ -16,6 +16,8 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
+import org.apache.rocketmq.streams.core.function.FilterAction;
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
@@ -53,6 +55,31 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
         }
 
         return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
+    }
+
+    @Override
+    public GroupedStream<K, Long> min() {
+        return null;
+    }
+
+    @Override
+    public GroupedStream<K, Long> max() {
+        return null;
+    }
+
+    @Override
+    public GroupedStream<K, Long> sum() {
+        return null;
+    }
+
+    @Override
+    public GroupedStream<K, V> filter(FilterAction<V> predictor) {
+        return null;
+    }
+
+    @Override
+    public <OUT> GroupedStream<K, OUT> map(ValueMapperAction<V, OUT> valueMapperAction) {
+        return null;
     }
 
     @Override
