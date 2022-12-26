@@ -99,41 +99,20 @@ public class RStreamImpl<T> implements RStream<T> {
         return pipeline.addRStreamVirtualNode(processorNode, parent);
     }
 
-    @Override
-    public <OUT> RStream<T> count(SelectAction<OUT, T> selectAction) {
-        return null;
-    }
-
-    @Override
-    public <OUT> RStream<T> min(SelectAction<OUT, T> selectAction) {
-        return null;
-    }
-
-    @Override
-    public <OUT> RStream<T> max(SelectAction<OUT, T> selectAction) {
-        return null;
-    }
-
-    @Override
-    public <OUT> RStream<T> sum(SelectAction<OUT, T> selectAction) {
-        return null;
-    }
-
-    @Override
-    public <OUT> RStream<OUT> aggregate(Accumulator<T, OUT> accumulator) {
-        String name = OperatorNameMaker.makeName(RSTREAM_AGGREGATE_PREFIX);
-
-        Supplier<Processor<T>> supplier = new AggregateSupplier<>(name, parent.getName(), null, accumulator);
-
-        GraphNode graphNode;
-        if (this.parent.shuffleNode()) {
-            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
-        } else {
-            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
-        }
-
-        return this.pipeline.addRStreamVirtualNode(graphNode, parent);
-    }
+//    public <OUT> RStream<OUT> aggregate(Accumulator<T, OUT> accumulator) {
+//        String name = OperatorNameMaker.makeName(RSTREAM_AGGREGATE_PREFIX);
+//
+//        Supplier<Processor<T>> supplier = new AggregateSupplier<>(name, parent.getName(), null, accumulator);
+//
+//        GraphNode graphNode;
+//        if (this.parent.shuffleNode()) {
+//            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+//        } else {
+//            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+//        }
+//
+//        return this.pipeline.addRStreamVirtualNode(graphNode, parent);
+//    }
 
     @Override
     public <K> GroupedStream<K, T> keyBy(SelectAction<K, T> selectAction) {

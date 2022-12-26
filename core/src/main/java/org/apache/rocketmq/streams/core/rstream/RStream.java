@@ -32,16 +32,6 @@ public interface RStream<T> {
 
     RStream<T> filter(FilterAction<T> predictor);
 
-    <OUT> RStream<T> count(SelectAction<OUT, T> selectAction);
-
-    <OUT> RStream<T> min(SelectAction<OUT, T> selectAction);
-
-    <OUT> RStream<T> max(SelectAction<OUT, T> selectAction);
-
-    <OUT> RStream<T> sum(SelectAction<OUT, T> selectAction);
-
-    <OUT> RStream<OUT> aggregate(Accumulator<T, OUT> accumulator);
-
     <K> GroupedStream<K, T> keyBy(SelectAction<K, T> selectAction);
 
     void print();
