@@ -18,7 +18,8 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.Accumulator;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
@@ -30,36 +31,34 @@ import java.util.function.Supplier;
 public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
     private final String currentName;
     private final String parentName;
-    private Supplier<OV> initAction;
-    private AggregateAction<K, V, OV> aggregateAction;
+    private SelectAction<?, V> selectAction;
+    private Accumulator<V, OV> accumulator;
 
-    public AggregateSupplier(String currentName, String parentName, Supplier<OV> initAction,
-                             AggregateAction<K, V, OV> aggregateAction) {
+    public AggregateSupplier(String currentName, String parentName, SelectAction<?, V> selectAction, Accumulator<V, OV> accumulator) {
         this.currentName = currentName;
         this.parentName = parentName;
-        this.initAction = initAction;
-        this.aggregateAction = aggregateAction;
+        this.selectAction = selectAction;
+        this.accumulator = accumulator;
     }
 
     @Override
     public Processor<V> get() {
-        return new AggregateProcessor(currentName, parentName, initAction, aggregateAction);
+        return new AggregateProcessor(currentName, parentName, selectAction, accumulator);
     }
 
     private class AggregateProcessor extends AbstractProcessor<V> {
         private final String currentName;
         private final String parentName;
-        private final Supplier<OV> initAction;
-        private final AggregateAction<K, V, OV> aggregateAction;
         private StateStore stateStore;
         private MessageQueue stateTopicMessageQueue;
+        private SelectAction<?, V> selectAction;
+        private Accumulator<V, OV> accumulator;
 
-        public AggregateProcessor(String currentName, String parentName, Supplier<OV> initAction,
-                                  AggregateAction<K, V, OV> aggregateAction) {
+        public AggregateProcessor(String currentName, String parentName, SelectAction<?, V> selectAction, Accumulator<V, OV> accumulator) {
             this.currentName = currentName;
             this.parentName = parentName;
-            this.initAction = initAction;
-            this.aggregateAction = aggregateAction;
+            this.selectAction = selectAction;
+            this.accumulator = accumulator;
         }
 
         @Override
@@ -74,19 +73,23 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
         @Override
         public void process(V data) throws Throwable {
             K key = this.context.getKey();
-            OV value;
+            Accumulator<V, OV> value;
 
             byte[] keyBytes = super.object2Byte(key);
 
             byte[] valueBytes = stateStore.get(keyBytes);
             if (valueBytes == null || valueBytes.length == 0) {
-                value = initAction.get();
+                value = accumulator.clone();
             } else {
                 value = super.byte2Object(valueBytes);
             }
 
-            OV result = aggregateAction.calculate(key, data, value);
-            byte[] newValueBytes = super.object2Byte(result);
+            if (selectAction == null || selectAction.select(data) != null) {
+                value.addValue(data);
+            }
+
+            OV result = value.result();
+            byte[] newValueBytes = super.object2Byte(value);
 
             stateStore.put(this.stateTopicMessageQueue, keyBytes, newValueBytes);
 

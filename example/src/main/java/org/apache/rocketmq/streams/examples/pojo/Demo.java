@@ -28,6 +28,7 @@ import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 
 import java.util.Properties;
+import java.util.function.Supplier;
 
 /**
  * 1、启动RocketMQ
@@ -49,7 +50,7 @@ public class Demo {
                     }
                 })
                 .keyBy(User::getAge)
-                .count()
+                .count(User::getName)
                 .toRStream()
                 .print();
 

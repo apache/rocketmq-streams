@@ -17,10 +17,14 @@
 package org.apache.rocketmq.streams.core.rstream;
 
 
+import org.apache.rocketmq.streams.core.function.Accumulator;
+import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
+import org.apache.rocketmq.streams.core.running.Processor;
+import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ForeachAction;
-import org.apache.rocketmq.streams.core.function.KeySelectAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.ForeachSupplier;
@@ -35,11 +39,15 @@ import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 
+
+import java.util.function.Supplier;
+
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FOR_EACH_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.PRINT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.RSTREAM_AGGREGATE_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
 
 public class RStreamImpl<T> implements RStream<T> {
@@ -92,10 +100,46 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <K> GroupedStream<K, T> keyBy(KeySelectAction<K, T> keySelectAction) {
+    public <OUT> RStream<T> count(SelectAction<OUT, T> selectAction) {
+        return null;
+    }
+
+    @Override
+    public <OUT> RStream<T> min(SelectAction<OUT, T> selectAction) {
+        return null;
+    }
+
+    @Override
+    public <OUT> RStream<T> max(SelectAction<OUT, T> selectAction) {
+        return null;
+    }
+
+    @Override
+    public <OUT> RStream<T> sum(SelectAction<OUT, T> selectAction) {
+        return null;
+    }
+
+    @Override
+    public <OUT> RStream<OUT> aggregate(Accumulator<T, OUT> accumulator) {
+        String name = OperatorNameMaker.makeName(RSTREAM_AGGREGATE_PREFIX);
+
+        Supplier<Processor<T>> supplier = new AggregateSupplier<>(name, parent.getName(), null, accumulator);
+
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addRStreamVirtualNode(graphNode, parent);
+    }
+
+    @Override
+    public <K> GroupedStream<K, T> keyBy(SelectAction<K, T> selectAction) {
         String name = OperatorNameMaker.makeName(GROUPBY_PREFIX);
 
-        KeySelectSupplier<K, T> keySelectSupplier = new KeySelectSupplier<>(keySelectAction);
+        KeySelectSupplier<K, T> keySelectSupplier = new KeySelectSupplier<>(selectAction);
 
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), true, keySelectSupplier);
 
@@ -143,10 +187,10 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <K> void sink(String topicName, KeyValueSerializer<K, T> serializer) {
+    public void sink(String topicName, KeyValueSerializer<Object, T> serializer) {
         String name = OperatorNameMaker.makeName(SINK_PREFIX);
 
-        SinkSupplier<K, T> sinkSupplier = new SinkSupplier<>(topicName, serializer);
+        SinkSupplier<Object, T> sinkSupplier = new SinkSupplier<>(topicName, serializer);
         GraphNode sinkGraphNode = new SinkGraphNode<>(name, parent.getName(), topicName, sinkSupplier);
 
         pipeline.addVirtualSink(sinkGraphNode, parent);

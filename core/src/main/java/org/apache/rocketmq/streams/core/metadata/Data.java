@@ -22,9 +22,9 @@ public class Data<K, V> {
     private Properties header;
     private K key;
     private V value;
-    private long timestamp;
+    private Long timestamp;
 
-    public Data(K key, V value, long timestamp, Properties header) {
+    public Data(K key, V value, Long timestamp, Properties header) {
         this.key = key;
         this.value = value;
         this.timestamp = timestamp;

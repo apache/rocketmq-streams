@@ -16,15 +16,15 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
-import org.apache.rocketmq.streams.core.util.CommonNameMaker;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.Properties;
@@ -62,6 +62,11 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     }
 
     @Override
+    public WindowStream<K, V> filter(FilterAction<V> predictor) {
+        return null;
+    }
+
+    @Override
     public <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
         String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX);
 
@@ -84,7 +89,10 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
         return new RStreamImpl<>(this.pipeline, parent);
     }
 
+    @Override
+    public void sink(String topicName, KeyValueSerializer<K, V> serializer) {
 
+    }
 
     @Override
     public void setProperties(Properties properties) {

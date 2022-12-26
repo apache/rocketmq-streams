@@ -16,10 +16,15 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
+import org.apache.rocketmq.streams.core.function.Accumulator;
+import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.CountAccumulator;
 import org.apache.rocketmq.streams.core.running.Processor;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
@@ -30,6 +35,8 @@ import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPED_STREAM_AGGREGATE_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.RSTREAM_AGGREGATE_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
 
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
@@ -45,7 +52,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     public GroupedStream<K, Integer> count() {
         String name = OperatorNameMaker.makeName(COUNT_PREFIX);
 
-        AggregateSupplier<K, V, Integer> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0, (K key, V value, Integer agg) -> agg + 1);
+        AggregateSupplier<K, V, Integer> supplier = new AggregateSupplier<>(name, parent.getName(), null, new CountAccumulator<>());
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
@@ -58,17 +65,33 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     }
 
     @Override
-    public GroupedStream<K, Long> min() {
+    public <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction) {
+        String name = OperatorNameMaker.makeName(COUNT_PREFIX);
+
+        AggregateSupplier<K, V, Integer> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new CountAccumulator<>());
+
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
+    }
+
+    @Override
+    public <OUT> GroupedStream<K, V> min(SelectAction<OUT, V> selectAction) {
         return null;
     }
 
     @Override
-    public GroupedStream<K, Long> max() {
+    public <OUT> GroupedStream<K, V> max(SelectAction<OUT, V> selectAction) {
         return null;
     }
 
     @Override
-    public GroupedStream<K, Long> sum() {
+    public <OUT> GroupedStream<K, V> sum(SelectAction<OUT, V> selectAction) {
         return null;
     }
 
@@ -80,6 +103,21 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     @Override
     public <OUT> GroupedStream<K, OUT> map(ValueMapperAction<V, OUT> valueMapperAction) {
         return null;
+    }
+
+    @Override
+    public <OUT> GroupedStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
+        String name = OperatorNameMaker.makeName(GROUPED_STREAM_AGGREGATE_PREFIX);
+        AggregateSupplier<K, V, OUT> supplier = new AggregateSupplier<>(name, parent.getName(), null, accumulator);
+
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 
     @Override
@@ -104,7 +142,6 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     public GroupedStream<K, V> addGraphNode(String name, Supplier<Processor<V>> supplier) {
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
-            //todo  这个supplier提供出去的processor需要包含状态
             graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
         } else {
             graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
@@ -116,5 +153,10 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     @Override
     public RStream<V> toRStream() {
         return new RStreamImpl<>(this.pipeline, parent);
+    }
+
+    @Override
+    public void sink(String topicName, KeyValueSerializer<K, V> serializer) {
+
     }
 }

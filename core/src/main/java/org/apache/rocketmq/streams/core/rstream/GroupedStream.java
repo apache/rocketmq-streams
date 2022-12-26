@@ -16,10 +16,14 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
+import org.apache.rocketmq.streams.core.function.Accumulator;
+import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 
 import java.util.function.Supplier;
 
@@ -27,16 +31,24 @@ public interface GroupedStream<K, V> {
 
     GroupedStream<K, Integer> count();
 
+    <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction);
 
-    GroupedStream<K, Long> min();
 
-    GroupedStream<K, Long> max();
+    <OUT> GroupedStream<K, V> min(SelectAction<OUT, V> selectAction);
 
-    GroupedStream<K, Long> sum();
+
+    <OUT> GroupedStream<K, V> max(SelectAction<OUT, V> selectAction);
+
+
+    <OUT> GroupedStream<K, V> sum(SelectAction<OUT, V> selectAction);
+
 
     GroupedStream<K, V> filter(FilterAction<V> predictor);
 
     <OUT> GroupedStream<K, OUT> map(ValueMapperAction<V, OUT> valueMapperAction);
+
+
+    <OUT> GroupedStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator);
 
     WindowStream<K, V> window(WindowInfo windowInfo);
 
@@ -44,4 +56,5 @@ public interface GroupedStream<K, V> {
 
     RStream<V> toRStream();
 
+    void sink(String topicName, KeyValueSerializer<K, V> serializer);
 }

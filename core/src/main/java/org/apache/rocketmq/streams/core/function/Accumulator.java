@@ -16,8 +16,13 @@
  */
 package org.apache.rocketmq.streams.core.function;
 
+//因为需要序列化/反序列化这个类，所以必须给field生成setter/getter方法
+public interface Accumulator<V, R> {
+    void addValue(V value);
 
-@FunctionalInterface
-public interface KeySelectAction<KEY, IN> {
-    KEY select(IN value);
+    void merge(Accumulator<V, R> other);
+
+    R result();
+
+    Accumulator<V, R> clone();
 }

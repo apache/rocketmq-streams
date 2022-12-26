@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.function.Accumulator;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractWindowProcessor;
@@ -46,12 +47,19 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     private WindowInfo windowInfo;
     private Supplier<OV> initAction;
     private AggregateAction<K, V, OV> aggregateAction;
+    private Accumulator<V, OV> accumulator;
 
     public WindowAggregateSupplier(String name, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
         this.name = name;
         this.windowInfo = windowInfo;
         this.initAction = initAction;
         this.aggregateAction = aggregateAction;
+    }
+
+    public WindowAggregateSupplier(String name, WindowInfo windowInfo, Accumulator<V, OV> accumulator) {
+        this.name = name;
+        this.windowInfo = windowInfo;
+        this.accumulator = accumulator;
     }
 
     @Override
@@ -75,6 +83,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private Supplier<OV> initAction;
         private AggregateAction<K, V, OV> aggregateAction;
         private MessageQueue stateTopicMessageQueue;
+        private Accumulator<V, OV> accumulator;
 
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
@@ -83,6 +92,12 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             this.windowInfo = windowInfo;
             this.initAction = initAction;
             this.aggregateAction = aggregateAction;
+        }
+
+        public WindowAggregateProcessor(String name, WindowInfo windowInfo, Accumulator<V, OV> accumulator) {
+            this.name = name + WindowAggregateProcessor.class.getSimpleName();
+            this.windowInfo = windowInfo;
+            this.accumulator = accumulator;
         }
 
         @Override
@@ -355,7 +370,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 header.put(Constant.WINDOW_END_TIME, windowKey.getWindowEnd());
                 Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getRecordLastTimestamp(), header);
                 Data<K, V> convert = super.convert(result);
-
 
                 if (logger.isDebugEnabled()) {
                     logger.debug("fire window, windowKey={}, search watermark={}, window: [{} - {}], data to next:[{}]", windowKey.toString(),

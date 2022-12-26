@@ -22,11 +22,13 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.rstream.WindowStream;
 import org.apache.rocketmq.streams.core.runtime.operators.Time;
 import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.examples.pojo.Num;
@@ -45,19 +47,23 @@ public class windowCount {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("windowCountUser");
 
-        AggregateAction<String,User, Num> aggregateAction = (key, value, accumulator) -> new Num(value.getName(), 100);
+        AggregateAction<String, User, Num> aggregateAction = (key, value, accumulator) -> new Num(value.getName(), 100);
 
-        WindowStream<String, Num> user = builder.source("user", source -> {
+        builder.source("user", source -> {
                     User user1 = JSON.parseObject(source, User.class);
                     return new Pair<>(null, user1);
                 })
+                .selectTimestamp(User::getTimestamp)
                 .filter(value -> value.getAge() > 0)
                 .keyBy(value -> "key")
                 .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
-                .aggregate(aggregateAction);
-
-        user.toRStream()
-                .print();
+                .aggregate(aggregateAction)
+                .sink("", new KeyValueSerializer<String, Num>() {
+                    @Override
+                    public byte[] serialize(String s, Num data) throws Throwable {
+                        return new byte[0];
+                    }
+                });
 
         TopologyBuilder topologyBuilder = builder.build();
 

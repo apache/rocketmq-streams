@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.function.KeySelectAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
@@ -42,38 +42,38 @@ public class JoinedStream<V1, V2> {
         this.joinType = joinType;
     }
 
-    public <K> Where<K> where(KeySelectAction<K, V1> rightKeySelectAction) {
-        return new Where<>(rightKeySelectAction);
+    public <K> Where<K> where(SelectAction<K, V1> rightSelectAction) {
+        return new Where<>(rightSelectAction);
     }
 
     public class Where<K> {
-        private KeySelectAction<K, V1> leftKeySelectAction;
-        private KeySelectAction<K, V2> rightKeySelectAction;
+        private SelectAction<K, V1> leftSelectAction;
+        private SelectAction<K, V2> rightSelectAction;
 
-        public Where(KeySelectAction<K, V1> leftKeySelectAction) {
-            this.leftKeySelectAction = leftKeySelectAction;
+        public Where(SelectAction<K, V1> leftSelectAction) {
+            this.leftSelectAction = leftSelectAction;
         }
 
 
-        public Where<K> equalTo(KeySelectAction<K, V2> rightKeySelectAction) {
-            this.rightKeySelectAction = rightKeySelectAction;
+        public Where<K> equalTo(SelectAction<K, V2> rightSelectAction) {
+            this.rightSelectAction = rightSelectAction;
             return this;
         }
 
         public JoinWindow<K> window(WindowInfo windowInfo) {
-            return new JoinWindow<>(this.leftKeySelectAction, this.rightKeySelectAction, windowInfo);
+            return new JoinWindow<>(this.leftSelectAction, this.rightSelectAction, windowInfo);
 
         }
     }
 
     public class JoinWindow<K> {
-        private KeySelectAction<K, V1> leftKeySelectAction;
-        private KeySelectAction<K, V2> rightKeySelectAction;
+        private SelectAction<K, V1> leftSelectAction;
+        private SelectAction<K, V2> rightSelectAction;
         private WindowInfo windowInfo;
 
-        public JoinWindow(KeySelectAction<K, V1> leftKeySelectAction, KeySelectAction<K, V2> rightKeySelectAction, WindowInfo windowInfo) {
-            this.leftKeySelectAction = leftKeySelectAction;
-            this.rightKeySelectAction = rightKeySelectAction;
+        public JoinWindow(SelectAction<K, V1> leftSelectAction, SelectAction<K, V2> rightSelectAction, WindowInfo windowInfo) {
+            this.leftSelectAction = leftSelectAction;
+            this.rightSelectAction = rightSelectAction;
             this.windowInfo = windowInfo;
         }
 
@@ -87,7 +87,7 @@ public class JoinedStream<V1, V2> {
 
             Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
             {
-                GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftKeySelectAction);
+                GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftSelectAction);
 
                 WindowInfo leftWindowInfo = this.copy(windowInfo);
 
@@ -103,7 +103,7 @@ public class JoinedStream<V1, V2> {
 
             {
 
-                GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightKeySelectAction);
+                GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightSelectAction);
 
                 WindowInfo rightWindowInfo = this.copy(windowInfo);
 

@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
@@ -30,6 +31,9 @@ import java.util.Date;
 public class Utils {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     public static final String pattern = "%s@%s@%s";
+    static {
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     public static String buildKey(String brokerName, String topic, int queueId) {
         return String.format(pattern, brokerName, topic, queueId);

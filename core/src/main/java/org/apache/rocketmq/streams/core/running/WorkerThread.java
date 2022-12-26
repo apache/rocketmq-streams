@@ -184,7 +184,6 @@ public class WorkerThread extends Thread {
                     } else {
                         timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
                     }
-                    context.setDataTime(timestamp);
 
                     String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
                     long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));

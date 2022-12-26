@@ -14,25 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.rstream;
+package org.apache.rocketmq.streams.core.function;
 
-import org.apache.rocketmq.streams.core.function.AggregateAction;
-import org.apache.rocketmq.streams.core.function.FilterAction;
-import org.apache.rocketmq.streams.core.function.ValueJoinAction;
-import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 
-import java.util.Properties;
-
-public interface WindowStream<K, V> {
-    WindowStream<K, Integer> count();
-
-    WindowStream<K, V> filter(FilterAction<V> predictor);
-
-    <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction);
-
-    RStream<V> toRStream();
-
-    void sink(String topicName, KeyValueSerializer<K, V> serializer);
-
-    void setProperties(Properties properties);
+@FunctionalInterface
+public interface SelectAction<OUT, IN> {
+    OUT select(IN value);
 }
