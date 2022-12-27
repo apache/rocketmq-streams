@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.function;
+package org.apache.rocketmq.streams.core.function.accumulator;
+
+import java.util.Properties;
 
 //因为需要序列化/反序列化这个类，所以必须给field生成setter/getter方法
 public interface Accumulator<V, R> {
@@ -22,7 +24,12 @@ public interface Accumulator<V, R> {
 
     void merge(Accumulator<V, R> other);
 
-    R result();
+    /**
+     * 状态触发后调用，context可以加入状态触发后产生的某些条件，传递给算子
+     * @param context
+     * @return
+     */
+    R result(Properties context);
 
     Accumulator<V, R> clone();
 }

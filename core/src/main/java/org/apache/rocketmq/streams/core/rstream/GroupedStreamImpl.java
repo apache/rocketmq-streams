@@ -16,13 +16,13 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
-import org.apache.rocketmq.streams.core.function.Accumulator;
-import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
+import org.apache.rocketmq.streams.core.function.accumulator.MinAccumulator;
 import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
-import org.apache.rocketmq.streams.core.function.supplier.CountAccumulator;
+import org.apache.rocketmq.streams.core.function.accumulator.CountAccumulator;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
@@ -34,9 +34,9 @@ import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 
 import java.util.function.Supplier;
 
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_COUNT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_MIN_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPED_STREAM_AGGREGATE_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.RSTREAM_AGGREGATE_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
 
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
@@ -50,9 +50,9 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public GroupedStream<K, Integer> count() {
-        String name = OperatorNameMaker.makeName(COUNT_PREFIX);
+        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX);
 
-        AggregateSupplier<K, V, Integer> supplier = new AggregateSupplier<>(name, parent.getName(), null, new CountAccumulator<>());
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), value -> value, new CountAccumulator<>());
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
@@ -66,9 +66,9 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction) {
-        String name = OperatorNameMaker.makeName(COUNT_PREFIX);
+        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX);
 
-        AggregateSupplier<K, V, Integer> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new CountAccumulator<>());
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new CountAccumulator<>());
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
@@ -82,7 +82,18 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public <OUT> GroupedStream<K, V> min(SelectAction<OUT, V> selectAction) {
-        return null;
+        String name = OperatorNameMaker.makeName(GROUPBY_MIN_PREFIX);
+
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new MinAccumulator<>());
+
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 
     @Override
@@ -108,7 +119,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     @Override
     public <OUT> GroupedStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
         String name = OperatorNameMaker.makeName(GROUPED_STREAM_AGGREGATE_PREFIX);
-        AggregateSupplier<K, V, OUT> supplier = new AggregateSupplier<>(name, parent.getName(), null, accumulator);
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), value -> value, accumulator);
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {

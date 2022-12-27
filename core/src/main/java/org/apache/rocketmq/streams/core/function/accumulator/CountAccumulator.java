@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.function.supplier;
+package org.apache.rocketmq.streams.core.function.accumulator;
 
-import org.apache.rocketmq.streams.core.function.Accumulator;
+import java.util.Properties;
 
 //因为需要序列化/反序列化这个类，所以必须给field生成setter/getter方法
 public class CountAccumulator<V> implements Accumulator<V, Integer> {
@@ -29,11 +29,11 @@ public class CountAccumulator<V> implements Accumulator<V, Integer> {
 
     @Override
     public void merge(Accumulator<V, Integer> other) {
-        count += other.result();
+        count += other.result(null);
     }
 
     @Override
-    public Integer result() {
+    public Integer result(Properties context) {
         return count;
     }
 

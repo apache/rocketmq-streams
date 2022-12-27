@@ -16,10 +16,11 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
-
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
+import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractWindowProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
@@ -40,18 +41,19 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
-    private static final Logger logger = LoggerFactory.getLogger(WindowAggregateSupplier.class.getName());
-    private String name;
+public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processor<V>> {
+    private static final Logger logger = LoggerFactory.getLogger(WindowAccumulatorSupplier.class.getName());
+    private final String name;
     private WindowInfo windowInfo;
-    private Supplier<OV> initAction;
-    private AggregateAction<K, V, OV> aggregateAction;
+    private SelectAction<R, V> selectAction;
+    private Accumulator<R, OV> accumulator;
 
-    public WindowAggregateSupplier(String name, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+    public WindowAccumulatorSupplier(String name, WindowInfo windowInfo,
+                                     SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
         this.name = name;
         this.windowInfo = windowInfo;
-        this.initAction = initAction;
-        this.aggregateAction = aggregateAction;
+        this.selectAction = selectAction;
+        this.accumulator = accumulator;
     }
 
     @Override
@@ -60,9 +62,9 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         switch (windowType) {
             case SLIDING_WINDOW:
             case TUMBLING_WINDOW:
-                return new WindowAggregateProcessor(name, windowInfo, initAction, aggregateAction);
+                return new WindowAggregateProcessor(name, windowInfo, selectAction, accumulator);
             case SESSION_WINDOW:
-                return new SessionWindowAggregateProcessor(name, windowInfo, initAction, aggregateAction);
+                return new SessionWindowAggregateProcessor(name, windowInfo, selectAction, accumulator);
             default:
                 throw new RuntimeException("window type is error, WindowType=" + windowType);
         }
@@ -72,17 +74,17 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     private class WindowAggregateProcessor extends CommonWindowFire {
         private final WindowInfo windowInfo;
         private String name;
-        private Supplier<OV> initAction;
-        private AggregateAction<K, V, OV> aggregateAction;
         private MessageQueue stateTopicMessageQueue;
+        private SelectAction<R, V> selectAction;
+        private Accumulator<R, OV> accumulator;
 
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
-        public WindowAggregateProcessor(String name, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+        public WindowAggregateProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
             this.name = name + WindowAggregateProcessor.class.getSimpleName();
             this.windowInfo = windowInfo;
-            this.initAction = initAction;
-            this.aggregateAction = aggregateAction;
+            this.selectAction = selectAction;
+            this.accumulator = accumulator;
         }
 
         @Override
@@ -126,23 +128,21 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 //f(Window + key, store) -> oldValue
                 //todo key 怎么转化成对应的string，只和key的值有关系
                 WindowKey windowKey = new WindowKey(name, super.toHexString(key), window.getEndTime(), window.getStartTime());
-                WindowState<K, OV> oldState = this.windowStore.get(windowKey);
+                WindowState<K, Accumulator<R, OV>> oldState = this.windowStore.get(windowKey);
 
                 //f(oldValue, Agg) -> newValue
-                OV oldValue;
+                Accumulator<R, OV> storeAccumulator;
                 if (oldState == null || oldState.getValue() == null) {
-                    oldValue = initAction.get();
+                    storeAccumulator = accumulator.clone();
                 } else {
-                    oldValue = oldState.getValue();
+                    storeAccumulator = oldState.getValue();
                 }
 
-                OV newValue = this.aggregateAction.calculate(key, data, oldValue);
-                if (newValue != null && newValue.equals(oldValue)) {
-                    continue;
-                }
+                R select = selectAction.select(data);
+                storeAccumulator.addValue(select);
 
                 //f(Window + key, newValue, store)
-                WindowState<K, OV> state = new WindowState<>(key, newValue, time);
+                WindowState<K, Accumulator<R, OV>> state = new WindowState<>(key, storeAccumulator, time);
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
             }
 
@@ -155,20 +155,18 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         }
     }
 
-
     private class SessionWindowAggregateProcessor extends CommonWindowFire {
         private final String name;
         private final WindowInfo windowInfo;
-        private Supplier<OV> initAction;
-        private AggregateAction<K, V, OV> aggregateAction;
         private MessageQueue stateTopicMessageQueue;
+        private SelectAction<R, V> selectAction;
+        private Accumulator<R, OV> accumulator;
 
-
-        public SessionWindowAggregateProcessor(String name, WindowInfo windowInfo, Supplier<OV> initAction, AggregateAction<K, V, OV> aggregateAction) {
+        public SessionWindowAggregateProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
             this.name = name + SessionWindowAggregateProcessor.class.getSimpleName();
             this.windowInfo = windowInfo;
-            this.initAction = initAction;
-            this.aggregateAction = aggregateAction;
+            this.selectAction = selectAction;
+            this.accumulator = accumulator;
         }
 
         @Override
@@ -190,10 +188,11 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             Pair<Long, Long> newSessionWindowTime = fireIfSessionOut(key, data, time, watermark);
 
             if (newSessionWindowTime != null) {
-                OV oldValue = this.initAction.get();
-                OV newValue = this.aggregateAction.calculate(key, data, oldValue);
+                Accumulator<R, OV> temp = accumulator.clone();
+                R select = selectAction.select(data);
+                temp.addValue(select);
 
-                WindowState<K, OV> state = new WindowState<>(key, newValue, time);
+                WindowState<K, Accumulator<R, OV>> state = new WindowState<>(key, temp, time);
                 if (time < state.getRecordEarliestTimestamp()) {
                     //更新最早时间戳，用于状态触发时候，作为session 窗口的begin时间戳
                     state.setRecordEarliestTimestamp(time);
@@ -212,7 +211,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         private Pair<Long/*sessionBegin*/, Long/*sessionEnd*/> fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
             WindowKey windowKeyPrefix = new WindowKey(name, null, 0L, 0L);
 
-            List<Pair<WindowKey, WindowState<K, OV>>> pairs = this.windowStore.searchMatchKeyPrefix(windowKeyPrefix);
+            List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = this.windowStore.searchMatchKeyPrefix(windowKeyPrefix);
 
             if (pairs.size() == 0) {
                 return new Pair<>(dataTime, dataTime + windowInfo.getSessionTimeout().toMilliseconds());
@@ -221,17 +220,17 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             logger.debug("exist session state num={}", pairs.size());
 
             //sessionEndTime小的先触发
-            Iterator<Pair<WindowKey, WindowState<K, OV>>> iterator = pairs.iterator();
+            Iterator<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> iterator = pairs.iterator();
             int count = 0;
             long lastStateSessionEnd = 0;
             long maxFireSessionEnd = Long.MIN_VALUE;
 
             while (iterator.hasNext()) {
-                Pair<WindowKey, WindowState<K, OV>> pair = iterator.next();
+                Pair<WindowKey, WindowState<K, Accumulator<R, OV>>> pair = iterator.next();
                 logger.debug("exist session state{}=[{}]", count++, pair);
 
                 WindowKey windowKey = pair.getKey();
-                WindowState<K, OV> state = pair.getValue();
+                WindowState<K, Accumulator<R, OV>> state = pair.getValue();
 
                 long sessionEnd = windowKey.getWindowEnd();
                 if (count == pairs.size()) {
@@ -257,19 +256,22 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
             //再次遍历，找到数据属于某个窗口，如果窗口已经关闭，则只计算新的值，如果窗口没有关闭则计算新值、更新窗口边界、存储状态、删除老值
             for (int i = 0; i < pairs.size(); i++) {
-                Pair<WindowKey, WindowState<K, OV>> pair = pairs.get(i);
+                Pair<WindowKey, WindowState<K, Accumulator<R, OV>>> pair = pairs.get(i);
 
                 WindowKey windowKey = pair.getKey();
-                WindowState<K, OV> state = pair.getValue();
+                WindowState<K, Accumulator<R, OV>> state = pair.getValue();
+
+                Accumulator<R, OV> value = state.getValue();
 
                 if (windowKey.getWindowEnd() < dataTime) {
                     createNewSessionWindow = true;
                 } else if (windowKey.getWindowStart() <= dataTime) {
                     logger.debug("data belong to exist session window.dataTime=[{}], window:[{} - {}]", dataTime, Utils.format(windowKey.getWindowStart()), Utils.format(windowKey.getWindowEnd()));
-                    OV newValue = this.aggregateAction.calculate(key, data, state.getValue());
+                    R select = selectAction.select(data);
+                    value.addValue(select);
 
                     //更新state
-                    state.setValue(newValue);
+                    state.setValue(value);
                     state.setRecordLastTimestamp(dataTime);
                     if (dataTime < state.getRecordEarliestTimestamp()) {
                         //更新最早时间戳，用于状态触发时候，作为session 窗口的begin时间戳
@@ -303,7 +305,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         }
 
 
-        private void fire(K key, WindowKey windowKey, WindowState<K, OV> state) throws Throwable {
+        private void fire(K key, WindowKey windowKey, WindowState<K, Accumulator<R, OV>> state) throws Throwable {
             long windowEnd = windowKey.getWindowEnd();
             long windowBegin;
             if (state.getRecordEarliestTimestamp() == Long.MAX_VALUE) {
@@ -318,7 +320,10 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             header.put(Constant.WINDOW_START_TIME, windowBegin);
             header.put(Constant.WINDOW_END_TIME, windowEnd);
 
-            Data<K, OV> result = new Data<>(state.getKey(), state.getValue(), state.getRecordLastTimestamp(), header);
+            Accumulator<R, OV> value = state.getValue();
+            OV data = value.result(header);
+
+            Data<K, OV> result = new Data<>(state.getKey(), data, state.getRecordLastTimestamp(), header);
             Data<K, V> convert = super.convert(result);
 
             this.context.forward(convert);
@@ -329,7 +334,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     }
 
     public abstract class CommonWindowFire extends AbstractWindowProcessor<V> {
-        protected WindowStore<K, OV> windowStore;
+        protected WindowStore<K, Accumulator<R, OV>> windowStore;
 
         /**
          * 触发窗口结束时间 <= watermark 的窗口
@@ -341,19 +346,23 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         protected void fireWindowEndTimeLassThanWatermark(long watermark, String operatorName, K key) throws Throwable {
             WindowKey windowKeyWatermark = new WindowKey(operatorName, toHexString(key), watermark, 0L);
 
-            List<Pair<WindowKey, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanWatermark(windowKeyWatermark);
+            List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = this.windowStore.searchLessThanWatermark(windowKeyWatermark);
 
             //pairs中最后一个时间最小，应该最先触发
             for (int i = pairs.size() - 1; i >= 0; i--) {
 
-                Pair<WindowKey, WindowState<K, OV>> pair = pairs.get(i);
+                Pair<WindowKey, WindowState<K, Accumulator<R, OV>>> pair = pairs.get(i);
                 WindowKey windowKey = pair.getKey();
-                WindowState<K, OV> value = pair.getValue();
+                WindowState<K, Accumulator<R, OV>> value = pair.getValue();
 
                 Properties header = this.context.getHeader();
                 header.put(Constant.WINDOW_START_TIME, windowKey.getWindowStart());
                 header.put(Constant.WINDOW_END_TIME, windowKey.getWindowEnd());
-                Data<K, OV> result = new Data<>(value.getKey(), value.getValue(), value.getRecordLastTimestamp(), header);
+
+                Accumulator<R, OV> rovAccumulator = value.getValue();
+                OV data = rovAccumulator.result(header);
+
+                Data<K, OV> result = new Data<>(value.getKey(), data, value.getRecordLastTimestamp(), header);
                 Data<K, V> convert = super.convert(result);
 
                 if (logger.isDebugEnabled()) {

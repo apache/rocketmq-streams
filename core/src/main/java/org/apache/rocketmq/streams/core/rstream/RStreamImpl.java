@@ -17,10 +17,6 @@
 package org.apache.rocketmq.streams.core.rstream;
 
 
-import org.apache.rocketmq.streams.core.function.Accumulator;
-import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
-import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ForeachAction;
@@ -40,14 +36,11 @@ import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 
 
-import java.util.function.Supplier;
-
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FOR_EACH_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.PRINT_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.RSTREAM_AGGREGATE_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
 
 public class RStreamImpl<T> implements RStream<T> {
@@ -99,6 +92,7 @@ public class RStreamImpl<T> implements RStream<T> {
         return pipeline.addRStreamVirtualNode(processorNode, parent);
     }
 
+    //AggregateSupplier 是对key的操作
 //    public <OUT> RStream<OUT> aggregate(Accumulator<T, OUT> accumulator) {
 //        String name = OperatorNameMaker.makeName(RSTREAM_AGGREGATE_PREFIX);
 //

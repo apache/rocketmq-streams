@@ -18,6 +18,10 @@ package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
+import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
+import org.apache.rocketmq.streams.core.function.accumulator.CountAccumulator;
+import org.apache.rocketmq.streams.core.function.supplier.WindowAccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
@@ -48,7 +52,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     @Override
     public WindowStream<K, Integer> count() {
         String name = OperatorNameMaker.makeName(WINDOW_COUNT_PREFIX);
-        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> 0, (K key, V value, Integer agg) -> agg + 1);
+        Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, new CountAccumulator<>());
 
         //是否需要分组计算
         ProcessorNode<V> node;
@@ -67,10 +71,33 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     }
 
     @Override
+    public <OUT> WindowStream<K, OUT> map(ValueMapperAction<V, OUT> mapperAction) {
+        return null;
+    }
+
+    @Override
     public <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
         String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX);
 
         Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> null, aggregateAction);
+
+        //是否需要分组计算
+        ProcessorNode<V> node;
+
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
+    }
+
+    @Override
+    public <OUT> WindowStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
+        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX);
+
+        Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, accumulator);
 
         //是否需要分组计算
         ProcessorNode<V> node;
