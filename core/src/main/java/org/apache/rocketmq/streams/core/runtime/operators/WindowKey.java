@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.core.runtime.operators;
 
-import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.nio.charset.StandardCharsets;

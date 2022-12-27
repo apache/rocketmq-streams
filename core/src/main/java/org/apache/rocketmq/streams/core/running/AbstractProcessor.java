@@ -134,6 +134,10 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
      */
     @SuppressWarnings("unchecked")
     public <V> V byte2Object(byte[] bytes) throws Throwable {
+        if (bytes == null || bytes.length == 0) {
+            return null;
+        }
+
         ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
 
         int classNameLength = byteBuf.readInt();

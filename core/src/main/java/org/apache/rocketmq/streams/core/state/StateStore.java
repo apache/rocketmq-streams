@@ -49,6 +49,9 @@ public interface StateStore extends AutoCloseable {
 
     List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String operatorName, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable;
 
+
+    List<Pair<String, byte[]>> searchByKeyPrefix(String keyPrefix, ValueMapperAction<String, byte[]> string2Bytes, ValueMapperAction<byte[], String> byte2String) throws Throwable;
+
     void delete(byte[] key) throws Throwable;
 
     void persist(Set<MessageQueue> messageQueue) throws Throwable;

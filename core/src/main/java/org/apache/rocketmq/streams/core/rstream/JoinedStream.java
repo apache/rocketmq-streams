@@ -18,6 +18,8 @@ package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
+import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.JoinAggregateSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
@@ -30,6 +32,9 @@ import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.ADD_TAG;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
 
 public class JoinedStream<V1, V2> {
     private RStream<V1> leftStream;
@@ -60,9 +65,41 @@ public class JoinedStream<V1, V2> {
             return this;
         }
 
+        public <OUT> RStream<OUT> apply(ValueJoinAction<V1, V2, OUT> joinAction) {
+            List<String> temp = new ArrayList<>();
+
+            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_PREFIX);
+            Supplier<Processor<? super OUT>> supplier = new JoinAggregateSupplier<>(name, joinType, joinAction);
+            ProcessorNode<OUT> commChild = new ProcessorNode(name, temp, supplier);
+
+            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+            {
+                GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftSelectAction);
+                String addTagName = OperatorNameMaker.makeName(ADD_TAG);
+                leftGroupedStream.addGraphNode(addTagName, new AddTagSupplier<>(() -> StreamType.LEFT_STREAM));
+
+                GraphNode lastNode = leftStreamPipeline.getLastNode();
+                temp.add(lastNode.getName());
+                commChild.addParent(lastNode);
+            }
+
+            Pipeline rightStreamPipeline = JoinedStream.this.rightStream.getPipeline();
+            {
+                GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightSelectAction);
+                String addTagName = OperatorNameMaker.makeName(ADD_TAG);
+                rightGroupedStream.addGraphNode(addTagName, new AddTagSupplier<>(()-> StreamType.RIGHT_STREAM));
+
+                GraphNode lastNode = rightStreamPipeline.getLastNode();
+                temp.add(lastNode.getName());
+                commChild.addParent(lastNode);
+
+                lastNode.addChild(commChild);
+            }
+            return new RStreamImpl<>(leftStreamPipeline, commChild);
+        }
+
         public JoinWindow<K> window(WindowInfo windowInfo) {
             return new JoinWindow<>(this.leftSelectAction, this.rightSelectAction, windowInfo);
-
         }
     }
 

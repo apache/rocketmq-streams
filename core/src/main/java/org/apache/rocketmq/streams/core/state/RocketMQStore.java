@@ -135,6 +135,16 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
     @Override
+    public List<Pair<String, byte[]>> searchByKeyPrefix(String keyPrefix,
+                                                        ValueMapperAction<String, byte[]> string2Bytes,
+                                                        ValueMapperAction<byte[], String> byte2String) throws Throwable {
+        if (StringUtils.isEmpty(keyPrefix)) {
+            return new ArrayList<>();
+        }
+        return this.rocksDBStore.searchByKeyPrefix(keyPrefix, string2Bytes, byte2String);
+    }
+
+    @Override
     public void delete(byte[] key) throws Throwable {
         if (key == null || key.length == 0) {
             return;
