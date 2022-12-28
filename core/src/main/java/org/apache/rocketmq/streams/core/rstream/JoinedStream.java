@@ -31,6 +31,7 @@ import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.ADD_TAG;
@@ -67,15 +68,17 @@ public class JoinedStream<V1, V2> {
 
         public <OUT> RStream<OUT> apply(ValueJoinAction<V1, V2, OUT> joinAction) {
             List<String> temp = new ArrayList<>();
+            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+            String jobId = leftStreamPipeline.getJobId();
 
-            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_PREFIX);
+            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_PREFIX, jobId);
             Supplier<Processor<? super OUT>> supplier = new JoinAggregateSupplier<>(name, joinType, joinAction);
             ProcessorNode<OUT> commChild = new ProcessorNode(name, temp, supplier);
 
-            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+
             {
                 GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftSelectAction);
-                String addTagName = OperatorNameMaker.makeName(ADD_TAG);
+                String addTagName = OperatorNameMaker.makeName(ADD_TAG, jobId);
                 leftGroupedStream.addGraphNode(addTagName, new AddTagSupplier<>(() -> StreamType.LEFT_STREAM));
 
                 GraphNode lastNode = leftStreamPipeline.getLastNode();
@@ -84,9 +87,14 @@ public class JoinedStream<V1, V2> {
             }
 
             Pipeline rightStreamPipeline = JoinedStream.this.rightStream.getPipeline();
+            String rightJobId = rightStreamPipeline.getJobId();
+            if (!Objects.equals(jobId, rightJobId)) {
+                throw new IllegalStateException("left stream and right stream must have same jobId.");
+            }
+
             {
                 GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightSelectAction);
-                String addTagName = OperatorNameMaker.makeName(ADD_TAG);
+                String addTagName = OperatorNameMaker.makeName(ADD_TAG, jobId);
                 rightGroupedStream.addGraphNode(addTagName, new AddTagSupplier<>(()-> StreamType.RIGHT_STREAM));
 
                 GraphNode lastNode = rightStreamPipeline.getLastNode();
@@ -118,11 +126,15 @@ public class JoinedStream<V1, V2> {
             List<String> temp = new ArrayList<>();
             WindowInfo.JoinStream joinStream = new WindowInfo.JoinStream(JoinedStream.this.joinType, null);
             windowInfo.setJoinStream(joinStream);
-            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_WINDOW_PREFIX);
+
+            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+            String jobId = leftStreamPipeline.getJobId();
+
+            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_WINDOW_PREFIX, jobId);
             Supplier<Processor<? super OUT>> supplier = new JoinWindowAggregateSupplier<>(name, windowInfo, joinAction);
             ProcessorNode<OUT> commChild = new ProcessorNode(name, temp, supplier);
 
-            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+
             {
                 GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftSelectAction);
 
@@ -150,6 +162,10 @@ public class JoinedStream<V1, V2> {
                 rightGroupedStream.window(rightWindowInfo);
 
                 Pipeline rightStreamPipeline = JoinedStream.this.rightStream.getPipeline();
+                String rightJobId = rightStreamPipeline.getJobId();
+                if (!Objects.equals(jobId, rightJobId)) {
+                    throw new IllegalStateException("left stream and right stream must have same jobId.");
+                }
 
                 GraphNode lastNode = rightStreamPipeline.getLastNode();
                 temp.add(lastNode.getName());

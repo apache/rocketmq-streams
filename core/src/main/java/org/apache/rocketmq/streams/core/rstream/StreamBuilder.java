@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
@@ -31,18 +30,18 @@ import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SOURCE_PRE
 public class StreamBuilder {
     private final List<Pipeline> pipelines = new ArrayList<>();
     private final TopologyBuilder topologyBuilder;
-
+    private final String jobId;
 
     public StreamBuilder(String jobId) {
-        StreamConfig.setJobId(jobId);
-        this.topologyBuilder = new TopologyBuilder();
+        this.jobId = jobId;
+        this.topologyBuilder = new TopologyBuilder(jobId);
     }
 
     public <OUT> RStream<OUT> source(String topicName, KeyValueDeserializer<Void, OUT> deserializer) {
-        Pipeline pipeline = new Pipeline();
+        Pipeline pipeline = new Pipeline(jobId);
         this.pipelines.add(pipeline);
 
-        String name = OperatorNameMaker.makeName(SOURCE_PREFIX);
+        String name = OperatorNameMaker.makeName(SOURCE_PREFIX, jobId);
 
         GraphNode sourceGraphNode = new SourceGraphNode<>(name, topicName, deserializer);
 

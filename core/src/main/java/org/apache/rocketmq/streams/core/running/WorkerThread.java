@@ -58,12 +58,12 @@ public class WorkerThread extends Thread {
     private final TopologyBuilder topologyBuilder;
     private final PlanetaryEngine<?, ?> planetaryEngine;
     private final Properties properties;
-    private final String groupName = StreamConfig.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
 
     public WorkerThread(TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
         this.topologyBuilder = topologyBuilder;
         this.properties = properties;
+        String groupName = topologyBuilder.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
         RocketMQClient rocketMQClient = new RocketMQClient(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
 

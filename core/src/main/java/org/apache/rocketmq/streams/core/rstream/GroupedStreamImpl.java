@@ -50,7 +50,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public GroupedStream<K, Integer> count() {
-        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX);
+        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), value -> value, new CountAccumulator<>());
 
@@ -66,7 +66,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction) {
-        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX);
+        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new CountAccumulator<>());
 
@@ -82,7 +82,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public <OUT> GroupedStream<K, V> min(SelectAction<OUT, V> selectAction) {
-        String name = OperatorNameMaker.makeName(GROUPBY_MIN_PREFIX);
+        String name = OperatorNameMaker.makeName(GROUPBY_MIN_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new MinAccumulator<>());
 
@@ -118,7 +118,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public <OUT> GroupedStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
-        String name = OperatorNameMaker.makeName(GROUPED_STREAM_AGGREGATE_PREFIX);
+        String name = OperatorNameMaker.makeName(GROUPED_STREAM_AGGREGATE_PREFIX, pipeline.getJobId());
         Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), value -> value, accumulator);
 
         GraphNode graphNode;
@@ -134,7 +134,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     @Override
     public WindowStream<K, V> window(WindowInfo windowInfo) {
         //需要在window里面shuffle
-        String name = OperatorNameMaker.makeName(WINDOW_ADD_TAG);
+        String name = OperatorNameMaker.makeName(WINDOW_ADD_TAG, pipeline.getJobId());
 
         ProcessorNode<V> node;
 

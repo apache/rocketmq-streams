@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Pipeline {
+    private final String jobId;
     private final List<GraphNode> virtualNodes = new ArrayList<>();
     private final GraphNode root = new AbstractGraphNode("root") {
         @Override
@@ -32,6 +33,10 @@ public class Pipeline {
             //no-op
         }
     };
+
+    public Pipeline(String jobId) {
+        this.jobId = jobId;
+    }
 
     public <T> RStream<T> addVirtualSource(GraphNode sourceGraphNode) {
         root.addChild(sourceGraphNode);
@@ -91,5 +96,9 @@ public class Pipeline {
 
     public GraphNode getLastNode() {
         return this.virtualNodes.get(virtualNodes.size() - 1);
+    }
+
+    public String getJobId() {
+        return jobId;
     }
 }

@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 public class TopologyBuilder {
+    private final String jobId;
+
     private final LinkedHashMap<String/*source topic*/, SourceFactory<?>> topic2SourceNodeFactory = new LinkedHashMap<>();
 
     private final LinkedHashMap<String/*name*/, RealProcessorFactory<?>> realNodeFactory = new LinkedHashMap<>();
@@ -39,6 +41,9 @@ public class TopologyBuilder {
 
     private final HashMap<String/*source name*/, List<String/*subsequent processor without source*/>> source2Group = new HashMap<>();
 
+    public TopologyBuilder(String jobId) {
+        this.jobId = jobId;
+    }
 
     public <T> void addRealSource(String name, String topicName, Supplier<Processor<T>> supplier) {
         SourceFactory<T> sourceFactory = new SourceFactory<>(name, topicName, supplier);
@@ -111,5 +116,7 @@ public class TopologyBuilder {
         return sourceProcessor;
     }
 
-
+    public String getJobId() {
+        return jobId;
+    }
 }

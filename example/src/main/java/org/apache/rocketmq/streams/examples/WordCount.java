@@ -61,6 +61,8 @@ public class WordCount {
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
         rocketMQStream.start();
+
+        System.out.println("end");
     }
 
 }

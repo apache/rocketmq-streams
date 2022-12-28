@@ -41,6 +41,7 @@ public class OperatorNameMaker {
     public static final String GROUPED_STREAM_AGGREGATE_PREFIX = "ROCKETMQ-GROUPED-STREAM-AGGREGATE";
     public static final String JOIN_WINDOW_PREFIX = "JOIN-WINDOW";
     public static final String JOIN_PREFIX = "JOIN";
+    public static final String JOIN_LEFT_PREFIX = "LEFT-JOIN";
 
     public static final String pattern = "%s-%s-%s";
 
@@ -51,17 +52,8 @@ public class OperatorNameMaker {
         return index.get().incrementAndGet();
     }
 
-
-    public static String makeName(String prefix) {
-        String jobId = StreamConfig.getJobId();
+    public static String makeName(String prefix, String jobId) {
         String number = String.format("%010d", incrementAndGet());
-
-        return String.format(pattern, jobId, prefix, number);
-    }
-
-    public static String makeCommonName(String prefix, Long index) {
-        String jobId = StreamConfig.getJobId();
-        String number = String.format("%010d", index);
 
         return String.format(pattern, jobId, prefix, number);
     }

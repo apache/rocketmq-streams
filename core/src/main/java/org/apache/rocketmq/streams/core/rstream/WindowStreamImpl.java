@@ -51,7 +51,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public WindowStream<K, Integer> count() {
-        String name = OperatorNameMaker.makeName(WINDOW_COUNT_PREFIX);
+        String name = OperatorNameMaker.makeName(WINDOW_COUNT_PREFIX, pipeline.getJobId());
         Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, new CountAccumulator<>());
 
         //是否需要分组计算
@@ -77,7 +77,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
-        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX);
+        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> null, aggregateAction);
 
@@ -95,7 +95,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public <OUT> WindowStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
-        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX);
+        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, accumulator);
 
