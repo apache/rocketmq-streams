@@ -16,27 +16,34 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
-import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
+import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
-import org.apache.rocketmq.streams.core.function.accumulator.MinAccumulator;
+import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
+import org.apache.rocketmq.streams.core.function.supplier.AccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
-import org.apache.rocketmq.streams.core.function.accumulator.CountAccumulator;
-import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
-import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.SumAggregate;
+import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
+import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
+import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.function.Supplier;
 
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_COUNT_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_MIN_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPED_STREAM_AGGREGATE_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAX_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MIN_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SUM_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
 
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
@@ -52,7 +59,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     public GroupedStream<K, Integer> count() {
         String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX, pipeline.getJobId());
 
-        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), value -> value, new CountAccumulator<>());
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
@@ -68,7 +75,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     public <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction) {
         String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX, pipeline.getJobId());
 
-        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new CountAccumulator<>());
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
@@ -81,10 +88,25 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     }
 
     @Override
-    public <OUT> GroupedStream<K, V> min(SelectAction<OUT, V> selectAction) {
-        String name = OperatorNameMaker.makeName(GROUPBY_MIN_PREFIX, pipeline.getJobId());
+    public GroupedStream<K, V> min(SelectAction<? extends Number, V> selectAction) {
+        String name = OperatorNameMaker.makeName(MIN_PREFIX, pipeline.getJobId());
 
-        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), selectAction, new MinAccumulator<>());
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> null, (AggregateAction<K, V, V>) (key, value, accumulator) -> {
+            Number number = selectAction.select(value);
+            if (accumulator == null) {
+                return value;
+            } else {
+                Number storedMin = selectAction.select(accumulator);
+                double newValue = number.doubleValue();
+                double oldValue = storedMin.doubleValue();
+
+                if (newValue < oldValue) {
+                    return value;
+                } else {
+                    return accumulator;
+                }
+            }
+        });
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
@@ -97,29 +119,74 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     }
 
     @Override
-    public <OUT> GroupedStream<K, V> max(SelectAction<OUT, V> selectAction) {
-        return null;
+    public GroupedStream<K, V> max(SelectAction<? extends Number, V> selectAction) {
+        String name = OperatorNameMaker.makeName(MAX_PREFIX, pipeline.getJobId());
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> null, (AggregateAction<K, V, V>) (key, value, accumulator) -> {
+            Number number = selectAction.select(value);
+            if (accumulator == null) {
+                return value;
+            } else {
+                Number storedMin = selectAction.select(accumulator);
+                double newValue = number.doubleValue();
+                double oldValue = storedMin.doubleValue();
+
+                if (newValue > oldValue) {
+                    return value;
+                } else {
+                    return accumulator;
+                }
+            }
+        });
+
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 
     @Override
-    public <OUT> GroupedStream<K, V> sum(SelectAction<OUT, V> selectAction) {
-        return null;
+    public GroupedStream<K, ? extends Number> sum(SelectAction<? extends Number, V> selectAction) {
+        String name = OperatorNameMaker.makeName(SUM_PREFIX, pipeline.getJobId());
+        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> null, new SumAggregate<>(selectAction));
+
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 
     @Override
     public GroupedStream<K, V> filter(FilterAction<V> predictor) {
-        return null;
+        String name = OperatorNameMaker.makeName(FILTER_PREFIX, pipeline.getJobId());
+
+        FilterSupplier<V> supplier = new FilterSupplier<>(predictor);
+        GraphNode graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 
     @Override
-    public <OUT> GroupedStream<K, OUT> map(ValueMapperAction<V, OUT> valueMapperAction) {
-        return null;
+    public <OUT> GroupedStream<K, OUT> map(ValueMapperAction<V, OUT> mapperAction) {
+        String name = OperatorNameMaker.makeName(MAP_PREFIX, pipeline.getJobId());
+
+        ValueChangeSupplier<V, OUT> supplier = new ValueChangeSupplier<>(mapperAction);
+        GraphNode graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+
+        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
     }
 
     @Override
     public <OUT> GroupedStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
         String name = OperatorNameMaker.makeName(GROUPED_STREAM_AGGREGATE_PREFIX, pipeline.getJobId());
-        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), value -> value, accumulator);
+        Supplier<Processor<V>> supplier = new AccumulatorSupplier<>(name, parent.getName(), value -> value, accumulator);
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {

@@ -40,6 +40,10 @@ public class RocketMQStream {
 
 
     public void start() {
+        if (workerThreads.size() != 0) {
+            return;
+        }
+
         //启动线程
         try {
             int threadNum = StreamConfig.STREAMS_PARALLEL_THREAD_NUM;
@@ -58,5 +62,6 @@ public class RocketMQStream {
         for (WorkerThread thread : workerThreads) {
             thread.shutdown();
         }
+        workerThreads.clear();
     }
 }

@@ -167,10 +167,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         //删除内存中的key
         super.removeAllKey(key);
 
-        try {
-            logger.debug("delete key: " + new String(key, StandardCharsets.UTF_8) + ",MessageQueue: " + queue);
-        } catch (Throwable t) {
-        }
+        logger.debug("delete key: " + new String(key, StandardCharsets.UTF_8) + ",MessageQueue: " + queue);
     }
 
     @Override

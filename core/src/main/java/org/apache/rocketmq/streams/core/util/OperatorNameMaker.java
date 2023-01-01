@@ -16,19 +16,18 @@ package org.apache.rocketmq.streams.core.util;
  * limitations under the License.
  */
 
-import org.apache.rocketmq.streams.core.metadata.StreamConfig;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class OperatorNameMaker {
     public static final String SOURCE_PREFIX = "ROCKETMQ-SOURCE";
     public static final String SHUFFLE_SOURCE_PREFIX = "ROCKETMQ-SHUFFLE-SOURCE";
     public static final String MAP_PREFIX = "ROCKETMQ-MAP";
-    public static final String FLAT_MAP_PREFIX = "ROCKETMQ-FLAT-MAP";
     public static final String FILTER_PREFIX = "ROCKETMQ-FILTER";
     public static final String GROUPBY_PREFIX = "ROCKETMQ-GROUPBY";
     public static final String GROUPBY_COUNT_PREFIX = "ROCKETMQ-GROUPBY-COUNT";
-    public static final String GROUPBY_MIN_PREFIX = "ROCKETMQ-GROUPBY-MIN";
+    public static final String MIN_PREFIX = "ROCKETMQ-MIN";
+    public static final String MAX_PREFIX = "ROCKETMQ-MAX";
+    public static final String SUM_PREFIX = "ROCKETMQ-SUM";
     public static final String FOR_EACH_PREFIX = "ROCKETMQ-FOR-EACH";
     public static final String SINK_PREFIX = "ROCKETMQ-SINK";
     public static final String PRINT_PREFIX = "ROCKETMQ-PRINT";

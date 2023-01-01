@@ -17,6 +17,5 @@
 package org.apache.rocketmq.streams.core.function;
 
 public interface AggregateAction<K, V, OUT> {
-
     OUT calculate(K key, V value, OUT accumulator);
 }

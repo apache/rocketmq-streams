@@ -33,13 +33,13 @@ public interface GroupedStream<K, V> {
     <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction);
 
 
-    <OUT> GroupedStream<K, V> min(SelectAction<OUT, V> selectAction);
+    GroupedStream<K, V> min(SelectAction<? extends Number, V> selectAction);
 
 
-    <OUT> GroupedStream<K, V> max(SelectAction<OUT, V> selectAction);
+    GroupedStream<K, V> max(SelectAction<? extends Number, V> selectAction);
 
 
-    <OUT> GroupedStream<K, V> sum(SelectAction<OUT, V> selectAction);
+    GroupedStream<K, ? extends Number> sum(SelectAction<? extends Number, V> selectAction);
 
 
     GroupedStream<K, V> filter(FilterAction<V> predictor);
