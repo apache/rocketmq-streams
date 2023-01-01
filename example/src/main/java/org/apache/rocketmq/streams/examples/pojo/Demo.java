@@ -51,10 +51,9 @@ public class Demo {
                     }
                 })
                 .keyBy(User::getAge)
-//                .count(User::getName)
-                .min(User::getAge);
-//                .toRStream()
-//                .print();
+                .count(User::getName)
+                .toRStream()
+                .print();
 
         TopologyBuilder topologyBuilder = builder.build();
 
