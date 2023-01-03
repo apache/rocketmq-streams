@@ -20,7 +20,7 @@ package org.apache.rocketmq.streams.core.rstream;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ForeachAction;
-import org.apache.rocketmq.streams.core.function.KeySelectAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.ForeachSupplier;
@@ -29,11 +29,12 @@ import org.apache.rocketmq.streams.core.function.supplier.PrintSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.TimestampSelectorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
-import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
+import org.apache.rocketmq.streams.core.window.JoinType;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
+
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FOR_EACH_PREFIX;
@@ -53,7 +54,7 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public RStream<T> selectTimestamp(ValueMapperAction<T, Long> timestampSelector) {
-        String name = OperatorNameMaker.makeName(MAP_PREFIX);
+        String name = OperatorNameMaker.makeName(MAP_PREFIX, pipeline.getJobId());
 
         TimestampSelectorSupplier<T> supplier = new TimestampSelectorSupplier<>(timestampSelector);
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), supplier);
@@ -63,7 +64,7 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public <O> RStream<O> map(ValueMapperAction<T, O> mapperAction) {
-        String name = OperatorNameMaker.makeName(MAP_PREFIX);
+        String name = OperatorNameMaker.makeName(MAP_PREFIX, pipeline.getJobId());
 
         ValueChangeSupplier<T, O> supplier = new ValueChangeSupplier<>(mapperAction);
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), supplier);
@@ -72,8 +73,8 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <VR> RStream<T> flatMapValues(ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper) {
-        String name = OperatorNameMaker.makeName(MAP_PREFIX);
+    public <VR> RStream<T> flatMap(ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper) {
+        String name = OperatorNameMaker.makeName(MAP_PREFIX, pipeline.getJobId());
 
         ValueChangeSupplier<? extends T, ? extends Iterable<? extends VR>> supplier = new ValueChangeSupplier<>(mapper);
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), supplier);
@@ -83,7 +84,7 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public RStream<T> filter(FilterAction<T> predictor) {
-        String name = OperatorNameMaker.makeName(FILTER_PREFIX);
+        String name = OperatorNameMaker.makeName(FILTER_PREFIX, pipeline.getJobId());
 
         FilterSupplier<T> supplier = new FilterSupplier<>(predictor);
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), supplier);
@@ -92,10 +93,10 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <K> GroupedStream<K, T> keyBy(KeySelectAction<K, T> keySelectAction) {
-        String name = OperatorNameMaker.makeName(GROUPBY_PREFIX);
+    public <K> GroupedStream<K, T> keyBy(SelectAction<K, T> selectAction) {
+        String name = OperatorNameMaker.makeName(GROUPBY_PREFIX, pipeline.getJobId());
 
-        KeySelectSupplier<K, T> keySelectSupplier = new KeySelectSupplier<>(keySelectAction);
+        KeySelectSupplier<K, T> keySelectSupplier = new KeySelectSupplier<>(selectAction);
 
         GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), true, keySelectSupplier);
 
@@ -104,7 +105,7 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public void print() {
-        String name = OperatorNameMaker.makeName(PRINT_PREFIX);
+        String name = OperatorNameMaker.makeName(PRINT_PREFIX, pipeline.getJobId());
 
         PrintSupplier<T> printSupplier = new PrintSupplier<>();
         GraphNode sinkGraphNode = new SinkGraphNode<>(name, parent.getName(), null, printSupplier);
@@ -114,7 +115,7 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public RStream<T> foreach(ForeachAction<T> foreachAction) {
-        String name = OperatorNameMaker.makeName(FOR_EACH_PREFIX);
+        String name = OperatorNameMaker.makeName(FOR_EACH_PREFIX, pipeline.getJobId());
 
         ForeachSupplier<T> supplier = new ForeachSupplier<T>(foreachAction);
 
@@ -125,15 +126,11 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public <T2> JoinedStream<T, T2> join(RStream<T2> rightStream) {
-        String name = OperatorNameMaker.makeName("join");
-
         return new JoinedStream<>(this, rightStream, JoinType.INNER_JOIN);
     }
 
     @Override
     public <T2> JoinedStream<T, T2> leftJoin(RStream<T2> rightStream) {
-        String name = OperatorNameMaker.makeName("leftJoin");
-
         return new JoinedStream<>(this, rightStream, JoinType.LEFT_JOIN);
     }
 
@@ -143,10 +140,10 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <K> void sink(String topicName, KeyValueSerializer<K, T> serializer) {
-        String name = OperatorNameMaker.makeName(SINK_PREFIX);
+    public void sink(String topicName, KeyValueSerializer<Object, T> serializer) {
+        String name = OperatorNameMaker.makeName(SINK_PREFIX, pipeline.getJobId());
 
-        SinkSupplier<K, T> sinkSupplier = new SinkSupplier<>(topicName, serializer);
+        SinkSupplier<Object, T> sinkSupplier = new SinkSupplier<>(topicName, serializer);
         GraphNode sinkGraphNode = new SinkGraphNode<>(name, parent.getName(), topicName, sinkSupplier);
 
         pipeline.addVirtualSink(sinkGraphNode, parent);

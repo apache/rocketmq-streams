@@ -21,9 +21,9 @@ import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
-import org.apache.rocketmq.streams.core.runtime.operators.Time;
-import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
+import org.apache.rocketmq.streams.core.window.Time;
+import org.apache.rocketmq.streams.core.window.TimeType;
+import org.apache.rocketmq.streams.core.window.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 
@@ -46,7 +46,7 @@ public class windowWordCount {
                     String value = new String(source, StandardCharsets.UTF_8);
                     return new Pair<>(null, value);
                 })
-                .flatMapValues((ValueMapperAction<String, List<String>>) value -> {
+                .flatMap((ValueMapperAction<String, List<String>>) value -> {
                     String[] splits = value.toLowerCase().split("\\W+");
                     return Arrays.asList(splits);
                 })

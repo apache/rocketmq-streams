@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.runtime;
 
-import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
+import org.apache.rocketmq.streams.core.window.WindowState;
 import org.apache.rocketmq.streams.core.Num;
 import org.apache.rocketmq.streams.core.User;
 

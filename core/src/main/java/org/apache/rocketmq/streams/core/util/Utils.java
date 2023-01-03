@@ -19,7 +19,9 @@ package org.apache.rocketmq.streams.core.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
 
@@ -30,6 +32,9 @@ import java.util.Date;
 public class Utils {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     public static final String pattern = "%s@%s@%s";
+    static {
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     public static String buildKey(String brokerName, String topic, int queueId) {
         return String.format(pattern, brokerName, topic, queueId);
@@ -85,14 +90,6 @@ public class Utils {
         return objectMapper.readValue(source, clazz);
     }
 
-    public static <B> B byte2Object(byte[] source, TypeReference<B> valueTypeRef) throws IOException {
-        if (source == null || source.length ==0 || valueTypeRef == null) {
-            return null;
-        }
-
-        return objectMapper.readValue(source, valueTypeRef);
-    }
-
     public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static String format(long timestamp) {
         Date date = new Date(timestamp);
@@ -100,18 +97,10 @@ public class Utils {
     }
 
     public static String toHexString(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-
-        for (int i = 0; i < bytes.length; i++) {
-            String hex = Integer.toHexString(0xFF & bytes[i]);
-            if (hex.length() == 1) {
-                hexString.append('0');
-            }
-            hexString.append(hex);
-        }
-
-        return hexString.toString();
+        return DigestUtils.md5Hex(bytes);
     }
 
-
+    public static String toHexString(String str) {
+        return DigestUtils.md5Hex(str);
+    }
 }

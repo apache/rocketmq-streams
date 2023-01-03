@@ -18,19 +18,20 @@ package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ForeachAction;
-import org.apache.rocketmq.streams.core.function.KeySelectAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 
 public interface RStream<T> {
     RStream<T> selectTimestamp(ValueMapperAction<T, Long> timestampSelector);
+
     <O> RStream<O> map(ValueMapperAction<T, O> mapperAction);
 
-    <VR> RStream<T> flatMapValues(final ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper);
+    <VR> RStream<T> flatMap(final ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper);
 
     RStream<T> filter(FilterAction<T> predictor);
 
-    <K> GroupedStream<K,T> keyBy(KeySelectAction<K, T> keySelectAction);
+    <K> GroupedStream<K, T> keyBy(SelectAction<K, T> selectAction);
 
     void print();
 
@@ -42,5 +43,5 @@ public interface RStream<T> {
 
     Pipeline getPipeline();
 
-    <K> void sink(String topicName, KeyValueSerializer<K, T> serializer);
+    void sink(String topicName, KeyValueSerializer<Object, T> serializer);
 }

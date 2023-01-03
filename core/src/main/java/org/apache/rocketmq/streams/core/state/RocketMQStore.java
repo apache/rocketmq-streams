@@ -18,24 +18,20 @@ package org.apache.rocketmq.streams.core.state;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.CountDownLatch2;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
+import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.RocketMQUtil;
@@ -46,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -135,6 +130,16 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
     @Override
+    public List<Pair<String, byte[]>> searchByKeyPrefix(String keyPrefix,
+                                                        ValueMapperAction<String, byte[]> string2Bytes,
+                                                        ValueMapperAction<byte[], String> byte2String) throws Throwable {
+        if (StringUtils.isEmpty(keyPrefix)) {
+            return new ArrayList<>();
+        }
+        return this.rocksDBStore.searchByKeyPrefix(keyPrefix, string2Bytes, byte2String);
+    }
+
+    @Override
     public void delete(byte[] key) throws Throwable {
         if (key == null || key.length == 0) {
             return;
@@ -157,10 +162,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         //删除内存中的key
         super.removeAllKey(key);
 
-        try {
-            logger.debug("delete key: " + new String(key, StandardCharsets.UTF_8) + ",MessageQueue: " + queue);
-        } catch (Throwable t) {
-        }
+        logger.debug("delete key: " + new String(key, StandardCharsets.UTF_8) + ",MessageQueue: " + queue);
     }
 
     @Override

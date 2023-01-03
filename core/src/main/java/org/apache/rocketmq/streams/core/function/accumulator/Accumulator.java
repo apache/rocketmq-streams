@@ -14,12 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.serialization;
+package org.apache.rocketmq.streams.core.function.accumulator;
 
-import java.io.IOException;
+import java.util.Properties;
 
-public interface SerDeWrapper {
-    <T> byte[] serialize(T data) throws Throwable;
+//因为需要序列化/反序列化这个类，所以必须给field生成setter/getter方法
+public interface Accumulator<V, R> {
+    void addValue(V value);
 
-    <T> T deserialize(byte[] source, Class<T> clazz) throws IOException;
+    void merge(Accumulator<V, R> other);
+
+    /**
+     * 状态触发后调用，context可以加入状态触发后产生的某些条件，传递给算子
+     * @param context
+     * @return
+     */
+    R result(Properties context);
+
+    Accumulator<V, R> clone();
 }

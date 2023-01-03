@@ -14,51 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.examples.pojo;
+package org.apache.rocketmq.streams.core.function.accumulator;
 
-public class User {
-    private String name;
-    private Integer age;
-    private long timestamp;
+import java.util.Properties;
 
-    //序列化/反序列化使用
-    public User() {
-    }
+//因为需要序列化/反序列化这个类，所以必须给field生成setter/getter方法
+public class CountAccumulator<V> implements Accumulator<V, Integer> {
+    private Integer count = 0;
 
-    public User(String name, Integer age) {
-        this.name = name;
-        this.age = age;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    @Override
+    public void addValue(V value) {
+        count += 1;
     }
 
     @Override
-    public String toString() {
-        return "User{" +
-                "name='" + name + '\'' +
-                ", age=" + age +
-                '}';
+    public void merge(Accumulator<V, Integer> other) {
+        count += other.result(null);
+    }
+
+    @Override
+    public Integer result(Properties context) {
+        return count;
+    }
+
+    public Integer getCount() {
+        return count;
+    }
+
+    public void setCount(Integer count) {
+        this.count = count;
+    }
+
+    @Override
+    public Accumulator<V, Integer> clone() {
+        CountAccumulator<V> accumulator = new CountAccumulator<>();
+        accumulator.count = this.count;
+        return accumulator;
     }
 }

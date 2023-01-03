@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.core.function;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
+import org.apache.rocketmq.streams.core.window.WindowState;
 import org.apache.rocketmq.streams.core.Num;
 import org.apache.rocketmq.streams.core.User;
 import org.apache.rocketmq.streams.core.util.Utils;

@@ -23,35 +23,6 @@
         <appender-ref ref="DefaultAppender_inner"/>
     </appender>
 
-<!--    <appender name="RocketmqBrokerAppender_inner"-->
-<!--              class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-<!--        <file>${user.home}/logs/rocketmq-streams/broker.log</file>-->
-<!--        <append>true</append>-->
-<!--        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">-->
-<!--            <fileNamePattern>${user.home}/logs/rocketmq-streams/otherdays/broker.%i.log-->
-<!--            </fileNamePattern>-->
-<!--            <minIndex>1</minIndex>-->
-<!--            <maxIndex>15</maxIndex>-->
-<!--        </rollingPolicy>-->
-<!--        <triggeringPolicy-->
-<!--                class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">-->
-<!--            <maxFileSize>200MB</maxFileSize>-->
-<!--        </triggeringPolicy>-->
-<!--        <encoder>-->
-<!--            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p - %m%n</pattern>-->
-<!--            <charset class="java.nio.charset.Charset">UTF-8</charset>-->
-<!--        </encoder>-->
-<!--    </appender>-->
-<!--    <appender name="RocketmqBrokerAppender" class="ch.qos.logback.classic.AsyncAppender">-->
-<!--        <appender-ref ref="RocketmqBrokerAppender_inner"/>-->
-<!--    </appender>-->
-
-
-<!--    <logger name="RocketmqBroker" additivity="false">-->
-<!--        <level value="INFO"/>-->
-<!--        <appender-ref ref="RocketmqBrokerAppender"/>-->
-<!--    </logger>-->
-
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <!--设置输出格式-->
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -63,7 +34,7 @@
     </appender>
 
     <root>
-        <level value="DEBUG"/>
+        <level value="INFO"/>
         <appender-ref ref="console"/>
         <appender-ref ref="DefaultAppender"/>
     </root>

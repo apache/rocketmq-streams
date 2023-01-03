@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.core.state;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
+import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
 
 import java.util.List;
@@ -48,6 +48,9 @@ public interface StateStore extends AutoCloseable {
     void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable;
 
     List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String operatorName, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable;
+
+
+    List<Pair<String, byte[]>> searchByKeyPrefix(String keyPrefix, ValueMapperAction<String, byte[]> string2Bytes, ValueMapperAction<byte[], String> byte2String) throws Throwable;
 
     void delete(byte[] key) throws Throwable;
 

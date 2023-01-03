@@ -17,16 +17,26 @@
 package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
+import org.apache.rocketmq.streams.core.function.ValueMapperAction;
+import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 
 import java.util.Properties;
 
 public interface WindowStream<K, V> {
     WindowStream<K, Integer> count();
 
+    WindowStream<K, V> filter(FilterAction<V> predictor);
+
+    <OUT> WindowStream<K, OUT> map(ValueMapperAction<V, OUT> mapperAction);
+
     <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction);
+
+    <OUT> WindowStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator);
 
     RStream<V> toRStream();
 
-    void setProperties(Properties properties);
+    void sink(String topicName, KeyValueSerializer<K, V> serializer);
 }

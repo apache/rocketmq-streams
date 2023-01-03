@@ -16,20 +16,25 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
-import org.apache.rocketmq.streams.core.function.KeySelectAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
+import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.JoinAggregateSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
-import org.apache.rocketmq.streams.core.runtime.operators.StreamType;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.window.JoinType;
+import org.apache.rocketmq.streams.core.window.StreamType;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
+
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.ADD_TAG;
 
 public class JoinedStream<V1, V2> {
     private RStream<V1> leftStream;
@@ -42,38 +47,77 @@ public class JoinedStream<V1, V2> {
         this.joinType = joinType;
     }
 
-    public <K> Where<K> where(KeySelectAction<K, V1> rightKeySelectAction) {
-        return new Where<>(rightKeySelectAction);
+    public <K> Where<K> where(SelectAction<K, V1> rightSelectAction) {
+        return new Where<>(rightSelectAction);
     }
 
     public class Where<K> {
-        private KeySelectAction<K, V1> leftKeySelectAction;
-        private KeySelectAction<K, V2> rightKeySelectAction;
+        private SelectAction<K, V1> leftSelectAction;
+        private SelectAction<K, V2> rightSelectAction;
 
-        public Where(KeySelectAction<K, V1> leftKeySelectAction) {
-            this.leftKeySelectAction = leftKeySelectAction;
+        public Where(SelectAction<K, V1> leftSelectAction) {
+            this.leftSelectAction = leftSelectAction;
         }
 
 
-        public Where<K> equalTo(KeySelectAction<K, V2> rightKeySelectAction) {
-            this.rightKeySelectAction = rightKeySelectAction;
+        public Where<K> equalTo(SelectAction<K, V2> rightSelectAction) {
+            this.rightSelectAction = rightSelectAction;
             return this;
         }
 
-        public JoinWindow<K> window(WindowInfo windowInfo) {
-            return new JoinWindow<>(this.leftKeySelectAction, this.rightKeySelectAction, windowInfo);
+        public <OUT> RStream<OUT> apply(ValueJoinAction<V1, V2, OUT> joinAction) {
+            List<String> temp = new ArrayList<>();
+            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+            String jobId = leftStreamPipeline.getJobId();
 
+            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_PREFIX, jobId);
+            Supplier<Processor<? super OUT>> supplier = new JoinAggregateSupplier<>(name, joinType, joinAction);
+            ProcessorNode<OUT> commChild = new ProcessorNode(name, temp, supplier);
+
+
+            {
+                GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftSelectAction);
+                String addTagName = OperatorNameMaker.makeName(ADD_TAG, jobId);
+                leftGroupedStream.addGraphNode(addTagName, new AddTagSupplier<>(() -> StreamType.LEFT_STREAM));
+
+                GraphNode lastNode = leftStreamPipeline.getLastNode();
+                temp.add(lastNode.getName());
+                commChild.addParent(lastNode);
+            }
+
+            Pipeline rightStreamPipeline = JoinedStream.this.rightStream.getPipeline();
+            String rightJobId = rightStreamPipeline.getJobId();
+            if (!Objects.equals(jobId, rightJobId)) {
+                throw new IllegalStateException("left stream and right stream must have same jobId.");
+            }
+
+            {
+                GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightSelectAction);
+                String addTagName = OperatorNameMaker.makeName(ADD_TAG, jobId);
+                rightGroupedStream.addGraphNode(addTagName, new AddTagSupplier<>(()-> StreamType.RIGHT_STREAM));
+
+                GraphNode lastNode = rightStreamPipeline.getLastNode();
+                temp.add(lastNode.getName());
+                commChild.addParent(lastNode);
+
+                lastNode.addChild(commChild);
+            }
+            return new RStreamImpl<>(leftStreamPipeline, commChild);
+        }
+
+        public JoinWindow<K> window(WindowInfo windowInfo) {
+            return new JoinWindow<>(this.leftSelectAction, this.rightSelectAction, windowInfo);
         }
     }
 
     public class JoinWindow<K> {
-        private KeySelectAction<K, V1> leftKeySelectAction;
-        private KeySelectAction<K, V2> rightKeySelectAction;
+        private SelectAction<K, V1> leftSelectAction;
+        private SelectAction<K, V2> rightSelectAction;
         private WindowInfo windowInfo;
 
-        public JoinWindow(KeySelectAction<K, V1> leftKeySelectAction, KeySelectAction<K, V2> rightKeySelectAction, WindowInfo windowInfo) {
-            this.leftKeySelectAction = leftKeySelectAction;
-            this.rightKeySelectAction = rightKeySelectAction;
+        public JoinWindow(SelectAction<K, V1> leftSelectAction, SelectAction<K, V2> rightSelectAction, WindowInfo windowInfo) {
+            this.leftSelectAction = leftSelectAction;
+            this.rightSelectAction = rightSelectAction;
             this.windowInfo = windowInfo;
         }
 
@@ -81,13 +125,17 @@ public class JoinedStream<V1, V2> {
             List<String> temp = new ArrayList<>();
             WindowInfo.JoinStream joinStream = new WindowInfo.JoinStream(JoinedStream.this.joinType, null);
             windowInfo.setJoinStream(joinStream);
-            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_WINDOW_PREFIX);
+
+            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+            String jobId = leftStreamPipeline.getJobId();
+
+            String name = OperatorNameMaker.makeName(OperatorNameMaker.JOIN_WINDOW_PREFIX, jobId);
             Supplier<Processor<? super OUT>> supplier = new JoinWindowAggregateSupplier<>(name, windowInfo, joinAction);
             ProcessorNode<OUT> commChild = new ProcessorNode(name, temp, supplier);
 
-            Pipeline leftStreamPipeline = JoinedStream.this.leftStream.getPipeline();
+
             {
-                GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftKeySelectAction);
+                GroupedStream<K, V1> leftGroupedStream = JoinedStream.this.leftStream.keyBy(leftSelectAction);
 
                 WindowInfo leftWindowInfo = this.copy(windowInfo);
 
@@ -103,7 +151,7 @@ public class JoinedStream<V1, V2> {
 
             {
 
-                GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightKeySelectAction);
+                GroupedStream<K, V2> rightGroupedStream = JoinedStream.this.rightStream.keyBy(rightSelectAction);
 
                 WindowInfo rightWindowInfo = this.copy(windowInfo);
 
@@ -113,6 +161,10 @@ public class JoinedStream<V1, V2> {
                 rightGroupedStream.window(rightWindowInfo);
 
                 Pipeline rightStreamPipeline = JoinedStream.this.rightStream.getPipeline();
+                String rightJobId = rightStreamPipeline.getJobId();
+                if (!Objects.equals(jobId, rightJobId)) {
+                    throw new IllegalStateException("left stream and right stream must have same jobId.");
+                }
 
                 GraphNode lastNode = rightStreamPipeline.getLastNode();
                 temp.add(lastNode.getName());

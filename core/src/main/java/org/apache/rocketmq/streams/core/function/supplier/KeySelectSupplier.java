@@ -15,37 +15,36 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.streams.core.function.supplier;
-import org.apache.rocketmq.streams.core.function.KeySelectAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.checkerframework.checker.units.qual.K;
 
 import java.util.function.Supplier;
 
 public class KeySelectSupplier<KEY, T> implements Supplier<Processor<T>> {
-    private final KeySelectAction<KEY, T> keySelectAction;
+    private final SelectAction<KEY, T> selectAction;
 
-    public KeySelectSupplier(KeySelectAction<KEY, T> keySelectAction) {
-        this.keySelectAction = keySelectAction;
+    public KeySelectSupplier(SelectAction<KEY, T> selectAction) {
+        this.selectAction = selectAction;
     }
 
     @Override
     public Processor<T> get() {
-        return new MapperProcessor(keySelectAction);
+        return new MapperProcessor(selectAction);
     }
 
     private class MapperProcessor extends AbstractProcessor<T> {
-        private final KeySelectAction<KEY, T> keySelectAction;
+        private final SelectAction<KEY, T> selectAction;
 
 
-        public MapperProcessor(KeySelectAction<KEY, T> keySelectAction) {
-            this.keySelectAction = keySelectAction;
+        public MapperProcessor(SelectAction<KEY, T> selectAction) {
+            this.selectAction = selectAction;
         }
 
         @Override
         public void process(T data) throws Throwable {
-            KEY newKey = keySelectAction.select(data);
+            KEY newKey = selectAction.select(data);
             Data<KEY, T> result = new Data<>(newKey, data, this.context.getDataTime(), this.context.getHeader());
             this.context.forward(result);
         }

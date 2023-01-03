@@ -22,18 +22,13 @@ import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
-import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
+import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
 import org.apache.rocketmq.streams.core.state.StateStore;
@@ -58,12 +53,12 @@ public class WorkerThread extends Thread {
     private final TopologyBuilder topologyBuilder;
     private final PlanetaryEngine<?, ?> planetaryEngine;
     private final Properties properties;
-    private final String groupName = StreamConfig.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
 
     public WorkerThread(TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
         this.topologyBuilder = topologyBuilder;
         this.properties = properties;
+        String groupName = topologyBuilder.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
         RocketMQClient rocketMQClient = new RocketMQClient(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
 
@@ -184,7 +179,6 @@ public class WorkerThread extends Thread {
                     } else {
                         timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
                     }
-                    context.setDataTime(timestamp);
 
                     String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
                     long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));

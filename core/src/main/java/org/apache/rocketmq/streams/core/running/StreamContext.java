@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.core.running;
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.streams.core.metadata.Data;
-import org.apache.rocketmq.streams.core.serialization.SerDeWrapper;
 import org.apache.rocketmq.streams.core.state.StateStore;
 
 import java.util.List;

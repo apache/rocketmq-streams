@@ -20,8 +20,9 @@ package org.apache.rocketmq.streams.core.state;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
+import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.core.util.Utils;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
@@ -89,91 +90,9 @@ public class RocksDBStore extends AbstractStore {
         rocksDB.put(writeOptions, key, value);
     }
 
-//    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws IOException {
-//        byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
-//        readOptions = new ReadOptions();
-//        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
-//        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
-//
-//        rocksIterator.seekForPrev(keyPrefixBytes);
-//
-//        return iteratorAndDes(rocksIterator, valueTypeRef);
-//    }
-
-//    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws IOException {
-//        byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
-//
-//        readOptions = new ReadOptions();
-//        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
-//        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
-//
-//        rocksIterator.seek(keyPrefixBytes);
-//
-//        List<Pair<String, V>> temp = new ArrayList<>();
-//        while (rocksIterator.isValid()) {
-//            byte[] keyBytes = rocksIterator.key();
-//            byte[] valueBytes = rocksIterator.value();
-//
-//            String key = Utils.byte2Object(keyBytes, String.class);
-//            V v = Utils.byte2Object(valueBytes, valueTypeRef);
-//
-//            temp.add(new Pair<>(key, v));
-//
-//            rocksIterator.next();
-//        }
-//        return temp;
-//    }
-
-//    private <V> List<Pair<String, V>> iteratorAndDes(RocksIterator rocksIterator, TypeReference<V> valueTypeRef) throws IOException {
-//        List<Pair<String, V>> temp = new ArrayList<>();
-//        while (rocksIterator.isValid()) {
-//            byte[] keyBytes = rocksIterator.key();
-//            byte[] valueBytes = rocksIterator.value();
-//
-//            String key = Utils.byte2Object(keyBytes, String.class);
-//            V v = Utils.byte2Object(valueBytes, valueTypeRef);
-//
-//            temp.add(new Pair<>(key, v));
-//
-//            rocksIterator.prev();
-//        }
-//        return temp;
-//    }
-
-    //todo store 层没有屏蔽key的组成细节，需要屏蔽，只做无脑查找。
-//    public  <V> List<Pair<String, V>> searchByKeyAndLessThanWatermark(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws IOException {
-//        byte[] keyPrefixBytes = super.object2Bytes(keyObject);
-//        readOptions = new ReadOptions();
-//        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
-//
-//        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
-//        rocksIterator.seek(keyPrefixBytes);
-//
-//        List<Pair<String, V>> temp = new ArrayList<>();
-//        while (rocksIterator.isValid()) {
-//            byte[] keyBytes = rocksIterator.key();
-//            byte[] valueBytes = rocksIterator.value();
-//
-//            rocksIterator.prev();
-//
-//            String key = Utils.byte2Object(keyBytes, String.class);
-//            //todo 需要知道windowKey第一位是key，第二位是watermark
-//            String[] split = Utils.split(key);
-//            if (!split[0].equals(keyObject)) {
-//                continue;
-//            }
-//            if (Long.parseLong(split[1]) >= watermark) {
-//                continue;
-//            }
-//
-//            V v = Utils.byte2Object(valueBytes, valueTypeRef);
-//
-//            temp.add(new Pair<>(key, v));
-//        }
-//        return temp;
-//    }
-
-    public List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String name, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable {
+    public List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String name,
+                                                                   long lessThanThisTime,
+                                                                   ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable {
         readOptions = new ReadOptions();
         readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
 
@@ -201,53 +120,77 @@ public class RocksDBStore extends AbstractStore {
             temp.add(pair);
         }
         return temp;
+    }
 
+    public List<Pair<String, byte[]>> searchByKeyPrefix(String keyPrefix,
+                                                        ValueMapperAction<String, byte[]> string2Bytes,
+                                                        ValueMapperAction<byte[], String> byte2String) throws Throwable {
+        readOptions = new ReadOptions();
+        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
+        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
 
+        byte[] convert = string2Bytes.convert(keyPrefix);
+        rocksIterator.seek(convert);
+
+        List<Pair<String, byte[]>> temp = new ArrayList<>();
+        while (rocksIterator.isValid()) {
+            byte[] keyBytes = rocksIterator.key();
+            byte[] valueBytes = rocksIterator.value();
+
+            String storeKey = byte2String.convert(keyBytes);
+            if (storeKey.startsWith(keyPrefix)) {
+                Pair<String, byte[]> pair = new Pair<>(storeKey, valueBytes);
+                temp.add(pair);
+            }
+
+            rocksIterator.next();
+        }
+
+        return temp;
     }
 
     public void deleteByKey(byte[] key) throws RocksDBException {
         rocksDB.delete(key);
     }
 
-
-
-
     public void close() throws Exception {
 
     }
 
 
-//    public static void main(String[] args) throws Throwable {
-//        RocksDBStore rocksDBStore = new RocksDBStore();
-//
-//        String key = "time@1668249210000@1668249195000";
-//        String key2 = "ewwwwe@1668249600481@1";
-//        Object value = "3";
-//        Object value2 = "2";
-//
-//        byte[] keyBytes = rocksDBStore.object2Bytes(key);
-//        byte[] valueBytes = rocksDBStore.object2Bytes(value);
-//
-//        byte[] keyBytes2 = rocksDBStore.object2Bytes(key2);
-//        byte[] valueBytes2 = rocksDBStore.object2Bytes(value2);
-//
-//        rocksDBStore.put(keyBytes2, valueBytes2);
-//        rocksDBStore.put(keyBytes, valueBytes);
-//
-//
-//        byte[] bytes = rocksDBStore.get(keyBytes);
-//        Object result = rocksDBStore.byte2Object(bytes, Object.class);
-//        System.out.println(result);
-//
-//        byte[] bytes2 = rocksDBStore.get(keyBytes2);
-//        Object result2 = rocksDBStore.byte2Object(bytes2, Object.class);
-//        System.out.println(result2);
-//
-//        TypeReference<Object> typeReference = new TypeReference<Object>() {
-//        };
-//        List<Pair<String, Object>> pairs = rocksDBStore.searchByKeyAndLessThanWatermark("time", 1668249210001L, typeReference);
-//        for (Pair<String, Object> pair : pairs) {
-//            System.out.println(pair);
-//        }
-//    }
+    public static void main(String[] args) throws Throwable {
+        RocksDBStore rocksDBStore = new RocksDBStore();
+
+        String key = "time@1668249210000@1668249195000";
+        String key2 = "time@1668249210001@1668249195001";
+        Object value = "3";
+        Object value2 = "2";
+
+        byte[] keyBytes = Utils.object2Byte(key);
+        byte[] valueBytes = Utils.object2Byte(value);
+
+        byte[] keyBytes2 = Utils.object2Byte(key2);
+        byte[] valueBytes2 = Utils.object2Byte(value2);
+
+        rocksDBStore.put(keyBytes2, valueBytes2);
+        rocksDBStore.put(keyBytes, valueBytes);
+
+
+        byte[] bytes = rocksDBStore.get(keyBytes);
+        Object result = Utils.byte2Object(bytes, Object.class);
+        System.out.println(result);
+
+        byte[] bytes2 = rocksDBStore.get(keyBytes2);
+        Object result2 = Utils.byte2Object(bytes2, Object.class);
+        System.out.println(result2);
+
+        String keyPrefix = "time@1668249210000";
+
+
+        List<Pair<String, byte[]>> pairs = rocksDBStore.searchByKeyPrefix(keyPrefix, Utils::object2Byte, data -> Utils.byte2Object(data, String.class));
+        for (Pair<String, byte[]> pair : pairs) {
+            assert pair.getKey().startsWith(keyPrefix);
+        }
+
+    }
 }

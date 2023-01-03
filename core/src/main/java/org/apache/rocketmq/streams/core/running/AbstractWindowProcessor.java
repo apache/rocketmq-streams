@@ -17,8 +17,8 @@
 package org.apache.rocketmq.streams.core.running;
 
 
-import org.apache.rocketmq.streams.core.runtime.operators.Window;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.window.Window;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

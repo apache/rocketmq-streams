@@ -31,7 +31,6 @@ public class RocketMQStream {
     private static final Logger logger = LoggerFactory.getLogger(RocketMQStream.class.getName());
     private final TopologyBuilder topologyBuilder;
     private final Properties properties;
-    private final CountDownLatch count = new CountDownLatch(1);
     private List<WorkerThread> workerThreads = new ArrayList<>();
 
     public RocketMQStream(TopologyBuilder topologyBuilder, Properties properties) {
@@ -41,6 +40,10 @@ public class RocketMQStream {
 
 
     public void start() {
+        if (workerThreads.size() != 0) {
+            return;
+        }
+
         //启动线程
         try {
             int threadNum = StreamConfig.STREAMS_PARALLEL_THREAD_NUM;
@@ -53,20 +56,12 @@ public class RocketMQStream {
             logger.error("start RocketMQStream error.");
             throw new RuntimeException(t);
         }
-
-
-        Runtime.getRuntime().addShutdownHook(new Thread(count::countDown));
-        try {
-            count.await();
-        } catch (InterruptedException e) {
-            logger.error("wait shutdown error.", e);
-        }
     }
 
     public void stop() {
         for (WorkerThread thread : workerThreads) {
             thread.shutdown();
         }
-        count.countDown();
+        workerThreads.clear();
     }
 }

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.runtime.operators;
+package org.apache.rocketmq.streams.core.window;
 
-public enum StreamType {
-    LEFT_STREAM,
-    RIGHT_STREAM
+public enum JoinType {
+    INNER_JOIN,
+    LEFT_JOIN
 }
