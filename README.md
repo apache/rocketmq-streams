@@ -86,7 +86,8 @@ The broker[broker-a, 192.169.1.2:10911] boot success...
 ```shell
 sh bin/mqadmin updateTopic -c DefaultCluster -t sourceTopic -r 8 -w 8 -n 127.0.0.1:9876
 ```
-NOTE: the default clusterName is DefaultCluster in this quick-start doc, changes with your RocketMQ cluster.
+    
+    NOTE: the default clusterName is DefaultCluster in this quick-start doc, changes it with your RocketMQ cluster.
 
 * add your stream processing code, follow is the example. more example is [here](./example/src/main/java/org/apache/rocketmq/streams/examples).
 ```java
