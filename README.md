@@ -8,7 +8,7 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social)](https://twitter.com/intent/follow?screen_name=ApacheRocketMQ)
 
 
-**RocketMQ Streams is a lightweight stream processing frameworks, application apply stream processing by depend on RocketMQ Streams as an SDK.**
+**RocketMQ Streams is a lightweight stream processing framework, application gain the stream processing ability by depending on RocketMQ Streams as an SDK.**
 
 It offers a variety of features:
 
