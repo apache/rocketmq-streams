@@ -67,7 +67,7 @@ $ tail -f ~/logs/rocketmqlogs/broker.log
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 
-### Build application and depend on RocketMQ Streams
+### Build stream processing application
 
 **1) Build application in IDE**
 
