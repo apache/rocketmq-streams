@@ -29,7 +29,7 @@ import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SumAggregate;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;

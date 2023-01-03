@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
+import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.util.Pair;
 

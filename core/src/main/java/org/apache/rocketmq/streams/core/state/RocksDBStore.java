@@ -17,11 +17,10 @@ package org.apache.rocketmq.streams.core.state;
  */
 
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
+import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.rocksdb.Options;
@@ -90,90 +89,6 @@ public class RocksDBStore extends AbstractStore {
     public void put(byte[] key, byte[] value) throws RocksDBException {
         rocksDB.put(writeOptions, key, value);
     }
-
-//    public <V> List<Pair<String, V>> searchLessThanKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws IOException {
-//        byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
-//        readOptions = new ReadOptions();
-//        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
-//        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
-//
-//        rocksIterator.seekForPrev(keyPrefixBytes);
-//
-//        return iteratorAndDes(rocksIterator, valueTypeRef);
-//    }
-
-//    public <V> List<Pair<String, V>> searchMatchKeyPrefix(String keyPrefix, TypeReference<V> valueTypeRef) throws IOException {
-//        byte[] keyPrefixBytes = super.object2Bytes(keyPrefix);
-//
-//        readOptions = new ReadOptions();
-//        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
-//        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
-//
-//        rocksIterator.seek(keyPrefixBytes);
-//
-//        List<Pair<String, V>> temp = new ArrayList<>();
-//        while (rocksIterator.isValid()) {
-//            byte[] keyBytes = rocksIterator.key();
-//            byte[] valueBytes = rocksIterator.value();
-//
-//            String key = Utils.byte2Object(keyBytes, String.class);
-//            V v = Utils.byte2Object(valueBytes, valueTypeRef);
-//
-//            temp.add(new Pair<>(key, v));
-//
-//            rocksIterator.next();
-//        }
-//        return temp;
-//    }
-
-//    private <V> List<Pair<String, V>> iteratorAndDes(RocksIterator rocksIterator, TypeReference<V> valueTypeRef) throws IOException {
-//        List<Pair<String, V>> temp = new ArrayList<>();
-//        while (rocksIterator.isValid()) {
-//            byte[] keyBytes = rocksIterator.key();
-//            byte[] valueBytes = rocksIterator.value();
-//
-//            String key = Utils.byte2Object(keyBytes, String.class);
-//            V v = Utils.byte2Object(valueBytes, valueTypeRef);
-//
-//            temp.add(new Pair<>(key, v));
-//
-//            rocksIterator.prev();
-//        }
-//        return temp;
-//    }
-
-    //todo store 层没有屏蔽key的组成细节，需要屏蔽，只做无脑查找。
-//    public  <V> List<Pair<String, V>> searchByKeyAndLessThanWatermark(String keyObject, long watermark, TypeReference<V> valueTypeRef) throws IOException {
-//        byte[] keyPrefixBytes = super.object2Bytes(keyObject);
-//        readOptions = new ReadOptions();
-//        readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
-//
-//        RocksIterator rocksIterator = rocksDB.newIterator(readOptions);
-//        rocksIterator.seek(keyPrefixBytes);
-//
-//        List<Pair<String, V>> temp = new ArrayList<>();
-//        while (rocksIterator.isValid()) {
-//            byte[] keyBytes = rocksIterator.key();
-//            byte[] valueBytes = rocksIterator.value();
-//
-//            rocksIterator.prev();
-//
-//            String key = Utils.byte2Object(keyBytes, String.class);
-//            //todo 需要知道windowKey第一位是key，第二位是watermark
-//            String[] split = Utils.split(key);
-//            if (!split[0].equals(keyObject)) {
-//                continue;
-//            }
-//            if (Long.parseLong(split[1]) >= watermark) {
-//                continue;
-//            }
-//
-//            V v = Utils.byte2Object(valueBytes, valueTypeRef);
-//
-//            temp.add(new Pair<>(key, v));
-//        }
-//        return temp;
-//    }
 
     public List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String name,
                                                                    long lessThanThisTime,

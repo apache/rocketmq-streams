@@ -29,7 +29,7 @@ import org.apache.rocketmq.streams.core.function.supplier.PrintSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.TimestampSelectorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
-import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
+import org.apache.rocketmq.streams.core.window.JoinType;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
@@ -39,8 +39,6 @@ import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FOR_EACH_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.JOIN_LEFT_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.JOIN_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.PRINT_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
@@ -75,7 +73,7 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <VR> RStream<T> flatMapValues(ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper) {
+    public <VR> RStream<T> flatMap(ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper) {
         String name = OperatorNameMaker.makeName(MAP_PREFIX, pipeline.getJobId());
 
         ValueChangeSupplier<? extends T, ? extends Iterable<? extends VR>> supplier = new ValueChangeSupplier<>(mapper);

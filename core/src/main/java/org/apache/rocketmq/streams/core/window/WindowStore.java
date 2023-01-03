@@ -14,18 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.runtime.operators;
+package org.apache.rocketmq.streams.core.window;
 
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
-import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 

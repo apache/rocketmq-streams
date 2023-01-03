@@ -20,16 +20,12 @@ package org.apache.rocketmq.streams.examples.pojo;
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
-import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
-import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 
 import java.util.Properties;
-import java.util.function.Supplier;
 
 /**
  * 1、启动RocketMQ

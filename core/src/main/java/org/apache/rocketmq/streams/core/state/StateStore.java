@@ -18,7 +18,7 @@ package org.apache.rocketmq.streams.core.state;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
+import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
 
 import java.util.List;

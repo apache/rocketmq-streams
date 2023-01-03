@@ -14,12 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.serialization;
+package org.apache.rocketmq.streams.core.window;
 
-import java.io.IOException;
-
-public interface SerDeWrapper {
-    <T> byte[] serialize(T data) throws Throwable;
-
-    <T> T deserialize(byte[] source, Class<T> clazz) throws IOException;
+public enum JoinType {
+    INNER_JOIN,
+    LEFT_JOIN
 }

@@ -27,7 +27,7 @@ public interface RStream<T> {
 
     <O> RStream<O> map(ValueMapperAction<T, O> mapperAction);
 
-    <VR> RStream<T> flatMapValues(final ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper);
+    <VR> RStream<T> flatMap(final ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper);
 
     RStream<T> filter(FilterAction<T> predictor);
 

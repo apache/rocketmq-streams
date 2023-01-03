@@ -19,7 +19,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.rocketmq</groupId>
-    <artifactId>rocketmq-streams</artifactId>
+    <artifactId>rocketmq-streams-all</artifactId>
     <version>1.1.0-preview-SNAPSHOT</version>
     <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
@@ -83,8 +83,9 @@
     <properties>
         <rocketmq.version>5.0.0</rocketmq.version>
         <rocksdbjni.version>7.6.0</rocksdbjni.version>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
     </properties>
-
 
 
     <dependencyManagement>
@@ -145,9 +146,6 @@
                         <exclude>NOTICE</exclude>
                         <exclude>LICENSE</exclude>
                         <exclude>README.md</exclude>
-                        <exclude>README-chinese.md</exclude>
-                        <exclude>QUICKSTART.md</exclude>
-                        <exclude>quick_start.md</exclude>
                         <exclude>.github/**</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>

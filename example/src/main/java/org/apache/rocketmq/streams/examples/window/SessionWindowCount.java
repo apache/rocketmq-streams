@@ -20,9 +20,9 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
-import org.apache.rocketmq.streams.core.runtime.operators.Time;
-import org.apache.rocketmq.streams.core.runtime.operators.TimeType;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowBuilder;
+import org.apache.rocketmq.streams.core.window.Time;
+import org.apache.rocketmq.streams.core.window.TimeType;
+import org.apache.rocketmq.streams.core.window.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 

@@ -21,7 +21,7 @@ import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 
 import java.util.function.Supplier;

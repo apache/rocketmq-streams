@@ -45,7 +45,7 @@ public class WordCount {
                     String value = new String(total, StandardCharsets.UTF_8);
                     return new Pair<>(null, value);
                 })
-                .flatMapValues((ValueMapperAction<String, List<String>>) value -> {
+                .flatMap((ValueMapperAction<String, List<String>>) value -> {
                     String[] splits = value.toLowerCase().split("\\W+");
                     return Arrays.asList(splits);
                 })

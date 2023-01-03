@@ -22,9 +22,9 @@ import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.JoinAggregateSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.JoinWindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
-import org.apache.rocketmq.streams.core.runtime.operators.StreamType;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.window.JoinType;
+import org.apache.rocketmq.streams.core.window.StreamType;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
@@ -35,7 +35,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.ADD_TAG;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
 
 public class JoinedStream<V1, V2> {
     private RStream<V1> leftStream;

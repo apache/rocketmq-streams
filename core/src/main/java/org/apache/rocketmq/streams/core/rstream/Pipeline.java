@@ -16,7 +16,7 @@ package org.apache.rocketmq.streams.core.rstream;
  * limitations under the License.
  */
 
-import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.topology.virtual.AbstractGraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;

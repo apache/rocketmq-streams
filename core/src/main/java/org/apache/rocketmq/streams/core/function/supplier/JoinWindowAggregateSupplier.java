@@ -23,13 +23,13 @@ import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractWindowProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
-import org.apache.rocketmq.streams.core.runtime.operators.JoinType;
-import org.apache.rocketmq.streams.core.runtime.operators.StreamType;
-import org.apache.rocketmq.streams.core.runtime.operators.Window;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowInfo;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowKey;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowState;
-import org.apache.rocketmq.streams.core.runtime.operators.WindowStore;
+import org.apache.rocketmq.streams.core.window.JoinType;
+import org.apache.rocketmq.streams.core.window.StreamType;
+import org.apache.rocketmq.streams.core.window.Window;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
+import org.apache.rocketmq.streams.core.window.WindowKey;
+import org.apache.rocketmq.streams.core.window.WindowState;
+import org.apache.rocketmq.streams.core.window.WindowStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor<? super OUT>> {
