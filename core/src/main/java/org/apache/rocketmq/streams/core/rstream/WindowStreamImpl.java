@@ -45,7 +45,6 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     private final Pipeline pipeline;
     private final GraphNode parent;
     private final WindowInfo windowInfo;
-    private final Properties properties = new Properties();
 
     public WindowStreamImpl(Pipeline pipeline, GraphNode parent, WindowInfo windowInfo) {
         this.pipeline = pipeline;
@@ -133,10 +132,5 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     @Override
     public void sink(String topicName, KeyValueSerializer<K, V> serializer) {
 
-    }
-
-    @Override
-    public void setProperties(Properties properties) {
-        this.properties.putAll(properties);
     }
 }

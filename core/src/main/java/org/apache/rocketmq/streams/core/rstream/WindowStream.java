@@ -39,6 +39,4 @@ public interface WindowStream<K, V> {
     RStream<V> toRStream();
 
     void sink(String topicName, KeyValueSerializer<K, V> serializer);
-
-    void setProperties(Properties properties);
 }
