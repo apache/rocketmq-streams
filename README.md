@@ -89,7 +89,7 @@ sh bin/mqadmin updateTopic -c DefaultCluster -t sourceTopic -r 8 -w 8 -n 127.0.0
     
     NOTE: the default clusterName is DefaultCluster in this quick-start doc, changes it with your RocketMQ cluster.
 
-* add your stream processing code, follow is the example. more example is [here](./example/src/main/java/org/apache/rocketmq/streams/examples).
+* add your stream processing code, The following is an example. more examples is [here](./example/src/main/java/org/apache/rocketmq/streams/examples).
 ```java
 public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("wordCount");
