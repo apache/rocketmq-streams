@@ -71,7 +71,7 @@ The broker[broker-a, 192.169.1.2:10911] boot success...
 
 **1) Build application in IDE**
 
-**2) Add RocketMQ Streams in pom**
+**2) Add RocketMQ Streams dependency**
 ```xml
     <dependency>
         <groupId>org.apache.rocketmq</groupId>
@@ -89,7 +89,7 @@ sh bin/mqadmin updateTopic -c DefaultCluster -t sourceTopic -r 8 -w 8 -n 127.0.0
     
     NOTE: the default clusterName is DefaultCluster in this quick-start doc, changes it with your RocketMQ cluster.
 
-* add your stream processing code, The following is an example. more examples is [here](./example/src/main/java/org/apache/rocketmq/streams/examples).
+* add your stream processing code, The following is an example. more examples are [here](./example/src/main/java/org/apache/rocketmq/streams/examples).
 ```java
 public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("wordCount");
