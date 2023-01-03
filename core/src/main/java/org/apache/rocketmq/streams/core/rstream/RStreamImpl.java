@@ -94,22 +94,6 @@ public class RStreamImpl<T> implements RStream<T> {
         return pipeline.addRStreamVirtualNode(processorNode, parent);
     }
 
-    //AggregateSupplier 是对key的操作
-//    public <OUT> RStream<OUT> aggregate(Accumulator<T, OUT> accumulator) {
-//        String name = OperatorNameMaker.makeName(RSTREAM_AGGREGATE_PREFIX);
-//
-//        Supplier<Processor<T>> supplier = new AggregateSupplier<>(name, parent.getName(), null, accumulator);
-//
-//        GraphNode graphNode;
-//        if (this.parent.shuffleNode()) {
-//            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
-//        } else {
-//            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
-//        }
-//
-//        return this.pipeline.addRStreamVirtualNode(graphNode, parent);
-//    }
-
     @Override
     public <K> GroupedStream<K, T> keyBy(SelectAction<K, T> selectAction) {
         String name = OperatorNameMaker.makeName(GROUPBY_PREFIX, pipeline.getJobId());
@@ -144,15 +128,11 @@ public class RStreamImpl<T> implements RStream<T> {
 
     @Override
     public <T2> JoinedStream<T, T2> join(RStream<T2> rightStream) {
-        String name = OperatorNameMaker.makeName(JOIN_PREFIX, pipeline.getJobId());
-
         return new JoinedStream<>(this, rightStream, JoinType.INNER_JOIN);
     }
 
     @Override
     public <T2> JoinedStream<T, T2> leftJoin(RStream<T2> rightStream) {
-        String name = OperatorNameMaker.makeName(JOIN_LEFT_PREFIX, pipeline.getJobId());
-
         return new JoinedStream<>(this, rightStream, JoinType.LEFT_JOIN);
     }
 

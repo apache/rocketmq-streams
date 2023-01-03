@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.core.function.supplier.AccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SumAggregate;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
@@ -33,6 +34,7 @@ import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
+import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.function.Supplier;
@@ -43,6 +45,7 @@ import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPED_ST
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAX_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MIN_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SUM_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
 
@@ -235,6 +238,11 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public void sink(String topicName, KeyValueSerializer<K, V> serializer) {
+        String name = OperatorNameMaker.makeName(SINK_PREFIX, pipeline.getJobId());
 
+        SinkSupplier<K, V> sinkSupplier = new SinkSupplier<>(topicName, serializer);
+        GraphNode sinkGraphNode = new SinkGraphNode<>(name, parent.getName(), topicName, sinkSupplier);
+
+        pipeline.addVirtualSink(sinkGraphNode, parent);
     }
 }

@@ -22,6 +22,7 @@ import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
 import org.apache.rocketmq.streams.core.function.accumulator.CountAccumulator;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
@@ -31,13 +32,13 @@ import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
+import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
-
-import java.util.Properties;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AGGREGATE_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_COUNT_PREFIX;
 
@@ -131,6 +132,11 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public void sink(String topicName, KeyValueSerializer<K, V> serializer) {
+        String name = OperatorNameMaker.makeName(SINK_PREFIX, pipeline.getJobId());
 
+        SinkSupplier<K, V> sinkSupplier = new SinkSupplier<>(topicName, serializer);
+        GraphNode sinkGraphNode = new SinkGraphNode<>(name, parent.getName(), topicName, sinkSupplier);
+
+        pipeline.addVirtualSink(sinkGraphNode, parent);
     }
 }
