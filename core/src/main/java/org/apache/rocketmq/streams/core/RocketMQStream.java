@@ -44,7 +44,7 @@ public class RocketMQStream {
 
     public synchronized void start() {
         if (started.get()) {
-            logger.info("RocketMQStream has been started.");
+            logger.info("RocketMQStream has been started, jobId=[{}].", topologyBuilder.getJobId());
             return;
         }
 
