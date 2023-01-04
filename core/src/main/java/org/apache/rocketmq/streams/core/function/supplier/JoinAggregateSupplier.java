@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
@@ -66,7 +67,7 @@ public class JoinAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor
         }
 
         @Override
-        public void preProcess(StreamContext<Object> context) throws Throwable {
+        public void preProcess(StreamContext<Object> context) throws RecoverStateStoreThrowable {
             super.preProcess(context);
             this.stateStore = super.waitStateReplay();
             String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;

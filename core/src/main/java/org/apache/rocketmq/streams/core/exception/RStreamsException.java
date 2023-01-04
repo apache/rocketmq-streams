@@ -1,4 +1,3 @@
-package org.apache.rocketmq.streams.core.running;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,14 +14,27 @@ package org.apache.rocketmq.streams.core.running;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.core.exception;
 
-import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
+public class RStreamsException extends RuntimeException {
+    private static final long serialVersionUID = 6729806497659471678L;
 
-public interface Processor<T> {
-    void addChild(Processor<T> processor);
+    public RStreamsException() {
+    }
 
+    public RStreamsException(String message) {
+        super(message);
+    }
 
-    void preProcess(StreamContext<T> context) throws RecoverStateStoreThrowable;
+    public RStreamsException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-    void process(T data) throws Throwable;
+    public RStreamsException(Throwable cause) {
+        super(cause);
+    }
+
+    public RStreamsException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 }

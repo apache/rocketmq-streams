@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractWindowProcessor;
@@ -86,7 +87,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         }
 
         @Override
-        public void preProcess(StreamContext<V> context) throws Throwable {
+        public void preProcess(StreamContext<V> context) throws RecoverStateStoreThrowable {
             super.preProcess(context);
             this.windowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
 
@@ -172,7 +173,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         }
 
         @Override
-        public void preProcess(StreamContext<V> context) throws Throwable {
+        public void preProcess(StreamContext<V> context) throws RecoverStateStoreThrowable {
             super.preProcess(context);
             super.windowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
 

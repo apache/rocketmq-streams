@@ -25,6 +25,9 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.DataProcessThrowable;
+import org.apache.rocketmq.streams.core.exception.DeserializeThrowable;
+import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
@@ -55,7 +58,8 @@ public class WorkerThread extends Thread {
     private final Properties properties;
 
 
-    public WorkerThread(TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
+    public WorkerThread(String threadName, TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
+        super(threadName);
         this.topologyBuilder = topologyBuilder;
         this.properties = properties;
         String groupName = topologyBuilder.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
@@ -87,10 +91,10 @@ public class WorkerThread extends Thread {
 
             this.planetaryEngine.runInLoop();
         } catch (Throwable e) {
-            logger.error("planetaryEngine error.", e);
-            throw new RuntimeException(e);
+            logger.error("worker thread=[{}], error:{}.", this.getName(), e);
+            throw new RStreamsException(e);
         } finally {
-            logger.info("planetaryEngine stop.");
+            logger.info("worker thread=[{}], engin stopped.", this.getName());
             this.planetaryEngine.stop();
         }
     }
@@ -128,7 +132,6 @@ public class WorkerThread extends Thread {
         }
 
 
-        //处理
         void start() throws Throwable {
             createShuffleTopic();
 
@@ -139,68 +142,79 @@ public class WorkerThread extends Thread {
 
         void runInLoop() throws Throwable {
             while (!stop) {
-                List<MessageExt> list = this.unionConsumer.poll(0);
-                if (list.size() == 0) {
-                    Thread.sleep(10);
-                    continue;
-                }
-
                 HashSet<MessageQueue> set = new HashSet<>();
-                for (MessageExt messageExt : list) {
-                    byte[] body = messageExt.getBody();
-                    if (body == null || body.length == 0) {
-                        continue;
+
+                try {
+                    List<MessageExt> list = this.unionConsumer.poll(10);
+                    for (MessageExt messageExt : list) {
+                        byte[] body = messageExt.getBody();
+                        if (body == null || body.length == 0) {
+                            continue;
+                        }
+
+                        String keyClassName = messageExt.getUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME);
+                        String valueClassName = messageExt.getUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME);
+
+                        String topic = messageExt.getTopic();
+                        int queueId = messageExt.getQueueId();
+                        String brokerName = messageExt.getBrokerName();
+                        MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
+                        set.add(queue);
+                        logger.debug("source topic queue:[{}]", queue);
+
+
+                        String key = Utils.buildKey(brokerName, topic, queueId);
+                        SourceSupplier.SourceProcessor<K, V> processor = (SourceSupplier.SourceProcessor<K, V>) wrapper.selectProcessor(key);
+
+                        StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key);
+
+                        processor.preProcess(context);
+
+                        Pair<K, V> pair = processor.deserialize(keyClassName, valueClassName, body);
+
+                        long timestamp;
+                        String userProperty = messageExt.getUserProperty(Constant.SOURCE_TIMESTAMP);
+                        if (!StringUtils.isEmpty(userProperty)) {
+                            timestamp = Long.parseLong(userProperty);
+                        } else {
+                            timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
+                        }
+
+                        String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
+                        long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));
+                        context.setWatermark(watermark);
+
+                        Data<K, V> data = new Data<>(pair.getKey(), pair.getValue(), timestamp, new Properties());
+                        context.setKey(pair.getKey());
+                        if (topic.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
+                            logger.debug("shuffle data: [{}]", data);
+                        } else {
+                            logger.debug("source data: [{}]", data);
+                        }
+
+                        try {
+                            context.forward(data);
+                        } catch (Throwable t) {
+                            logger.error("process error.", t);
+                            throw new DataProcessThrowable(t);
+                        }
                     }
 
-                    String keyClassName = messageExt.getUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME);
-                    String valueClassName = messageExt.getUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME);
-
-                    String topic = messageExt.getTopic();
-                    int queueId = messageExt.getQueueId();
-                    String brokerName = messageExt.getBrokerName();
-                    MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
-                    set.add(queue);
-                    logger.debug("source topic queue:[{}]", queue);
-
-
-                    String key = Utils.buildKey(brokerName, topic, queueId);
-                    SourceSupplier.SourceProcessor<K, V> processor = (SourceSupplier.SourceProcessor<K, V>) wrapper.selectProcessor(key);
-
-                    StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key);
-
-                    processor.preProcess(context);
-
-                    Pair<K, V> pair = processor.deserialize(keyClassName, valueClassName, body);
-
-                    long timestamp;
-                    String userProperty = messageExt.getUserProperty(Constant.SOURCE_TIMESTAMP);
-                    if (!StringUtils.isEmpty(userProperty)) {
-                        timestamp = Long.parseLong(userProperty);
+                } catch (Throwable t) {
+                    Object skipDataError = properties.get(Constant.SKIP_DATA_ERROR);
+                    if (skipDataError == Boolean.TRUE && t instanceof DataProcessThrowable || t instanceof DeserializeThrowable) {
+                        //ignored
                     } else {
-                        timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
+                        throw t;
                     }
-
-                    String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
-                    long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));
-                    context.setWatermark(watermark);
-
-                    Data<K, V> data = new Data<>(pair.getKey(), pair.getValue(), timestamp, new Properties());
-                    context.setKey(pair.getKey());
-                    if (topic.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
-                        logger.debug("shuffle data: [{}]", data);
-                    } else {
-                        logger.debug("source data: [{}]", data);
-                    }
-                    context.forward(data);
                 }
 
                 //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
                 for (MessageQueue messageQueue : set) {
                     logger.debug("commit messageQueue: [{}]", messageQueue);
                 }
-                this.unionConsumer.commit(set, true);
                 this.stateStore.persist(set);
-                //todo 提交消费位点、写出sink数据、写出状态、需要保持原子
+                this.unionConsumer.commit(set, true);
             }
         }
 
@@ -225,11 +239,12 @@ public class WorkerThread extends Thread {
             this.stop = true;
 
             try {
+                this.stateStore.close();
                 this.unionConsumer.shutdown();
                 this.producer.shutdown();
                 this.mqAdmin.shutdown();
             } catch (Throwable e) {
-                logger.error("error when stop.", e);
+                logger.error("error when stop engin.", e);
             }
         }
     }

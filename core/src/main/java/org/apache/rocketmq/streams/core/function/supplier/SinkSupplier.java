@@ -63,14 +63,13 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
         @Override
         public void process(T data) throws Throwable {
             if (data != null) {
-                Message message;
-
-                //todo 异常体系，哪些可以不必中断线程，哪些是需要中断的？
                 byte[] value = this.serializer.serialize(key, data);
                 if (value == null) {
                     //目前RocketMQ不支持发送body为null的消息；
                     return;
                 }
+
+                Message message;
 
                 if (this.key == null) {
                     message = new Message(this.topicName, value);
@@ -91,7 +90,6 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
                     message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, this.key.getClass().getName());
                     message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, data.getClass().getName());
 
-                    //todo 丑陋
                     if (this.topicName.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                         message.putUserProperty(Constant.SOURCE_TIMESTAMP, String.valueOf(this.context.getDataTime()));
                     }

@@ -22,6 +22,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Utils;
@@ -42,7 +43,7 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
     }
 
     @Override
-    public void preProcess(StreamContext<T> context) throws Throwable {
+    public void preProcess(StreamContext<T> context) throws RecoverStateStoreThrowable {
         this.context = context;
         this.context.init(getChildren());
     }
@@ -51,7 +52,7 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         return Collections.unmodifiableList(children);
     }
 
-    protected StateStore waitStateReplay() throws Throwable {
+    protected StateStore waitStateReplay() throws RecoverStateStoreThrowable {
         MessageQueue sourceTopicQueue = new MessageQueue(getSourceTopic(), getSourceBrokerName(), getSourceQueueId());
 
         StateStore stateStore = context.getStateStore();
@@ -59,17 +60,11 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         return stateStore;
     }
 
-
-
     @SuppressWarnings("unchecked")
     protected <KEY> Data<KEY, T> convert(Data<?, ?> data) {
         return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getHeader());
     }
 
-    @Override
-    public void close() throws Exception {
-
-    }
 
     protected String getSourceBrokerName() {
         String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
