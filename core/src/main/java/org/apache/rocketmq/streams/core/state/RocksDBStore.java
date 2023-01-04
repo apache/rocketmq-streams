@@ -36,7 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RocksDBStore extends AbstractStore {
+public class RocksDBStore extends AbstractStore implements AutoCloseable {
     private static final String ROCKSDB_PATH = "/tmp/rocksdb";
     private RocksDB rocksDB;
     private WriteOptions writeOptions;
@@ -154,7 +154,7 @@ public class RocksDBStore extends AbstractStore {
     }
 
     public void close() throws Exception {
-
+        this.rocksDB.close();
     }
 
 

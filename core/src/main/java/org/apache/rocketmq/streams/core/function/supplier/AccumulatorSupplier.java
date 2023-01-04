@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
 import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
@@ -62,7 +63,7 @@ public class AccumulatorSupplier<K, V, R, OV> implements Supplier<Processor<V>> 
         }
 
         @Override
-        public void preProcess(StreamContext<V> context) throws Throwable {
+        public void preProcess(StreamContext<V> context) throws RecoverStateStoreThrowable {
             super.preProcess(context);
             this.stateStore = super.waitStateReplay();
 

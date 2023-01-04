@@ -17,6 +17,7 @@ package org.apache.rocketmq.streams.core.state;
  */
 
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
@@ -40,7 +41,7 @@ public interface StateStore extends AutoCloseable {
      * @throws Throwable
      */
     //如果没准备好，会阻塞
-    void waitIfNotReady(MessageQueue messageQueue) throws Throwable;
+    void waitIfNotReady(MessageQueue messageQueue) throws RecoverStateStoreThrowable;
 
 
     byte[] get(byte[] key) throws Throwable;

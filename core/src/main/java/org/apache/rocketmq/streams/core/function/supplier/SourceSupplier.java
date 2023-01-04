@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.streams.core.exception.DeserializeThrowable;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.window.TimeType;
@@ -40,7 +41,7 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
     }
 
     public interface SourceProcessor<K, V> extends Processor<V> {
-        Pair<K, V> deserialize(String keyClass, String valueClass, byte[] data) throws Throwable;
+        Pair<K, V> deserialize(String keyClass, String valueClass, byte[] data) throws DeserializeThrowable;
 
         long getTimestamp(MessageExt originData, TimeType timeType);
 
@@ -59,9 +60,13 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
         }
 
         @Override
-        public Pair<K, V> deserialize(String keyClass, String valueClass, byte[] data) throws Throwable {
-            this.deserializer.configure(keyClass, valueClass);
-            return this.deserializer.deserialize(data);
+        public Pair<K, V> deserialize(String keyClass, String valueClass, byte[] data) throws DeserializeThrowable {
+            try {
+                this.deserializer.configure(keyClass, valueClass);
+                return this.deserializer.deserialize(data);
+            }catch (Throwable t) {
+                throw new DeserializeThrowable(t);
+            }
         }
 
         @Override

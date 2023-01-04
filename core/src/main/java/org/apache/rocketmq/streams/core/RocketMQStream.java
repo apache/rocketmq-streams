@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core;
  * limitations under the License.
  */
 
+import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.running.WorkerThread;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
@@ -48,7 +49,10 @@ public class RocketMQStream {
         try {
             int threadNum = StreamConfig.STREAMS_PARALLEL_THREAD_NUM;
             for (int i = 0; i < threadNum; i++) {
-                WorkerThread thread = new WorkerThread(topologyBuilder, this.properties);
+                String threadName = String.join("_", Constant.WORKER_THREAD_NAME, String.valueOf(i));
+
+                WorkerThread thread = new WorkerThread(threadName, topologyBuilder, this.properties);
+
                 thread.start();
                 workerThreads.add(thread);
             }

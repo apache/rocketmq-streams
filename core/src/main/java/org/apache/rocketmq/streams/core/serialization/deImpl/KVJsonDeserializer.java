@@ -39,7 +39,6 @@ public class KVJsonDeserializer<K, V> extends ShuffleProtocol implements KeyValu
         if (!StringUtils.isEmpty(valueClassName)) {
             valueType = (Class<V>) Class.forName(valueClassName);
         }
-
     }
 
     @Override

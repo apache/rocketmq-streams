@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.window.WindowKey;
@@ -61,7 +62,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     private final RocksDBStore rocksDBStore;
     private final Properties properties;
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    private final ExecutorService executor = Executors.newFixedThreadPool(8);
     private final ShuffleProtocol protocol = new ShuffleProtocol();
 
     private final ConcurrentHashMap<MessageQueue/*messageQueue of state topic*/, CountDownLatch2> recoveringQueueMutex = new ConcurrentHashMap<>();
@@ -84,7 +85,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     }
 
     @Override
-    public void waitIfNotReady(MessageQueue messageQueue) throws Throwable {
+    public void waitIfNotReady(MessageQueue messageQueue) throws RecoverStateStoreThrowable {
         MessageQueue stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(messageQueue);
         CountDownLatch2 waitPoint = this.recoveringQueueMutex.get(stateTopicQueue);
 
@@ -94,6 +95,8 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             start = System.currentTimeMillis();
             waitPoint.await(5000, TimeUnit.MILLISECONDS);
             end = System.currentTimeMillis();
+        } catch (Throwable t) {
+            throw new RecoverStateStoreThrowable(t);
         } finally {
             long cost = end - start;
             if (cost > 2000) {
@@ -198,6 +201,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 try {
                     logger.debug("persist key: " + new String(key, StandardCharsets.UTF_8) + ",messageQueue: " + stateTopicQueue);
                 } catch (Throwable t) {
+                    //key is not string, maybe.
                 }
 
                 this.producer.send(message, stateTopicQueue);
@@ -415,6 +419,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
     @Override
     public void close() throws Exception {
-
+        this.rocksDBStore.close();
+        this.executor.shutdown();
     }
 }

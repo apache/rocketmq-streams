@@ -26,8 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractWindowProcessor.class.getName());
-
 
     protected List<Window> calculateWindow(WindowInfo windowInfo, long valueTime) {
         long sizeInterval = windowInfo.getWindowSize().toMillSecond();
