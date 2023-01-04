@@ -84,7 +84,7 @@ The broker[broker-a, 192.169.1.2:10911] boot success...
 
 * create topic in RocketMQ before start the stream processing.
 ```shell
-sh bin/mqadmin updateTopic -c DefaultCluster -t sourceTopic -r 8 -w 8 -n 127.0.0.1:9876
+sh bin/mqadmin updateTopic -c ${clusterName} -t ${topicName} -r 8 -w 8 -n 127.0.0.1:9876
 ```
     
     NOTE: the default clusterName is DefaultCluster in this quick-start doc, changes it with your RocketMQ cluster.
