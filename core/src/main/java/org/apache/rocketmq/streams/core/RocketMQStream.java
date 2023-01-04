@@ -27,12 +27,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RocketMQStream {
     private static final Logger logger = LoggerFactory.getLogger(RocketMQStream.class.getName());
     private final TopologyBuilder topologyBuilder;
     private final Properties properties;
-    private List<WorkerThread> workerThreads = new ArrayList<>();
+    private final List<WorkerThread> workerThreads = new ArrayList<>();
+    private final AtomicBoolean started = new AtomicBoolean(false);
 
     public RocketMQStream(TopologyBuilder topologyBuilder, Properties properties) {
         this.topologyBuilder = topologyBuilder;
@@ -40,10 +42,13 @@ public class RocketMQStream {
     }
 
 
-    public void start() {
-        if (workerThreads.size() != 0) {
+    public synchronized void start() {
+        if (started.get()) {
+            logger.info("RocketMQStream has been started.");
             return;
         }
+
+        this.started.compareAndSet(false, true);
 
         //启动线程
         try {
@@ -67,5 +72,6 @@ public class RocketMQStream {
             thread.shutdown();
         }
         workerThreads.clear();
+        this.started.set(false);
     }
 }
