@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
+import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.util.function.Supplier;
 
@@ -60,11 +61,12 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
             this.key = context.getKey();
         }
 
+        //sink into shuffle topic/state topic/user topic
         @Override
         public void process(T data) throws Throwable {
             if (data != null) {
                 byte[] value = this.serializer.serialize(key, data);
-                if (value == null) {
+                if (value == null || value.length == 0) {
                     //目前RocketMQ不支持发送body为null的消息；
                     return;
                 }
@@ -83,8 +85,8 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
                     producer.send(message);
                 } else {
                     message = new Message(this.topicName, value);
-                    //tostring 是否精准
-                    message.setKeys(String.valueOf(this.key.toString()));
+                    //the real key is in the body, this key is used to route the same key into the same queue.
+                    message.setKeys(Utils.toHexString(this.key));
 
 
                     message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, this.key.getClass().getName());

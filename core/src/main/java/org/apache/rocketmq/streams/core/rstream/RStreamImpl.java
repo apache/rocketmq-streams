@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.rstream;
 
 
+import org.apache.rocketmq.streams.core.function.supplier.MultiValueChangeSupplier;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ForeachAction;
@@ -37,6 +38,7 @@ import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FLAT_MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FOR_EACH_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
@@ -73,11 +75,11 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <VR> RStream<T> flatMap(ValueMapperAction<? extends T, ? extends Iterable<? extends VR>> mapper) {
-        String name = OperatorNameMaker.makeName(MAP_PREFIX, pipeline.getJobId());
+    public <VR> RStream<T> flatMap(ValueMapperAction<T, ? extends Iterable<? extends VR>> mapper) {
+        String name = OperatorNameMaker.makeName(FLAT_MAP_PREFIX, pipeline.getJobId());
 
-        ValueChangeSupplier<? extends T, ? extends Iterable<? extends VR>> supplier = new ValueChangeSupplier<>(mapper);
-        GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        MultiValueChangeSupplier<T, VR> changeSupplier = new MultiValueChangeSupplier<>(mapper);
+        GraphNode processorNode = new ProcessorNode<>(name, parent.getName(), changeSupplier);
 
         return pipeline.addRStreamVirtualNode(processorNode, parent);
     }

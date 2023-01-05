@@ -22,6 +22,7 @@ public class OperatorNameMaker {
     public static final String SOURCE_PREFIX = "ROCKETMQ-SOURCE";
     public static final String SHUFFLE_SOURCE_PREFIX = "ROCKETMQ-SHUFFLE-SOURCE";
     public static final String MAP_PREFIX = "ROCKETMQ-MAP";
+    public static final String FLAT_MAP_PREFIX = "ROCKETMQ-FLAT-MAP";
     public static final String FILTER_PREFIX = "ROCKETMQ-FILTER";
     public static final String GROUPBY_PREFIX = "ROCKETMQ-GROUPBY";
     public static final String GROUPBY_COUNT_PREFIX = "ROCKETMQ-GROUPBY-COUNT";

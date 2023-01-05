@@ -39,5 +39,8 @@ public class SourceGraphNode<T> extends AbstractGraphNode {
         builder.addRealSource(name, topicName, supplier);
     }
 
-
+    @Override
+    public String toString() {
+        return "SourceGraphNode{" + "name=[" + name + "]}";
+    }
 }
