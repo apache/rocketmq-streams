@@ -94,6 +94,9 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
      * | classname |              |object length |             |
      * +-----------+--------------+---------------+-------------+
      * </pre>
+     * @param obj the object to serialize;
+     * @return byte[] the result of serialize
+     * @throws JsonProcessingException serialize exception.
      */
     protected byte[] object2Byte(Object obj) throws JsonProcessingException {
         if (obj == null) {
@@ -126,6 +129,9 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
      * | classname |              |object length |             |
      * +-----------+--------------+---------------+-------------+
      * </pre>
+     * @param bytes the byte array to deserialize;
+     * @return V the result of deserialize
+     * @throws Throwable deserialize exception.
      */
     @SuppressWarnings("unchecked")
     public <V> V byte2Object(byte[] bytes) throws Throwable {

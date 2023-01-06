@@ -332,13 +332,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
     public abstract class CommonWindowFire extends AbstractWindowProcessor<V> {
         protected WindowStore<K, OV> windowStore;
 
-        /**
-         * 触发窗口结束时间 <= watermark 的窗口
-         *
-         * @param watermark
-         * @param key
-         * @throws Throwable
-         */
+
         protected void fireWindowEndTimeLassThanWatermark(long watermark, String operatorName, K key) throws Throwable {
             WindowKey windowKeyWatermark = new WindowKey(operatorName, toHexString(key), watermark, 0L);
 

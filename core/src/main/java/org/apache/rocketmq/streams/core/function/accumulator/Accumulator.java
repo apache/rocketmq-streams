@@ -25,9 +25,10 @@ public interface Accumulator<V, R> {
     void merge(Accumulator<V, R> other);
 
     /**
-     * 状态触发后调用，context可以加入状态触发后产生的某些条件，传递给算子
-     * @param context
-     * @return
+     * invoked after the window fired.
+     *
+     * @param context the attached properties after window fired.
+     * @return the value.
      */
     R result(Properties context);
 

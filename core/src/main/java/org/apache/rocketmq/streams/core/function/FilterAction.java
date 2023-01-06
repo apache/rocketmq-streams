@@ -20,7 +20,7 @@ package org.apache.rocketmq.streams.core.function;
 public interface FilterAction<T> {
     /**
      *
-     * @param value
+     * @param value the target to filter
      * @return pass if true;
      */
     boolean apply(final T value);

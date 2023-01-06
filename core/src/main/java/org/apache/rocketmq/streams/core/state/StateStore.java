@@ -28,19 +28,12 @@ import java.util.Set;
 public interface StateStore extends AutoCloseable {
     void init() throws Throwable;
 
-    /**
-     * @param addQueues    messageQueue of source topic
-     * @param removeQueues messageQueue of source topic
-     * @throws Throwable
-     */
+
+    //addQueues    messageQueue of source topic,removeQueues messageQueue of source topic
     void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable;
 
 
-    /**
-     * @param messageQueue 检查source topic中该queue的状态是否已经加载好，如果没有加载好，等待加载
-     * @throws Throwable
-     */
-    //如果没准备好，会阻塞
+    //messageQueue check the state of source topic is ok, wait if not.
     void waitIfNotReady(MessageQueue messageQueue) throws RecoverStateStoreThrowable;
 
 
