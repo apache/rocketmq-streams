@@ -75,8 +75,6 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
 
                 if (this.key == null) {
                     message = new Message(this.topicName, value);
-
-                    message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, null);
                     message.putUserProperty(Constant.SHUFFLE_VALUE_CLASS_NAME, data.getClass().getName());
                     if (this.topicName.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                         message.putUserProperty(Constant.SOURCE_TIMESTAMP, String.valueOf(this.context.getDataTime()));
