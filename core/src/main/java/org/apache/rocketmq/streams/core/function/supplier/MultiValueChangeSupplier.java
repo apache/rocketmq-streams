@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.core.function.supplier;
 
-
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
@@ -24,36 +23,34 @@ import org.apache.rocketmq.streams.core.running.Processor;
 
 import java.util.function.Supplier;
 
-public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
-    private final ValueMapperAction<T, O> valueMapperAction;
+public class MultiValueChangeSupplier<T, VR> implements Supplier<Processor<T>> {
+    private final ValueMapperAction<T, ? extends Iterable<? extends VR>> valueMapperAction;
 
-
-    public ValueChangeSupplier(ValueMapperAction<T, O> valueMapperAction) {
+    public MultiValueChangeSupplier(ValueMapperAction<T, ? extends Iterable<? extends VR>> valueMapperAction) {
         this.valueMapperAction = valueMapperAction;
     }
 
     @Override
     public Processor<T> get() {
-        return new ValueMapperProcessor<>(this.valueMapperAction);
+        return new MultiValueMapperProcessor<>(this.valueMapperAction);
     }
 
+    static class MultiValueMapperProcessor<T, VR> extends AbstractProcessor<T> {
+        private final ValueMapperAction<T, ? extends Iterable<? extends VR>> valueMapperAction;
 
-    static class ValueMapperProcessor<T, O> extends AbstractProcessor<T> {
-        private final ValueMapperAction<T, O> valueMapperAction;
-
-
-        public ValueMapperProcessor(ValueMapperAction<T, O> valueMapperAction) {
+        public MultiValueMapperProcessor(ValueMapperAction<T, ? extends Iterable<? extends VR>> valueMapperAction) {
             this.valueMapperAction = valueMapperAction;
         }
 
         @Override
         public void process(T data) throws Throwable {
-            O convert = valueMapperAction.convert(data);
+            Iterable<? extends VR> convert = valueMapperAction.convert(data);
 
-            Data<Object, O> before = new Data<>(this.context.getKey(), convert, this.context.getDataTime(), this.context.getHeader());
-            Data<Object, T> result = convert(before);
-            this.context.forward(result);
+            for (VR item : convert) {
+                Data<Object, VR> before = new Data<>(this.context.getKey(), item, this.context.getDataTime(), this.context.getHeader());
+                Data<Object, T> result = convert(before);
+                this.context.forward(result);
+            }
         }
     }
-
 }

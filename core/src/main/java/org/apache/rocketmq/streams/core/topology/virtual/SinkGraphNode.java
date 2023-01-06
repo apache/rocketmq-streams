@@ -38,4 +38,9 @@ public class SinkGraphNode<T> extends AbstractGraphNode {
     public void addRealNode(TopologyBuilder builder) {
         builder.addRealSink(name, parentName, topicName, supplier);
     }
+
+    @Override
+    public String toString() {
+        return "SinkGraphNode{" + "name=[" + name + "]}";
+    }
 }

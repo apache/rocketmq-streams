@@ -203,6 +203,7 @@ public class WorkerThread extends Thread {
                 } catch (Throwable t) {
                     Object skipDataError = properties.get(Constant.SKIP_DATA_ERROR);
                     if (skipDataError == Boolean.TRUE && t instanceof DataProcessThrowable || t instanceof DeserializeThrowable) {
+                        logger.error("process data error, jobId=[{}], skip this data.", topologyBuilder.getJobId(), t);
                         //ignored
                     } else {
                         throw t;

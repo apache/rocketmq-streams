@@ -50,4 +50,9 @@ public class ShuffleProcessorNode<T> extends ProcessorNode<T> {
 
         builder.addRealNode(name, shuffleSourceName, supplier);
     }
+
+    @Override
+    public String toString() {
+        return "ShuffleProcessorNode{" + "name=[" + name + "]}";
+    }
 }

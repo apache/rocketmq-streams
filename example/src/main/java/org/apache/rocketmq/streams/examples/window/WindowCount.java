@@ -16,20 +16,22 @@
  */
 package org.apache.rocketmq.streams.examples.window;
 
+
+import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.function.ValueMapperAction;
+import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.window.Time;
 import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.window.WindowBuilder;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.examples.pojo.Num;
+import org.apache.rocketmq.streams.examples.pojo.User;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -39,32 +41,39 @@ import java.util.Properties;
  * 4、向topic中写入数据
  * 5、观察输出结果
  */
-public class windowWordCount {
+public class WindowCount {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder("windowWordCount");
-        builder.source("sourceTopic", source -> {
-                    String value = new String(source, StandardCharsets.UTF_8);
-                    return new Pair<>(null, value);
+        StreamBuilder builder = new StreamBuilder("windowCountUser");
+
+        AggregateAction<String, User, Num> aggregateAction = (key, value, accumulator) -> new Num(value.getName(), 100);
+
+        builder.source("user", source -> {
+                    User user1 = JSON.parseObject(source, User.class);
+                    return new Pair<>(null, user1);
                 })
-                .flatMap((ValueMapperAction<String, List<String>>) value -> {
-                    String[] splits = value.toLowerCase().split("\\W+");
-                    return Arrays.asList(splits);
-                })
-                .keyBy(value -> value)
+                .selectTimestamp(User::getTimestamp)
+                .filter(value -> value.getAge() > 0)
+                .keyBy(value -> "key")
                 .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
-                .count()
-                .toRStream()
-                .print();
+                .aggregate(aggregateAction)
+                .sink("", new KeyValueSerializer<String, Num>() {
+                    @Override
+                    public byte[] serialize(String s, Num data) throws Throwable {
+                        return new byte[0];
+                    }
+                });
 
         TopologyBuilder topologyBuilder = builder.build();
 
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
         properties.put(Constant.TIME_TYPE, TimeType.EVENT_TIME);
-        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 5000);
+        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 2000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
         rocketMQStream.start();
     }
+
+
 }

@@ -39,7 +39,7 @@ import java.util.Set;
 public class RocketMQUtil {
     private static final Logger logger = LoggerFactory.getLogger(RocketMQUtil.class.getName());
 
-    private static final List<String> existStateCompactTopic = new ArrayList<>();
+    private static final List<String> existTopic = new ArrayList<>();
 
     public static void createStaticCompactTopic(DefaultMQAdminExt mqAdmin, String topicName, int queueNum, Set<String> clusters) throws Exception {
         if (check(mqAdmin, topicName)) {
@@ -60,7 +60,7 @@ public class RocketMQUtil {
             logger.info("【step 2】update static topic to compact topic success. topic:[{}], cluster:[{}]", topicName, cluster);
         }
 
-        existStateCompactTopic.add(topicName);
+        existTopic.add(topicName);
         logger.info("create static-compact topic [{}] success, queue num [{}]", topicName, queueNum);
     }
 
@@ -76,7 +76,7 @@ public class RocketMQUtil {
             logger.info("create static topic:[{}] in cluster:[{}] success, logic queue num:[{}].", topicName, cluster, queueNum);
         }
 
-        existStateCompactTopic.add(topicName);
+        existTopic.add(topicName);
     }
 
     private static void createStaticTopicWithCommand(String topic, int queueNum, Set<String> brokers, String cluster, String nameservers) throws Exception {
@@ -135,13 +135,13 @@ public class RocketMQUtil {
     }
 
     private static boolean check(DefaultMQAdminExt mqAdmin, String topicName) {
-        if (existStateCompactTopic.contains(topicName)) {
+        if (existTopic.contains(topicName)) {
             return true;
         }
 
         try {
             mqAdmin.examineTopicRouteInfo(topicName);
-            existStateCompactTopic.add(topicName);
+            existTopic.add(topicName);
             return true;
         } catch (RemotingException | InterruptedException e) {
             logger.error("examine topic route info error.", e);
@@ -157,6 +157,6 @@ public class RocketMQUtil {
     }
 
     public static boolean checkWhetherExist(String topic) {
-        return existStateCompactTopic.contains(topic);
+        return existTopic.contains(topic);
     }
 }

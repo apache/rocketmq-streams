@@ -16,13 +16,16 @@ package org.apache.rocketmq.streams.examples;
  * limitations under the License.
  */
 
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.examples.pojo.User;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -41,7 +44,7 @@ public class WordCount {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("wordCount");
 
-        builder.source("sourceTopic",  total -> {
+        builder.source("sourceTopic", total -> {
                     String value = new String(total, StandardCharsets.UTF_8);
                     return new Pair<>(null, value);
                 })
@@ -51,8 +54,17 @@ public class WordCount {
                 })
                 .keyBy(value -> value)
                 .count()
-                .toRStream()
-                .print();
+                .sink("wordCountSink", new KeyValueSerializer<String, Integer>() {
+                    final ObjectMapper objectMapper = new ObjectMapper();
+                    @Override
+                    public byte[] serialize(String o, Integer data) throws Throwable {
+                        ObjectNode objectNode = objectMapper.createObjectNode();
+                        objectNode.put(o, data);
+
+                        String result = objectNode.toPrettyString();
+                        return objectMapper.writeValueAsBytes(result);
+                    }
+                });
 
         TopologyBuilder topologyBuilder = builder.build();
 

@@ -24,14 +24,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.RStreamsException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class Utils {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     public static final String pattern = "%s@%s@%s";
+
     static {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
@@ -83,7 +86,7 @@ public class Utils {
 
 
     public static <B> B byte2Object(byte[] source, Class<B> clazz) throws IOException {
-        if (source == null || source.length ==0 || clazz == null) {
+        if (source == null || source.length == 0 || clazz == null) {
             return null;
         }
 
@@ -91,16 +94,27 @@ public class Utils {
     }
 
     public static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public static String format(long timestamp) {
         Date date = new Date(timestamp);
         return df.format(date);
     }
 
-    public static String toHexString(byte[] bytes) {
-        return DigestUtils.md5Hex(bytes);
-    }
+    public static String toHexString(Object obj) {
+        try {
+            if (obj instanceof byte[]) {
+                return DigestUtils.md5Hex((byte[]) obj);
+            } else if (obj instanceof String) {
+                return DigestUtils.md5Hex((String) obj);
+            } else if (obj instanceof InputStream) {
+                return DigestUtils.md5Hex((InputStream) obj);
+            } else {
+                byte[] bytes = object2Byte(obj);
+                return DigestUtils.md5Hex(bytes);
+            }
+        } catch (Throwable t) {
+            throw new RStreamsException("object to HexString error, object=" + obj, t);
+        }
 
-    public static String toHexString(String str) {
-        return DigestUtils.md5Hex(str);
     }
 }
