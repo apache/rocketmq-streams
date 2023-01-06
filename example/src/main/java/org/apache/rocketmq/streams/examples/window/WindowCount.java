@@ -56,12 +56,8 @@ public class WindowCount {
                 .keyBy(value -> "key")
                 .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
                 .aggregate(aggregateAction)
-                .sink("", new KeyValueSerializer<String, Num>() {
-                    @Override
-                    public byte[] serialize(String s, Num data) throws Throwable {
-                        return new byte[0];
-                    }
-                });
+                .toRStream()
+                .print();
 
         TopologyBuilder topologyBuilder = builder.build();
 

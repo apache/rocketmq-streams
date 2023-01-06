@@ -1,3 +1,4 @@
+package org.apache.rocketmq.streams.examples.sink;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -14,12 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.examples;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
+import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 
@@ -29,7 +32,14 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
-public class WordCount {
+/**
+ * 1、启动RocketMQ
+ * 2、创建topic sh bin/mqadmin updateTopic -c DefaultCluster -t sourceTopic -r 8 -w 8 -n 127.0.0.1:9876
+ * 3、启动本例子运行
+ * 4、向topic中写入数据
+ * 5、观察输出结果
+ */
+public class WordCountSink {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("wordCount");
 
@@ -43,8 +53,17 @@ public class WordCount {
                 })
                 .keyBy(value -> value)
                 .count()
-                .toRStream()
-                .print();
+                .sink("wordCountSink", new KeyValueSerializer<String, Integer>() {
+                    final ObjectMapper objectMapper = new ObjectMapper();
+                    @Override
+                    public byte[] serialize(String o, Integer data) throws Throwable {
+                        ObjectNode objectNode = objectMapper.createObjectNode();
+                        objectNode.put(o, data);
+
+                        String result = objectNode.toPrettyString();
+                        return objectMapper.writeValueAsBytes(result);
+                    }
+                });
 
         TopologyBuilder topologyBuilder = builder.build();
 
@@ -71,4 +90,5 @@ public class WordCount {
         }
         System.exit(0);
     }
+
 }
