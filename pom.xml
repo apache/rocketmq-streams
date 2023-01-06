@@ -26,7 +26,7 @@
 
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-streams-all</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1-SNAPSHOT</version>
     <name>Apache RocketMQ Streams ${project.version}</name>
     <packaging>pom</packaging>
     <url>https://rocketmq.apache.org/</url>
@@ -35,7 +35,7 @@
         <url>git@github.com:apache/rocketmq-streams.git</url>
         <connection>scm:git:git@github.com:apache/rocketmq-streams.git</connection>
         <developerConnection>scm:git:git@github.com:apache/rocketmq-streams.git</developerConnection>
-        <tag>rocketmq-streams-all-1.1.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <mailingLists>
