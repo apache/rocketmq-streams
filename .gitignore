@@ -26,6 +26,6 @@ nbbuild/
 dist/
 nbdist/
 
-dipper.cs
-dipper.properties
+pom.xml.releaseBackup
+release.properties
 
