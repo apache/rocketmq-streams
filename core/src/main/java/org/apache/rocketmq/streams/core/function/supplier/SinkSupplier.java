@@ -83,8 +83,9 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
                     producer.send(message);
                 } else {
                     message = new Message(this.topicName, value);
+                    String hexKey = Utils.toHexString(this.key);
                     //the real key is in the body, this key is used to route the same key into the same queue.
-                    message.setKeys(Utils.toHexString(this.key));
+                    message.setKeys(hexKey);
 
 
                     message.putUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME, this.key.getClass().getName());
@@ -94,7 +95,7 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
                         message.putUserProperty(Constant.SOURCE_TIMESTAMP, String.valueOf(this.context.getDataTime()));
                     }
 
-                    producer.send(message, new SelectMessageQueueByHash(), this.key);
+                    producer.send(message, new SelectMessageQueueByHash(), hexKey);
                 }
             }
         }

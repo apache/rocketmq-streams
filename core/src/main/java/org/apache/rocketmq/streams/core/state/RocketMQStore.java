@@ -81,6 +81,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     @Override
     public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
         this.loadState(addQueues);
+        //todo what to to with the data in flight, if the source queue is be removed.
         this.removeState(removeQueues);
     }
 
@@ -396,7 +397,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         String sourceTopic = stateTopic2SourceTopic(stateTopic);
         Pair<Integer, Set<String>> clustersPair = getTotalQueueNumAndClusters(sourceTopic);
 
-        RocketMQUtil.createStaticCompactTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+        RocketMQUtil.createNormalTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
     }
 
     private Pair<Integer, Set<String>> getTotalQueueNumAndClusters(String sourceTopic) throws Exception {

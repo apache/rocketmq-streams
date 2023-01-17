@@ -21,11 +21,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 import org.slf4j.Logger;
@@ -41,6 +44,30 @@ public class RocketMQUtil {
 
     private static final List<String> existTopic = new ArrayList<>();
 
+    //neither static topic nor compact topic. expansion with source topic.
+    public static void createNormalTopic(DefaultMQAdminExt mqAdmin, String topicName, int queueNum, Set<String> clusters) throws Exception {
+        if (check(mqAdmin, topicName)) {
+            logger.info("topic[{}] already exist.", topicName);
+            return;
+        }
+
+        if (clusters == null || clusters.size() == 0) {
+            clusters = getCluster(mqAdmin);
+        }
+
+        TopicConfig topicConfig = new TopicConfig(topicName, queueNum, queueNum, PermName.PERM_READ | PermName.PERM_WRITE);
+
+        for (String cluster : clusters) {
+            Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdmin, cluster);
+
+            for (String addr : masterSet) {
+                mqAdmin.createAndUpdateTopicConfig(addr, topicConfig);
+                logger.info("create topic to broker:{} cluster:{}, success.", addr, cluster);
+            }
+        }
+    }
+
+    //used in RSQLDB,maybe.
     public static void createStaticCompactTopic(DefaultMQAdminExt mqAdmin, String topicName, int queueNum, Set<String> clusters) throws Exception {
         if (check(mqAdmin, topicName)) {
             logger.info("topic[{}] already exist.", topicName);

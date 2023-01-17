@@ -75,4 +75,8 @@ public class RocketMQStream {
         workerThreads.clear();
         this.started.set(false);
     }
+
+    public boolean isRunning() {
+        return this.started.get();
+    }
 }
