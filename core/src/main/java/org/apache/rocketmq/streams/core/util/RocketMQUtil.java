@@ -67,6 +67,7 @@ public class RocketMQUtil {
         }
     }
 
+    //used in RSQLDB,maybe.
     public static void createStaticCompactTopic(DefaultMQAdminExt mqAdmin, String topicName, int queueNum, Set<String> clusters) throws Exception {
         if (check(mqAdmin, topicName)) {
             logger.info("topic[{}] already exist.", topicName);
