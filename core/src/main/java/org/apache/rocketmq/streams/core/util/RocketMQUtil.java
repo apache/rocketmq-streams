@@ -25,6 +25,9 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -35,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -87,6 +91,32 @@ public class RocketMQUtil {
             }
 
         }
+    }
+
+    public static void createNormalTopic(DefaultMQAdminExt mqAdmin, String sourceTopic, String stateTopic) throws Exception {
+        //找到brokerAddr
+        TopicRouteData topicRouteData = mqAdmin.examineTopicRouteInfo(sourceTopic);
+        List<QueueData> queueData = topicRouteData.getQueueDatas();
+        List<BrokerData> brokerData = topicRouteData.getBrokerDatas();
+
+
+        HashMap<String, String> brokerName2MaterBrokerAddr = new HashMap<>();
+        for (BrokerData broker : brokerData) {
+            String masterBrokerAddr = broker.getBrokerAddrs().get(0L);
+            brokerName2MaterBrokerAddr.put(broker.getBrokerName(), masterBrokerAddr);
+        }
+
+        for (QueueData queue : queueData) {
+            int readQueueNums = queue.getReadQueueNums();
+            int writeQueueNums = queue.getWriteQueueNums();
+            String brokerName = queue.getBrokerName();
+
+            TopicConfig topicConfig = new TopicConfig(stateTopic, readQueueNums, writeQueueNums);
+
+            mqAdmin.createAndUpdateTopicConfig(brokerName2MaterBrokerAddr.get(brokerName), topicConfig);
+        }
+
+        existTopic.add(stateTopic);
     }
 
     //used in RSQLDB,maybe.

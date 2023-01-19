@@ -401,7 +401,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         if (sourceTopicIsStaticTopic) {
             RocketMQUtil.createStaticCompactTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
         } else {
-            RocketMQUtil.createNormalTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+            RocketMQUtil.createNormalTopic(mqAdmin, sourceTopic, stateTopic);
         }
     }
 
