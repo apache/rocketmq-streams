@@ -56,13 +56,17 @@ public class WorkerThread extends Thread {
     private final TopologyBuilder topologyBuilder;
     private final PlanetaryEngine<?, ?> planetaryEngine;
     private final Properties properties;
+    private final String jobId;
 
 
     public WorkerThread(String threadName, TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
         super(threadName);
+
         this.topologyBuilder = topologyBuilder;
         this.properties = properties;
-        String groupName = topologyBuilder.getJobId() + "_" + ROCKETMQ_STREAMS_CONSUMER_GROUP;
+        jobId = topologyBuilder.getJobId();
+
+        String groupName = String.join("_", jobId, ROCKETMQ_STREAMS_CONSUMER_GROUP);
 
         RocketMQClient rocketMQClient = new RocketMQClient(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
 
@@ -88,8 +92,9 @@ public class WorkerThread extends Thread {
     public void run() {
         try {
             this.planetaryEngine.start();
-
             this.planetaryEngine.runInLoop();
+            logger.info("worker thread=[{}], start task success, jobId:{}", this.getName(), jobId);
+
         } catch (Throwable e) {
             logger.error("worker thread=[{}], error:{}.", this.getName(), e);
             throw new RStreamsException(e);
@@ -101,6 +106,7 @@ public class WorkerThread extends Thread {
 
     public void shutdown() {
         this.planetaryEngine.stop();
+        logger.info("worker thread=[{}], shutdown task success, jobId:{}", this.getName(), jobId);
     }
 
 

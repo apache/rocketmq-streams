@@ -50,4 +50,6 @@ public class Constant {
 
     public static final String WORKER_THREAD_NAME = "worker_thread";
 
+    public static final String STATIC_TOPIC_BROKER_NAME = "__syslo__global__";
+
 }
