@@ -185,7 +185,8 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             }
 
             String stateTopic = stateTopicQueue.getTopic();
-            createStateTopic(stateTopic);
+            boolean isStaticTopic = stateTopicQueue.getBrokerName().equals(Constant.STATIC_TOPIC_BROKER_NAME);
+            createStateTopic(stateTopic, isStaticTopic);
 
             for (byte[] key : keySet) {
 
@@ -224,7 +225,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
         Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(addQueues);
         for (MessageQueue messageQueue : stateTopicQueue) {
-            createStateTopic(messageQueue.getTopic());
+            createStateTopic(messageQueue.getTopic(), messageQueue.getBrokerName().equals(Constant.STATIC_TOPIC_BROKER_NAME));
         }
 
         consumer.assign(stateTopicQueue);
@@ -389,7 +390,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         return target;
     }
 
-    private void createStateTopic(String stateTopic) throws Exception {
+    private void createStateTopic(String stateTopic, boolean sourceTopicIsStaticTopic) throws Exception {
         if (RocketMQUtil.checkWhetherExist(stateTopic)) {
             return;
         }
@@ -397,7 +398,11 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         String sourceTopic = stateTopic2SourceTopic(stateTopic);
         Pair<Integer, Set<String>> clustersPair = getTotalQueueNumAndClusters(sourceTopic);
 
-        RocketMQUtil.createNormalTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+        if (sourceTopicIsStaticTopic) {
+            RocketMQUtil.createStaticCompactTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+        } else {
+            RocketMQUtil.createNormalTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+        }
     }
 
     private Pair<Integer, Set<String>> getTotalQueueNumAndClusters(String sourceTopic) throws Exception {
