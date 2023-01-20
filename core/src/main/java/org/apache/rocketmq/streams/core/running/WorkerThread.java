@@ -82,7 +82,7 @@ public class WorkerThread extends Thread {
         DefaultMQProducer producer = rocketMQClient.producer(groupName);
         DefaultMQAdminExt mqAdmin = rocketMQClient.getMQAdmin();
 
-        RocksDBStore rocksDBStore = new RocksDBStore();
+        RocksDBStore rocksDBStore = new RocksDBStore(threadName);
         RocketMQStore store = new RocketMQStore(producer, rocksDBStore, mqAdmin, this.properties);
 
         this.planetaryEngine = new PlanetaryEngine<>(unionConsumer, producer, store, mqAdmin, wrapper);
