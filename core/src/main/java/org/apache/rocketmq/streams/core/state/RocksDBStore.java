@@ -29,6 +29,8 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +39,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RocksDBStore extends AbstractStore implements AutoCloseable {
+    private static final Logger logger = LoggerFactory.getLogger(RocksDBStore.class);
+
     private static final String ROCKSDB_PATH = "/tmp/rocksdb";
     private RocksDB rocksDB;
     private WriteOptions writeOptions;
@@ -157,6 +161,7 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
         this.rocksDB.close();
         if (this.storeFile != null && storeFile.exists()) {
             FileUtils.forceDelete(storeFile);
+            logger.info("close RocksDB success, delete path:{}", storeFile.getPath());
         }
     }
 

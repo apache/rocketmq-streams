@@ -99,7 +99,6 @@ public class WorkerThread extends Thread {
             logger.error("worker thread=[{}], error:{}.", this.getName(), e);
             throw new RStreamsException(e);
         } finally {
-            logger.info("worker thread=[{}], engin stopped.", this.getName());
             this.planetaryEngine.stop();
         }
     }
@@ -242,16 +241,21 @@ public class WorkerThread extends Thread {
             }
         }
 
-        public void stop() {
+        public synchronized void stop() {
+            if (this.stop) {
+                return;
+            }
+
             this.stop = true;
 
             try {
-                this.stateStore.close();
                 this.unionConsumer.shutdown();
                 this.producer.shutdown();
                 this.mqAdmin.shutdown();
+                this.stateStore.close();
             } catch (Throwable e) {
                 logger.error("error when stop engin.", e);
+                throw new RStreamsException(e);
             }
         }
     }
