@@ -82,7 +82,7 @@ public class WorkerThread extends Thread {
         DefaultMQProducer producer = rocketMQClient.producer(groupName);
         DefaultMQAdminExt mqAdmin = rocketMQClient.getMQAdmin();
 
-        RocksDBStore rocksDBStore = new RocksDBStore();
+        RocksDBStore rocksDBStore = new RocksDBStore(threadName);
         RocketMQStore store = new RocketMQStore(producer, rocksDBStore, mqAdmin, this.properties);
 
         this.planetaryEngine = new PlanetaryEngine<>(unionConsumer, producer, store, mqAdmin, wrapper);
@@ -99,14 +99,12 @@ public class WorkerThread extends Thread {
             logger.error("worker thread=[{}], error:{}.", this.getName(), e);
             throw new RStreamsException(e);
         } finally {
-            logger.info("worker thread=[{}], engin stopped.", this.getName());
             this.planetaryEngine.stop();
         }
     }
 
     public void shutdown() {
         this.planetaryEngine.stop();
-        logger.info("worker thread=[{}], shutdown task success, jobId:{}", this.getName(), jobId);
     }
 
 
@@ -242,16 +240,22 @@ public class WorkerThread extends Thread {
             }
         }
 
-        public void stop() {
+        public synchronized void stop() {
+            if (this.stop) {
+                return;
+            }
+
             this.stop = true;
 
             try {
-                this.stateStore.close();
                 this.unionConsumer.shutdown();
                 this.producer.shutdown();
                 this.mqAdmin.shutdown();
+                this.stateStore.close();
+                logger.info("shutdown engine success, thread:{}, jobId:{}", WorkerThread.this.getName(), jobId);
             } catch (Throwable e) {
                 logger.error("error when stop engin.", e);
+                throw new RStreamsException(e);
             }
         }
     }

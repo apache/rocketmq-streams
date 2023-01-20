@@ -25,7 +25,7 @@ import java.util.List;
 
 public class RocksDBStoreTest {
     public static void main(String[] args) throws Throwable {
-        RocksDBStore rocksDBStore = new RocksDBStore();
+        RocksDBStore rocksDBStore = new RocksDBStore("test");
 
 //        String key = "time@1668249210000@1668249195000";
 //        String key2 = "ewwwwe@1668249600481@1";
