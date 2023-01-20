@@ -105,7 +105,6 @@ public class WorkerThread extends Thread {
 
     public void shutdown() {
         this.planetaryEngine.stop();
-        logger.info("worker thread=[{}], shutdown task success, jobId:{}", this.getName(), jobId);
     }
 
 
@@ -253,6 +252,7 @@ public class WorkerThread extends Thread {
                 this.producer.shutdown();
                 this.mqAdmin.shutdown();
                 this.stateStore.close();
+                logger.info("shutdown engine success, thread:{}, jobId:{}", WorkerThread.this.getName(), jobId);
             } catch (Throwable e) {
                 logger.error("error when stop engin.", e);
                 throw new RStreamsException(e);

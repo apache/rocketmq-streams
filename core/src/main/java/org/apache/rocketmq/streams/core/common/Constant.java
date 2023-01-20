@@ -48,7 +48,7 @@ public class Constant {
 
     public static final String WINDOW_END_TIME = "window_end_time";
 
-    public static final String WORKER_THREAD_NAME = "worker_thread";
+    public static final String WORKER_THREAD_NAME = "ROCKETMQ_STREAMS";
 
     public static final String STATIC_TOPIC_BROKER_NAME = "__syslo__global__";
 
