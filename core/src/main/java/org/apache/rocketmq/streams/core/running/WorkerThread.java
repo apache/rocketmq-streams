@@ -92,9 +92,9 @@ public class WorkerThread extends Thread {
     public void run() {
         try {
             this.planetaryEngine.start();
-            this.planetaryEngine.runInLoop();
             logger.info("worker thread=[{}], start task success, jobId:{}", this.getName(), jobId);
 
+            this.planetaryEngine.runInLoop();
         } catch (Throwable e) {
             logger.error("worker thread=[{}], error:{}.", this.getName(), e);
             throw new RStreamsException(e);
