@@ -1,4 +1,3 @@
-package org.apache.rocketmq.streams.core.running;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,35 +14,17 @@ package org.apache.rocketmq.streams.core.running;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.core.window.fire;
 
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.streams.core.metadata.Data;
-import org.apache.rocketmq.streams.core.state.StateStore;
-import org.apache.rocketmq.streams.core.window.IdleWindowScaner;
 
-import java.util.List;
-import java.util.Properties;
+public interface WindowFire<K, V> {
 
-public interface StreamContext<V> {
-    void init(List<Processor<V>> childrenProcessors);
+    void fire(String operatorName, long watermark);
 
-    StateStore getStateStore();
 
-    long getDataTime();
-
-    <K> K getKey();
-
-    long getWatermark();
-
-    Properties getHeader();
-
-    DefaultMQProducer getDefaultMQProducer();
-
-    String getMessageFromWhichSourceTopicQueue();
-
-    IdleWindowScaner getDefaultWindowScaner();
-
-    StreamContext<V> copy();
-
-    <K> void forward(Data<K, V> data) throws Throwable;
+    @SuppressWarnings("unchecked")
+    default Data<K, V> convert(Data<?, ?> data) {
+        return (Data<K, V>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getHeader());
+    }
 }

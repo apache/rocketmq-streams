@@ -119,6 +119,23 @@ public class StreamContextImpl<V> implements StreamContext<V> {
         return this.idleWindowScaner;
     }
 
+
+    @Override
+    public StreamContext<V> copy() {
+        StreamContextImpl<V> streamContext = new StreamContextImpl<>(this.producer,
+                this.mqAdmin,
+                this.stateStore,
+                this.messageFromWhichSourceTopicQueue,
+                this.idleWindowScaner);
+        streamContext.key = this.key;
+        streamContext.dataTime = this.dataTime;
+        streamContext.header = new Properties(this.header);
+        streamContext.watermark = this.watermark;
+        streamContext.childList.addAll(this.childList);
+
+        return streamContext;
+    }
+
     @Override
     public <K> void forward(Data<K, V> data) throws Throwable {
         this.key = data.getKey();

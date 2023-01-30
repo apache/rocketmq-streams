@@ -34,6 +34,7 @@ import org.apache.rocketmq.streams.core.window.WindowState;
 import org.apache.rocketmq.streams.core.window.WindowStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
+import org.apache.rocketmq.streams.core.window.fire.JoinWindowFire;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,9 +75,6 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
         private WindowStore<K, V1> leftWindowStore;
         private WindowStore<K, V2> rightWindowStore;
 
-        private long maxFiredWindowEnd = 0L;
-        private StreamType streamType;
-
         public JoinStreamWindowAggregateProcessor(String name, WindowInfo windowInfo, JoinType joinType, ValueJoinAction<V1, V2, OUT> joinAction) {
             this.name = Utils.buildKey(name, JoinStreamWindowAggregateProcessor.class.getSimpleName());
             this.windowInfo = windowInfo;
@@ -87,8 +85,12 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
         @Override
         public void preProcess(StreamContext<Object> context) throws RecoverStateStoreThrowable {
             super.preProcess(context);
-            leftWindowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte, context.getDefaultWindowScaner());
-            rightWindowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte, context.getDefaultWindowScaner());
+            leftWindowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
+            rightWindowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
+
+            this.idleWindowScaner = context.getDefaultWindowScaner();
+            this.joinWindowFire = new JoinWindowFire<>(joinType, context, joinAction, leftWindowStore, rightWindowStore, idleWindowScaner::removeWindowKey);
+
             String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
             this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
         }
@@ -102,10 +104,10 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             long watermark = this.context.getWatermark();
             WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
 
-            if (time < this.maxFiredWindowEnd) {
+            if (time < watermark) {
                 //已经触发，丢弃数据
                 logger.warn("discard data:[{}], window has been fired. maxFiredWindowEnd:{}, time of data:{}, watermark:{}",
-                        data, maxFiredWindowEnd, watermark, time);
+                        data, watermark, watermark, time);
                 return;
             }
 
@@ -113,17 +115,15 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             if (streamType == null) {
                 String format = String.format("StreamType is empty, data:%s", data);
                 throw new IllegalStateException(format);
-            } else {
-                this.streamType = streamType;
             }
 
-            store(key, data, time);
+            store(key, data, time, streamType);
 
-            fire(watermark);
+            this.joinWindowFire.fire(this.name, watermark, streamType);
         }
 
 
-        private void store(Object key, Object data, long time) throws Throwable {
+        private void store(Object key, Object data, long time, StreamType streamType) throws Throwable {
             String name = Utils.buildKey(this.name, streamType.name());
             List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
@@ -134,119 +134,17 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                 switch (streamType) {
                     case LEFT_STREAM:
                         WindowState<K, V1> leftState = new WindowState<>((K) key, (V1) data, time);
-                        this.leftWindowStore.put(stateTopicMessageQueue, windowKey, leftState, this::fire);
+                        this.leftWindowStore.put(stateTopicMessageQueue, windowKey, leftState);
+                        this.idleWindowScaner.putJoinWindowCallback(windowKey, joinWindowFire);
                         break;
                     case RIGHT_STREAM:
                         WindowState<K, V2> rightState = new WindowState<>((K) key, (V2) data, time);
-                        this.rightWindowStore.put(stateTopicMessageQueue, windowKey, rightState, this::fire);
+                        this.rightWindowStore.put(stateTopicMessageQueue, windowKey, rightState);
+                        this.idleWindowScaner.putJoinWindowCallback(windowKey, joinWindowFire);
                         break;
                 }
             }
+
         }
-
-        private void fire(long watermark) {
-            try {
-                String leftWindow = Utils.buildKey(this.name, StreamType.LEFT_STREAM.name());
-                List<Pair<WindowKey, WindowState<K, V1>>> leftPairs = this.leftWindowStore.searchLessThanWatermark(leftWindow, watermark);
-
-                String rightWindow = Utils.buildKey(this.name, StreamType.RIGHT_STREAM.name());
-                List<Pair<WindowKey, WindowState<K, V2>>> rightPairs = this.rightWindowStore.searchLessThanWatermark(rightWindow, watermark);
-
-
-                if (leftPairs.size() == 0 && rightPairs.size() == 0) {
-                    return;
-                }
-
-                leftPairs.sort(Comparator.comparing(pair -> {
-                    WindowKey key = pair.getKey();
-                    return key.getWindowEnd();
-                }));
-                rightPairs.sort(Comparator.comparing(pair -> {
-                    WindowKey key = pair.getKey();
-                    return key.getWindowEnd();
-                }));
-
-                switch (joinType) {
-                    case INNER_JOIN:
-                        //匹配上才触发
-                        for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
-                            String leftPrefix = leftPair.getKey().getKeyAndWindow();
-
-                            for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
-                                String rightPrefix = rightPair.getKey().getKeyAndWindow();
-
-                                //相同window中相同key，聚合
-                                if (leftPrefix.equals(rightPrefix)) {
-                                    this.maxFiredWindowEnd = Math.max(rightPair.getKey().getWindowEnd(), this.maxFiredWindowEnd);
-
-                                    //do fire
-                                    V1 o1 = leftPair.getValue().getValue();
-                                    V2 o2 = rightPair.getValue().getValue();
-
-                                    OUT out = this.joinAction.apply(o1, o2);
-
-                                    Properties header = this.context.getHeader();
-                                    header.put(Constant.WINDOW_START_TIME, leftPair.getKey().getWindowStart());
-                                    header.put(Constant.WINDOW_END_TIME, leftPair.getKey().getWindowEnd());
-                                    Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
-                                    Data<K, Object> convert = super.convert(result);
-                                    this.context.forward(convert);
-                                }
-                            }
-                        }
-                        break;
-                    case LEFT_JOIN:
-                        switch (streamType) {
-                            case LEFT_STREAM:
-                                //左流全部触发，不管右流匹配上没
-                                for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
-                                    this.maxFiredWindowEnd = Math.max(leftPair.getKey().getWindowEnd(), this.maxFiredWindowEnd);
-
-                                    String leftPrefix = leftPair.getKey().getKeyAndWindow();
-                                    Pair<WindowKey, WindowState<K, V2>> targetPair = null;
-
-                                    for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
-                                        if (rightPair.getKey().getKeyAndWindow().equals(leftPrefix)) {
-                                            targetPair = rightPair;
-                                            break;
-                                        }
-                                    }
-
-                                    //fire
-                                    V1 o1 = leftPair.getValue().getValue();
-                                    V2 o2 = null;
-                                    if (targetPair != null) {
-                                        o2 = targetPair.getValue().getValue();
-                                    }
-
-                                    OUT out = this.joinAction.apply(o1, o2);
-                                    Properties header = this.context.getHeader();
-                                    header.put(Constant.WINDOW_START_TIME, leftPair.getKey().getWindowStart());
-                                    header.put(Constant.WINDOW_END_TIME, leftPair.getKey().getWindowEnd());
-                                    Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
-                                    Data<K, Object> convert = super.convert(result);
-                                    this.context.forward(convert);
-                                }
-                                break;
-                            case RIGHT_STREAM:
-                                //do nothing.
-                        }
-                        break;
-                }
-
-                //删除状态
-                for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
-                    this.leftWindowStore.deleteByKey(leftPair.getKey());
-                }
-
-                for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
-                    this.rightWindowStore.deleteByKey(rightPair.getKey());
-                }
-            } catch (Throwable t) {
-                String format = String.format("fire window error, watermark:%s.", watermark);
-                throw new RStreamsException(format, t);
-            }
-        }
-
     }
 }

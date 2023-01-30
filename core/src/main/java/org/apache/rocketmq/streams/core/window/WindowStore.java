@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.window;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
+import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.slf4j.Logger;
@@ -35,40 +36,19 @@ public class WindowStore<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(WindowStore.class.getName());
 
     private StateStore stateStore;
-    private IdleWindowScaner idleWindowScaner;
     private ValueMapperAction<byte[], WindowState<K, V>> bytes2State;
     private ValueMapperAction<WindowState<K, V>, byte[]> state2Bytes;
 
 
     public WindowStore(StateStore stateStore,
                        ValueMapperAction<byte[], WindowState<K, V>> bytes2State,
-                       ValueMapperAction<WindowState<K, V>, byte[]> state2Bytes,
-                       IdleWindowScaner idleWindowScaner) {
+                       ValueMapperAction<WindowState<K, V>, byte[]> state2Bytes) {
         this.stateStore = stateStore;
         this.bytes2State = bytes2State;
         this.state2Bytes = state2Bytes;
-        this.idleWindowScaner = idleWindowScaner;
     }
 
-    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey,
-                    WindowState<K, V> value, BiConsumer<Long, String> function) throws Throwable {
-        put(stateTopicMessageQueue, windowKey, value);
-        this.idleWindowScaner.putNormalWindowCallback(windowKey, function);
-    }
-
-    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey,
-                    WindowState<K, V> value, Consumer<WindowKey> function) throws Throwable {
-        put(stateTopicMessageQueue, windowKey, value);
-        this.idleWindowScaner.putSessionWindowCallback(windowKey, function);
-    }
-
-    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey,
-                    WindowState<K, V> value, LongConsumer function) throws Throwable {
-        put(stateTopicMessageQueue, windowKey, value);
-        this.idleWindowScaner.putJoinWindowCallback(windowKey, function);
-    }
-
-    private void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey, WindowState<K, V> value) throws Throwable {
+    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey, WindowState<K, V> value) throws Throwable {
         logger.debug("put key into store, key: " + windowKey);
         byte[] keyBytes = WindowKey.windowKey2Byte(windowKey);
         byte[] valueBytes = this.state2Bytes.convert(value);
@@ -84,13 +64,7 @@ public class WindowStore<K, V> {
 
     public List<Pair<WindowKey, WindowState<K, V>>> searchLessThanWatermark(String operatorName, long lessThanThisTime) throws Throwable {
         List<Pair<byte[], byte[]>> windowStateBytes = this.stateStore.searchStateLessThanWatermark(operatorName, lessThanThisTime, WindowKey::byte2WindowKey);
-
-        List<Pair<WindowKey, WindowState<K, V>>> pairs = deserializerState(windowStateBytes);
-        if (pairs.size() != 0) {
-            logger.debug("exist window need to fire, operator:{}, windowEnd < {}", operatorName, lessThanThisTime);
-        }
-
-        return pairs;
+        return deserializerState(windowStateBytes);
     }
 
     public List<Pair<WindowKey, WindowState<K, V>>> searchMatchKeyPrefix(String operatorName) throws Throwable {
@@ -105,7 +79,6 @@ public class WindowStore<K, V> {
         }
         byte[] keyBytes = WindowKey.windowKey2Byte(windowKey);
         this.stateStore.delete(keyBytes);
-        this.idleWindowScaner.removeWindowKey(windowKey);
     }
 
     private List<Pair<WindowKey, WindowState<K, V>>> deserializerState(List<Pair<byte[], byte[]>> windowStateBytes) throws Throwable {
