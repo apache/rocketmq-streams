@@ -26,24 +26,49 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 public class WindowStore<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(WindowStore.class.getName());
 
     private StateStore stateStore;
+    private IdleWindowScaner idleWindowScaner;
     private ValueMapperAction<byte[], WindowState<K, V>> bytes2State;
     private ValueMapperAction<WindowState<K, V>, byte[]> state2Bytes;
 
 
     public WindowStore(StateStore stateStore,
                        ValueMapperAction<byte[], WindowState<K, V>> bytes2State,
-                       ValueMapperAction<WindowState<K, V>, byte[]> state2Bytes) {
+                       ValueMapperAction<WindowState<K, V>, byte[]> state2Bytes,
+                       IdleWindowScaner idleWindowScaner) {
         this.stateStore = stateStore;
         this.bytes2State = bytes2State;
         this.state2Bytes = state2Bytes;
+        this.idleWindowScaner = idleWindowScaner;
     }
 
-    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey, WindowState<K, V> value) throws Throwable {
+    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey,
+                    WindowState<K, V> value, BiConsumer<Long, String> function) throws Throwable {
+        put(stateTopicMessageQueue, windowKey, value);
+        this.idleWindowScaner.putNormalWindowCallback(windowKey, function);
+    }
+
+    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey,
+                    WindowState<K, V> value, Consumer<WindowKey> function) throws Throwable {
+        put(stateTopicMessageQueue, windowKey, value);
+        this.idleWindowScaner.putSessionWindowCallback(windowKey, function);
+    }
+
+    public void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey,
+                    WindowState<K, V> value, LongConsumer function) throws Throwable {
+        put(stateTopicMessageQueue, windowKey, value);
+        this.idleWindowScaner.putJoinWindowCallback(windowKey, function);
+    }
+
+    private void put(MessageQueue stateTopicMessageQueue, WindowKey windowKey, WindowState<K, V> value) throws Throwable {
         logger.debug("put key into store, key: " + windowKey);
         byte[] keyBytes = WindowKey.windowKey2Byte(windowKey);
         byte[] valueBytes = this.state2Bytes.convert(value);
@@ -57,14 +82,19 @@ public class WindowStore<K, V> {
         return deserializerState(valueBytes);
     }
 
-    public List<Pair<WindowKey, WindowState<K, V>>> searchLessThanWatermark(WindowKey windowKey) throws Throwable {
-        List<Pair<byte[], byte[]>> windowStateBytes = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), windowKey.getWindowEnd(), WindowKey::byte2WindowKey);
+    public List<Pair<WindowKey, WindowState<K, V>>> searchLessThanWatermark(String operatorName, long lessThanThisTime) throws Throwable {
+        List<Pair<byte[], byte[]>> windowStateBytes = this.stateStore.searchStateLessThanWatermark(operatorName, lessThanThisTime, WindowKey::byte2WindowKey);
 
-        return deserializerState(windowStateBytes);
+        List<Pair<WindowKey, WindowState<K, V>>> pairs = deserializerState(windowStateBytes);
+        if (pairs.size() != 0) {
+            logger.debug("exist window need to fire, operator:{}, windowEnd < {}", operatorName, lessThanThisTime);
+        }
+
+        return pairs;
     }
 
-    public List<Pair<WindowKey, WindowState<K, V>>> searchMatchKeyPrefix(WindowKey windowKey) throws Throwable {
-        List<Pair<byte[], byte[]>> pairs = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), Long.MAX_VALUE, WindowKey::byte2WindowKey);
+    public List<Pair<WindowKey, WindowState<K, V>>> searchMatchKeyPrefix(String operatorName) throws Throwable {
+        List<Pair<byte[], byte[]>> pairs = this.stateStore.searchStateLessThanWatermark(operatorName, Long.MAX_VALUE, WindowKey::byte2WindowKey);
 
         return deserializerState(pairs);
     }
@@ -75,11 +105,12 @@ public class WindowStore<K, V> {
         }
         byte[] keyBytes = WindowKey.windowKey2Byte(windowKey);
         this.stateStore.delete(keyBytes);
+        this.idleWindowScaner.removeWindowKey(windowKey);
     }
 
-    private List<Pair<WindowKey, WindowState<K, V>>> deserializerState(List<Pair<byte[], byte[]>> windowStateBytes)  throws Throwable{
+    private List<Pair<WindowKey, WindowState<K, V>>> deserializerState(List<Pair<byte[], byte[]>> windowStateBytes) throws Throwable {
         List<Pair<WindowKey, WindowState<K, V>>> result = new ArrayList<>();
-        if (windowStateBytes == null || windowStateBytes.size() ==0) {
+        if (windowStateBytes == null || windowStateBytes.size() == 0) {
             return result;
         }
 

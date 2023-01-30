@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.running;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.window.IdleWindowScaner;
 
 import java.util.List;
 import java.util.Properties;
@@ -39,6 +40,8 @@ public interface StreamContext<V> {
     DefaultMQProducer getDefaultMQProducer();
 
     String getMessageFromWhichSourceTopicQueue();
+
+    IdleWindowScaner getDefaultWindowScaner();
 
     <K> void forward(Data<K, V> data) throws Throwable;
 }

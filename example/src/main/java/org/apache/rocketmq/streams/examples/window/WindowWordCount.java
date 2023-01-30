@@ -51,7 +51,7 @@ public class WindowWordCount {
                     return Arrays.asList(splits);
                 })
                 .keyBy(value -> value)
-                .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
+                .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
                 .count()
                 .toRStream()
                 .print();
@@ -64,6 +64,13 @@ public class WindowWordCount {
         properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 5000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
+
+        Runtime.getRuntime().addShutdownHook(new Thread("wordcount-shutdown-hook") {
+            @Override
+            public void run() {
+                rocketMQStream.stop();
+            }
+        });
 
         rocketMQStream.start();
     }

@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.core.function.supplier;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
@@ -71,7 +72,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
     }
 
 
-    private class WindowAggregateProcessor extends CommonWindowFire {
+    public class WindowAggregateProcessor extends CommonWindowFire {
         private final WindowInfo windowInfo;
         private String name;
         private MessageQueue stateTopicMessageQueue;
@@ -81,7 +82,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
         public WindowAggregateProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
-            this.name = name + WindowAggregateProcessor.class.getSimpleName();
+            this.name = String.join(Constant.SPLIT, name, WindowAggregateProcessor.class.getSimpleName());
             this.windowInfo = windowInfo;
             this.selectAction = selectAction;
             this.accumulator = accumulator;
@@ -90,7 +91,10 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         @Override
         public void preProcess(StreamContext<V> context) throws RecoverStateStoreThrowable {
             super.preProcess(context);
-            this.windowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
+            this.windowStore = new WindowStore<>(super.waitStateReplay(),
+                    WindowState::byte2WindowState,
+                    WindowState::windowState2Byte,
+                    context.getDefaultWindowScaner());
 
             String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
             this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
@@ -111,14 +115,12 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
             long time = this.context.getDataTime();
 
             long watermark = this.context.getWatermark();
-            if (time < watermark) {
+            if (time < this.maxFiredWindowEnd) {
                 //已经触发，丢弃数据
-                logger.warn("discard data:[{}], watermark[{}] > time[{}],", data, watermark, time);
+                logger.warn("discard data:[{}], window has been fired. maxFiredWindowEnd:{}, time of data:{}, watermark:{}",
+                        data, maxFiredWindowEnd, watermark, time);
                 return;
             }
-
-            //如果存在窗口，且窗口结束时间小于watermark，触发这个窗口
-            fireWindowEndTimeLassThanWatermark(watermark, name, key);
 
             //f(time) -> List<Window>
             List<Window> windows = super.calculateWindow(windowInfo, time);
@@ -143,12 +145,14 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
 
                 //f(Window + key, newValue, store)
                 WindowState<K, Accumulator<R, OV>> state = new WindowState<>(key, storeAccumulator, time);
-                this.windowStore.put(stateTopicMessageQueue, windowKey, state);
+                this.windowStore.put(stateTopicMessageQueue, windowKey, state, this::fireWindowEndTimeLassThanWatermark);
             }
 
             try {
-                //如果存在窗口，且窗口结束时间小于watermark，触发这个窗口
-                fireWindowEndTimeLassThanWatermark(watermark, name, key);
+                if (watermark > maxFiredWindowEnd + windowInfo.getWindowSize().toMilliseconds()) {
+                    fireWindowEndTimeLassThanWatermark(watermark, name);
+                }
+                logger.debug("maxFiredWindowEnd: {}", maxFiredWindowEnd);
             } catch (Throwable t) {
                 errorReference.compareAndSet(null, t);
             }
@@ -163,7 +167,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         private Accumulator<R, OV> accumulator;
 
         public SessionWindowAggregateProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
-            this.name = name + SessionWindowAggregateProcessor.class.getSimpleName();
+            this.name = String.join(Constant.SPLIT, name, SessionWindowAggregateProcessor.class.getSimpleName());
             this.windowInfo = windowInfo;
             this.selectAction = selectAction;
             this.accumulator = accumulator;
@@ -172,7 +176,10 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         @Override
         public void preProcess(StreamContext<V> context) throws RecoverStateStoreThrowable {
             super.preProcess(context);
-            super.windowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
+            super.windowStore = new WindowStore<>(super.waitStateReplay(),
+                    WindowState::byte2WindowState,
+                    WindowState::windowState2Byte,
+                    context.getDefaultWindowScaner());
 
             String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
             this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
@@ -201,7 +208,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                 WindowKey windowKey = new WindowKey(name, super.toHexString(key), newSessionWindowTime.getValue(), newSessionWindowTime.getKey());
                 logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, time,
                         Utils.format(newSessionWindowTime.getKey()), Utils.format(newSessionWindowTime.getValue()));
-                this.windowStore.put(stateTopicMessageQueue, windowKey, state);
+                this.windowStore.put(stateTopicMessageQueue, windowKey, state, this::callbackFire);
             }
         }
 
@@ -209,9 +216,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         //使用前缀查询找到session state, 触发已经session out的 watermark
         @SuppressWarnings("unchecked")
         private Pair<Long/*sessionBegin*/, Long/*sessionEnd*/> fireIfSessionOut(K key, V data, long dataTime, long watermark) throws Throwable {
-            WindowKey windowKeyPrefix = new WindowKey(name, null, 0L, 0L);
-
-            List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = this.windowStore.searchMatchKeyPrefix(windowKeyPrefix);
+            List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = this.windowStore.searchMatchKeyPrefix(name);
 
             if (pairs.size() == 0) {
                 return new Pair<>(dataTime, dataTime + windowInfo.getSessionTimeout().toMilliseconds());
@@ -240,7 +245,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                 //先触发一遍，触发后从集合中删除
                 if (sessionEnd < watermark) {
                     //触发state
-                    fire(key, windowKey, state);
+                    fire(windowKey, state);
                     iterator.remove();
                     maxFireSessionEnd = Long.max(sessionEnd, maxFireSessionEnd);
                 }
@@ -294,7 +299,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                     logger.warn("discard data: key=[{}], data=[{}], dataTime=[{}], watermark=[{}]", key, data, dataTime, watermark);
                 }
 
-                this.windowStore.put(stateTopicMessageQueue, windowKey, state);
+                this.windowStore.put(stateTopicMessageQueue, windowKey, state, this::callbackFire);
                 this.windowStore.deleteByKey(needToDelete);
             }
 
@@ -304,8 +309,22 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
             return null;
         }
 
+        private void callbackFire(WindowKey windowKey) {
+            try {
+                List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = this.windowStore.searchMatchKeyPrefix(name);
 
-        private void fire(K key, WindowKey windowKey, WindowState<K, Accumulator<R, OV>> state) throws Throwable {
+                Iterator<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> iterator = pairs.iterator();
+                while (iterator.hasNext()) {
+                    Pair<WindowKey, WindowState<K, Accumulator<R, OV>>> pair = iterator.next();
+                    fire(pair.getKey(), pair.getValue());
+                }
+            } catch (Throwable t) {
+                String format = String.format("fire session window error, WindowKey:%s", windowKey);
+                throw new RStreamsException(format, t);
+            }
+        }
+
+        private void fire(WindowKey windowKey, WindowState<K, Accumulator<R, OV>> state) throws Throwable {
             long windowEnd = windowKey.getWindowEnd();
             long windowBegin;
             if (state.getRecordEarliestTimestamp() == Long.MAX_VALUE) {
@@ -314,7 +333,8 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                 windowBegin = state.getRecordEarliestTimestamp();
             }
 
-            logger.info("fire session,windowKey={}, search keyPrefix={}, window: [{} - {}]", windowKey, key.toString(), Utils.format(windowBegin), Utils.format(windowEnd));
+            logger.info("fire session,windowKey={}, search keyPrefix={}, window: [{} - {}]",
+                    windowKey, state.getKey().toString(), Utils.format(windowBegin), Utils.format(windowEnd));
 
             Properties header = this.context.getHeader();
             header.put(Constant.WINDOW_START_TIME, windowBegin);
@@ -335,39 +355,50 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
 
     public abstract class CommonWindowFire extends AbstractWindowProcessor<V> {
         protected WindowStore<K, Accumulator<R, OV>> windowStore;
+        protected long maxFiredWindowEnd = 0;
 
+        public void fireWindowEndTimeLassThanWatermark(long watermark, String operatorName) {
+            try {
+                List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = this.windowStore.searchLessThanWatermark(operatorName, watermark);
 
-        protected void fireWindowEndTimeLassThanWatermark(long watermark, String operatorName, K key) throws Throwable {
-            WindowKey windowKeyWatermark = new WindowKey(operatorName, toHexString(key), watermark, 0L);
+                long maxWindowEnd = 0L;
+                //pairs中最后一个时间最小，应该最先触发
+                for (int i = pairs.size() - 1; i >= 0; i--) {
+                    Pair<WindowKey, WindowState<K, Accumulator<R, OV>>> pair = pairs.get(i);
 
-            List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = this.windowStore.searchLessThanWatermark(windowKeyWatermark);
+                    WindowKey windowKey = pair.getKey();
+                    WindowState<K, Accumulator<R, OV>> value = pair.getValue();
 
-            //pairs中最后一个时间最小，应该最先触发
-            for (int i = pairs.size() - 1; i >= 0; i--) {
+                    Long windowEnd = windowKey.getWindowEnd();
+                    if (windowEnd > maxWindowEnd) {
+                        maxWindowEnd = windowEnd;
+                    }
 
-                Pair<WindowKey, WindowState<K, Accumulator<R, OV>>> pair = pairs.get(i);
-                WindowKey windowKey = pair.getKey();
-                WindowState<K, Accumulator<R, OV>> value = pair.getValue();
+                    Properties header = this.context.getHeader();
+                    header.put(Constant.WINDOW_START_TIME, windowKey.getWindowStart());
+                    header.put(Constant.WINDOW_END_TIME, windowEnd);
 
-                Properties header = this.context.getHeader();
-                header.put(Constant.WINDOW_START_TIME, windowKey.getWindowStart());
-                header.put(Constant.WINDOW_END_TIME, windowKey.getWindowEnd());
+                    Accumulator<R, OV> rovAccumulator = value.getValue();
+                    OV data = rovAccumulator.result(header);
 
-                Accumulator<R, OV> rovAccumulator = value.getValue();
-                OV data = rovAccumulator.result(header);
+                    Data<K, OV> result = new Data<>(value.getKey(), data, value.getRecordLastTimestamp(), header);
+                    Data<K, V> convert = super.convert(result);
 
-                Data<K, OV> result = new Data<>(value.getKey(), data, value.getRecordLastTimestamp(), header);
-                Data<K, V> convert = super.convert(result);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("fire window, windowKey={}, search watermark={}, window: [{} - {}], data to next:[{}]", windowKey,
+                                watermark, Utils.format(windowKey.getWindowStart()), Utils.format(windowEnd), convert);
+                    }
 
-                if (logger.isDebugEnabled()) {
-                    logger.debug("fire window, windowKey={}, search watermark={}, window: [{} - {}], data to next:[{}]", windowKey.toString(),
-                            watermark, Utils.format(windowKey.getWindowStart()), Utils.format(windowKey.getWindowEnd()), convert);
+                    this.context.forward(convert);
+
+                    //删除状态
+                    this.windowStore.deleteByKey(windowKey);
                 }
 
-                this.context.forward(convert);
-
-                //删除状态
-                this.windowStore.deleteByKey(windowKey);
+                this.maxFiredWindowEnd = Math.max(this.maxFiredWindowEnd, maxWindowEnd);
+            } catch (Throwable t) {
+                String format = String.format("fire window error, watermark:%s, operatorName:%s", watermark, operatorName);
+                throw new RStreamsException(format, t);
             }
         }
     }
