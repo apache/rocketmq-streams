@@ -89,7 +89,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             rightWindowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
-            this.joinWindowFire = new JoinWindowFire<>(joinType, context, joinAction, leftWindowStore, rightWindowStore, idleWindowScaner::removeWindowKey);
+            this.joinWindowFire = new JoinWindowFire<>(joinType, context.copy(), joinAction, leftWindowStore, rightWindowStore, idleWindowScaner::removeWindowKey);
 
             String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
             this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());

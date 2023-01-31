@@ -64,14 +64,23 @@ public class JoinWindowFire<K, V1, V2, OUT> {
         try {
             String leftWindow = Utils.buildKey(operatorName, StreamType.LEFT_STREAM.name());
             List<Pair<WindowKey, WindowState<K, V1>>> leftPairs = this.leftWindowStore.searchLessThanWatermark(leftWindow, watermark);
+            if (leftPairs.size() != 0) {
+                for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
+                    logger.debug("search with key prefix:{} and watermark:{}, find window: {}", leftWindow, Utils.format(watermark), leftPair.getKey());
+                }
+            }
 
             String rightWindow = Utils.buildKey(operatorName, StreamType.RIGHT_STREAM.name());
             List<Pair<WindowKey, WindowState<K, V2>>> rightPairs = this.rightWindowStore.searchLessThanWatermark(rightWindow, watermark);
-
+            if (rightPairs.size() != 0) {
+                for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
+                    logger.debug("search with key prefix:{} and watermark:{}, find window: {}", rightWindow, Utils.format(watermark), rightPair.getKey());
+                }
+            }
 
             if (leftPairs.size() == 0 && rightPairs.size() == 0) {
                 logger.debug("left window and right window are all empty, watermark:{}." +
-                        "left window operatorName:{}, right window operatorName:{}", watermark, leftWindow, rightWindow);
+                        "left window operatorName:{}, right window operatorName:{}", Utils.format(watermark), leftWindow, rightWindow);
                 return;
             }
 
@@ -88,7 +97,8 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                 case INNER_JOIN:
                     //匹配上才触发
                     for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
-                        String leftPrefix = leftPair.getKey().getKeyAndWindow();
+                        WindowKey leftWindowKey = leftPair.getKey();
+                        String leftPrefix = leftWindowKey.getKeyAndWindow();
 
                         for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
                             String rightPrefix = rightPair.getKey().getKeyAndWindow();
@@ -102,8 +112,8 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                                 OUT out = this.joinAction.apply(o1, o2);
 
                                 Properties header = this.context.getHeader();
-                                header.put(Constant.WINDOW_START_TIME, leftPair.getKey().getWindowStart());
-                                header.put(Constant.WINDOW_END_TIME, leftPair.getKey().getWindowEnd());
+                                header.put(Constant.WINDOW_START_TIME, leftWindowKey.getWindowStart());
+                                header.put(Constant.WINDOW_END_TIME, leftWindowKey.getWindowEnd());
                                 Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
                                 Data<K, Object> convert = this.convert(result);
 
@@ -150,13 +160,18 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                     break;
             }
 
-            //删除状态
-            for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
-                this.leftWindowStore.deleteByKey(leftPair.getKey());
+            if (leftPairs.size() != 0) {
+                logger.debug("delete left window.");
+                for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
+                    this.leftWindowStore.deleteByKey(leftPair.getKey());
+                }
             }
 
-            for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
-                this.rightWindowStore.deleteByKey(rightPair.getKey());
+            if (rightPairs.size() != 0) {
+                logger.debug("delete right window.");
+                for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
+                    this.rightWindowStore.deleteByKey(rightPair.getKey());
+                }
             }
         } catch (Throwable t) {
             String format = String.format("fire window error, watermark:%s.", watermark);

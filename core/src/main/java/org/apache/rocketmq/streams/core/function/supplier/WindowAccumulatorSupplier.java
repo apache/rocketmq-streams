@@ -33,7 +33,6 @@ import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.core.window.fire.AccumulatorWindowFire;
 import org.apache.rocketmq.streams.core.window.fire.AccumulatorSessionWindowFire;
-import org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,16 +62,16 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         switch (windowType) {
             case SLIDING_WINDOW:
             case TUMBLING_WINDOW:
-                return new WindowAggregateProcessor(name, windowInfo, selectAction, accumulator);
+                return new WindowAccumulatorProcessor(name, windowInfo, selectAction, accumulator);
             case SESSION_WINDOW:
-                return new SessionWindowAggregateProcessor(name, windowInfo, selectAction, accumulator);
+                return new SessionWindowAccumulatorProcessor(name, windowInfo, selectAction, accumulator);
             default:
                 throw new RuntimeException("window type is error, WindowType=" + windowType);
         }
     }
 
 
-    public class WindowAggregateProcessor extends AbstractWindowProcessor<V> {
+    public class WindowAccumulatorProcessor extends AbstractWindowProcessor<V> {
         private final WindowInfo windowInfo;
         private String name;
         private MessageQueue stateTopicMessageQueue;
@@ -82,8 +81,8 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
 
         private final AtomicReference<Throwable> errorReference = new AtomicReference<>(null);
 
-        public WindowAggregateProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
-            this.name = String.join(Constant.SPLIT, name, WindowAggregateProcessor.class.getSimpleName());
+        public WindowAccumulatorProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
+            this.name = String.join(Constant.SPLIT, name, WindowAccumulatorProcessor.class.getSimpleName());
             this.windowInfo = windowInfo;
             this.selectAction = selectAction;
             this.accumulator = accumulator;
@@ -160,7 +159,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         }
     }
 
-    private class SessionWindowAggregateProcessor extends AbstractWindowProcessor<V> {
+    private class SessionWindowAccumulatorProcessor extends AbstractWindowProcessor<V> {
         private final String name;
         private final WindowInfo windowInfo;
         private MessageQueue stateTopicMessageQueue;
@@ -168,8 +167,8 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
         private Accumulator<R, OV> accumulator;
         private WindowStore<K, Accumulator<R, OV>> windowStore;
 
-        public SessionWindowAggregateProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
-            this.name = String.join(Constant.SPLIT, name, SessionWindowAggregateProcessor.class.getSimpleName());
+        public SessionWindowAccumulatorProcessor(String name, WindowInfo windowInfo, SelectAction<R, V> selectAction, Accumulator<R, OV> accumulator) {
+            this.name = String.join(Constant.SPLIT, name, SessionWindowAccumulatorProcessor.class.getSimpleName());
             this.windowInfo = windowInfo;
             this.selectAction = selectAction;
             this.accumulator = accumulator;
@@ -183,6 +182,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                     WindowState::windowState2Byte);
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
+            this.idleWindowScaner.initSessionTimeOut(windowInfo.getSessionTimeout().toMilliseconds());
             this.accumulatorSessionWindowFire = new AccumulatorSessionWindowFire<>(this.windowStore, context.copy(), this.idleWindowScaner::removeWindowKey);
 
             String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
@@ -304,7 +304,10 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                 }
 
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
+
                 this.idleWindowScaner.putAccumulatorSessionWindowCallback(windowKey, this.accumulatorSessionWindowFire);
+                this.idleWindowScaner.removeOldAccumulatorSession(needToDelete);
+
                 this.windowStore.deleteByKey(needToDelete);
             }
 

@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.core.window;
 
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.core.window.fire.AggregateSessionWindowFire;
 import org.apache.rocketmq.streams.core.window.fire.AggregateWindowFire;
 import org.apache.rocketmq.streams.core.window.fire.JoinWindowFire;
@@ -32,13 +32,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 
 
 public class IdleWindowScaner implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(IdleWindowScaner.class.getName());
 
-    private final Integer idleTime;
+    private final Integer maxIdleTime;
+    private long sessionTimeOut = 0;
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "ScanIdleWindowThread"));
 
     private final ConcurrentHashMap<WindowKey, TimeType> lastUpdateTime2WindowKey = new ConcurrentHashMap<>(16);
@@ -51,8 +51,8 @@ public class IdleWindowScaner implements AutoCloseable {
     private final ConcurrentHashMap<WindowKey, JoinWindowFire<?, ?, ?, ?>> fireJoinWindowCallback = new ConcurrentHashMap<>(16);
 
 
-    public IdleWindowScaner(Integer idleTime) {
-        this.idleTime = idleTime;
+    public IdleWindowScaner(Integer maxIdleTime) {
+        this.maxIdleTime = maxIdleTime;
         this.executor.scheduleAtFixedRate(() -> {
             try {
                 scanAndFireWindow();
@@ -60,6 +60,10 @@ public class IdleWindowScaner implements AutoCloseable {
                 logger.error("scan and fire the idle window error.", t);
             }
         }, 0, 1000, TimeUnit.MILLISECONDS);
+    }
+
+    public void initSessionTimeOut(long sessionTimeOut) {
+        this.sessionTimeOut = sessionTimeOut;
     }
 
     public void putAccumulatorWindowCallback(WindowKey windowKey, AccumulatorWindowFire<?, ?, ?, ?> function) {
@@ -122,10 +126,31 @@ public class IdleWindowScaner implements AutoCloseable {
         });
     }
 
+    public void removeOldAccumulatorSession(WindowKey oldWindowKey) {
+        TimeType timeType = this.lastUpdateTime2WindowKey.get(oldWindowKey);
+        if (timeType != null
+                && timeType.getType() == Type.AccumulatorSessionWindow) {
+            this.lastUpdateTime2WindowKey.remove(oldWindowKey);
+        }
+        this.fireSessionWindowCallback.remove(oldWindowKey);
+    }
+
+    public void removeOldAggregateSession(WindowKey oldWindowKey) {
+        TimeType timeType = this.lastUpdateTime2WindowKey.get(oldWindowKey);
+        if (timeType != null
+                && timeType.getType() == Type.AggregateSessionWindow) {
+            this.lastUpdateTime2WindowKey.remove(oldWindowKey);
+        }
+        this.windowKeyAggregateSession.remove(oldWindowKey);
+    }
 
     public void removeWindowKey(WindowKey windowKey) {
         fireWindowCallBack.remove(windowKey);
         fireSessionWindowCallback.remove(windowKey);
+
+        windowKeyAggregate.remove(windowKey);
+        windowKeyAggregateSession.remove(windowKey);
+
         fireJoinWindowCallback.remove(windowKey);
     }
 
@@ -140,9 +165,29 @@ public class IdleWindowScaner implements AutoCloseable {
             Type type = timeType.getType();
             long updateTime = timeType.getUpdateTime();
 
-            if (System.currentTimeMillis() - updateTime > idleTime) {
-                doFire(windowKey, type);
-                iterator.remove();
+            long idleTime = System.currentTimeMillis() - updateTime;
+
+            switch (type) {
+                case AggregateSessionWindow:
+                case AccumulatorSessionWindow: {
+                    if (idleTime >= sessionTimeOut) {
+                        doFire(windowKey, type);
+                        iterator.remove();
+                    }
+                    break;
+                }
+                case AccumulatorWindow:
+                case JoinWindow:
+                case AggregateWindow: {
+                    long windowSize = windowKey.getWindowEnd() - windowKey.getWindowStart();
+                    if (idleTime > this.maxIdleTime && idleTime > windowSize) {
+                        doFire(windowKey, type);
+                        iterator.remove();
+                    }
+                    break;
+                }
+                default:
+                    throw new UnsupportedOperationException("unknown window type: " + type);
             }
         }
     }

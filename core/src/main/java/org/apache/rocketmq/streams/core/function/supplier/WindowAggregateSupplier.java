@@ -187,6 +187,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                     WindowState::windowState2Byte);
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
+            this.idleWindowScaner.initSessionTimeOut(windowInfo.getSessionTimeout().toMilliseconds());
             this.aggregateSessionWindowFire = new AggregateSessionWindowFire<>(this.windowStore, context.copy(), this.idleWindowScaner::removeWindowKey);
 
             String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
@@ -305,7 +306,10 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 }
 
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
+
                 this.idleWindowScaner.putAggregateSessionWindowCallback(windowKey, this.aggregateSessionWindowFire);
+                this.idleWindowScaner.removeOldAggregateSession(needToDelete);
+
                 this.windowStore.deleteByKey(needToDelete);
             }
 
@@ -314,8 +318,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             }
             return null;
         }
-
-
     }
 
 }

@@ -81,7 +81,7 @@ public class JoinWindow {
         user.join(num)
                 .where(User::getName)
                 .equalTo(Num::getName)
-                .window(WindowBuilder.tumblingWindow(Time.seconds(30)))
+                .window(WindowBuilder.tumblingWindow(Time.seconds(10)))
                 .apply(action)
                 .print();
 
