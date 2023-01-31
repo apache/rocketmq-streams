@@ -49,7 +49,6 @@ public class WindowCount {
                     return new Pair<>(null, user1);
                 })
                 .selectTimestamp(User::getTimestamp)
-                .filter(value -> value.getAge() > 0)
                 .keyBy(value -> "key")
                 .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
                 .count()
@@ -60,7 +59,7 @@ public class WindowCount {
 
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        properties.put(Constant.TIME_TYPE, TimeType.EVENT_TIME);
+        properties.put(Constant.TIME_TYPE, TimeType.PROCESS_TIME);
         properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 2000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
