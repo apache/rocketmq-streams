@@ -60,6 +60,7 @@ public class WindowWordCount {
 
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
+        properties.put(Constant.TIME_TYPE, TimeType.PROCESS_TIME);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
