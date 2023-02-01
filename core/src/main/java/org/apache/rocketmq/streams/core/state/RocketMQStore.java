@@ -212,6 +212,10 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         }
     }
 
+    private void persistWatermark() {
+
+    }
+
     public void loadState(Set<MessageQueue> addQueues) throws Throwable {
         if (addQueues == null || addQueues.size() == 0) {
             return;

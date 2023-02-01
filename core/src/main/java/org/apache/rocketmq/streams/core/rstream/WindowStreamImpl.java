@@ -27,13 +27,14 @@ import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
+
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;

@@ -17,10 +17,13 @@
 package org.apache.rocketmq.streams.core.window.fire;
 
 import org.apache.rocketmq.streams.core.metadata.Data;
+import org.apache.rocketmq.streams.core.window.WindowKey;
+
+import java.util.List;
 
 public interface WindowFire<K, V> {
 
-    void fire(String operatorName, long watermark);
+    List<WindowKey> fire(String operatorName, long watermark);
 
 
     @SuppressWarnings("unchecked")

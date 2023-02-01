@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.core.util;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -30,6 +29,7 @@ import org.apache.rocketmq.streams.core.exception.RStreamsException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -123,5 +123,23 @@ public class Utils {
             throw new RStreamsException("object to HexString error, object=" + obj, t);
         }
 
+    }
+
+
+    public static byte[] long2Bytes(long time) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(time);
+        return buffer.array();
+    }
+
+    public static long bytes2Long(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return 0;
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.put(bytes);
+        buffer.flip();//need flip
+        return buffer.getLong();
     }
 }

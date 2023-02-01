@@ -14,15 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.streams.core.window;
+package org.apache.rocketmq.streams.core.window.fire;
 
 import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.util.Utils;
-import org.apache.rocketmq.streams.core.window.fire.AggregateSessionWindowFire;
-import org.apache.rocketmq.streams.core.window.fire.AggregateWindowFire;
-import org.apache.rocketmq.streams.core.window.fire.JoinWindowFire;
-import org.apache.rocketmq.streams.core.window.fire.AccumulatorWindowFire;
-import org.apache.rocketmq.streams.core.window.fire.AccumulatorSessionWindowFire;
+import org.apache.rocketmq.streams.core.window.StreamType;
+import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,6 +141,8 @@ public class IdleWindowScaner implements AutoCloseable {
     }
 
     public void removeWindowKey(WindowKey windowKey) {
+        lastUpdateTime2WindowKey.remove(windowKey);
+
         fireWindowCallBack.remove(windowKey);
         fireSessionWindowCallback.remove(windowKey);
 
@@ -171,8 +169,11 @@ public class IdleWindowScaner implements AutoCloseable {
                 case AggregateSessionWindow:
                 case AccumulatorSessionWindow: {
                     if (idleTime >= sessionTimeOut) {
-                        doFire(windowKey, type);
-                        iterator.remove();
+                        try {
+                            doFire(windowKey, type);
+                        } finally {
+                            iterator.remove();
+                        }
                     }
                     break;
                 }
@@ -181,8 +182,11 @@ public class IdleWindowScaner implements AutoCloseable {
                 case AggregateWindow: {
                     long windowSize = windowKey.getWindowEnd() - windowKey.getWindowStart();
                     if (idleTime > this.maxIdleTime && idleTime > windowSize) {
-                        doFire(windowKey, type);
-                        iterator.remove();
+                        try {
+                            doFire(windowKey, type);
+                        } finally {
+                            iterator.remove();
+                        }
                     }
                     break;
                 }
@@ -198,39 +202,43 @@ public class IdleWindowScaner implements AutoCloseable {
 
         switch (type) {
             case AccumulatorWindow: {
-                AccumulatorWindowFire<?, ?, ?, ?> func = this.fireWindowCallBack.get(windowKey);
+                AccumulatorWindowFire<?, ?, ?, ?> func = this.fireWindowCallBack.remove(windowKey);
                 if (func != null) {
                     logger.debug("fire the accumulator window, with watermark={}, operatorName={}", watermark, operatorName);
                     func.fire(operatorName, watermark);
+                    func.commitWatermark(watermark);
                 }
                 break;
             }
             case AccumulatorSessionWindow: {
-                AccumulatorSessionWindowFire<?, ?, ?, ?> accumulatorSessionWindowFire = this.fireSessionWindowCallback.get(windowKey);
+                AccumulatorSessionWindowFire<?, ?, ?, ?> accumulatorSessionWindowFire = this.fireSessionWindowCallback.remove(windowKey);
                 if (accumulatorSessionWindowFire != null) {
                     logger.debug("fire the accumulator session window, with windowKey={}", windowKey);
                     accumulatorSessionWindowFire.fire(operatorName, watermark);
+                    accumulatorSessionWindowFire.commitWatermark(watermark);
                 }
                 break;
             }
             case AggregateWindow: {
-                AggregateWindowFire<?, ?, ?> aggregateWindowFire = this.windowKeyAggregate.get(windowKey);
+                AggregateWindowFire<?, ?, ?> aggregateWindowFire = this.windowKeyAggregate.remove(windowKey);
                 if (aggregateWindowFire != null) {
                     logger.debug("fire the aggregate window, with windowKey={}", windowKey);
                     aggregateWindowFire.fire(operatorName, watermark);
+                    aggregateWindowFire.commitWatermark(watermark);
                 }
                 break;
             }
             case AggregateSessionWindow: {
-                AggregateSessionWindowFire<?, ?, ?> sessionWindowFire = this.windowKeyAggregateSession.get(windowKey);
+                AggregateSessionWindowFire<?, ?, ?> sessionWindowFire = this.windowKeyAggregateSession.remove(windowKey);
                 if (sessionWindowFire != null) {
                     logger.debug("fire the aggregate session window, with windowKey={}", windowKey);
                     sessionWindowFire.fire(operatorName, watermark);
+                    sessionWindowFire.commitWatermark(watermark);
                 }
                 break;
             }
             case JoinWindow: {
-                JoinWindowFire<?, ?, ?, ?> joinWindowFire = this.fireJoinWindowCallback.get(windowKey);
+                JoinWindowFire<?, ?, ?, ?> joinWindowFire = this.fireJoinWindowCallback.remove(windowKey);
                 if (joinWindowFire != null) {
                     logger.debug("fire the join window, with watermark={}", watermark);
 
@@ -238,6 +246,7 @@ public class IdleWindowScaner implements AutoCloseable {
                     String streamType = operatorName.substring(operatorName.lastIndexOf(Constant.SPLIT) + 1);
 
                     joinWindowFire.fire(name, watermark, StreamType.valueOf(streamType));
+                    joinWindowFire.commitWatermark(watermark);
                 }
                 break;
             }
