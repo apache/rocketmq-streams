@@ -20,8 +20,6 @@ package org.apache.rocketmq.streams.examples.window;
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
-import org.apache.rocketmq.streams.core.common.Constant;
-import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.window.Time;
@@ -29,7 +27,6 @@ import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.window.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
-import org.apache.rocketmq.streams.examples.pojo.Num;
 import org.apache.rocketmq.streams.examples.pojo.User;
 
 import java.util.Properties;

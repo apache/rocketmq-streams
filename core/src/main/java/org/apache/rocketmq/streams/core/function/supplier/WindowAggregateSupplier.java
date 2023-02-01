@@ -120,7 +120,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             K key = this.context.getKey();
             long time = this.context.getDataTime();
 
-            long watermark = this.watermark(time, stateTopicMessageQueue);
+            long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
             if (time < watermark) {
                 //已经触发，丢弃数据
                 logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
@@ -209,7 +209,14 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
         public void process(V data) throws Throwable {
             K key = this.context.getKey();
             long time = this.context.getDataTime();
-            long watermark = this.watermark(time, stateTopicMessageQueue);
+
+            long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
+            if (time < watermark) {
+                //已经触发，丢弃数据
+                logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
+                        data, time, watermark);
+                return;
+            }
 
             //本地存储里面搜索下
             Pair<Long, Long> newSessionWindowTime = fireIfSessionOut(key, data, time, watermark);
@@ -225,7 +232,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 }
 
                 WindowKey windowKey = new WindowKey(name, super.toHexString(key), newSessionWindowTime.getValue(), newSessionWindowTime.getKey());
-                logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, time,
+                logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, Utils.format(time),
                         Utils.format(newSessionWindowTime.getKey()), Utils.format(newSessionWindowTime.getValue()));
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
                 this.idleWindowScaner.putAggregateSessionWindowCallback(windowKey, this.aggregateSessionWindowFire);
@@ -255,7 +262,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 logger.debug("exist session state{}=[{}]", count++, pair);
 
                 WindowKey windowKey = pair.getKey();
-                WindowState<K, OV> state = pair.getValue();
 
                 long sessionEnd = windowKey.getWindowEnd();
                 if (count == pairs.size()) {

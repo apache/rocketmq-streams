@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * 1、启动RocketMQ
