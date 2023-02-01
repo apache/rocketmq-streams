@@ -31,6 +31,7 @@ import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
+import org.apache.rocketmq.streams.core.window.IdleWindowScaner;
 import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
@@ -115,6 +116,7 @@ public class WorkerThread extends Thread {
         private final DefaultMQAdminExt mqAdmin;
         private final StateStore stateStore;
         private final MessageQueueListenerWrapper wrapper;
+        private final IdleWindowScaner idleWindowScaner;
         private volatile boolean stop = false;
 
         public PlanetaryEngine(DefaultLitePullConsumer unionConsumer, DefaultMQProducer producer, StateStore stateStore,
@@ -133,6 +135,8 @@ public class WorkerThread extends Thread {
                     return e;
                 }
             });
+            Integer idleTime = (Integer) WorkerThread.this.properties.getOrDefault(Constant.IDLE_TIME_TO_FIRE_WINDOW, 2000);
+            this.idleWindowScaner = new IdleWindowScaner(idleTime);
         }
 
 
@@ -170,7 +174,7 @@ public class WorkerThread extends Thread {
                         String key = Utils.buildKey(brokerName, topic, queueId);
                         SourceSupplier.SourceProcessor<K, V> processor = (SourceSupplier.SourceProcessor<K, V>) wrapper.selectProcessor(key);
 
-                        StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key);
+                        StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key, idleWindowScaner);
 
                         processor.preProcess(context);
 
@@ -205,7 +209,7 @@ public class WorkerThread extends Thread {
                     }
 
                 } catch (Throwable t) {
-                    Object skipDataError = properties.get(Constant.SKIP_DATA_ERROR);
+                    Object skipDataError = properties.getOrDefault(Constant.SKIP_DATA_ERROR, Boolean.TRUE);
                     if (skipDataError == Boolean.TRUE && t instanceof DataProcessThrowable || t instanceof DeserializeThrowable) {
                         logger.error("process data error, jobId=[{}], skip this data.", topologyBuilder.getJobId(), t);
                         //ignored
@@ -249,9 +253,12 @@ public class WorkerThread extends Thread {
 
             try {
                 this.unionConsumer.shutdown();
+
+                this.stateStore.close();
+                this.idleWindowScaner.close();
+
                 this.producer.shutdown();
                 this.mqAdmin.shutdown();
-                this.stateStore.close();
                 logger.info("shutdown engine success, thread:{}, jobId:{}", WorkerThread.this.getName(), jobId);
             } catch (Throwable e) {
                 logger.error("error when stop engin.", e);

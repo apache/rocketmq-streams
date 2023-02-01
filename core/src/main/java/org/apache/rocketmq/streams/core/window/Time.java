@@ -44,6 +44,9 @@ public class Time {
         return unit.toMillis(size);
     }
 
+    public long toMillSecond() {
+        return this.unit.toMillis(this.size);
+    }
 
     public static Time of(long size, TimeUnit unit) {
         return new Time(size, unit);
@@ -67,9 +70,5 @@ public class Time {
 
     public static Time days(long days) {
         return of(days, TimeUnit.DAYS);
-    }
-
-    public long toMillSecond() {
-        return this.unit.toMillis(this.size);
     }
 }

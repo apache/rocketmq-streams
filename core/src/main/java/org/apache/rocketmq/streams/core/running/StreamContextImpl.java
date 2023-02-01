@@ -17,9 +17,9 @@ package org.apache.rocketmq.streams.core.running;
  */
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.streams.core.exception.DataProcessThrowable;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.window.IdleWindowScaner;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 
 import java.util.ArrayList;
@@ -37,6 +37,7 @@ public class StreamContextImpl<V> implements StreamContext<V> {
     private final DefaultMQAdminExt mqAdmin;
     private final StateStore stateStore;
     private final String messageFromWhichSourceTopicQueue;
+    private final IdleWindowScaner idleWindowScaner;
 
     private Object key;
     private long dataTime;
@@ -45,11 +46,16 @@ public class StreamContextImpl<V> implements StreamContext<V> {
 
     private final List<Processor<V>> childList = new ArrayList<>();
 
-    StreamContextImpl(DefaultMQProducer producer, DefaultMQAdminExt mqAdmin, StateStore stateStore, String messageFromWhichSourceTopicQueue) {
+    StreamContextImpl(DefaultMQProducer producer,
+                      DefaultMQAdminExt mqAdmin,
+                      StateStore stateStore,
+                      String messageFromWhichSourceTopicQueue,
+                      IdleWindowScaner idleWindowScaner) {
         this.producer = producer;
         this.mqAdmin = mqAdmin;
         this.stateStore = stateStore;
         this.messageFromWhichSourceTopicQueue = messageFromWhichSourceTopicQueue;
+        this.idleWindowScaner = idleWindowScaner;
     }
 
     void setWatermark(long watermark) {
@@ -106,6 +112,28 @@ public class StreamContextImpl<V> implements StreamContext<V> {
         result.putAll(this.header);
 
         return result;
+    }
+
+    @Override
+    public IdleWindowScaner getDefaultWindowScaner() {
+        return this.idleWindowScaner;
+    }
+
+
+    @Override
+    public StreamContext<V> copy() {
+        StreamContextImpl<V> streamContext = new StreamContextImpl<>(this.producer,
+                this.mqAdmin,
+                this.stateStore,
+                this.messageFromWhichSourceTopicQueue,
+                this.idleWindowScaner);
+        streamContext.key = this.key;
+        streamContext.dataTime = this.dataTime;
+        streamContext.header = new Properties(this.header);
+        streamContext.watermark = this.watermark;
+        streamContext.childList.addAll(this.childList);
+
+        return streamContext;
     }
 
     @Override

@@ -58,6 +58,12 @@ public class Demo {
         properties.put(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
+        Runtime.getRuntime().addShutdownHook(new Thread("wordcount-shutdown-hook") {
+            @Override
+            public void run() {
+                rocketMQStream.stop();
+            }
+        });
 
         rocketMQStream.start();
     }

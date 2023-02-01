@@ -26,7 +26,6 @@ import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.window.Time;
 import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.window.WindowBuilder;
-import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.examples.pojo.Num;
@@ -45,17 +44,14 @@ public class WindowCount {
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("windowCountUser");
 
-        AggregateAction<String, User, Num> aggregateAction = (key, value, accumulator) -> new Num(value.getName(), 100);
-
         builder.source("user", source -> {
                     User user1 = JSON.parseObject(source, User.class);
                     return new Pair<>(null, user1);
                 })
                 .selectTimestamp(User::getTimestamp)
-                .filter(value -> value.getAge() > 0)
                 .keyBy(value -> "key")
-                .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
-                .aggregate(aggregateAction)
+                .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
+                .count()
                 .toRStream()
                 .print();
 
@@ -63,10 +59,17 @@ public class WindowCount {
 
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        properties.put(Constant.TIME_TYPE, TimeType.EVENT_TIME);
+        properties.put(Constant.TIME_TYPE, TimeType.PROCESS_TIME);
         properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 2000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
+
+        Runtime.getRuntime().addShutdownHook(new Thread("wordcount-shutdown-hook") {
+            @Override
+            public void run() {
+                rocketMQStream.stop();
+            }
+        });
 
         rocketMQStream.start();
     }

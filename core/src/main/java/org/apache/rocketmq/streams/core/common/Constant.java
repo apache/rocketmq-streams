@@ -52,4 +52,6 @@ public class Constant {
 
     public static final String STATIC_TOPIC_BROKER_NAME = "__syslo__global__";
 
+    public static final String IDLE_TIME_TO_FIRE_WINDOW = "idleTimeToFireWindow";
+
 }
