@@ -152,7 +152,7 @@ public class IdleWindowScaner implements AutoCloseable {
         fireJoinWindowCallback.remove(windowKey);
     }
 
-    private void scanAndFireWindow() {
+    private void scanAndFireWindow() throws Throwable {
         Iterator<Map.Entry<WindowKey, TimeType>> iterator = this.lastUpdateTime2WindowKey.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<WindowKey, TimeType> next = iterator.next();
@@ -196,7 +196,7 @@ public class IdleWindowScaner implements AutoCloseable {
         }
     }
 
-    private void doFire(WindowKey windowKey, Type type) {
+    private void doFire(WindowKey windowKey, Type type) throws Throwable {
         long watermark = windowKey.getWindowEnd() + 1;
         String operatorName = windowKey.getOperatorName();
 
@@ -204,8 +204,9 @@ public class IdleWindowScaner implements AutoCloseable {
             case AccumulatorWindow: {
                 AccumulatorWindowFire<?, ?, ?, ?> func = this.fireWindowCallBack.remove(windowKey);
                 if (func != null) {
-                    logger.debug("fire the accumulator window, with watermark={}, operatorName={}", watermark, operatorName);
+                    //write the result out, delete the state from local and remote
                     func.fire(operatorName, watermark);
+                    //commit watermark to local and remote.
                     func.commitWatermark(watermark);
                 }
                 break;
@@ -213,7 +214,6 @@ public class IdleWindowScaner implements AutoCloseable {
             case AccumulatorSessionWindow: {
                 AccumulatorSessionWindowFire<?, ?, ?, ?> accumulatorSessionWindowFire = this.fireSessionWindowCallback.remove(windowKey);
                 if (accumulatorSessionWindowFire != null) {
-                    logger.debug("fire the accumulator session window, with windowKey={}", windowKey);
                     accumulatorSessionWindowFire.fire(operatorName, watermark);
                     accumulatorSessionWindowFire.commitWatermark(watermark);
                 }
@@ -222,7 +222,6 @@ public class IdleWindowScaner implements AutoCloseable {
             case AggregateWindow: {
                 AggregateWindowFire<?, ?, ?> aggregateWindowFire = this.windowKeyAggregate.remove(windowKey);
                 if (aggregateWindowFire != null) {
-                    logger.debug("fire the aggregate window, with windowKey={}", windowKey);
                     aggregateWindowFire.fire(operatorName, watermark);
                     aggregateWindowFire.commitWatermark(watermark);
                 }
@@ -231,7 +230,6 @@ public class IdleWindowScaner implements AutoCloseable {
             case AggregateSessionWindow: {
                 AggregateSessionWindowFire<?, ?, ?> sessionWindowFire = this.windowKeyAggregateSession.remove(windowKey);
                 if (sessionWindowFire != null) {
-                    logger.debug("fire the aggregate session window, with windowKey={}", windowKey);
                     sessionWindowFire.fire(operatorName, watermark);
                     sessionWindowFire.commitWatermark(watermark);
                 }
@@ -240,8 +238,6 @@ public class IdleWindowScaner implements AutoCloseable {
             case JoinWindow: {
                 JoinWindowFire<?, ?, ?, ?> joinWindowFire = this.fireJoinWindowCallback.remove(windowKey);
                 if (joinWindowFire != null) {
-                    logger.debug("fire the join window, with watermark={}", watermark);
-
                     String name = operatorName.substring(0, operatorName.lastIndexOf(Constant.SPLIT));
                     String streamType = operatorName.substring(operatorName.lastIndexOf(Constant.SPLIT) + 1);
 

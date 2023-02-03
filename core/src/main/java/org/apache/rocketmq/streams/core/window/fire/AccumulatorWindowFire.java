@@ -27,32 +27,25 @@ import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.window.WindowState;
 import org.apache.rocketmq.streams.core.window.WindowStore;
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
 
-public class AccumulatorWindowFire<K, R, V, OV> implements WindowFire<K, V> {
+public class AccumulatorWindowFire<K, R, V, OV> extends AbstractWindowFire<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(AccumulatorWindowFire.class);
 
     private final WindowStore<K, Accumulator<R, OV>> windowStore;
-    private final StreamContext<V> context;
-    private final MessageQueue stateTopicMessageQueue;
-    private final BiConsumer<Long, MessageQueue> commitWatermark;
 
     public AccumulatorWindowFire(WindowStore<K, Accumulator<R, OV>> windowStore,
                                  StreamContext<V> context,
                                  MessageQueue stateTopicMessageQueue,
-                                 BiConsumer<Long, MessageQueue> commitWatermark) {
+                                 BiFunction<Long, MessageQueue, Long> commitWatermark) {
+        super(context, stateTopicMessageQueue, commitWatermark);
         this.windowStore = windowStore;
-        this.context = context;
-        this.stateTopicMessageQueue = stateTopicMessageQueue;
-        this.commitWatermark = commitWatermark;
     }
 
 
@@ -99,9 +92,5 @@ public class AccumulatorWindowFire<K, R, V, OV> implements WindowFire<K, V> {
             throw new RStreamsException(format, t);
         }
         return fired;
-    }
-
-    void commitWatermark(long watermark) {
-        this.commitWatermark.accept(watermark, stateTopicMessageQueue);
     }
 }

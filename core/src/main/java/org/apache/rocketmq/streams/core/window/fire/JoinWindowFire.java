@@ -22,6 +22,7 @@ import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.StreamContext;
+import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.core.window.JoinType;
@@ -34,10 +35,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.Set;
+import java.util.function.BiFunction;
 
 public class JoinWindowFire<K, V1, V2, OUT> {
     private static final Logger logger = LoggerFactory.getLogger(JoinWindowFire.class);
@@ -48,7 +50,7 @@ public class JoinWindowFire<K, V1, V2, OUT> {
     private final ValueJoinAction<V1, V2, OUT> joinAction;
     private final WindowStore<K, V1> leftWindowStore;
     private final WindowStore<K, V2> rightWindowStore;
-    private final BiConsumer<Long, MessageQueue> commitWatermark;
+    private final BiFunction<Long, MessageQueue, Long> commitWatermark;
 
     public JoinWindowFire(JoinType joinType,
                           MessageQueue stateTopicMessageQueue,
@@ -56,7 +58,7 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                           ValueJoinAction<V1, V2, OUT> joinAction,
                           WindowStore<K, V1> leftWindowStore,
                           WindowStore<K, V2> rightWindowStore,
-                          BiConsumer<Long, MessageQueue> commitWatermark) {
+                          BiFunction<Long, MessageQueue, Long> commitWatermark) {
         this.joinType = joinType;
         this.stateTopicMessageQueue = stateTopicMessageQueue;
         this.context = context;
@@ -201,7 +203,19 @@ public class JoinWindowFire<K, V1, V2, OUT> {
         return (Data<K, Object>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getHeader());
     }
 
-    void commitWatermark(long watermark) {
-        this.commitWatermark.accept(watermark, stateTopicMessageQueue);
+    void commitWatermark(long watermark) throws Throwable {
+        StateStore stateStore = this.context.getStateStore();
+
+        //get old watermark
+        byte[] keyBytes = Utils.watermarkKeyBytes(stateTopicMessageQueue, Constant.WATERMARK_KEY);
+        byte[] watermarkBytes = stateStore.get(keyBytes);
+        long oldWatermark = Utils.bytes2Long(watermarkBytes);
+
+        if (watermark > oldWatermark) {
+            this.commitWatermark.apply(watermark, stateTopicMessageQueue);
+            Set<MessageQueue> set = new HashSet<>();
+            set.add(stateTopicMessageQueue);
+            stateStore.persist(set);
+        }
     }
 }

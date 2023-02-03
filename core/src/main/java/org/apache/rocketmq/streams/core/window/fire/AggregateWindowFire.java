@@ -32,25 +32,19 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
 
-public class AggregateWindowFire<K, V, OV> implements WindowFire<K, V> {
+public class AggregateWindowFire<K, V, OV> extends AbstractWindowFire<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(AggregateWindowFire.class);
 
     private final WindowStore<K, OV> windowStore;
-    private final MessageQueue stateTopicMessageQueue;
-    private final StreamContext<V> context;
-    private final BiConsumer<Long, MessageQueue> commitWatermark;
 
     public AggregateWindowFire(WindowStore<K, OV> windowStore,
                                MessageQueue stateTopicMessageQueue,
                                StreamContext<V> context,
-                               BiConsumer<Long, MessageQueue> commitWatermark) {
+                               BiFunction<Long, MessageQueue, Long> commitWatermark) {
+        super(context, stateTopicMessageQueue, commitWatermark);
         this.windowStore = windowStore;
-        this.stateTopicMessageQueue = stateTopicMessageQueue;
-        this.context = context;
-        this.commitWatermark = commitWatermark;
     }
 
     @Override
@@ -93,9 +87,5 @@ public class AggregateWindowFire<K, V, OV> implements WindowFire<K, V> {
             String format = String.format("fire window error, watermark:%s, operatorName:%s", watermark, operatorName);
             throw new RStreamsException(format, t);
         }
-    }
-
-    void commitWatermark(long watermark) {
-        this.commitWatermark.accept(watermark, stateTopicMessageQueue);
     }
 }
