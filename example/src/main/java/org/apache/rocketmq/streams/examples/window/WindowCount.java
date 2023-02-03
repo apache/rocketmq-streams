@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.AggregateAction;
+import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.window.Time;
 import org.apache.rocketmq.streams.core.window.TimeType;
@@ -45,11 +46,11 @@ public class WindowCount {
         StreamBuilder builder = new StreamBuilder("windowCountUser");
 
         builder.source("user", source -> {
-                    User user1 = JSON.parseObject(source, User.class);
-                    return new Pair<>(null, user1);
+                    User user = JSON.parseObject(source, User.class);
+                    return new Pair<>(null, user);
                 })
                 .selectTimestamp(User::getTimestamp)
-                .keyBy(value -> "key")
+                .keyBy(User::getAge)
                 .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
                 .count()
                 .toRStream()
@@ -59,8 +60,8 @@ public class WindowCount {
 
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        properties.put(Constant.TIME_TYPE, TimeType.PROCESS_TIME);
-        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 2000);
+        properties.put(StreamConfig.TIME_TYPE, TimeType.EVENT_TIME);
+        properties.put(StreamConfig.ALLOW_LATENESS_MILLISECOND, 2000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
@@ -73,6 +74,4 @@ public class WindowCount {
 
         rocketMQStream.start();
     }
-
-
 }

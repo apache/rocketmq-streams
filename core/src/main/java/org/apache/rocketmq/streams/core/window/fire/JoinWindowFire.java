@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.window.fire;
 
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
@@ -31,36 +32,43 @@ import org.apache.rocketmq.streams.core.window.WindowStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class JoinWindowFire<K, V1, V2, OUT> {
     private static final Logger logger = LoggerFactory.getLogger(JoinWindowFire.class);
 
     private final JoinType joinType;
+    private final MessageQueue stateTopicMessageQueue;
     private final StreamContext<Object> context;
     private final ValueJoinAction<V1, V2, OUT> joinAction;
     private final WindowStore<K, V1> leftWindowStore;
     private final WindowStore<K, V2> rightWindowStore;
+    private final BiConsumer<Long, MessageQueue> commitWatermark;
 
     public JoinWindowFire(JoinType joinType,
+                          MessageQueue stateTopicMessageQueue,
                           StreamContext<Object> context,
                           ValueJoinAction<V1, V2, OUT> joinAction,
                           WindowStore<K, V1> leftWindowStore,
                           WindowStore<K, V2> rightWindowStore,
-                          Consumer<WindowKey> consumer) {
+                          BiConsumer<Long, MessageQueue> commitWatermark) {
         this.joinType = joinType;
+        this.stateTopicMessageQueue = stateTopicMessageQueue;
         this.context = context;
         this.joinAction = joinAction;
         this.leftWindowStore = leftWindowStore;
         this.rightWindowStore = rightWindowStore;
+        this.commitWatermark = commitWatermark;
     }
 
-    public void fire(String operatorName,
-                     long watermark,
-                     StreamType streamType) {
+    public List<WindowKey> fire(String operatorName, long watermark, StreamType streamType) {
+        List<WindowKey> fired = new ArrayList<>();
+
         try {
             String leftWindow = Utils.buildKey(operatorName, StreamType.LEFT_STREAM.name());
             List<Pair<WindowKey, WindowState<K, V1>>> leftPairs = this.leftWindowStore.searchLessThanWatermark(leftWindow, watermark);
@@ -81,7 +89,7 @@ public class JoinWindowFire<K, V1, V2, OUT> {
             if (leftPairs.size() == 0 && rightPairs.size() == 0) {
                 logger.debug("left window and right window are all empty, watermark:{}." +
                         "left window operatorName:{}, right window operatorName:{}", Utils.format(watermark), leftWindow, rightWindow);
-                return;
+                return fired;
             }
 
             leftPairs.sort(Comparator.comparing(pair -> {
@@ -118,6 +126,8 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                                 Data<K, Object> convert = this.convert(result);
 
                                 this.context.forward(convert);
+
+                                fired.add(leftWindowKey);
                             }
                         }
                     }
@@ -127,7 +137,11 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                         case LEFT_STREAM:
                             //左流全部触发，不管右流匹配上没
                             for (Pair<WindowKey, WindowState<K, V1>> leftPair : leftPairs) {
-                                String leftPrefix = leftPair.getKey().getKeyAndWindow();
+                                WindowKey leftWindowKey = leftPair.getKey();
+
+                                fired.add(leftWindowKey);
+
+                                String leftPrefix = leftWindowKey.getKeyAndWindow();
                                 Pair<WindowKey, WindowState<K, V2>> targetPair = null;
 
                                 for (Pair<WindowKey, WindowState<K, V2>> rightPair : rightPairs) {
@@ -142,12 +156,13 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                                 V2 o2 = null;
                                 if (targetPair != null) {
                                     o2 = targetPair.getValue().getValue();
+                                    fired.add(targetPair.getKey());
                                 }
 
                                 OUT out = this.joinAction.apply(o1, o2);
                                 Properties header = this.context.getHeader();
-                                header.put(Constant.WINDOW_START_TIME, leftPair.getKey().getWindowStart());
-                                header.put(Constant.WINDOW_END_TIME, leftPair.getKey().getWindowEnd());
+                                header.put(Constant.WINDOW_START_TIME, leftWindowKey.getWindowStart());
+                                header.put(Constant.WINDOW_END_TIME, leftWindowKey.getWindowEnd());
                                 Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
                                 Data<K, Object> convert = this.convert(result);
 
@@ -178,10 +193,15 @@ public class JoinWindowFire<K, V1, V2, OUT> {
             throw new RStreamsException(format, t);
         }
 
+        return fired;
     }
 
     @SuppressWarnings("unchecked")
     private <K> Data<K, Object> convert(Data<?, ?> data) {
         return (Data<K, Object>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getHeader());
+    }
+
+    void commitWatermark(long watermark) {
+        this.commitWatermark.accept(watermark, stateTopicMessageQueue);
     }
 }

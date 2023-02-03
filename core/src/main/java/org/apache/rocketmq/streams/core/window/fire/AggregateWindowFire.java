@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.window.fire;
 
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.metadata.Data;
@@ -28,25 +29,34 @@ import org.apache.rocketmq.streams.core.window.WindowStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class AggregateWindowFire<K, V, OV> implements WindowFire<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(AggregateWindowFire.class);
 
     private final WindowStore<K, OV> windowStore;
+    private final MessageQueue stateTopicMessageQueue;
     private final StreamContext<V> context;
-    private final Consumer<WindowKey> consumer;
+    private final BiConsumer<Long, MessageQueue> commitWatermark;
 
-    public AggregateWindowFire(WindowStore<K, OV> windowStore, StreamContext<V> context, Consumer<WindowKey> consumer) {
+    public AggregateWindowFire(WindowStore<K, OV> windowStore,
+                               MessageQueue stateTopicMessageQueue,
+                               StreamContext<V> context,
+                               BiConsumer<Long, MessageQueue> commitWatermark) {
         this.windowStore = windowStore;
+        this.stateTopicMessageQueue = stateTopicMessageQueue;
         this.context = context;
-        this.consumer = consumer;
+        this.commitWatermark = commitWatermark;
     }
 
     @Override
-    public void fire(String operatorName, long watermark) {
+    public List<WindowKey> fire(String operatorName, long watermark) {
+        List<WindowKey> fired = new ArrayList<>();
+
         try {
             List<Pair<WindowKey, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanWatermark(operatorName, watermark);
 
@@ -74,13 +84,18 @@ public class AggregateWindowFire<K, V, OV> implements WindowFire<K, V> {
 
                 //删除状态
                 this.windowStore.deleteByKey(windowKey);
-                this.consumer.accept(windowKey);
+
+                fired.add(windowKey);
             }
+
+            return fired;
         } catch (Throwable t) {
             String format = String.format("fire window error, watermark:%s, operatorName:%s", watermark, operatorName);
             throw new RStreamsException(format, t);
         }
     }
 
-
+    void commitWatermark(long watermark) {
+        this.commitWatermark.accept(watermark, stateTopicMessageQueue);
+    }
 }

@@ -19,8 +19,11 @@ package org.apache.rocketmq.streams.core.running;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.state.StateStore;
-import org.apache.rocketmq.streams.core.window.IdleWindowScaner;
+import org.apache.rocketmq.streams.core.util.Utils;
+import org.apache.rocketmq.streams.core.window.fire.IdleWindowScaner;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +35,9 @@ import java.util.Properties;
  * 3、可获得动态的运行时信息，例如正在处理的数据来自那个topic，MQ，偏移量多少；
  */
 public class StreamContextImpl<V> implements StreamContext<V> {
+    private static final Logger logger = LoggerFactory.getLogger(StreamContextImpl.class);
 
+    private final Properties properties;
     private final DefaultMQProducer producer;
     private final DefaultMQAdminExt mqAdmin;
     private final StateStore stateStore;
@@ -42,24 +47,21 @@ public class StreamContextImpl<V> implements StreamContext<V> {
     private Object key;
     private long dataTime;
     private Properties header = new Properties();
-    private long watermark;
 
     private final List<Processor<V>> childList = new ArrayList<>();
 
-    StreamContextImpl(DefaultMQProducer producer,
+    StreamContextImpl(Properties properties,
+                      DefaultMQProducer producer,
                       DefaultMQAdminExt mqAdmin,
                       StateStore stateStore,
                       String messageFromWhichSourceTopicQueue,
                       IdleWindowScaner idleWindowScaner) {
+        this.properties = properties;
         this.producer = producer;
         this.mqAdmin = mqAdmin;
         this.stateStore = stateStore;
         this.messageFromWhichSourceTopicQueue = messageFromWhichSourceTopicQueue;
         this.idleWindowScaner = idleWindowScaner;
-    }
-
-    void setWatermark(long watermark) {
-        this.watermark = watermark;
     }
 
     @Override
@@ -80,8 +82,20 @@ public class StreamContextImpl<V> implements StreamContext<V> {
         return producer;
     }
 
-    public String getMessageFromWhichSourceTopicQueue() {
-        return messageFromWhichSourceTopicQueue;
+
+    public String getSourceBrokerName() {
+        String[] split = Utils.split(messageFromWhichSourceTopicQueue);
+        return split[0];
+    }
+
+    public String getSourceTopic() {
+        String[] split = Utils.split(messageFromWhichSourceTopicQueue);
+        return split[1];
+    }
+
+    public Integer getSourceQueueId() {
+        String[] split = Utils.split(messageFromWhichSourceTopicQueue);
+        return Integer.parseInt(split[2]);
     }
 
     @Override
@@ -100,9 +114,13 @@ public class StreamContextImpl<V> implements StreamContext<V> {
         this.key = key;
     }
 
+
     @Override
-    public long getWatermark() {
-        return watermark;
+    public Properties getUserProperties() {
+        Properties result = new Properties();
+        result.putAll(this.properties);
+
+        return result;
     }
 
 
@@ -122,7 +140,8 @@ public class StreamContextImpl<V> implements StreamContext<V> {
 
     @Override
     public StreamContext<V> copy() {
-        StreamContextImpl<V> streamContext = new StreamContextImpl<>(this.producer,
+        StreamContextImpl<V> streamContext = new StreamContextImpl<>(this.properties,
+                this.producer,
                 this.mqAdmin,
                 this.stateStore,
                 this.messageFromWhichSourceTopicQueue,
@@ -130,7 +149,6 @@ public class StreamContextImpl<V> implements StreamContext<V> {
         streamContext.key = this.key;
         streamContext.dataTime = this.dataTime;
         streamContext.header = new Properties(this.header);
-        streamContext.watermark = this.watermark;
         streamContext.childList.addAll(this.childList);
 
         return streamContext;

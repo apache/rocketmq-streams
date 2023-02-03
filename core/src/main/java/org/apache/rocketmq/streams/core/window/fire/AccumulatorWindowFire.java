@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.window.fire;
 
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
@@ -26,11 +27,14 @@ import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.window.WindowState;
 import org.apache.rocketmq.streams.core.window.WindowStore;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class AccumulatorWindowFire<K, R, V, OV> implements WindowFire<K, V> {
@@ -38,18 +42,23 @@ public class AccumulatorWindowFire<K, R, V, OV> implements WindowFire<K, V> {
 
     private final WindowStore<K, Accumulator<R, OV>> windowStore;
     private final StreamContext<V> context;
-    private final Consumer<WindowKey> consumer;
+    private final MessageQueue stateTopicMessageQueue;
+    private final BiConsumer<Long, MessageQueue> commitWatermark;
 
     public AccumulatorWindowFire(WindowStore<K, Accumulator<R, OV>> windowStore,
                                  StreamContext<V> context,
-                                 Consumer<WindowKey> consumer) {
+                                 MessageQueue stateTopicMessageQueue,
+                                 BiConsumer<Long, MessageQueue> commitWatermark) {
         this.windowStore = windowStore;
         this.context = context;
-        this.consumer = consumer;
+        this.stateTopicMessageQueue = stateTopicMessageQueue;
+        this.commitWatermark = commitWatermark;
     }
 
 
-    public void fire(String operatorName, long watermark) {
+    public List<WindowKey> fire(String operatorName, long watermark) {
+        List<WindowKey> fired = new ArrayList<>();
+
         try {
             List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = windowStore.searchLessThanWatermark(operatorName, watermark);
 
@@ -81,15 +90,18 @@ public class AccumulatorWindowFire<K, R, V, OV> implements WindowFire<K, V> {
 
                 //删除状态
                 windowStore.deleteByKey(windowKey);
-                this.consumer.accept(windowKey);
+
+                fired.add(windowKey);
             }
+
         } catch (Throwable t) {
             String format = String.format("fire window error, watermark:%s, operatorName:%s", watermark, operatorName);
             throw new RStreamsException(format, t);
         }
-
+        return fired;
     }
 
-
-
+    void commitWatermark(long watermark) {
+        this.commitWatermark.accept(watermark, stateTopicMessageQueue);
+    }
 }

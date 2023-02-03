@@ -89,10 +89,17 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             rightWindowStore = new WindowStore<>(super.waitStateReplay(), WindowState::byte2WindowState, WindowState::windowState2Byte);
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
-            this.joinWindowFire = new JoinWindowFire<>(joinType, context.copy(), joinAction, leftWindowStore, rightWindowStore, idleWindowScaner::removeWindowKey);
 
-            String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
-            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
+            String stateTopicName = context.getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, context.getSourceBrokerName(), context.getSourceQueueId());
+
+            this.joinWindowFire = new JoinWindowFire<>(joinType,
+                    this.stateTopicMessageQueue,
+                    context.copy(),
+                    joinAction,
+                    leftWindowStore,
+                    rightWindowStore,
+                    this::watermark);
         }
 
         @Override
@@ -101,7 +108,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             Object key = this.context.getKey();
             long time = this.context.getDataTime();
             Properties header = this.context.getHeader();
-            long watermark = this.context.getWatermark();
+            long watermark = this.watermark(time, stateTopicMessageQueue);
             WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
 
             if (time < watermark) {
@@ -119,7 +126,10 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
 
             store(key, data, time, streamType);
 
-            this.joinWindowFire.fire(this.name, watermark, streamType);
+            List<WindowKey> fire = this.joinWindowFire.fire(this.name, watermark, streamType);
+            for (WindowKey windowKey : fire) {
+                this.idleWindowScaner.removeWindowKey(windowKey);
+            }
         }
 
 

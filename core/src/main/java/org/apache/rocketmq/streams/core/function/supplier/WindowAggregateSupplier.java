@@ -96,10 +96,14 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                     WindowState::windowState2Byte);
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
-            this.aggregateWindowFire = new AggregateWindowFire<>(this.windowStore, context.copy(), this.idleWindowScaner::removeWindowKey);
 
-            String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
-            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
+            String stateTopicName = context.getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, context.getSourceBrokerName(), context.getSourceQueueId());
+
+            this.aggregateWindowFire = new AggregateWindowFire<>(this.windowStore,
+                    this.stateTopicMessageQueue,
+                    context.copy(),
+                    this::watermark);
         }
 
         /**
@@ -116,7 +120,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             K key = this.context.getKey();
             long time = this.context.getDataTime();
 
-            long watermark = this.context.getWatermark();
+            long watermark = this.watermark(time, stateTopicMessageQueue);
             if (time < watermark) {
                 //已经触发，丢弃数据
                 logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
@@ -155,7 +159,10 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
             }
 
             try {
-                this.aggregateWindowFire.fire(name, watermark);
+                List<WindowKey> fire = this.aggregateWindowFire.fire(name, watermark);
+                for (WindowKey windowKey : fire) {
+                    this.idleWindowScaner.removeWindowKey(windowKey);
+                }
             } catch (Throwable t) {
                 errorReference.compareAndSet(null, t);
             }
@@ -188,17 +195,21 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
             this.idleWindowScaner.initSessionTimeOut(windowInfo.getSessionTimeout().toMilliseconds());
-            this.aggregateSessionWindowFire = new AggregateSessionWindowFire<>(this.windowStore, context.copy(), this.idleWindowScaner::removeWindowKey);
 
-            String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
-            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
+            String stateTopicName = context.getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, context.getSourceBrokerName(), context.getSourceQueueId());
+
+            this.aggregateSessionWindowFire = new AggregateSessionWindowFire<>(this.windowStore,
+                    this.stateTopicMessageQueue,
+                    context.copy(),
+                    this::watermark);
         }
 
         @Override
         public void process(V data) throws Throwable {
             K key = this.context.getKey();
             long time = this.context.getDataTime();
-            long watermark = this.context.getWatermark();
+            long watermark = this.watermark(time, stateTopicMessageQueue);
 
             //本地存储里面搜索下
             Pair<Long, Long> newSessionWindowTime = fireIfSessionOut(key, data, time, watermark);
@@ -254,7 +265,10 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 //先触发一遍，触发后从集合中删除
                 if (sessionEnd < watermark) {
                     //触发state
-                    this.aggregateSessionWindowFire.fire(name, watermark);
+                    List<WindowKey> fire = this.aggregateSessionWindowFire.fire(name, watermark);
+                    for (WindowKey delete : fire) {
+                        this.idleWindowScaner.removeWindowKey(delete);
+                    }
                     iterator.remove();
                     maxFireSessionEnd = Long.max(sessionEnd, maxFireSessionEnd);
                 }

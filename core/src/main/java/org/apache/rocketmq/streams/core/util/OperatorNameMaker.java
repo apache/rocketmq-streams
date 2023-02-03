@@ -54,8 +54,12 @@ public class OperatorNameMaker {
     }
 
     public static String makeName(String prefix, String jobId) {
-        String number = String.format("%010d", incrementAndGet());
+        String number = String.format("%05d", incrementAndGet());
 
         return String.format(pattern, jobId, prefix, number);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(makeName("hha", "123"));
     }
 }
