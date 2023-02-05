@@ -65,6 +65,8 @@ public class ProcessorNode<T> extends AbstractGraphNode {
 
     @Override
     public void addRealNode(TopologyBuilder builder) {
+        //parentName数量大于2时，可能因为有的parent所在source并没有准备好，source2Group没有对应parent，
+        // 无法添加导致该流最后缺少window以后的算子
         for (String parentName : parentNames) {
             builder.addRealNode(name, parentName, supplier);
         }

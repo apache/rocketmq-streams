@@ -23,6 +23,7 @@ import org.apache.rocketmq.streams.core.topology.virtual.SourceGraphNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SOURCE_PREFIX;
@@ -49,6 +50,8 @@ public class StreamBuilder {
     }
 
     public TopologyBuilder build() {
+        pipelines.sort(Comparator.comparingInt(Pipeline::getVirtualNodesNum));
+
         for (Pipeline pipeline : pipelines) {
             doBuild(pipeline.getRoot());
         }

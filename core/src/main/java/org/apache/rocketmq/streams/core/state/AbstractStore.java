@@ -175,9 +175,12 @@ public abstract class AbstractStore {
                     Map.Entry<String, Set<byte[]>> next = iterator.next();
 
                     Set<byte[]> keySet = next.getValue();
-                    keySet.removeIf(rocksDBKey -> Arrays.equals(rocksDBKey, key));
-                    if (keySet.size() == 0) {
-                        iterator.remove();
+
+                    if (keySet != null) {
+                        keySet.removeIf(rocksDBKey -> Arrays.equals(rocksDBKey, key));
+                        if (keySet.size() == 0) {
+                            iterator.remove();
+                        }
                     }
                 }
             }
@@ -189,9 +192,12 @@ public abstract class AbstractStore {
                     Map.Entry<String, Set<byte[]>> next = iterator.next();
 
                     Set<byte[]> keySet = next.getValue();
-                    keySet.removeIf(rocksDBKey -> Arrays.equals(rocksDBKey, key));
-                    if (keySet.size() == 0) {
-                        iterator.remove();
+
+                    if (keySet != null) {
+                        keySet.removeIf(rocksDBKey -> Arrays.equals(rocksDBKey, key));
+                        if (keySet.size() == 0) {
+                            iterator.remove();
+                        }
                     }
                 }
             }
