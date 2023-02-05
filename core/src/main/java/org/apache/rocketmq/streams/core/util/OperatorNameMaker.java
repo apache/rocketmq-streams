@@ -36,6 +36,7 @@ public class OperatorNameMaker {
     public static final String WINDOW_ADD_TAG = "ROCKETMQ-WINDOW-ADD-TAG";
     public static final String ADD_TAG = "ROCKETMQ-ADD-TAG";
     public static final String WINDOW_COUNT_PREFIX = "ROCKETMQ-WINDOW-COUNT";
+    public static final String WINDOW_AVG_PREFIX = "ROCKETMQ-WINDOW-AVG";
     public static final String WINDOW_AGGREGATE_PREFIX = "ROCKETMQ-WINDOW-AGGREGATE";
     public static final String RSTREAM_AGGREGATE_PREFIX = "ROCKETMQ-RSTREAM-AGGREGATE";
     public static final String GROUPED_STREAM_AGGREGATE_PREFIX = "ROCKETMQ-GROUPED-STREAM-AGGREGATE";
