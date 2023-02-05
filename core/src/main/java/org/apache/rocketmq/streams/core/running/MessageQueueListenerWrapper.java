@@ -98,10 +98,6 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         return (Processor<T>) this.mq2Processor.get(key);
     }
 
-    Map<String, Processor<?>> selectAllProcessor() {
-        return Collections.unmodifiableMap(this.mq2Processor);
-    }
-
     public void setRecoverHandler(BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> handler) {
         this.recoverHandler = handler;
     }

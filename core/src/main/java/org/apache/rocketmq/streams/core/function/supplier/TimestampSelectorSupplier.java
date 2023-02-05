@@ -20,6 +20,7 @@ import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
+import org.apache.rocketmq.streams.core.running.StreamContext;
 
 import java.util.function.Supplier;
 
@@ -46,8 +47,12 @@ public class TimestampSelectorSupplier<T> implements Supplier<Processor<T>> {
         @Override
         public void process(T data) throws Throwable {
             Long timestamp = this.valueMapperAction.convert(data);
-            Data<Object, T> result = new Data<>(this.context.getKey(), data, timestamp, this.context.getHeader());
-            this.context.forward(result);
+
+            StreamContext<T> streamContext = this.context;
+
+            //override the timestamp of data
+            Data<Object, T> result = new Data<>(streamContext.getKey(), data, timestamp, streamContext.getHeader());
+            streamContext.forward(result);
         }
     }
 }

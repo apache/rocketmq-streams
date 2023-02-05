@@ -17,15 +17,32 @@
 package org.apache.rocketmq.streams.core.running;
 
 
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.streams.core.common.Constant;
+import org.apache.rocketmq.streams.core.exception.RStreamsException;
+import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.util.Utils;
+import org.apache.rocketmq.streams.core.window.fire.IdleWindowScaner;
 import org.apache.rocketmq.streams.core.window.Window;
 import org.apache.rocketmq.streams.core.window.WindowInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.streams.core.window.fire.AccumulatorWindowFire;
+import org.apache.rocketmq.streams.core.window.fire.AccumulatorSessionWindowFire;
+import org.apache.rocketmq.streams.core.window.fire.AggregateSessionWindowFire;
+import org.apache.rocketmq.streams.core.window.fire.AggregateWindowFire;
+import org.apache.rocketmq.streams.core.window.fire.JoinWindowFire;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
+    protected IdleWindowScaner idleWindowScaner;
+    protected AccumulatorWindowFire<?, ?, ?, ?> accumulatorWindowFire;
+    protected AccumulatorSessionWindowFire<?, ?, ?, ?> accumulatorSessionWindowFire;
+
+    protected AggregateWindowFire<?, ?, ?> aggregateWindowFire;
+    protected AggregateSessionWindowFire<?, ?, ?> aggregateSessionWindowFire;
+
+    protected JoinWindowFire<?, ?, ?, ?> joinWindowFire;
 
     protected List<Window> calculateWindow(WindowInfo windowInfo, long valueTime) {
         long sizeInterval = windowInfo.getWindowSize().toMillSecond();
@@ -40,6 +57,28 @@ public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
             result.add(window);
         }
         return result;
+    }
+
+
+    protected long watermark(long watermark, MessageQueue stateTopicMessageQueue) {
+        try {
+            StateStore stateStore = this.context.getStateStore();
+
+            byte[] watermarkBytes = stateStore.get(Constant.WATERMARK_KEY);
+            long oldWatermark = Utils.bytes2Long(watermarkBytes);
+
+            if (watermark > oldWatermark) {
+                byte[] newWatermarkBytes = Utils.long2Bytes(watermark);
+                stateStore.put(stateTopicMessageQueue, Constant.WATERMARK_KEY, newWatermarkBytes);
+            } else {
+                watermark = oldWatermark;
+            }
+        } catch (Throwable t) {
+            throw new RStreamsException(t);
+        }
+
+
+        return watermark;
     }
 
 }

@@ -1,4 +1,3 @@
-package org.apache.rocketmq.streams.core.metadata;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,15 +14,20 @@ package org.apache.rocketmq.streams.core.metadata;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.streams.core.window.fire;
 
-public class StreamConfig {
-    public static final String TIME_TYPE = "timeType";
-    public static final String ALLOW_LATENESS_MILLISECOND = "allowLatenessMillisecond";
-    public static final String IDLE_TIME_TO_FIRE_WINDOW = "idleTimeToFireWindow";
-    public static final String ROCKETMQ_STREAMS_CONSUMER_GROUP = "rocketmq_streams_consumer_group";
-    public static final String ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP = "rocketmq_streams_state_consumer_group";
+import org.apache.rocketmq.streams.core.metadata.Data;
+import org.apache.rocketmq.streams.core.window.WindowKey;
 
-    public static Integer STREAMS_PARALLEL_THREAD_NUM = 1;
-    public static Integer SHUFFLE_TOPIC_QUEUE_NUM = 16;
-    public static Integer DEFAULT_ALLOW_LATE_MILLISECONDS = 2000;
+import java.util.List;
+
+public interface WindowFire<K, V> {
+
+    List<WindowKey> fire(String operatorName, long watermark);
+
+
+    @SuppressWarnings("unchecked")
+    default Data<K, V> convert(Data<?, ?> data) {
+        return (Data<K, V>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getHeader());
+    }
 }

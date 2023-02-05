@@ -68,8 +68,8 @@ public class AggregateSupplier<K, V, OV> implements Supplier<Processor<V>> {
             super.preProcess(context);
             this.stateStore = super.waitStateReplay();
 
-            String stateTopicName = getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
-            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, getSourceBrokerName(), getSourceQueueId());
+            String stateTopicName = context.getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
+            this.stateTopicMessageQueue = new MessageQueue(stateTopicName, context.getSourceBrokerName(), context.getSourceQueueId());
         }
 
         @Override

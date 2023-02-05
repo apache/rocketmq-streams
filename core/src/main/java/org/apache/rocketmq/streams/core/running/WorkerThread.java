@@ -26,11 +26,11 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.DataProcessThrowable;
-import org.apache.rocketmq.streams.core.exception.DeserializeThrowable;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.function.supplier.SourceSupplier;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
+import org.apache.rocketmq.streams.core.window.fire.IdleWindowScaner;
 import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.state.RocketMQStore;
 import org.apache.rocketmq.streams.core.state.RocksDBStore;
@@ -115,6 +115,7 @@ public class WorkerThread extends Thread {
         private final DefaultMQAdminExt mqAdmin;
         private final StateStore stateStore;
         private final MessageQueueListenerWrapper wrapper;
+        private final IdleWindowScaner idleWindowScaner;
         private volatile boolean stop = false;
 
         public PlanetaryEngine(DefaultLitePullConsumer unionConsumer, DefaultMQProducer producer, StateStore stateStore,
@@ -133,6 +134,8 @@ public class WorkerThread extends Thread {
                     return e;
                 }
             });
+            Integer idleTime = (Integer) WorkerThread.this.properties.getOrDefault(StreamConfig.IDLE_TIME_TO_FIRE_WINDOW, 2000);
+            this.idleWindowScaner = new IdleWindowScaner(idleTime);
         }
 
 
@@ -170,23 +173,13 @@ public class WorkerThread extends Thread {
                         String key = Utils.buildKey(brokerName, topic, queueId);
                         SourceSupplier.SourceProcessor<K, V> processor = (SourceSupplier.SourceProcessor<K, V>) wrapper.selectProcessor(key);
 
-                        StreamContextImpl<V> context = new StreamContextImpl<>(producer, mqAdmin, stateStore, key);
+                        StreamContextImpl<V> context = new StreamContextImpl<>(properties, producer, mqAdmin, stateStore, key, idleWindowScaner);
 
                         processor.preProcess(context);
 
                         Pair<K, V> pair = processor.deserialize(keyClassName, valueClassName, body);
 
-                        long timestamp;
-                        String userProperty = messageExt.getUserProperty(Constant.SOURCE_TIMESTAMP);
-                        if (!StringUtils.isEmpty(userProperty)) {
-                            timestamp = Long.parseLong(userProperty);
-                        } else {
-                            timestamp = processor.getTimestamp(messageExt, (TimeType) properties.get(Constant.TIME_TYPE));
-                        }
-
-                        String delay = properties.getProperty(Constant.ALLOW_LATENESS_MILLISECOND, "0");
-                        long watermark = processor.getWatermark(timestamp, Long.parseLong(delay));
-                        context.setWatermark(watermark);
+                        long timestamp = prepareTime(messageExt, processor);
 
                         Data<K, V> data = new Data<>(pair.getKey(), pair.getValue(), timestamp, new Properties());
                         context.setKey(pair.getKey());
@@ -205,9 +198,9 @@ public class WorkerThread extends Thread {
                     }
 
                 } catch (Throwable t) {
-                    Object skipDataError = properties.get(Constant.SKIP_DATA_ERROR);
-                    if (skipDataError == Boolean.TRUE && t instanceof DataProcessThrowable || t instanceof DeserializeThrowable) {
-                        logger.error("process data error, jobId=[{}], skip this data.", topologyBuilder.getJobId(), t);
+                    Object skipDataError = properties.getOrDefault(Constant.SKIP_DATA_ERROR, Boolean.TRUE);
+                    if (skipDataError == Boolean.TRUE) {
+                        logger.error("ignore error, jobId=[{}], skip this data.", topologyBuilder.getJobId(), t);
                         //ignored
                     } else {
                         throw t;
@@ -223,6 +216,21 @@ public class WorkerThread extends Thread {
             }
         }
 
+        long prepareTime(MessageExt messageExt, SourceSupplier.SourceProcessor<K, V> processor) {
+            TimeType type = (TimeType) properties.get(StreamConfig.TIME_TYPE);
+
+            long timestamp;
+            String userProperty = messageExt.getUserProperty(Constant.SOURCE_TIMESTAMP);
+            if (!StringUtils.isEmpty(userProperty)) {
+                //data come from shuffle topic
+                timestamp = Long.parseLong(userProperty);
+            } else {
+                //data come from user source topic
+                timestamp = processor.getTimestamp(messageExt, type);
+            }
+
+            return timestamp;
+        }
 
         void createShuffleTopic() throws Throwable {
             Set<String> total = WorkerThread.this.topologyBuilder.getSourceTopic();
@@ -249,9 +257,12 @@ public class WorkerThread extends Thread {
 
             try {
                 this.unionConsumer.shutdown();
+
+                this.stateStore.close();
+                this.idleWindowScaner.close();
+
                 this.producer.shutdown();
                 this.mqAdmin.shutdown();
-                this.stateStore.close();
                 logger.info("shutdown engine success, thread:{}, jobId:{}", WorkerThread.this.getName(), jobId);
             } catch (Throwable e) {
                 logger.error("error when stop engin.", e);

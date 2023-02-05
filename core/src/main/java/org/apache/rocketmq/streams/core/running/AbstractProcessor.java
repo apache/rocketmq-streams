@@ -24,6 +24,7 @@ import io.netty.buffer.Unpooled;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.metadata.Data;
+import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Utils;
 
@@ -36,6 +37,7 @@ import java.util.List;
 public abstract class AbstractProcessor<T> implements Processor<T> {
     private final List<Processor<T>> children = new ArrayList<>();
     protected StreamContext<T> context;
+    protected long allowDelay = 0;
 
     @Override
     public void addChild(Processor<T> processor) {
@@ -46,6 +48,11 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
     public void preProcess(StreamContext<T> context) throws RecoverStateStoreThrowable {
         this.context = context;
         this.context.init(getChildren());
+        Object delayObj = this.context
+                .getUserProperties()
+                .getOrDefault(StreamConfig.ALLOW_LATENESS_MILLISECOND, StreamConfig.DEFAULT_ALLOW_LATE_MILLISECONDS);
+
+        this.allowDelay = Long.parseLong(String.valueOf(delayObj));
     }
 
     protected List<Processor<T>> getChildren() {
@@ -53,7 +60,7 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
     }
 
     protected StateStore waitStateReplay() throws RecoverStateStoreThrowable {
-        MessageQueue sourceTopicQueue = new MessageQueue(getSourceTopic(), getSourceBrokerName(), getSourceQueueId());
+        MessageQueue sourceTopicQueue = new MessageQueue(context.getSourceTopic(), context.getSourceBrokerName(), context.getSourceQueueId());
 
         StateStore stateStore = context.getStateStore();
         stateStore.waitIfNotReady(sourceTopicQueue);
@@ -65,24 +72,6 @@ public abstract class AbstractProcessor<T> implements Processor<T> {
         return (Data<KEY, T>) new Data<>(data.getKey(), data.getValue(), data.getTimestamp(), data.getHeader());
     }
 
-
-    protected String getSourceBrokerName() {
-        String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
-        String[] split = Utils.split(sourceTopicQueue);
-        return split[0];
-    }
-
-    protected String getSourceTopic() {
-        String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
-        String[] split = Utils.split(sourceTopicQueue);
-        return split[1];
-    }
-
-    protected Integer getSourceQueueId() {
-        String sourceTopicQueue = context.getMessageFromWhichSourceTopicQueue();
-        String[] split = Utils.split(sourceTopicQueue);
-        return Integer.parseInt(split[2]);
-    }
 
 
     private final ByteBuf buf = Unpooled.buffer(16);
