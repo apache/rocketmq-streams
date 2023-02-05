@@ -18,12 +18,10 @@ package org.apache.rocketmq.streams.examples.window;
 
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
-import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.window.Time;
-import org.apache.rocketmq.streams.core.window.TimeType;
 import org.apache.rocketmq.streams.core.window.WindowBuilder;
 
 import java.nio.charset.StandardCharsets;
@@ -57,27 +55,15 @@ public class WindowAvg {
 
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        properties.put(Constant.TIME_TYPE, TimeType.PROCESS_TIME);
-        properties.put(Constant.ALLOW_LATENESS_MILLISECOND, 5000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
-
-        final CountDownLatch latch = new CountDownLatch(1);
-
         Runtime.getRuntime().addShutdownHook(new Thread("WindowAvg-shutdown-hook") {
             @Override
             public void run() {
                 rocketMQStream.stop();
-                latch.countDown();
             }
         });
 
-        try {
-            rocketMQStream.start();
-            latch.await();
-        } catch (final Throwable e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        rocketMQStream.start();
     }
 }
