@@ -27,10 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class TopologyBuilder {
@@ -68,6 +65,8 @@ public class TopologyBuilder {
     }
 
 
+
+
     public <T> void addRealSink(String name, String parentName, String topicName, Supplier<Processor<T>> supplier) {
         SinkFactory<T> sinkFactory = new SinkFactory<>(name, supplier);
         realNodeFactory.put(name, sinkFactory);
@@ -75,37 +74,15 @@ public class TopologyBuilder {
         grouping(name, parentName);
     }
 
-    private Map<String, List<String>> groupFragment = new HashMap<>();
 
     private void grouping(String name, String parentName) {
         if (source2Group.containsKey(parentName)) {
-            List<String> precursors = source2Group.get(parentName);
-
-            if (groupFragment.containsKey(name)) {
-                precursors.addAll(groupFragment.get(name));
-            } else {
-                precursors.add(name);
-            }
+            source2Group.get(parentName).add(name);
         } else {
             for (String sourceName : source2Group.keySet()) {
                 List<String> subsequentProcessor = source2Group.get(sourceName);
                 if (subsequentProcessor.contains(parentName)) {
-                    if (groupFragment.containsKey(name)) {
-                        subsequentProcessor.addAll(groupFragment.get(name));
-                    } else {
-                        subsequentProcessor.add(name);
-                    }
-                } else {
-                    groupFragment.compute(parentName, (key, group) -> {
-                        if (group == null) {
-                            group = new ArrayList<>();
-                            group.add(key);
-                        } else {
-                            group.add(name);
-                        }
-
-                        return group;
-                    });
+                    subsequentProcessor.add(name);
                 }
             }
         }
@@ -115,6 +92,7 @@ public class TopologyBuilder {
     public Set<String> getSourceTopic() {
         return Collections.unmodifiableSet(this.topic2SourceNodeFactory.keySet());
     }
+
 
 
     @SuppressWarnings("unchecked")
