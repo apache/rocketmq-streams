@@ -53,22 +53,14 @@ public class WordCount {
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
-        final CountDownLatch latch = new CountDownLatch(1);
 
         Runtime.getRuntime().addShutdownHook(new Thread("wordcount-shutdown-hook") {
             @Override
             public void run() {
                 rocketMQStream.stop();
-                latch.countDown();
             }
         });
 
-        try {
-            rocketMQStream.start();
-            latch.await();
-        } catch (final Throwable e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        rocketMQStream.start();
     }
 }
