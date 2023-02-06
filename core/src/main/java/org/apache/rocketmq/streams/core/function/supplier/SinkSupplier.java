@@ -26,10 +26,14 @@ import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Supplier;
 
 public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
+    private static final Logger logger = LoggerFactory.getLogger(SinkSupplier.class);
+
     private final String topicName;
     private final KeyValueSerializer<K, T> serializer;
 
@@ -93,6 +97,7 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
 
                     if (this.topicName.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                         message.putUserProperty(Constant.SOURCE_TIMESTAMP, String.valueOf(this.context.getDataTime()));
+                        logger.debug("send data to topic:{}, data:[{}]", this.topicName, data);
                     }
 
                     producer.send(message, new SelectMessageQueueByHash(), hexKey);

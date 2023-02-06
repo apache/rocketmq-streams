@@ -124,7 +124,9 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                                 Properties header = this.context.getHeader();
                                 header.put(Constant.WINDOW_START_TIME, leftWindowKey.getWindowStart());
                                 header.put(Constant.WINDOW_END_TIME, leftWindowKey.getWindowEnd());
-                                Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
+
+                                assert leftPair.getValue().getKey() == rightPair.getValue().getKey();
+                                Data<K, OUT> result = new Data<>(leftPair.getValue().getKey(), out, this.context.getDataTime(), header);
                                 Data<K, Object> convert = this.convert(result);
 
                                 this.context.forward(convert);
@@ -159,13 +161,17 @@ public class JoinWindowFire<K, V1, V2, OUT> {
                                 if (targetPair != null) {
                                     o2 = targetPair.getValue().getValue();
                                     fired.add(targetPair.getKey());
+
+                                    assert leftPair.getValue().getKey() == targetPair.getValue().getKey();
                                 }
 
                                 OUT out = this.joinAction.apply(o1, o2);
                                 Properties header = this.context.getHeader();
                                 header.put(Constant.WINDOW_START_TIME, leftWindowKey.getWindowStart());
                                 header.put(Constant.WINDOW_END_TIME, leftWindowKey.getWindowEnd());
-                                Data<K, OUT> result = new Data<>(this.context.getKey(), out, this.context.getDataTime(), header);
+
+
+                                Data<K, OUT> result = new Data<>(leftPair.getValue().getKey(), out, this.context.getDataTime(), header);
                                 Data<K, Object> convert = this.convert(result);
 
                                 this.context.forward(convert);
