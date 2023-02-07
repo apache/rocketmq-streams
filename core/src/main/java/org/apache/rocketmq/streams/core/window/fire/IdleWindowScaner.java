@@ -35,7 +35,7 @@ public class IdleWindowScaner implements AutoCloseable {
 
     private final Integer maxIdleTime;
     private long sessionTimeOut = 0;
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "ScanIdleWindowThread"));
+    private final ScheduledExecutorService executor;
 
     private final ConcurrentHashMap<WindowKey, TimeType> lastUpdateTime2WindowKey = new ConcurrentHashMap<>(16);
 
@@ -47,8 +47,9 @@ public class IdleWindowScaner implements AutoCloseable {
     private final ConcurrentHashMap<WindowKey, JoinWindowFire<?, ?, ?, ?>> fireJoinWindowCallback = new ConcurrentHashMap<>(16);
 
 
-    public IdleWindowScaner(Integer maxIdleTime) {
+    public IdleWindowScaner(Integer maxIdleTime, ScheduledExecutorService executor) {
         this.maxIdleTime = maxIdleTime;
+        this.executor = executor;
         this.executor.scheduleAtFixedRate(() -> {
             try {
                 scanAndFireWindow();

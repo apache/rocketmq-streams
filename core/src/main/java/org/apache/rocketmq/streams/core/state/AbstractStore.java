@@ -120,11 +120,25 @@ public abstract class AbstractStore {
 
         public void putInRecover(String stateTopicQueueKey, byte[] key) {
             Set<byte[]> allSet = this.recover.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+
+            for (byte[] item : allSet) {
+                if (Arrays.equals(item, key)) {
+                    return;
+                }
+            }
+
             allSet.add(key);
         }
 
         public void putInCalculating(String stateTopicQueueKey, byte[] key) {
             Set<byte[]> keySet = this.calculating.computeIfAbsent(stateTopicQueueKey, s -> new HashSet<>());
+
+            for (byte[] item : keySet) {
+                if (Arrays.equals(item, key)) {
+                    return;
+                }
+            }
+
             keySet.add(key);
 
             putInRecover(stateTopicQueueKey, key);
