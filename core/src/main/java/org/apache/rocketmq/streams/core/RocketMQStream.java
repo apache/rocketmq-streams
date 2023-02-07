@@ -40,8 +40,9 @@ public class RocketMQStream {
     private final Properties properties;
     private final List<WorkerThread> workerThreads = new ArrayList<>();
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(6,
-            r -> new Thread(r, "ScanIdleWindowThread_" + index.getAndIncrement()));
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(
+                    StreamConfig.SCHEDULED_THREAD_NUM,
+                    r -> new Thread(r, "ScanIdleWindowThread_" + index.getAndIncrement()));
 
     public RocketMQStream(TopologyBuilder topologyBuilder, Properties properties) {
         this.topologyBuilder = topologyBuilder;

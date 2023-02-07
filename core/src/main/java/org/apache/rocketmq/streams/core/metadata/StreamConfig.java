@@ -25,5 +25,6 @@ public class StreamConfig {
 
     public static Integer STREAMS_PARALLEL_THREAD_NUM = 1;
     public static Integer SHUFFLE_TOPIC_QUEUE_NUM = 16;
+    public static Integer SCHEDULED_THREAD_NUM = 2;
     public static Integer DEFAULT_ALLOW_LATE_MILLISECONDS = 2000;
 }
