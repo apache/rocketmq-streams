@@ -24,12 +24,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -141,5 +143,19 @@ public class Utils {
         buffer.put(bytes);
         buffer.flip();//need flip
         return buffer.getLong();
+    }
+
+    public static byte[] watermarkKeyBytes(MessageQueue stateTopicMessageQueue, String watermarkPrefix) {
+        if (stateTopicMessageQueue == null || StringUtils.isBlank(watermarkPrefix)) {
+            throw new IllegalArgumentException();
+        }
+
+        String key = Utils.buildKey(watermarkPrefix,
+                stateTopicMessageQueue.getBrokerName(),
+                stateTopicMessageQueue.getTopic(),
+                String.valueOf(stateTopicMessageQueue.getQueueId()));
+
+        assert key != null;
+        return key.getBytes(StandardCharsets.UTF_8);
     }
 }

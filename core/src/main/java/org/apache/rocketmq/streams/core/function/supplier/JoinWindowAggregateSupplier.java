@@ -104,12 +104,11 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
 
         @Override
         public void process(Object data) throws Throwable {
-
             Object key = this.context.getKey();
             long time = this.context.getDataTime();
             Properties header = this.context.getHeader();
-            long watermark = this.watermark(time, stateTopicMessageQueue);
-            WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
+
+            long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
 
             if (time < watermark) {
                 //已经触发，丢弃数据
@@ -117,7 +116,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                         data, watermark, watermark, time);
                 return;
             }
-
+            WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
             StreamType streamType = stream.getStreamType();
             if (streamType == null) {
                 String format = String.format("StreamType is empty, data:%s", data);

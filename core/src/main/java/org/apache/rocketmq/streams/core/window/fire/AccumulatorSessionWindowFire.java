@@ -34,26 +34,20 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
 
 
-public class AccumulatorSessionWindowFire<K, R, V, OV> implements WindowFire<K, V> {
+public class AccumulatorSessionWindowFire<K, R, V, OV> extends AbstractWindowFire<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(AccumulatorSessionWindowFire.class);
 
     private final WindowStore<K, Accumulator<R, OV>> windowStore;
-    private final StreamContext<V> context;
-    private final MessageQueue stateTopicMessageQueue;
-    private final BiConsumer<Long, MessageQueue> commitWatermark;
 
     public AccumulatorSessionWindowFire(WindowStore<K, Accumulator<R, OV>> windowStore,
                                         StreamContext<V> context,
                                         MessageQueue stateTopicMessageQueue,
-                                        BiConsumer<Long, MessageQueue> commitWatermark) {
+                                        BiFunction<Long, MessageQueue, Long> commitWatermark) {
+        super(context, stateTopicMessageQueue, commitWatermark);
         this.windowStore = windowStore;
-        this.context = context;
-        this.stateTopicMessageQueue = stateTopicMessageQueue;
-        this.commitWatermark = commitWatermark;
     }
 
     public List<WindowKey> fire(String operatorName, long watermark) {
@@ -102,9 +96,5 @@ public class AccumulatorSessionWindowFire<K, R, V, OV> implements WindowFire<K, 
             String format = String.format("fire session window error, name:%s", operatorName);
             throw new RStreamsException(format, t);
         }
-    }
-
-    void commitWatermark(long watermark) {
-        this.commitWatermark.accept(watermark, stateTopicMessageQueue);
     }
 }
