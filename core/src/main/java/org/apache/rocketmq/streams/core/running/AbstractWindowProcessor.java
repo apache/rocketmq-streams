@@ -17,6 +17,7 @@
 package org.apache.rocketmq.streams.core.running;
 
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.streams.core.window.fire.AggregateSessionWindowFire;
 import org.apache.rocketmq.streams.core.window.fire.AggregateWindowFire;
 import org.apache.rocketmq.streams.core.window.fire.JoinWindowFire;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,15 +63,17 @@ public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
 
 
     protected long watermark(long watermark, MessageQueue stateTopicMessageQueue) {
+        byte[] keyBytes = Utils.watermarkKeyBytes(stateTopicMessageQueue, Constant.WATERMARK_KEY);
+
         try {
             StateStore stateStore = this.context.getStateStore();
 
-            byte[] watermarkBytes = stateStore.get(Constant.WATERMARK_KEY);
+            byte[] watermarkBytes = stateStore.get(keyBytes);
             long oldWatermark = Utils.bytes2Long(watermarkBytes);
 
             if (watermark > oldWatermark) {
                 byte[] newWatermarkBytes = Utils.long2Bytes(watermark);
-                stateStore.put(stateTopicMessageQueue, Constant.WATERMARK_KEY, newWatermarkBytes);
+                stateStore.put(stateTopicMessageQueue, keyBytes, newWatermarkBytes);
             } else {
                 watermark = oldWatermark;
             }
@@ -80,5 +84,7 @@ public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
 
         return watermark;
     }
+
+
 
 }

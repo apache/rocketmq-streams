@@ -207,12 +207,13 @@ public class WorkerThread extends Thread {
                     }
                 }
 
-                //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
-                for (MessageQueue messageQueue : set) {
-                    logger.debug("commit messageQueue: [{}]", messageQueue);
-                }
                 this.stateStore.persist(set);
                 this.unionConsumer.commit(set, true);
+
+                //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
+                for (MessageQueue messageQueue : set) {
+                    logger.debug("committed messageQueue: [{}]", messageQueue);
+                }
             }
         }
 

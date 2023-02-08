@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.core.state;
 
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.window.WindowKey;
@@ -173,28 +174,20 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
         }
     }
 
+    //todo: column family to solve this problem.
     private boolean skipWatermarkKey(byte[] target) {
         if (target == null || target.length == 0) {
             return false;
         }
 
-        if (target.length != Constant.WATERMARK_KEY.length) {
+        try {
+            String key = new String(target, StandardCharsets.UTF_8);
+
+            return !StringUtils.isBlank(key) && key.startsWith(Constant.WATERMARK_KEY);
+        } catch (Throwable ignored) {
             return false;
         }
-
-        for (int i = 0; i < target.length; i++) {
-            byte a = target[i];
-            byte b = Constant.WATERMARK_KEY[i];
-
-            if (a != b) {
-                return false;
-            }
-        }
-
-        return true;
     }
-
-
 
 
     public static void main(String[] args) throws Throwable {

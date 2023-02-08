@@ -20,7 +20,6 @@ package org.apache.rocketmq.streams.examples.pojo;
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
-import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
