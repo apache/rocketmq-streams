@@ -20,6 +20,7 @@ import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
+import org.apache.rocketmq.streams.core.function.accumulator.AvgAccumulator;
 import org.apache.rocketmq.streams.core.function.accumulator.CountAccumulator;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
@@ -41,7 +42,9 @@ import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREF
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AVG_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.AGGREGATE_PREFIX;
+
 
 public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     private final Pipeline pipeline;
@@ -58,6 +61,22 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     public WindowStream<K, Integer> count() {
         String name = OperatorNameMaker.makeName(COUNT_PREFIX, pipeline.getJobId());
         Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, new CountAccumulator<>());
+
+        //是否需要分组计算
+        ProcessorNode<V> node;
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
+    }
+
+    @Override
+    public WindowStream<K, Double> avg() {
+        String name = OperatorNameMaker.makeName(WINDOW_AVG_PREFIX, pipeline.getJobId());
+        Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, new AvgAccumulator<>());
 
         //是否需要分组计算
         ProcessorNode<V> node;
