@@ -55,8 +55,4 @@ public class OperatorNameMaker {
 
         return String.format(pattern, jobId, prefix, number);
     }
-
-    public static void main(String[] args) {
-        System.out.println(makeName("hha", "123"));
-    }
 }

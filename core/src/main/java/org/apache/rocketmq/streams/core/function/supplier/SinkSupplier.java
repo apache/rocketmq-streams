@@ -97,7 +97,6 @@ public class SinkSupplier<K, T> implements Supplier<Processor<T>> {
 
                     if (this.topicName.contains(Constant.SHUFFLE_TOPIC_SUFFIX)) {
                         message.putUserProperty(Constant.SOURCE_TIMESTAMP, String.valueOf(this.context.getDataTime()));
-                        logger.debug("send data to topic:{}, data:[{}]", this.topicName, data);
                     }
 
                     producer.send(message, new SelectMessageQueueByHash(), hexKey);

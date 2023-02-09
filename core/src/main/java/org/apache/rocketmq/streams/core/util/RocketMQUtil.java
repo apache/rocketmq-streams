@@ -158,10 +158,6 @@ public class RocketMQUtil {
         existTopic.add(topicName);
     }
 
-    public static void main(String[] args) throws Exception {
-        HashSet<String> set = new HashSet<>();
-        createStaticTopicWithCommand("test1", 16, set, "DefaultCluster", "127.0.0.1:10911");
-    }
 
     private static void createStaticTopicWithCommand(String topic, int totalQueueNum, Set<String> brokers, String cluster, String nameservers) throws Exception {
         UpdateStaticTopicSubCommand cmd = new UpdateStaticTopicSubCommand();
