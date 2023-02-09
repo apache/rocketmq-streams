@@ -40,20 +40,8 @@ public abstract class AbstractWindowFire<K, V> implements WindowFire<K, V> {
         this.commitWatermark = commitWatermark;
     }
 
-    void commitWatermark(long watermark) throws Throwable {
-        StateStore stateStore = this.context.getStateStore();
-
-        //get old watermark
-        byte[] keyBytes = Utils.watermarkKeyBytes(stateTopicMessageQueue, Constant.WATERMARK_KEY);
-        byte[] watermarkBytes = stateStore.get(keyBytes);
-        long oldWatermark = Utils.bytes2Long(watermarkBytes);
-
-        if (watermark > oldWatermark) {
-            this.commitWatermark.apply(watermark, stateTopicMessageQueue);
-            Set<MessageQueue> set = new HashSet<>();
-            set.add(stateTopicMessageQueue);
-            stateStore.persist(set);
-        }
+    void commitWatermark(long watermark) {
+        this.commitWatermark.apply(watermark, stateTopicMessageQueue);
     }
 
 }
