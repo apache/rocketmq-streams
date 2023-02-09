@@ -35,6 +35,7 @@ public class OperatorNameMaker {
     public static final String FOR_EACH_PREFIX = "ROCKETMQ-FOREACH";
     public static final String WINDOW_PREFIX = "ROCKETMQ-WINDOW";
     public static final String ADD_TAG = "ROCKETMQ-ADD-TAG";
+    public static final String WINDOW_AVG_PREFIX = "ROCKETMQ-WINDOW-AVG";
     public static final String AGGREGATE_PREFIX = "ROCKETMQ-AGGREGATE";
     public static final String ACCUMULATE_PREFIX = "ROCKETMQ-ACCUMULATE";
     public static final String JOIN_WINDOW_PREFIX = "JOIN-WINDOW";

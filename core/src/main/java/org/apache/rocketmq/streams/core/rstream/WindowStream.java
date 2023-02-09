@@ -30,6 +30,8 @@ import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 public interface WindowStream<K, V> {
     WindowStream<K, Integer> count();
 
+    WindowStream<K, Double> avg();
+
     WindowStream<K, V> filter(FilterAction<V> predictor);
 
     <OUT> WindowStream<K, OUT> map(ValueMapperAction<V, OUT> mapperAction);
