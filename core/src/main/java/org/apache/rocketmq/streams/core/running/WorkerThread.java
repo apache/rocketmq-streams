@@ -48,6 +48,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
@@ -57,14 +59,19 @@ public class WorkerThread extends Thread {
     private final PlanetaryEngine<?, ?> planetaryEngine;
     private final Properties properties;
     private final String jobId;
+    private final ScheduledExecutorService executor;
 
 
-    public WorkerThread(String threadName, TopologyBuilder topologyBuilder, Properties properties) throws MQClientException {
+    public WorkerThread(String threadName,
+                        TopologyBuilder topologyBuilder,
+                        Properties properties,
+                        ScheduledExecutorService executor) throws MQClientException {
         super(threadName);
 
         this.topologyBuilder = topologyBuilder;
         this.properties = properties;
         jobId = topologyBuilder.getJobId();
+        this.executor = executor;
 
         String groupName = String.join("_", jobId, ROCKETMQ_STREAMS_CONSUMER_GROUP);
 
@@ -118,6 +125,11 @@ public class WorkerThread extends Thread {
         private final IdleWindowScaner idleWindowScaner;
         private volatile boolean stop = false;
 
+        private long lastCommit = 0;
+        private int commitInterval = 10 * 1000;
+        private final HashSet<MessageQueue> mq2Commit = new HashSet<>();
+
+
         public PlanetaryEngine(DefaultLitePullConsumer unionConsumer, DefaultMQProducer producer, StateStore stateStore,
                                DefaultMQAdminExt mqAdmin, MessageQueueListenerWrapper wrapper) {
             this.unionConsumer = unionConsumer;
@@ -135,7 +147,14 @@ public class WorkerThread extends Thread {
                 }
             });
             Integer idleTime = (Integer) WorkerThread.this.properties.getOrDefault(StreamConfig.IDLE_TIME_TO_FIRE_WINDOW, 2000);
-            this.idleWindowScaner = new IdleWindowScaner(idleTime);
+            this.idleWindowScaner = new IdleWindowScaner(idleTime, executor);
+            WorkerThread.this.executor.scheduleAtFixedRate(() -> {
+                try {
+                    doCommit(mq2Commit);
+                } catch (Throwable t) {
+                    logger.error("commit offset and state error.", t);
+                }
+            }, 10, 10, TimeUnit.SECONDS);
         }
 
 
@@ -149,14 +168,12 @@ public class WorkerThread extends Thread {
 
         void runInLoop() throws Throwable {
             while (!stop) {
-                HashSet<MessageQueue> set = new HashSet<>();
-
                 try {
                     List<MessageExt> list = this.unionConsumer.poll(10);
                     for (MessageExt messageExt : list) {
                         byte[] body = messageExt.getBody();
                         if (body == null || body.length == 0) {
-                            continue;
+                            break;
                         }
 
                         String keyClassName = messageExt.getUserProperty(Constant.SHUFFLE_KEY_CLASS_NAME);
@@ -166,7 +183,7 @@ public class WorkerThread extends Thread {
                         int queueId = messageExt.getQueueId();
                         String brokerName = messageExt.getBrokerName();
                         MessageQueue queue = new MessageQueue(topic, brokerName, queueId);
-                        set.add(queue);
+                        mq2Commit.add(queue);
                         logger.debug("source topic queue:[{}]", queue);
 
 
@@ -206,14 +223,20 @@ public class WorkerThread extends Thread {
                         throw t;
                     }
                 }
+            }
+        }
+
+        void doCommit(HashSet<MessageQueue> set) throws Throwable {
+            if ((System.currentTimeMillis() - lastCommit > commitInterval) && set.size() != 0) {
 
                 this.stateStore.persist(set);
                 this.unionConsumer.commit(set, true);
 
-                //todo 每次都提交位点消耗太大，后面改成拉取消息放入buffer的形式。
                 for (MessageQueue messageQueue : set) {
                     logger.debug("committed messageQueue: [{}]", messageQueue);
                 }
+                lastCommit = System.currentTimeMillis();
+                set.clear();
             }
         }
 

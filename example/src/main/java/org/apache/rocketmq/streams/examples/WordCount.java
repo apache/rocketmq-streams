@@ -27,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
 
 public class WordCount {
     public static void main(String[] args) {
@@ -53,22 +52,14 @@ public class WordCount {
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
 
-        final CountDownLatch latch = new CountDownLatch(1);
 
         Runtime.getRuntime().addShutdownHook(new Thread("wordcount-shutdown-hook") {
             @Override
             public void run() {
                 rocketMQStream.stop();
-                latch.countDown();
             }
         });
 
-        try {
-            rocketMQStream.start();
-            latch.await();
-        } catch (final Throwable e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        rocketMQStream.start();
     }
 }

@@ -27,14 +27,22 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RocketMQStream {
     private static final Logger logger = LoggerFactory.getLogger(RocketMQStream.class.getName());
+    private static final AtomicInteger index = new AtomicInteger(1);
+
     private final TopologyBuilder topologyBuilder;
     private final Properties properties;
     private final List<WorkerThread> workerThreads = new ArrayList<>();
     private final AtomicBoolean started = new AtomicBoolean(false);
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(
+                    StreamConfig.SCHEDULED_THREAD_NUM,
+                    r -> new Thread(r, "ScanIdleWindowThread_" + index.getAndIncrement()));
 
     public RocketMQStream(TopologyBuilder topologyBuilder, Properties properties) {
         this.topologyBuilder = topologyBuilder;
@@ -57,7 +65,7 @@ public class RocketMQStream {
             for (int i = 0; i < threadNum; i++) {
                 String threadName = String.join("_", Constant.WORKER_THREAD_NAME, jobId, String.valueOf(i));
 
-                WorkerThread thread = new WorkerThread(threadName, topologyBuilder, this.properties);
+                WorkerThread thread = new WorkerThread(threadName, topologyBuilder, this.properties, executor);
 
                 thread.start();
                 workerThreads.add(thread);

@@ -158,6 +158,7 @@ public class RocketMQUtil {
         existTopic.add(topicName);
     }
 
+
     private static void createStaticTopicWithCommand(String topic, int totalQueueNum, Set<String> brokers, String cluster, String nameservers) throws Exception {
         UpdateStaticTopicSubCommand cmd = new UpdateStaticTopicSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());

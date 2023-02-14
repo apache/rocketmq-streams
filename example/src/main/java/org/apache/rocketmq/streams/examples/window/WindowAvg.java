@@ -46,7 +46,7 @@ public class WindowAvg {
         }).foreach(value -> System.out.println(String.format("time:%s, input:%d", LocalTime.now(), value)))
         .filter(value -> value > 0)
         .keyBy(value -> "key")
-        .window(WindowBuilder.tumblingWindow(Time.seconds(15)))
+        .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
         .avg()
         .toRStream()
         .print();

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.core.running;
 
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
@@ -32,7 +31,6 @@ import org.apache.rocketmq.streams.core.window.fire.AggregateSessionWindowFire;
 import org.apache.rocketmq.streams.core.window.fire.AggregateWindowFire;
 import org.apache.rocketmq.streams.core.window.fire.JoinWindowFire;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 

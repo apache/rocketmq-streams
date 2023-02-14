@@ -21,6 +21,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +30,7 @@ import java.util.UUID;
 import static org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData.SUB_ALL;
 
 public class RocketMQClient {
+    private static final Logger logger = LoggerFactory.getLogger(RocketMQClient.class);
     private final String nameSrvAddr;
 
     public RocketMQClient(String nameSrvAddr) {
@@ -44,6 +47,7 @@ public class RocketMQClient {
 
         for (String topic : topics) {
             pullConsumer.subscribe(topic, SUB_ALL);
+            logger.debug("subscribe topic:{}, groupName:{}", topic, groupName);
         }
 
         return pullConsumer;

@@ -101,4 +101,8 @@ public class Pipeline {
     public String getJobId() {
         return jobId;
     }
+
+    public int getVirtualNodesNum() {
+        return virtualNodes.size();
+    }
 }
