@@ -75,7 +75,7 @@ public class RStreamImpl<T> implements RStream<T> {
     }
 
     @Override
-    public <VR> RStream<T> flatMap(ValueMapperAction<T, ? extends Iterable<? extends VR>> mapper) {
+    public <VR> RStream<VR> flatMap(ValueMapperAction<T, ? extends Iterable<? extends VR>> mapper) {
         String name = OperatorNameMaker.makeName(FLAT_MAP_PREFIX, pipeline.getJobId());
 
         MultiValueChangeSupplier<T, VR> changeSupplier = new MultiValueChangeSupplier<>(mapper);
