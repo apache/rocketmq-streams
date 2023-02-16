@@ -23,6 +23,7 @@ import org.apache.rocketmq.streams.core.topology.virtual.SourceGraphNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SOURCE_PREFIX;
@@ -49,6 +50,9 @@ public class StreamBuilder {
     }
 
     public TopologyBuilder build() {
+        //双流join场景中，添加共同节点的pipeline最后构建；三流join未验证。
+        pipelines.sort((o1, o2) -> o2.getVirtualNodesNum() - o1.getVirtualNodesNum());
+
         for (Pipeline pipeline : pipelines) {
             doBuild(pipeline.getRoot());
         }

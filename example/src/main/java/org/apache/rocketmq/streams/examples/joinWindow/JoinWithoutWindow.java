@@ -22,8 +22,6 @@ import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.rstream.RStream;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
-import org.apache.rocketmq.streams.core.window.Time;
-import org.apache.rocketmq.streams.core.window.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.examples.pojo.Num;
@@ -32,16 +30,9 @@ import org.apache.rocketmq.streams.examples.pojo.User;
 
 import java.util.Properties;
 
-/**
- * 1、启动RocketMQ
- * 2、创建topic
- * 3、启动本例子运行
- * 4、向topic中写入数据
- * 5、观察输出结果
- */
-public class JoinWindow {
+public class JoinWithoutWindow {
     public static void main(String[] args) {
-        StreamBuilder builder = new StreamBuilder("joinWindow");
+        StreamBuilder builder = new StreamBuilder("JoinWithoutWindow");
 
         RStream<User> user = builder.source("user", total -> {
             User user1 = JSON.parseObject(total, User.class);
@@ -81,7 +72,6 @@ public class JoinWindow {
         user.join(num)
                 .where(User::getName)
                 .equalTo(Num::getName)
-                .window(WindowBuilder.tumblingWindow(Time.seconds(10)))
                 .apply(action)
                 .print();
 

@@ -44,16 +44,10 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
         Pair<K, V> deserialize(String keyClass, String valueClass, byte[] data) throws DeserializeThrowable;
 
         long getTimestamp(MessageExt originData, TimeType timeType);
-
-        default long getWatermark(long time, Long delay) {
-            return -1;
-        }
     }
 
     private class SourceProcessorImpl extends AbstractProcessor<V> implements SourceProcessor<K, V> {
         private KeyValueDeserializer<K, V> deserializer;
-        private long maxTimestamp = Long.MIN_VALUE;
-
 
         public SourceProcessorImpl(KeyValueDeserializer<K, V> deserializer) {
             this.deserializer = deserializer;
@@ -71,7 +65,6 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
 
         @Override
         public long getTimestamp(MessageExt originData, TimeType timeType) {
-
             if (timeType == null) {
                 return System.currentTimeMillis();
             } else if (timeType == TimeType.EVENT_TIME) {
@@ -83,13 +76,6 @@ public class SourceSupplier<K, V> implements Supplier<Processor<V>> {
             }
         }
 
-        @Override
-        public long getWatermark(long time, Long delay) {
-            maxTimestamp = Math.max(time, this.maxTimestamp);
-            long delayTimestamp = delay == null ? 0L : delay;
-
-            return maxTimestamp - delayTimestamp;
-        }
 
         @Override
         public void process(V data) throws Throwable {

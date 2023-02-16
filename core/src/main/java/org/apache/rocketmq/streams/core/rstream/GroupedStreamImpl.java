@@ -40,14 +40,14 @@ import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 import java.util.function.Supplier;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPBY_COUNT_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.GROUPED_STREAM_AGGREGATE_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.ACCUMULATE_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAX_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MIN_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SUM_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_ADD_TAG;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_PREFIX;
 
 public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     private final Pipeline pipeline;
@@ -60,7 +60,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public GroupedStream<K, Integer> count() {
-        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX, pipeline.getJobId());
+        String name = OperatorNameMaker.makeName(COUNT_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
@@ -76,7 +76,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction) {
-        String name = OperatorNameMaker.makeName(GROUPBY_COUNT_PREFIX, pipeline.getJobId());
+        String name = OperatorNameMaker.makeName(COUNT_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0, (K key, V value, Integer agg) -> agg + 1);
 
@@ -188,7 +188,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
 
     @Override
     public <OUT> GroupedStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
-        String name = OperatorNameMaker.makeName(GROUPED_STREAM_AGGREGATE_PREFIX, pipeline.getJobId());
+        String name = OperatorNameMaker.makeName(ACCUMULATE_PREFIX, pipeline.getJobId());
         Supplier<Processor<V>> supplier = new AccumulatorSupplier<>(name, parent.getName(), value -> value, accumulator);
 
         GraphNode graphNode;
@@ -204,7 +204,7 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     @Override
     public WindowStream<K, V> window(WindowInfo windowInfo) {
         //需要在window里面shuffle
-        String name = OperatorNameMaker.makeName(WINDOW_ADD_TAG, pipeline.getJobId());
+        String name = OperatorNameMaker.makeName(WINDOW_PREFIX, pipeline.getJobId());
 
         ProcessorNode<V> node;
 

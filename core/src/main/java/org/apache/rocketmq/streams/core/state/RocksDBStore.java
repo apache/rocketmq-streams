@@ -17,8 +17,9 @@ package org.apache.rocketmq.streams.core.state;
  */
 
 
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
@@ -30,38 +31,41 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RocksDBStore extends AbstractStore implements AutoCloseable {
+    private static final Logger logger = LoggerFactory.getLogger(RocksDBStore.class);
+
     private static final String ROCKSDB_PATH = "/tmp/rocksdb";
     private RocksDB rocksDB;
     private WriteOptions writeOptions;
     private ReadOptions readOptions;
+    private File storeFile;
 
-    public RocksDBStore() {
-        createRocksDB();
+    public RocksDBStore(String path) {
+        createRocksDB(path);
     }
 
-    private void createRocksDB() {
+    private void createRocksDB(String path) {
         try (final Options options = new Options().setCreateIfMissing(true)) {
 
             try {
-                String localAddress = RemotingUtil.getLocalAddress();
-                int pid = UtilAll.getPid();
+                String rocksdbFilePath = String.format("%s/%s", ROCKSDB_PATH, path);
 
-                String rocksdbFilePath = String.format("%s/%s/%s", ROCKSDB_PATH, localAddress, pid);
+                storeFile = new File(rocksdbFilePath);
 
-
-                File dir = new File(rocksdbFilePath);
-                if (dir.exists() && !dir.delete()) {
-                    throw new RuntimeException("before create rocksdb, delete exist path " + rocksdbFilePath + " error");
+                if (storeFile.exists()) {
+                    FileUtils.forceDelete(storeFile);
                 }
 
-                if (!dir.mkdirs()) {
+                if (!storeFile.mkdirs()) {
                     throw new RuntimeException("before create rocksdb,mkdir path " + rocksdbFilePath + " error");
                 }
 
@@ -72,6 +76,8 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
                 writeOptions.setDisableWAL(true);
             } catch (RocksDBException e) {
                 throw new RuntimeException("create rocksdb error " + e.getMessage());
+            } catch (IOException e) {
+                throw new RuntimeException("delete rocksdb directory:" + ROCKSDB_PATH + "field.");
             }
         }
     }
@@ -104,8 +110,11 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
         while (rocksIterator.isValid()) {
             byte[] keyBytes = rocksIterator.key();
             byte[] valueBytes = rocksIterator.value();
-
             rocksIterator.next();
+
+            if (skipWatermarkKey(keyBytes)) {
+                continue;
+            }
 
             WindowKey windowKey = deserializer.convert(keyBytes);
             if (!windowKey.getOperatorName().equals(name)) {
@@ -137,6 +146,10 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
             byte[] keyBytes = rocksIterator.key();
             byte[] valueBytes = rocksIterator.value();
 
+            if (skipWatermarkKey(keyBytes)) {
+                continue;
+            }
+
             String storeKey = byte2String.convert(keyBytes);
             if (storeKey.startsWith(keyPrefix)) {
                 Pair<String, byte[]> pair = new Pair<>(storeKey, valueBytes);
@@ -155,11 +168,30 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
 
     public void close() throws Exception {
         this.rocksDB.close();
+        if (this.storeFile != null && storeFile.exists()) {
+            FileUtils.forceDelete(storeFile);
+            logger.info("close RocksDB success, delete path:{}", storeFile.getPath());
+        }
+    }
+
+    //todo: column family to solve this problem.
+    private boolean skipWatermarkKey(byte[] target) {
+        if (target == null || target.length == 0) {
+            return false;
+        }
+
+        try {
+            String key = new String(target, StandardCharsets.UTF_8);
+
+            return !StringUtils.isBlank(key) && key.startsWith(Constant.WATERMARK_KEY);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
 
     public static void main(String[] args) throws Throwable {
-        RocksDBStore rocksDBStore = new RocksDBStore();
+        RocksDBStore rocksDBStore = new RocksDBStore("test");
 
         String key = "time@1668249210000@1668249195000";
         String key2 = "time@1668249210001@1668249195001";

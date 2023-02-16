@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.streams.core.window;
 
+import com.google.common.base.Objects;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.util.Utils;
 
 import java.nio.charset.StandardCharsets;
@@ -95,6 +97,35 @@ public class WindowKey {
         }
 
         return windowKey.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public int hashCode() {
+        int total = 0;
+        if (!StringUtils.isBlank(operatorName)) {
+            total += operatorName.hashCode();
+        }
+
+        if (!StringUtils.isBlank(key2String)) {
+            total += key2String.hashCode();
+        }
+
+        total += windowEnd;
+
+        total += windowStart;
+
+        return total;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WindowKey windowKey = (WindowKey) o;
+        return Objects.equal(operatorName, windowKey.operatorName)
+                && Objects.equal(windowStart, windowKey.windowStart)
+                && Objects.equal(windowEnd, windowKey.windowEnd)
+                && Objects.equal(key2String, windowKey.key2String);
     }
 
     @Override

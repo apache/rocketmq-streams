@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.streams.core.serialization.deImpl;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
@@ -26,6 +29,16 @@ public class KVJsonDeserializer<K, V> extends ShuffleProtocol implements KeyValu
     private final ObjectMapper objectMapper = new ObjectMapper();
     private Class<K> keyType;
     private Class<V> valueType;
+
+    public KVJsonDeserializer() {
+        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT)
+                .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+                .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+
+    }
 
     @Override
     @SuppressWarnings("unchecked")

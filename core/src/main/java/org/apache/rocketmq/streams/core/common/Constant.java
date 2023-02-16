@@ -18,6 +18,8 @@
 
 package org.apache.rocketmq.streams.core.common;
 
+import java.nio.charset.StandardCharsets;
+
 public class Constant {
 
     public static final String SHUFFLE_KEY_CLASS_NAME = "shuffle.key.class.name";
@@ -28,11 +30,7 @@ public class Constant {
 
     public static final String SHUFFLE_TOPIC_SUFFIX = "-shuffleTopic";
 
-    public static final String TIME_TYPE = "timeType";
-
     public static final String SKIP_DATA_ERROR = "skip_data_error";
-
-    public static final String ALLOW_LATENESS_MILLISECOND = "allowLatenessMillisecond";
 
     public static final String SPLIT = "@";
 
@@ -48,6 +46,9 @@ public class Constant {
 
     public static final String WINDOW_END_TIME = "window_end_time";
 
-    public static final String WORKER_THREAD_NAME = "worker_thread";
+    public static final String WORKER_THREAD_NAME = "ROCKETMQ_STREAMS";
 
+    public static final String STATIC_TOPIC_BROKER_NAME = "__syslo__global__";
+
+    public static final String WATERMARK_KEY = "watermark_key";
 }

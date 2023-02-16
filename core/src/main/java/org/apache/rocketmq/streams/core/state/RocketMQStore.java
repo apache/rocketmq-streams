@@ -81,6 +81,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     @Override
     public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
         this.loadState(addQueues);
+        //todo what to to with the data in flight, if the source queue is be removed.
         this.removeState(removeQueues);
     }
 
@@ -165,7 +166,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         //删除内存中的key
         super.removeAllKey(key);
 
-        logger.debug("delete key: " + new String(key, StandardCharsets.UTF_8) + ",MessageQueue: " + queue);
+        logger.debug("delete key from RocketMQ and Rocksdb, key=" + new String(key, StandardCharsets.UTF_8) + ",MessageQueue: " + queue);
     }
 
     @Override
@@ -184,7 +185,8 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             }
 
             String stateTopic = stateTopicQueue.getTopic();
-            createStateTopic(stateTopic);
+            boolean isStaticTopic = stateTopicQueue.getBrokerName().equals(Constant.STATIC_TOPIC_BROKER_NAME);
+            createStateTopic(stateTopic, isStaticTopic);
 
             for (byte[] key : keySet) {
 
@@ -223,7 +225,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
         Set<MessageQueue> stateTopicQueue = convertSourceTopicQueue2StateTopicQueue(addQueues);
         for (MessageQueue messageQueue : stateTopicQueue) {
-            createStateTopic(messageQueue.getTopic());
+            createStateTopic(messageQueue.getTopic(), messageQueue.getBrokerName().equals(Constant.STATIC_TOPIC_BROKER_NAME));
         }
 
         consumer.assign(stateTopicQueue);
@@ -388,7 +390,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         return target;
     }
 
-    private void createStateTopic(String stateTopic) throws Exception {
+    private void createStateTopic(String stateTopic, boolean sourceTopicIsStaticTopic) throws Exception {
         if (RocketMQUtil.checkWhetherExist(stateTopic)) {
             return;
         }
@@ -396,7 +398,11 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         String sourceTopic = stateTopic2SourceTopic(stateTopic);
         Pair<Integer, Set<String>> clustersPair = getTotalQueueNumAndClusters(sourceTopic);
 
-        RocketMQUtil.createStaticCompactTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+        if (sourceTopicIsStaticTopic) {
+            RocketMQUtil.createStaticCompactTopic(mqAdmin, stateTopic, clustersPair.getKey(), clustersPair.getValue());
+        } else {
+            RocketMQUtil.createNormalTopic(mqAdmin, sourceTopic, stateTopic);
+        }
     }
 
     private Pair<Integer, Set<String>> getTotalQueueNumAndClusters(String sourceTopic) throws Exception {

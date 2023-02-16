@@ -18,15 +18,19 @@ package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
-import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 
-import java.util.Properties;
-
+/**
+ * WindowStream must be generated from keyBy.
+ * @param <K> key type
+ * @param <V> value type
+ */
 public interface WindowStream<K, V> {
     WindowStream<K, Integer> count();
+
+    WindowStream<K, Double> avg();
 
     WindowStream<K, V> filter(FilterAction<V> predictor);
 

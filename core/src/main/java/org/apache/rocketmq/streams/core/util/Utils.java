@@ -17,17 +17,21 @@
 package org.apache.rocketmq.streams.core.util;
 
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -36,7 +40,12 @@ public class Utils {
     public static final String pattern = "%s@%s@%s";
 
     static {
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT)
+                .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+                .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
     }
 
     public static String buildKey(String brokerName, String topic, int queueId) {
@@ -116,5 +125,37 @@ public class Utils {
             throw new RStreamsException("object to HexString error, object=" + obj, t);
         }
 
+    }
+
+
+    public static byte[] long2Bytes(long time) {
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.putLong(time);
+        return buffer.array();
+    }
+
+    public static long bytes2Long(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return 0;
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+        buffer.put(bytes);
+        buffer.flip();//need flip
+        return buffer.getLong();
+    }
+
+    public static byte[] watermarkKeyBytes(MessageQueue stateTopicMessageQueue, String watermarkPrefix) {
+        if (stateTopicMessageQueue == null || StringUtils.isBlank(watermarkPrefix)) {
+            throw new IllegalArgumentException();
+        }
+
+        String key = Utils.buildKey(watermarkPrefix,
+                stateTopicMessageQueue.getBrokerName(),
+                stateTopicMessageQueue.getTopic(),
+                String.valueOf(stateTopicMessageQueue.getQueueId()));
+
+        assert key != null;
+        return key.getBytes(StandardCharsets.UTF_8);
     }
 }

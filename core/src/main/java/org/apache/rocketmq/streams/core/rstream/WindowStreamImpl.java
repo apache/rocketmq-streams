@@ -20,6 +20,7 @@ import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
+import org.apache.rocketmq.streams.core.function.accumulator.AvgAccumulator;
 import org.apache.rocketmq.streams.core.function.accumulator.CountAccumulator;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
@@ -27,20 +28,23 @@ import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
 import org.apache.rocketmq.streams.core.running.Processor;
-import org.apache.rocketmq.streams.core.window.WindowInfo;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.ShuffleProcessorNode;
 import org.apache.rocketmq.streams.core.topology.virtual.SinkGraphNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
+import org.apache.rocketmq.streams.core.window.WindowInfo;
+
 import java.util.function.Supplier;
 
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AGGREGATE_PREFIX;
-import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_COUNT_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AVG_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.AGGREGATE_PREFIX;
+
 
 public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     private final Pipeline pipeline;
@@ -55,8 +59,24 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public WindowStream<K, Integer> count() {
-        String name = OperatorNameMaker.makeName(WINDOW_COUNT_PREFIX, pipeline.getJobId());
+        String name = OperatorNameMaker.makeName(COUNT_PREFIX, pipeline.getJobId());
         Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, new CountAccumulator<>());
+
+        //是否需要分组计算
+        ProcessorNode<V> node;
+        if (this.parent.shuffleNode()) {
+            node = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            node = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addWindowStreamVirtualNode(node, parent, windowInfo);
+    }
+
+    @Override
+    public WindowStream<K, Double> avg() {
+        String name = OperatorNameMaker.makeName(WINDOW_AVG_PREFIX, pipeline.getJobId());
+        Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, new AvgAccumulator<>());
 
         //是否需要分组计算
         ProcessorNode<V> node;
@@ -91,7 +111,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public <OUT> WindowStream<K, OUT> aggregate(AggregateAction<K, V, OUT> aggregateAction) {
-        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX, pipeline.getJobId());
+        String name = OperatorNameMaker.makeName(AGGREGATE_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> null, aggregateAction);
 
@@ -109,7 +129,7 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
 
     @Override
     public <OUT> WindowStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator) {
-        String name = OperatorNameMaker.makeName(WINDOW_AGGREGATE_PREFIX, pipeline.getJobId());
+        String name = OperatorNameMaker.makeName(AGGREGATE_PREFIX, pipeline.getJobId());
 
         Supplier<Processor<V>> supplier = new WindowAccumulatorSupplier<>(name, windowInfo, value -> value, accumulator);
 

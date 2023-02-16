@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * 1、启动RocketMQ
@@ -55,6 +54,7 @@ public class WordCountSink {
                 .count()
                 .sink("wordCountSink", new KeyValueSerializer<String, Integer>() {
                     final ObjectMapper objectMapper = new ObjectMapper();
+
                     @Override
                     public byte[] serialize(String o, Integer data) throws Throwable {
                         ObjectNode objectNode = objectMapper.createObjectNode();
@@ -71,24 +71,14 @@ public class WordCountSink {
         properties.put(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
-
-        final CountDownLatch latch = new CountDownLatch(1);
-
         Runtime.getRuntime().addShutdownHook(new Thread("wordcount-shutdown-hook") {
             @Override
             public void run() {
                 rocketMQStream.stop();
-                latch.countDown();
             }
         });
 
-        try {
-            rocketMQStream.start();
-            latch.await();
-        } catch (final Throwable e) {
-            System.exit(1);
-        }
-        System.exit(0);
+        rocketMQStream.start();
     }
 
 }

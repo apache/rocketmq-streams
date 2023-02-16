@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.core.window;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
+import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.state.StateStore;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.slf4j.Logger;
@@ -26,6 +27,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 public class WindowStore<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(WindowStore.class.getName());
@@ -57,14 +62,13 @@ public class WindowStore<K, V> {
         return deserializerState(valueBytes);
     }
 
-    public List<Pair<WindowKey, WindowState<K, V>>> searchLessThanWatermark(WindowKey windowKey) throws Throwable {
-        List<Pair<byte[], byte[]>> windowStateBytes = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), windowKey.getWindowEnd(), WindowKey::byte2WindowKey);
-
+    public List<Pair<WindowKey, WindowState<K, V>>> searchLessThanWatermark(String operatorName, long lessThanThisTime) throws Throwable {
+        List<Pair<byte[], byte[]>> windowStateBytes = this.stateStore.searchStateLessThanWatermark(operatorName, lessThanThisTime, WindowKey::byte2WindowKey);
         return deserializerState(windowStateBytes);
     }
 
-    public List<Pair<WindowKey, WindowState<K, V>>> searchMatchKeyPrefix(WindowKey windowKey) throws Throwable {
-        List<Pair<byte[], byte[]>> pairs = this.stateStore.searchStateLessThanWatermark(windowKey.getOperatorName(), Long.MAX_VALUE, WindowKey::byte2WindowKey);
+    public List<Pair<WindowKey, WindowState<K, V>>> searchMatchKeyPrefix(String operatorName) throws Throwable {
+        List<Pair<byte[], byte[]>> pairs = this.stateStore.searchStateLessThanWatermark(operatorName, Long.MAX_VALUE, WindowKey::byte2WindowKey);
 
         return deserializerState(pairs);
     }
@@ -77,9 +81,9 @@ public class WindowStore<K, V> {
         this.stateStore.delete(keyBytes);
     }
 
-    private List<Pair<WindowKey, WindowState<K, V>>> deserializerState(List<Pair<byte[], byte[]>> windowStateBytes)  throws Throwable{
+    private List<Pair<WindowKey, WindowState<K, V>>> deserializerState(List<Pair<byte[], byte[]>> windowStateBytes) throws Throwable {
         List<Pair<WindowKey, WindowState<K, V>>> result = new ArrayList<>();
-        if (windowStateBytes == null || windowStateBytes.size() ==0) {
+        if (windowStateBytes == null || windowStateBytes.size() == 0) {
             return result;
         }
 
