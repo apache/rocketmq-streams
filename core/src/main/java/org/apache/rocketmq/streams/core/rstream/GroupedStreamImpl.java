@@ -129,9 +129,9 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
             if (accumulator == null) {
                 return value;
             } else {
-                Number storedMin = selectAction.select(accumulator);
+                Number storedMax = selectAction.select(accumulator);
                 double newValue = number.doubleValue();
-                double oldValue = storedMin.doubleValue();
+                double oldValue = storedMax.doubleValue();
 
                 if (newValue > oldValue) {
                     return value;
