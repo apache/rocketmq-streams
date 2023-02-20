@@ -37,6 +37,8 @@ public interface WindowStream<K, V> {
 
     WindowStream<K, V> max(SelectAction<? extends Number, V> selectAction);
 
+    WindowStream<K, ? extends Number> sum(SelectAction<? extends Number, V> selectAction);
+
     WindowStream<K, V> filter(FilterAction<V> predictor);
 
     <OUT> WindowStream<K, OUT> map(ValueMapperAction<V, OUT> mapperAction);

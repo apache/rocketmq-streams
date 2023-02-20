@@ -26,6 +26,7 @@ import org.apache.rocketmq.streams.core.function.accumulator.CountAccumulator;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.SumAggregate;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.WindowAggregateSupplier;
@@ -46,6 +47,7 @@ import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAX_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MIN_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SUM_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AVG_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.AGGREGATE_PREFIX;
 
@@ -141,6 +143,20 @@ public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
                 }
             }
         });
+
+        GraphNode graphNode;
+        if (this.parent.shuffleNode()) {
+            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
+        } else {
+            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
+        }
+
+        return this.pipeline.addWindowStreamVirtualNode(graphNode, parent, windowInfo);
+    }
+
+    @Override public WindowStream<K, ? extends Number> sum(SelectAction<? extends Number, V> selectAction) {
+        String name = OperatorNameMaker.makeName(SUM_PREFIX, pipeline.getJobId());
+        Supplier<Processor<V>> supplier = new WindowAggregateSupplier<>(name, windowInfo, () -> null, new SumAggregate<>(selectAction));
 
         GraphNode graphNode;
         if (this.parent.shuffleNode()) {
