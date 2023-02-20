@@ -49,7 +49,6 @@ import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SINK_PREFI
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.WINDOW_AVG_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.AGGREGATE_PREFIX;
 
-
 public class WindowStreamImpl<K, V> implements WindowStream<K, V> {
     private final Pipeline pipeline;
     private final GraphNode parent;

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.examples.window;
 
-
 import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
