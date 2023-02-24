@@ -46,7 +46,6 @@ public class WindowSum {
                 Grade grade = JSON.parseObject(source, Grade.class);
                 return new Pair<>(null, grade);
             })
-            .selectTimestamp(Grade::getTimestamp)
             .keyBy(Grade::getGrade)
             .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
             .sum(Grade::getScore)
@@ -57,7 +56,6 @@ public class WindowSum {
 
         Properties properties = new Properties();
         properties.putIfAbsent(MixAll.NAMESRV_ADDR_PROPERTY, "127.0.0.1:9876");
-        properties.put(StreamConfig.TIME_TYPE, TimeType.EVENT_TIME);
         properties.put(StreamConfig.ALLOW_LATENESS_MILLISECOND, 2000);
 
         RocketMQStream rocketMQStream = new RocketMQStream(topologyBuilder, properties);
