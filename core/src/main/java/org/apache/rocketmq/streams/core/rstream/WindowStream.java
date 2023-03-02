@@ -18,6 +18,7 @@ package org.apache.rocketmq.streams.core.rstream;
 
 import org.apache.rocketmq.streams.core.function.AggregateAction;
 import org.apache.rocketmq.streams.core.function.FilterAction;
+import org.apache.rocketmq.streams.core.function.SelectAction;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.function.accumulator.Accumulator;
 import org.apache.rocketmq.streams.core.serialization.KeyValueSerializer;
@@ -31,6 +32,12 @@ public interface WindowStream<K, V> {
     WindowStream<K, Integer> count();
 
     WindowStream<K, Double> avg();
+
+    WindowStream<K, V> min(SelectAction<? extends Number, V> selectAction);
+
+    WindowStream<K, V> max(SelectAction<? extends Number, V> selectAction);
+
+    WindowStream<K, ? extends Number> sum(SelectAction<? extends Number, V> selectAction);
 
     WindowStream<K, V> filter(FilterAction<V> predictor);
 
