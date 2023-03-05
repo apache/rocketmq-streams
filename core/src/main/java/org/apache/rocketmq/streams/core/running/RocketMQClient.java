@@ -24,10 +24,12 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData.SUB_ALL;
+import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE;
 
 public class RocketMQClient {
     private static final Logger logger = LoggerFactory.getLogger(RocketMQClient.class);
@@ -37,10 +39,12 @@ public class RocketMQClient {
         this.nameSrvAddr = nameSrvAddr;
     }
 
-    public DefaultLitePullConsumer pullConsumer(String groupName, Set<String> topics) throws MQClientException {
+    public DefaultLitePullConsumer pullConsumer(String groupName,
+                                                Set<String> topics,
+                                                ConsumeFromWhere consumeFromWhere) throws MQClientException {
         DefaultLitePullConsumer pullConsumer = new DefaultLitePullConsumer(groupName);
         pullConsumer.setNamesrvAddr(nameSrvAddr);
-        pullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        pullConsumer.setConsumeFromWhere(consumeFromWhere);
         pullConsumer.setAutoCommit(false);
         pullConsumer.setPullBatchSize(1000);
 

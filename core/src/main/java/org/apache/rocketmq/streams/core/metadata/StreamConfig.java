@@ -23,6 +23,8 @@ public class StreamConfig {
     public static final String ROCKETMQ_STREAMS_CONSUMER_GROUP = "__source_shuffle_group";
     public static final String ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP = "__state_group";
 
+    public static final String ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE = "consume_from_where";
+
     public static Integer STREAMS_PARALLEL_THREAD_NUM = 1;
     public static Integer SHUFFLE_TOPIC_QUEUE_NUM = 8;
     public static Integer SCHEDULED_THREAD_NUM = 2;
