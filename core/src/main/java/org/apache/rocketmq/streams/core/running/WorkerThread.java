@@ -22,6 +22,7 @@ import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
@@ -51,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE;
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
 public class WorkerThread extends Thread {
@@ -79,8 +81,8 @@ public class WorkerThread extends Thread {
 
         Set<String> topicNames = topologyBuilder.getSourceTopic();
 
-
-        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(groupName, topicNames);
+        ConsumeFromWhere consumeFromWhere = (ConsumeFromWhere) properties.getOrDefault(ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(groupName, topicNames, consumeFromWhere);
 
         MessageQueueListener originListener = unionConsumer.getMessageQueueListener();
         MessageQueueListenerWrapper wrapper = new MessageQueueListenerWrapper(originListener, topologyBuilder);
