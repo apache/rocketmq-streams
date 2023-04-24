@@ -21,10 +21,14 @@ import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.function.Supplier;
 
 public class MultiValueChangeSupplier<T, VR> implements Supplier<Processor<T>> {
     private final ValueMapperAction<T, ? extends Iterable<? extends VR>> valueMapperAction;
+    private static final Logger logger = LoggerFactory.getLogger(MultiValueChangeSupplier.class.getName());
 
     public MultiValueChangeSupplier(ValueMapperAction<T, ? extends Iterable<? extends VR>> valueMapperAction) {
         this.valueMapperAction = valueMapperAction;
@@ -46,7 +50,16 @@ public class MultiValueChangeSupplier<T, VR> implements Supplier<Processor<T>> {
         public void process(T data) throws Throwable {
             Iterable<? extends VR> convert = valueMapperAction.convert(data);
 
+            if (convert == null) {
+                logger.warn("discard data:[{}]", convert);
+                return;
+            }
+
             for (VR item : convert) {
+                if (item == null) {
+                    logger.warn("discard data:[{}]", item);
+                    continue;
+                }
                 Data<Object, VR> before = new Data<>(this.context.getKey(), item, this.context.getDataTime(), this.context.getHeader());
                 Data<Object, T> result = convert(before);
                 this.context.forward(result);
