@@ -51,13 +51,12 @@ public class MultiValueChangeSupplier<T, VR> implements Supplier<Processor<T>> {
             Iterable<? extends VR> convert = valueMapperAction.convert(data);
 
             if (convert == null) {
-                logger.warn("discard data:[{}]", convert);
+                logger.warn("[{}] converts to null, processor returns directly", data);
                 return;
             }
 
             for (VR item : convert) {
                 if (item == null) {
-                    logger.warn("discard data:[{}]", item);
                     continue;
                 }
                 Data<Object, VR> before = new Data<>(this.context.getKey(), item, this.context.getDataTime(), this.context.getHeader());

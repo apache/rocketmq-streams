@@ -53,7 +53,7 @@ public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
         public void process(T data) throws Throwable {
             O convert = valueMapperAction.convert(data);
             if (convert == null) {
-                logger.warn("discard data:[{}]", data);
+                logger.warn("[{}] converts to null, processor returns directly", data);
                 return;
             }
             Data<Object, O> before = new Data<>(this.context.getKey(), convert, this.context.getDataTime(), this.context.getHeader());
