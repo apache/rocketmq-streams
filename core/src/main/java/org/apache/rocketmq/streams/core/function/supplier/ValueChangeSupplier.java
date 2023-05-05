@@ -21,11 +21,14 @@ import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Supplier;
 
 public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
     private final ValueMapperAction<T, O> valueMapperAction;
+    private static final Logger logger = LoggerFactory.getLogger(ValueChangeSupplier.class.getName());
 
 
     public ValueChangeSupplier(ValueMapperAction<T, O> valueMapperAction) {
@@ -49,7 +52,10 @@ public class ValueChangeSupplier<T, O> implements Supplier<Processor<T>> {
         @Override
         public void process(T data) throws Throwable {
             O convert = valueMapperAction.convert(data);
-
+            if (convert == null) {
+                logger.warn("[{}] converts to null, processor returns directly", data);
+                return;
+            }
             Data<Object, O> before = new Data<>(this.context.getKey(), convert, this.context.getDataTime(), this.context.getHeader());
             Data<Object, T> result = convert(before);
             this.context.forward(result);
