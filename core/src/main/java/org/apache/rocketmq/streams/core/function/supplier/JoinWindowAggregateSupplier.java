@@ -108,12 +108,15 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             long time = this.context.getDataTime();
             Properties header = this.context.getHeader();
 
+            long sizeInterval = windowInfo.getWindowSize().toMillSecond();
+            long slideInterval = windowInfo.getWindowSlide().toMillSecond();
+            long lastWindowStart = time - (time + slideInterval) % slideInterval;
+            long lastWindowEnd = lastWindowStart + sizeInterval;
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
-
-            if (time < watermark) {
+            if (lastWindowEnd < watermark) {
                 //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. maxFiredWindowEnd:{}, time of data:{}, watermark:{}",
-                        data, watermark, watermark, time);
+                logger.warn("discard data:[{}], window has been fired. time of data:{}, lastWindowEnd:{}, watermark:{}",
+                        data, time, lastWindowEnd, watermark);
                 return;
             }
             WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
@@ -123,7 +126,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                 throw new IllegalStateException(format);
             }
 
-            store(key, data, time, streamType);
+            store(key, data, time, watermark, streamType);
 
             List<WindowKey> fire = this.joinWindowFire.fire(this.name, watermark, streamType);
             for (WindowKey windowKey : fire) {
@@ -132,10 +135,14 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
         }
 
 
-        private void store(Object key, Object data, long time, StreamType streamType) throws Throwable {
+        private void store(Object key, Object data, long time, long watermark, StreamType streamType) throws Throwable {
             String name = Utils.buildKey(this.name, streamType.name());
             List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
+                if (window.getEndTime() < watermark) {
+                    continue;
+                }
+
                 logger.debug("timestamp=" + time + ". time -> window: " + Utils.format(time) + "->" + window);
 
                 WindowKey windowKey = new WindowKey(name, super.toHexString(key), window.getEndTime(), window.getStartTime());

@@ -120,17 +120,25 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
             K key = this.context.getKey();
             long time = this.context.getDataTime();
 
+            long sizeInterval = windowInfo.getWindowSize().toMillSecond();
+            long slideInterval = windowInfo.getWindowSlide().toMillSecond();
+            long lastWindowStart = time - (time + slideInterval) % slideInterval;
+            long lastWindowEnd = lastWindowStart + sizeInterval;
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
-            if (time < watermark) {
+            if (lastWindowEnd < watermark) {
                 //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
-                        data, time, watermark);
+                logger.warn("discard data:[{}], window has been fired. time of data:{}, lastWindowEnd:{}, watermark:{}",
+                        data, time, lastWindowEnd, watermark);
                 return;
             }
 
             //f(time) -> List<Window>
             List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
+                if (window.getEndTime() < watermark) {
+                    continue;
+                }
+
                 logger.debug("timestamp=" + time + ". time -> window: " + Utils.format(time) + "->" + window);
 
                 //f(Window + key, store) -> oldValue
@@ -205,11 +213,12 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
             K key = this.context.getKey();
             long time = this.context.getDataTime();
 
+            long lastSessionEnd = time + windowInfo.getSessionTimeout().toMilliseconds();
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
-            if (time < watermark) {
+            if (lastSessionEnd < watermark) {
                 //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
-                        data, time, watermark);
+                logger.warn("discard data:[{}], window has been fired. time of data:{}, lastSessionEnd:{}, watermark:{}",
+                        data, time, lastSessionEnd, watermark);
                 return;
             }
             //本地存储里面搜索下
