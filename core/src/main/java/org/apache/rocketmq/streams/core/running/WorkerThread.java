@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.DataProcessThrowable;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
@@ -45,13 +46,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.rocketmq.streams.core.common.Constant.*;
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE;
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_GROUP;
 
@@ -81,8 +85,7 @@ public class WorkerThread extends Thread {
 
         Set<String> topicNames = topologyBuilder.getSourceTopic();
 
-        ConsumeFromWhere consumeFromWhere = (ConsumeFromWhere) properties.getOrDefault(ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
-        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(groupName, topicNames, consumeFromWhere);
+        DefaultLitePullConsumer unionConsumer = rocketMQClient.pullConsumer(groupName, topicNames);
 
         MessageQueueListener originListener = unionConsumer.getMessageQueueListener();
         MessageQueueListenerWrapper wrapper = new MessageQueueListenerWrapper(originListener, topologyBuilder);
@@ -166,6 +169,8 @@ public class WorkerThread extends Thread {
             this.unionConsumer.start();
             this.producer.start();
             this.stateStore.init();
+
+            maybeResetOffsetToFirst();
         }
 
         void runInLoop() throws Throwable {
@@ -239,6 +244,41 @@ public class WorkerThread extends Thread {
                 }
                 lastCommit = System.currentTimeMillis();
                 set.clear();
+            }
+        }
+
+        void maybeResetOffsetToFirst() {
+            ConsumeFromWhere consumeFromWhere = (ConsumeFromWhere) properties.getOrDefault(ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+            RocketMQClient rocketMQClient = new RocketMQClient(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
+            for (String topic : topologyBuilder.getSourceTopic()) {
+                if (consumeFromWhere.equals(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET)
+                        && !topic.endsWith(SHUFFLE_TOPIC_SUFFIX) && !topic.endsWith(STATE_TOPIC_SUFFIX)) {
+                    try {
+                        //  waiting 1 second for rebalance
+                        Thread.sleep(WAIT_REBALANCE_STEP);
+                        Collection<MessageQueue> messageQueues = unionConsumer.fetchMessageQueues(topic);
+                        AtomicInteger retryTimes = new AtomicInteger(0);
+                        messageQueues.forEach(messageQueue -> {
+                            while(retryTimes.get() < MAX_RETRY_SEEK_TIMES) {
+                                try {
+                                    Long minOffset = rocketMQClient.getMQAdmin().minOffset(messageQueue);
+                                    unionConsumer.seek(messageQueue, minOffset);
+                                    break;
+                                } catch (Exception e) {
+                                    logger.error("reset messageQueue:{} consumer offset to zero failed. retry:{}", messageQueue, retryTimes.get(), e);
+                                    retryTimes.incrementAndGet();
+                                    try {
+                                        Thread.sleep(WAIT_REBALANCE_STEP);
+                                    } catch (InterruptedException ex) {
+                                        logger.error("maybeResetOffsetToFirst retry sleep error", e);
+                                    }
+                                }
+                            }
+                        });
+                    } catch (Exception e) {
+                        logger.error("get messageQueue failed, topic:{}.", topic, e);
+                    }
+                }
             }
         }
 

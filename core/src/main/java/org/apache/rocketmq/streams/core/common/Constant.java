@@ -51,4 +51,8 @@ public class Constant {
     public static final String STATIC_TOPIC_BROKER_NAME = "__syslo__global__";
 
     public static final String WATERMARK_KEY = "watermark_key";
+
+    public static final Integer MAX_RETRY_SEEK_TIMES = 3;
+
+    public static final Long WAIT_REBALANCE_STEP = 1000L;
 }
