@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -80,8 +81,8 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
     @Override
     public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
-        this.loadState(addQueues);
-        //todo what to to with the data in flight, if the source queue is be removed.
+        // Only load the state for the queues not in the removeQueues.
+        this.loadState(Sets.difference(addQueues, removeQueues));
         this.removeState(removeQueues);
     }
 
