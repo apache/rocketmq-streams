@@ -46,6 +46,8 @@ public interface GroupedStream<K, V> {
 
     <OUT> GroupedStream<K, OUT> map(ValueMapperAction<V, OUT> valueMapperAction);
 
+    <VR> RStream<VR> flatMap(ValueMapperAction<V,? extends Iterable<? extends VR>> valueMapperAction);
+
 
     <OUT> GroupedStream<K, OUT> aggregate(Accumulator<V, OUT> accumulator);
 
