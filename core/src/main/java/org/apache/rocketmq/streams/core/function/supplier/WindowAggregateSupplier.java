@@ -155,7 +155,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 //f(Window + key, newValue, store)
                 WindowState<K, OV> state = new WindowState<>(key, newValue, time);
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
-                this.idleWindowScaner.putAggregateWindowCallback(windowKey, this.aggregateWindowFire);
+                this.idleWindowScaner.putAggregateWindowCallback(windowKey, watermark, this.aggregateWindowFire);
             }
 
             try {
@@ -194,7 +194,6 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                     WindowState::windowState2Byte);
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
-            this.idleWindowScaner.initSessionTimeOut(windowInfo.getSessionTimeout().toMilliseconds());
 
             String stateTopicName = context.getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
             this.stateTopicMessageQueue = new MessageQueue(stateTopicName, context.getSourceBrokerName(), context.getSourceQueueId());
@@ -235,7 +234,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
                 logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, Utils.format(time),
                         Utils.format(newSessionWindowTime.getKey()), Utils.format(newSessionWindowTime.getValue()));
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
-                this.idleWindowScaner.putAggregateSessionWindowCallback(windowKey, this.aggregateSessionWindowFire);
+                this.idleWindowScaner.putAggregateSessionWindowCallback(windowKey, watermark, this.aggregateSessionWindowFire);
             }
         }
 
@@ -327,7 +326,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
 
-                this.idleWindowScaner.putAggregateSessionWindowCallback(windowKey, this.aggregateSessionWindowFire);
+                this.idleWindowScaner.putAggregateSessionWindowCallback(windowKey, watermark, this.aggregateSessionWindowFire);
                 this.idleWindowScaner.removeOldAggregateSession(needToDelete);
 
                 this.windowStore.deleteByKey(needToDelete);
