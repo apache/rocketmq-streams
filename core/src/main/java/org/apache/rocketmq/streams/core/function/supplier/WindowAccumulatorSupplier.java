@@ -151,7 +151,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                 //f(Window + key, newValue, store)
                 WindowState<K, Accumulator<R, OV>> state = new WindowState<>(key, storeAccumulator, time);
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
-                this.idleWindowScaner.putAccumulatorWindowCallback(windowKey, this.accumulatorWindowFire);
+                this.idleWindowScaner.putAccumulatorWindowCallback(windowKey, watermark, this.accumulatorWindowFire);
             }
 
             try {
@@ -188,7 +188,6 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                     WindowState::windowState2Byte);
 
             this.idleWindowScaner = context.getDefaultWindowScaner();
-            this.idleWindowScaner.initSessionTimeOut(windowInfo.getSessionTimeout().toMilliseconds());
 
             String stateTopicName = context.getSourceTopic() + Constant.STATE_TOPIC_SUFFIX;
             this.stateTopicMessageQueue = new MessageQueue(stateTopicName, context.getSourceBrokerName(), context.getSourceQueueId());
@@ -227,7 +226,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
                 logger.info("new session window, with key={}, valueTime={}, sessionBegin=[{}], sessionEnd=[{}]", key, Utils.format(time),
                         Utils.format(newSessionWindowTime.getKey()), Utils.format(newSessionWindowTime.getValue()));
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
-                this.idleWindowScaner.putAccumulatorSessionWindowCallback(windowKey, this.accumulatorSessionWindowFire);
+                this.idleWindowScaner.putAccumulatorSessionWindowCallback(windowKey, watermark, this.accumulatorSessionWindowFire);
             }
         }
 
@@ -324,7 +323,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
 
                 this.windowStore.put(stateTopicMessageQueue, windowKey, state);
 
-                this.idleWindowScaner.putAccumulatorSessionWindowCallback(windowKey, this.accumulatorSessionWindowFire);
+                this.idleWindowScaner.putAccumulatorSessionWindowCallback(windowKey, watermark, this.accumulatorSessionWindowFire);
                 this.idleWindowScaner.removeOldAccumulatorSession(needToDelete);
 
                 this.windowStore.deleteByKey(needToDelete);
