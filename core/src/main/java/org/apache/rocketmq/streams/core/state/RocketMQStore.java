@@ -181,7 +181,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             Set<byte[]> keySet = super.getInCalculating(stateTopicQueueKey);
 
             if (keySet == null || keySet.size() == 0) {
-                return;
+                continue;
             }
 
             String stateTopic = stateTopicQueue.getTopic();
