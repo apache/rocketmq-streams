@@ -25,6 +25,7 @@ import org.apache.rocketmq.streams.core.function.supplier.AccumulatorSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.AddTagSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.AggregateSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.FilterSupplier;
+import org.apache.rocketmq.streams.core.function.supplier.MultiValueChangeSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SinkSupplier;
 import org.apache.rocketmq.streams.core.function.supplier.SumAggregate;
 import org.apache.rocketmq.streams.core.function.supplier.ValueChangeSupplier;
@@ -42,6 +43,7 @@ import java.util.function.Supplier;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FILTER_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.COUNT_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.ACCUMULATE_PREFIX;
+import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.FLAT_MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAP_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MAX_PREFIX;
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.MIN_PREFIX;
@@ -184,6 +186,16 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
         GraphNode graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
 
         return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
+    }
+
+    @Override
+    public <VR> RStream<VR> flatMap(ValueMapperAction<V, ? extends Iterable<? extends VR>> valueMapperAction) {
+        String name = OperatorNameMaker.makeName(FLAT_MAP_PREFIX, pipeline.getJobId());
+
+        MultiValueChangeSupplier<V, VR> changeSupplier = new MultiValueChangeSupplier<>(valueMapperAction);
+        GraphNode graphNode = new ProcessorNode<>(name, parent.getName(), changeSupplier);
+
+        return this.pipeline.addRStreamVirtualNode(graphNode, parent);
     }
 
     @Override
