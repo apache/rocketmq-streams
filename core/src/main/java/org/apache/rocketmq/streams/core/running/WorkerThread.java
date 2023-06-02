@@ -125,8 +125,6 @@ public class WorkerThread extends Thread {
         private final IdleWindowScaner idleWindowScaner;
         private volatile boolean stop = false;
 
-        private long lastCommit = 0;
-        private int commitInterval = 10 * 1000;
         private final HashSet<MessageQueue> mq2Commit = new HashSet<>();
 
 
@@ -147,6 +145,7 @@ public class WorkerThread extends Thread {
                 }
             });
             Integer idleTime = (Integer) WorkerThread.this.properties.getOrDefault(StreamConfig.IDLE_TIME_TO_FIRE_WINDOW, 2000);
+            int commitInterval = (Integer) WorkerThread.this.properties.getOrDefault(StreamConfig.COMMIT_STATE_INTERNAL_MS, 2 * 1000);
             this.idleWindowScaner = new IdleWindowScaner(idleTime, executor);
             WorkerThread.this.executor.scheduleAtFixedRate(() -> {
                 try {
@@ -154,7 +153,7 @@ public class WorkerThread extends Thread {
                 } catch (Throwable t) {
                     logger.error("commit offset and state error.", t);
                 }
-            }, 10, 10, TimeUnit.SECONDS);
+            }, 1000, commitInterval, TimeUnit.MILLISECONDS);
         }
 
 
@@ -227,7 +226,7 @@ public class WorkerThread extends Thread {
         }
 
         void doCommit(HashSet<MessageQueue> set) throws Throwable {
-            if ((System.currentTimeMillis() - lastCommit > commitInterval) && set.size() != 0) {
+            if (set != null && set.size() != 0) {
 
                 this.stateStore.persist(set);
                 this.unionConsumer.commit(set, true);
@@ -235,7 +234,7 @@ public class WorkerThread extends Thread {
                 for (MessageQueue messageQueue : set) {
                     logger.debug("committed messageQueue: [{}]", messageQueue);
                 }
-                lastCommit = System.currentTimeMillis();
+
                 set.clear();
             }
         }

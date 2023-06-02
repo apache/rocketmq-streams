@@ -37,7 +37,7 @@ public class WordCount {
                     return new Pair<>(null, value);
                 })
                 .flatMap((ValueMapperAction<String, List<String>>) value -> {
-                    String[] splits = value.toLowerCase().split("\\W+");
+                    String[] splits = value.toLowerCase().split(",");
                     return Arrays.asList(splits);
                 })
                 .keyBy(value -> value)
