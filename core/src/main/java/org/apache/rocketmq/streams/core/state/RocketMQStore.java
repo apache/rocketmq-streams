@@ -82,8 +82,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
     @Override
     public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
-        // Only load the state for the queues not in the removeQueues.
-        this.loadState(Sets.difference(addQueues, removeQueues));
+        this.loadState(addQueues);
         this.removeState(removeQueues);
     }
 

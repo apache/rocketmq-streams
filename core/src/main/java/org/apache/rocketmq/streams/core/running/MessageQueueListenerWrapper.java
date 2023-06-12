@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core.running;
  * limitations under the License.
  */
 
+import com.google.common.collect.Sets;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
@@ -50,14 +51,15 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
         Set<MessageQueue> ownedQueues = ownedMapping.computeIfAbsent(topic, s -> new HashSet<>());
 
-        HashSet<MessageQueue> addQueue = new HashSet<>(mqDivided);
-        addQueue.removeAll(ownedQueues);
-
-        HashSet<MessageQueue> removeQueue = new HashSet<>(ownedQueues);
-        removeQueue.removeAll(mqDivided);
+        Set<MessageQueue> unchangedQueue = Sets.intersection(mqDivided, ownedQueues);
+        Set<MessageQueue> addQueue = Sets.difference(mqDivided, unchangedQueue);
+        Set<MessageQueue> removeQueue = Sets.difference(ownedQueues, unchangedQueue);
 
         ownedQueues.addAll(new HashSet<>(addQueue));
         ownedQueues.removeAll(new HashSet<>(removeQueue));
+
+        // First step, remove the removeQueue from listener to avoid inflight data in between setting up the state.
+        originListener.messageQueueChanged(topic, mqAll, unchangedQueue);
 
         //从shuffle topic中读出的数据才能进行有状态计算。
         if (topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX)) {
@@ -69,10 +71,9 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
         }
 
         buildTask(addQueue);
-        //设计的不太好，移除q，添加消费任务之前，应该加一个状态移除函数;目前这样写的问题是：状态提前移除/加载了，consumer其实仍然在从某个将要移除的q中拉取数据，但是状态却被移除了。
-        //也不能把originListener.messageQueueChanged放在loadState/removeState之前，那样会已经在拉取数据了，但是状态没有加载好。
-        originListener.messageQueueChanged(topic, mqAll, mqDivided);
         removeTask(removeQueue);
+        // Last step, add the addQueue to the listener after the state setup.
+        originListener.messageQueueChanged(topic, mqAll, mqDivided);
     }
 
 
