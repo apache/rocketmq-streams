@@ -122,9 +122,8 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
 
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
             if (time < watermark) {
-                //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
-                        data, time, watermark);
+                //delay data.
+                logger.warn("discard delay data:[{}]. time of data:{}, watermark:{}", data, time, watermark);
                 return;
             }
 
@@ -207,9 +206,7 @@ public class WindowAccumulatorSupplier<K, V, R, OV> implements Supplier<Processo
 
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
             if (time < watermark) {
-                //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
-                        data, time, watermark);
+                logger.warn("discard delay data:[{}]. time of data:{}, watermark:{}", data, time, watermark);
                 return;
             }
             //本地存储里面搜索下

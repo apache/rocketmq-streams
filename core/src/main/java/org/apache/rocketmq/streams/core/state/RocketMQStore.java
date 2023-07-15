@@ -16,6 +16,7 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -32,7 +33,6 @@ import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
-import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 import org.apache.rocketmq.streams.core.util.Pair;
@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -82,7 +83,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
     @Override
     public void recover(Set<MessageQueue> addQueues, Set<MessageQueue> removeQueues) throws Throwable {
         this.loadState(addQueues);
-        //todo what to to with the data in flight, if the source queue is be removed.
         this.removeState(removeQueues);
     }
 
@@ -195,7 +195,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
             Set<byte[]> keySet = super.getInCalculating(stateTopicQueueKey);
 
             if (keySet == null || keySet.size() == 0) {
-                return;
+                continue;
             }
 
             String stateTopic = stateTopicQueue.getTopic();
@@ -351,11 +351,14 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 //相同brokerName@topic@queueId + keyHashcode 在一次拉取中的所有数据
                 List<MessageExt> exts = groupByKeyHashcode.get(keyHashcode);
 
-                //重放，按照queueOffset，相同key，大的queueOffset覆盖小的queueOffset
-                List<MessageExt> sortedMessages = sortByQueueOffset(exts);
+                //取最大queueOffset的消息，按照queueOffset，相同key，大的queueOffset覆盖小的queueOffset
+                MessageExt result = exts.stream()
+                        .max(Comparator.comparingLong(MessageExt::getQueueOffset))
+                        .orElse(null);
 
-                //最后的消息
-                MessageExt result = sortedMessages.get(sortedMessages.size() - 1);
+                if (result == null) {
+                    continue;
+                }
 
                 String emptyBody = result.getUserProperty(Constant.EMPTY_BODY);
                 if (Constant.TRUE.equals(emptyBody)) {
@@ -382,27 +385,6 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         }
     }
 
-
-    private List<MessageExt> sortByQueueOffset(List<MessageExt> target) {
-        if (target == null || target.size() == 0) {
-            return new ArrayList<>();
-        }
-
-        target.sort((o1, o2) -> {
-            long diff = o1.getQueueOffset() - o2.getQueueOffset();
-
-            if (diff > 0) {
-                return 1;
-            }
-
-            if (diff < 0) {
-                return -1;
-            }
-            return 0;
-        });
-
-        return target;
-    }
 
     private void createStateTopic(String stateTopic, boolean sourceTopicIsStaticTopic) throws Exception {
         if (RocketMQUtil.checkWhetherExist(stateTopic)) {

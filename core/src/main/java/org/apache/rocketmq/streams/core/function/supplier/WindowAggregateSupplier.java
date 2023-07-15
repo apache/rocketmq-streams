@@ -122,9 +122,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
             if (time < watermark) {
-                //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
-                        data, time, watermark);
+                logger.warn("discard delay data:[{}]. time of data:{}, watermark:{}", data, time, watermark);
                 return;
             }
 
@@ -212,9 +210,7 @@ public class WindowAggregateSupplier<K, V, OV> implements Supplier<Processor<V>>
 
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
             if (time < watermark) {
-                //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. time of data:{}, watermark:{}",
-                        data, time, watermark);
+                logger.warn("discard delay data:[{}]. time of data:{}, watermark:{}", data, time, watermark);
                 return;
             }
 
