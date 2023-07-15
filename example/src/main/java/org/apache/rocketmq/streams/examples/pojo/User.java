@@ -30,6 +30,12 @@ public class User {
         this.age = age;
     }
 
+    public User(String name, Integer age, long timestamp) {
+        this.name = name;
+        this.age = age;
+        this.timestamp = timestamp;
+    }
+
     public String getName() {
         return name;
     }
@@ -59,6 +65,7 @@ public class User {
         return "User{" +
                 "name='" + name + '\'' +
                 ", age=" + age +
+                ", timeStamp=" + timestamp +
                 '}';
     }
 }

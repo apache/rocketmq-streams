@@ -19,18 +19,14 @@ package org.apache.rocketmq.streams.core.window;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
-import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.LongConsumer;
 
 public class WindowStore<K, V> {
     private static final Logger logger = LoggerFactory.getLogger(WindowStore.class.getName());
@@ -53,12 +49,12 @@ public class WindowStore<K, V> {
         byte[] keyBytes = WindowKey.windowKey2Byte(windowKey);
         byte[] valueBytes = this.state2Bytes.convert(value);
 
-        this.stateStore.put(stateTopicMessageQueue, keyBytes, valueBytes);
+        this.stateStore.put(stateTopicMessageQueue, ColumnFamilyUtil.WINDOW_STATE_CF, keyBytes, valueBytes);
     }
 
     public WindowState<K, V> get(WindowKey windowKey) throws Throwable {
         byte[] bytes = WindowKey.windowKey2Byte(windowKey);
-        byte[] valueBytes = this.stateStore.get(bytes);
+        byte[] valueBytes = this.stateStore.get(ColumnFamilyUtil.WINDOW_STATE_CF, bytes);
         return deserializerState(valueBytes);
     }
 

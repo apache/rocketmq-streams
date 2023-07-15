@@ -32,6 +32,7 @@ import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 import org.apache.rocketmq.streams.core.util.Pair;
@@ -115,6 +116,13 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         return this.rocksDBStore.get(key);
     }
 
+    @Override
+    public byte[] get(String columnFamily, byte[] key) throws Throwable {
+        if (key == null || key.length == 0) {
+            return new byte[0];
+        }
+        return this.rocksDBStore.get(columnFamily, key);
+    }
 
     @Override
     public void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable {
@@ -123,6 +131,12 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         this.rocksDBStore.put(key, value);
     }
 
+    @Override
+    public void put(MessageQueue stateTopicMessageQueue, String columnFamily, byte[] key, byte[] value) throws Throwable {
+        String stateTopicQueueKey = buildKey(stateTopicMessageQueue);
+        super.putInCalculating(stateTopicQueueKey, key);
+        this.rocksDBStore.put(columnFamily, key, value);
+    }
 
     @Override
     public List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String keyPrefix, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable {

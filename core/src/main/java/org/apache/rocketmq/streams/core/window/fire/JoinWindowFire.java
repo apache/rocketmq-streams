@@ -23,6 +23,7 @@ import org.apache.rocketmq.streams.core.function.ValueJoinAction;
 import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.core.window.JoinType;
@@ -214,7 +215,7 @@ public class JoinWindowFire<K, V1, V2, OUT> {
 
         //get old watermark
         byte[] keyBytes = Utils.watermarkKeyBytes(stateTopicMessageQueue, Constant.WATERMARK_KEY);
-        byte[] watermarkBytes = stateStore.get(keyBytes);
+        byte[] watermarkBytes = stateStore.get(ColumnFamilyUtil.WATERMARK_STATE_CF, keyBytes);
         long oldWatermark = Utils.bytes2Long(watermarkBytes);
 
         if (watermark > oldWatermark) {

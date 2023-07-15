@@ -21,6 +21,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.util.Utils;
 import org.apache.rocketmq.streams.core.window.fire.IdleWindowScaner;
 import org.apache.rocketmq.streams.core.window.Window;
@@ -66,12 +67,12 @@ public abstract class AbstractWindowProcessor<V> extends AbstractProcessor<V> {
         try {
             StateStore stateStore = this.context.getStateStore();
 
-            byte[] watermarkBytes = stateStore.get(keyBytes);
+            byte[] watermarkBytes = stateStore.get(ColumnFamilyUtil.WATERMARK_STATE_CF, keyBytes);
             long oldWatermark = Utils.bytes2Long(watermarkBytes);
 
             if (watermark > oldWatermark) {
                 byte[] newWatermarkBytes = Utils.long2Bytes(watermark);
-                stateStore.put(stateTopicMessageQueue, keyBytes, newWatermarkBytes);
+                stateStore.put(stateTopicMessageQueue, ColumnFamilyUtil.WATERMARK_STATE_CF, keyBytes, newWatermarkBytes);
             } else {
                 watermark = oldWatermark;
             }
