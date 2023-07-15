@@ -111,9 +111,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
 
             if (time < watermark) {
-                //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. maxFiredWindowEnd:{}, time of data:{}, watermark:{}",
-                        data, watermark, watermark, time);
+                logger.warn("discard delay data:[{}]. time of data:{}, watermark:{}", data, time, watermark);
                 return;
             }
             WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
