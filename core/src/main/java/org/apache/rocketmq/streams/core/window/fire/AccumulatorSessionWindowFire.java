@@ -54,7 +54,7 @@ public class AccumulatorSessionWindowFire<K, R, V, OV> extends AbstractWindowFir
         List<WindowKey> fired = new ArrayList<>();
 
         try {
-            List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = windowStore.searchMatchKeyPrefix(operatorName);
+            List<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> pairs = windowStore.searchLessThanWatermark(operatorName, watermark);
 
             Iterator<Pair<WindowKey, WindowState<K, Accumulator<R, OV>>>> iterator = pairs.iterator();
             while (iterator.hasNext()) {

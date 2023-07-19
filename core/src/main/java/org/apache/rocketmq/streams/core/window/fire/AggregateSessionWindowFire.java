@@ -53,7 +53,7 @@ public class AggregateSessionWindowFire<K, V, OV> extends AbstractWindowFire<K, 
         List<WindowKey> fired = new ArrayList<>();
 
         try {
-            List<Pair<WindowKey, WindowState<K, OV>>> pairs = this.windowStore.searchMatchKeyPrefix(operatorName);
+            List<Pair<WindowKey, WindowState<K, OV>>> pairs = this.windowStore.searchLessThanWatermark(operatorName, watermark);
 
             Iterator<Pair<WindowKey, WindowState<K, OV>>> iterator = pairs.iterator();
             while (iterator.hasNext()) {
