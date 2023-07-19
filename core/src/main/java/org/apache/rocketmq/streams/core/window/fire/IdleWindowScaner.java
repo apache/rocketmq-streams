@@ -123,9 +123,12 @@ public class IdleWindowScaner implements AutoCloseable {
     }
 
     public void removeOldAccumulatorSession(WindowKey oldWindowKey) {
+        if (oldWindowKey == null) {
+            return;
+        }
+
         TimeType timeType = this.lastUpdateTime2WindowKey.get(oldWindowKey);
-        if (timeType != null
-                && timeType.getType() == Type.AccumulatorSessionWindow) {
+        if (timeType != null && timeType.getType() == Type.AccumulatorSessionWindow) {
             this.lastUpdateTime2WindowKey.remove(oldWindowKey);
         }
         this.fireSessionWindowCallback.remove(oldWindowKey);
