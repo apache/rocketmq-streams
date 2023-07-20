@@ -25,6 +25,8 @@ import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
 
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Properties;
 
 /**
@@ -35,11 +37,15 @@ import java.util.Properties;
  * 5、观察输出结果
  */
 public class SessionWindowCount {
+    private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("sessionWindowCount");
         builder.source("windowCount", source -> {
                     String value = new String(source, StandardCharsets.UTF_8);
                     int result = Integer.parseInt(value);
+
+                    System.out.println("time=" + format.format(new Date(System.currentTimeMillis())) + ", value=" + value);
                     return new Pair<>(null, result);
                 })
                 .filter(value -> value > 0)
