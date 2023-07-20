@@ -1,7 +1,6 @@
 package org.apache.rocketmq.streams.examples.window;
 
-import java.util.Properties;
-
+import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.function.SelectAction;
@@ -13,7 +12,7 @@ import org.apache.rocketmq.streams.core.window.Time;
 import org.apache.rocketmq.streams.core.window.WindowBuilder;
 import org.apache.rocketmq.streams.examples.pojo.Order;
 
-import com.alibaba.fastjson.JSON;
+import java.util.Properties;
 
 public class WindowOrderCount {
     public static void main(String[] args) {
@@ -38,45 +37,45 @@ public class WindowOrderCount {
     }
 
     private static StreamBuilder getOrder1() {
-    /**
-     * Get the count of drink/food orders in last 30 seconds every 10 seconds
-     **/
+        /**
+         * Get the count of drink/food orders in last 30 seconds every 10 seconds
+         **/
         StreamBuilder builder = new StreamBuilder("windowOrderCount");
 
         builder.source("order", source -> {
-                Order order = JSON.parseObject(source, Order.class);
-                System.out.println(order.toString());
-                return new Pair<>(null, order);
-            })
-            .keyBy(Order::getType)
-            .window(WindowBuilder.slidingWindow(Time.seconds(30), Time.seconds(10)))
-            .count()
-            .toRStream()
-            .print();
+                    Order order = JSON.parseObject(source, Order.class);
+                    System.out.println(order.toString());
+                    return new Pair<>(null, order);
+                })
+                .keyBy(Order::getType)
+                .window(WindowBuilder.slidingWindow(Time.seconds(30), Time.seconds(10)))
+                .count()
+                .toRStream()
+                .print();
 
         return builder;
     }
 
     private static StreamBuilder getOrder2() {
-    /**
-     * Get how much the customers pay for drink/food every 100 seconds
-     **/
+        /**
+         * Get how much the customers pay for drink/food every 100 seconds
+         **/
         StreamBuilder builder = new StreamBuilder("windowOrderCount");
         builder.source("order", source -> {
-            Order order = JSON.parseObject(source, Order.class);
-            System.out.println(order.toString());
-            return new Pair<>(null, order);
-        })
-            .keyBy(new SelectAction<String, Order>() {
-                @Override
-                public String select(Order order) {
-                    return order.getCustomer() + "@" + order.getType();
-                }
-            })
-            .window(WindowBuilder.tumblingWindow(Time.seconds(100)))
-            .sum(Order::getPrice)
-            .toRStream()
-            .print();
+                    Order order = JSON.parseObject(source, Order.class);
+                    System.out.println(order.toString());
+                    return new Pair<>(null, order);
+                })
+                .keyBy(new SelectAction<String, Order>() {
+                    @Override
+                    public String select(Order order) {
+                        return order.getCustomer() + "@" + order.getType();
+                    }
+                })
+                .window(WindowBuilder.tumblingWindow(Time.seconds(100)))
+                .sum(Order::getPrice)
+                .toRStream()
+                .print();
 
         return builder;
     }
