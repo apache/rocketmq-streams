@@ -27,7 +27,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.body.ClusterInfo;
 import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.DataProcessThrowable;
 import org.apache.rocketmq.streams.core.exception.RStreamsException;
@@ -48,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -262,6 +260,11 @@ public class WorkerThread extends Thread {
                         String brokerName = messageQueue.getBrokerName();
                         ClusterInfo clusterInfo = rocketMQClient.getMQAdmin().examineBrokerClusterInfo();
                         BrokerData brokerData = clusterInfo.getBrokerAddrTable().get(brokerName);
+                        if (brokerData == null) {
+                            String msg = String.format("get broker error, have no broker info (name:%s)", brokerName);
+                            logger.error(msg);
+                            throw new RStreamsException(msg);
+                        }
                         for (String brokerAddress : brokerData.getBrokerAddrs().values()) {
                             mqAdmin.resetOffsetByQueueId(brokerAddress,
                                     unionConsumer.getConsumerGroup(),
