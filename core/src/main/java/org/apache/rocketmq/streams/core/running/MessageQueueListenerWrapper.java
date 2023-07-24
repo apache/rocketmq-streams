@@ -75,7 +75,6 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
             if (throwable != null) {
                 throw new RuntimeException(throwable);
             }
-            logger.info("reset messageQueue offset finish, addQueue: [{}].", addQueue);
         }
 
         buildTask(addQueue);
