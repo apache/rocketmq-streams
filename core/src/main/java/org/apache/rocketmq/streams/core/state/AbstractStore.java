@@ -145,12 +145,12 @@ public abstract class AbstractStore {
         }
 
         public Set<byte[]> getInCalculating(String stateTopicQueue) {
-            return calculating.get(stateTopicQueue);
+            return calculating.getOrDefault(stateTopicQueue, new HashSet<>());
         }
 
         public Set<byte[]> getAll(String stateTopicQueue) {
-            Set<byte[]> calculating = this.calculating.get(stateTopicQueue);
-            Set<byte[]> recover = this.recover.get(stateTopicQueue);
+            Set<byte[]> calculating = this.calculating.getOrDefault(stateTopicQueue, new HashSet<>());
+            Set<byte[]> recover = this.recover.getOrDefault(stateTopicQueue, new HashSet<>());
 
             Set<byte[]> result = new HashSet<>();
             result.addAll(calculating);
@@ -162,7 +162,7 @@ public abstract class AbstractStore {
 
         public String whichStateTopicQueueBelongTo(byte[] key) {
             for (String uniqueQueue : recover.keySet()) {
-                for (byte[] tempKeyByte : recover.get(uniqueQueue)) {
+                for (byte[] tempKeyByte : recover.getOrDefault(uniqueQueue, new HashSet<>())) {
                     if (Arrays.equals(tempKeyByte, key)) {
                         return uniqueQueue;
                     }
@@ -170,7 +170,7 @@ public abstract class AbstractStore {
             }
 
             for (String uniqueQueue : calculating.keySet()) {
-                for (byte[] tempKeyByte : calculating.get(uniqueQueue)) {
+                for (byte[] tempKeyByte : calculating.getOrDefault(uniqueQueue, new HashSet<>())) {
                     if (Arrays.equals(tempKeyByte, key)) {
                         return uniqueQueue;
                     }

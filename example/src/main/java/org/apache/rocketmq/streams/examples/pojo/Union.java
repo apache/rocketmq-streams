@@ -27,6 +27,9 @@ public class Union {
         this.num = num;
     }
 
+    public Union() {
+    }
+
     public String getName() {
         return name;
     }

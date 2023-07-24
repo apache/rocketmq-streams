@@ -111,9 +111,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
             long watermark = this.watermark(time - allowDelay, stateTopicMessageQueue);
 
             if (time < watermark) {
-                //已经触发，丢弃数据
-                logger.warn("discard data:[{}], window has been fired. maxFiredWindowEnd:{}, time of data:{}, watermark:{}",
-                        data, watermark, watermark, time);
+                logger.warn("discard delay data:[{}]. time of data:{}, watermark:{}", data, time, watermark);
                 return;
             }
             WindowInfo.JoinStream stream = (WindowInfo.JoinStream) header.get(Constant.STREAM_TAG);
@@ -123,7 +121,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                 throw new IllegalStateException(format);
             }
 
-            store(key, data, time, streamType);
+            store(key, data, time, watermark, streamType);
 
             List<WindowKey> fire = this.joinWindowFire.fire(this.name, watermark, streamType);
             for (WindowKey windowKey : fire) {
@@ -132,7 +130,7 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
         }
 
 
-        private void store(Object key, Object data, long time, StreamType streamType) throws Throwable {
+        private void store(Object key, Object data, long time, long watermark, StreamType streamType) throws Throwable {
             String name = Utils.buildKey(this.name, streamType.name());
             List<Window> windows = super.calculateWindow(windowInfo, time);
             for (Window window : windows) {
@@ -144,12 +142,12 @@ public class JoinWindowAggregateSupplier<K, V1, V2, OUT> implements Supplier<Pro
                     case LEFT_STREAM:
                         WindowState<K, V1> leftState = new WindowState<>((K) key, (V1) data, time);
                         this.leftWindowStore.put(stateTopicMessageQueue, windowKey, leftState);
-                        this.idleWindowScaner.putJoinWindowCallback(windowKey, joinWindowFire);
+                        this.idleWindowScaner.putJoinWindowCallback(windowKey, watermark, joinWindowFire);
                         break;
                     case RIGHT_STREAM:
                         WindowState<K, V2> rightState = new WindowState<>((K) key, (V2) data, time);
                         this.rightWindowStore.put(stateTopicMessageQueue, windowKey, rightState);
-                        this.idleWindowScaner.putJoinWindowCallback(windowKey, joinWindowFire);
+                        this.idleWindowScaner.putJoinWindowCallback(windowKey, watermark, joinWindowFire);
                         break;
                 }
             }

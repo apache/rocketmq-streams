@@ -22,6 +22,7 @@ public class StreamConfig {
     public static final String IDLE_TIME_TO_FIRE_WINDOW = "idleTimeToFireWindow";
     public static final String ROCKETMQ_STREAMS_CONSUMER_GROUP = "__source_shuffle_group";
     public static final String ROCKETMQ_STREAMS_STATE_CONSUMER_GROUP = "__state_group";
+    public static final String COMMIT_STATE_INTERNAL_MS = "commitStateIntervalMillisecond";
 
     public static final String ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE = "consume_from_where";
 

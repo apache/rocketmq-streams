@@ -21,14 +21,14 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.streams.core.RocketMQStream;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
 import org.apache.rocketmq.streams.core.rstream.StreamBuilder;
-import org.apache.rocketmq.streams.core.window.Time;
-import org.apache.rocketmq.streams.core.window.TimeType;
-import org.apache.rocketmq.streams.core.window.WindowBuilder;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.util.Pair;
+import org.apache.rocketmq.streams.core.window.Time;
+import org.apache.rocketmq.streams.core.window.WindowBuilder;
 import org.apache.rocketmq.streams.examples.pojo.Grade;
-import org.apache.rocketmq.streams.examples.pojo.User;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Properties;
 
 /**
@@ -39,18 +39,21 @@ import java.util.Properties;
  * 5、观察输出结果
  */
 public class WindowMin {
+    private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public static void main(String[] args) {
         StreamBuilder builder = new StreamBuilder("windowMinGrade");
 
         builder.source("grade", source -> {
-                Grade grade = JSON.parseObject(source, Grade.class);
-                return new Pair<>(null, grade);
-            })
-            .keyBy(Grade::getGrade)
-            .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
-            .min(Grade::getScore) //.max(Grade::getScore)
-            .toRStream()
-            .print();
+                    Grade grade = JSON.parseObject(source, Grade.class);
+                    System.out.println("time=" + format.format(new Date(System.currentTimeMillis())) + "," + grade);
+                    return new Pair<>(null, grade);
+                })
+                .keyBy(Grade::getGrade)
+                .window(WindowBuilder.tumblingWindow(Time.seconds(5)))
+                .min(Grade::getScore) //.max(Grade::getScore)
+                .toRStream()
+                .print();
 
         TopologyBuilder topologyBuilder = builder.build();
 
