@@ -54,5 +54,8 @@ public class Constant {
 
     public static final Integer MAX_RETRY_SEEK_TIMES = 3;
 
-    public static final Long WAIT_REBALANCE_STEP = 1000L;
+    public static final Integer MAX_RETRY_WAIT_TIMES = 3;
+
+
+    public static final Long WAIT_STEP = 1000L;
 }

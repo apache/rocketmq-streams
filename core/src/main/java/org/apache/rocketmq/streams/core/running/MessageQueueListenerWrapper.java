@@ -24,22 +24,24 @@ import org.apache.rocketmq.streams.core.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import static org.apache.rocketmq.streams.core.common.Constant.STATE_TOPIC_SUFFIX;
 
 class MessageQueueListenerWrapper implements MessageQueueListener {
     private static final Logger logger = LoggerFactory.getLogger(MessageQueueListenerWrapper.class.getName());
     private final MessageQueueListener originListener;
     private final TopologyBuilder topologyBuilder;
-
     private final ConcurrentHashMap<String, Set<MessageQueue>> ownedMapping = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Processor<?>> mq2Processor = new ConcurrentHashMap<>();
 
     private BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> recoverHandler;
+
+    private Function<Set<MessageQueue>, Throwable> resetOffsetHandler;
 
     MessageQueueListenerWrapper(MessageQueueListener originListener, TopologyBuilder topologyBuilder) {
         this.originListener = originListener;
@@ -66,6 +68,14 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
                 throw new RuntimeException(throwable);
             }
             logger.info("recover messageQueue finish, addQueue: [{}], removeQueue:[{}].", addQueue, removeQueue);
+        }
+
+        if (!topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX) && !topic.endsWith(STATE_TOPIC_SUFFIX)) {
+            Throwable throwable = this.resetOffsetHandler.apply(addQueue);
+            if (throwable != null) {
+                throw new RuntimeException(throwable);
+            }
+            logger.info("reset messageQueue offset finish, addQueue: [{}].", addQueue);
         }
 
         buildTask(addQueue);
@@ -100,5 +110,9 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
 
     public void setRecoverHandler(BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> handler) {
         this.recoverHandler = handler;
+    }
+
+    public void setResetOffsetHandler(Function<Set<MessageQueue>, Throwable> handler) {
+        this.resetOffsetHandler = handler;
     }
 }

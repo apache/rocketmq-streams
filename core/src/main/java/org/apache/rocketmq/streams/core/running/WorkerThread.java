@@ -25,6 +25,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.body.ClusterInfo;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.DataProcessThrowable;
@@ -53,7 +55,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.rocketmq.streams.core.common.Constant.*;
 import static org.apache.rocketmq.streams.core.metadata.StreamConfig.ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE;
@@ -151,6 +152,8 @@ public class WorkerThread extends Thread {
                     return e;
                 }
             });
+            this.wrapper.setResetOffsetHandler((addQueues) -> maybeResetOffsetToFirst(addQueues));
+
             Integer idleTime = (Integer) WorkerThread.this.properties.getOrDefault(StreamConfig.IDLE_TIME_TO_FIRE_WINDOW, 2000);
             this.idleWindowScaner = new IdleWindowScaner(idleTime, executor);
             WorkerThread.this.executor.scheduleAtFixedRate(() -> {
@@ -169,8 +172,6 @@ public class WorkerThread extends Thread {
             this.unionConsumer.start();
             this.producer.start();
             this.stateStore.init();
-
-            maybeResetOffsetToFirst();
         }
 
         void runInLoop() throws Throwable {
@@ -247,39 +248,39 @@ public class WorkerThread extends Thread {
             }
         }
 
-        void maybeResetOffsetToFirst() {
+        Throwable maybeResetOffsetToFirst(Set<MessageQueue> addQueues) {
             ConsumeFromWhere consumeFromWhere = (ConsumeFromWhere) properties.getOrDefault(ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+
+            if (!consumeFromWhere.equals(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET)) {
+                return null;
+            }
             RocketMQClient rocketMQClient = new RocketMQClient(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
-            for (String topic : topologyBuilder.getSourceTopic()) {
-                if (consumeFromWhere.equals(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET)
-                        && !topic.endsWith(SHUFFLE_TOPIC_SUFFIX) && !topic.endsWith(STATE_TOPIC_SUFFIX)) {
+            for (MessageQueue messageQueue : addQueues) {
+                int retryTimes = 0;
+                while(retryTimes < MAX_RETRY_SEEK_TIMES) {
                     try {
-                        //  waiting 1 second for rebalance
-                        Thread.sleep(WAIT_REBALANCE_STEP);
-                        Collection<MessageQueue> messageQueues = unionConsumer.fetchMessageQueues(topic);
-                        AtomicInteger retryTimes = new AtomicInteger(0);
-                        messageQueues.forEach(messageQueue -> {
-                            while(retryTimes.get() < MAX_RETRY_SEEK_TIMES) {
-                                try {
-                                    Long minOffset = rocketMQClient.getMQAdmin().minOffset(messageQueue);
-                                    unionConsumer.seek(messageQueue, minOffset);
-                                    break;
-                                } catch (Exception e) {
-                                    logger.error("reset messageQueue:{} consumer offset to zero failed. retry:{}", messageQueue, retryTimes.get(), e);
-                                    retryTimes.incrementAndGet();
-                                    try {
-                                        Thread.sleep(WAIT_REBALANCE_STEP);
-                                    } catch (InterruptedException ex) {
-                                        logger.error("maybeResetOffsetToFirst retry sleep error", e);
-                                    }
-                                }
-                            }
-                        });
+                        Long minOffset = mqAdmin.minOffset(messageQueue);
+                        String brokerName = messageQueue.getBrokerName();
+                        ClusterInfo clusterInfo = rocketMQClient.getMQAdmin().examineBrokerClusterInfo();
+                        BrokerData brokerData = clusterInfo.getBrokerAddrTable().get(brokerName);
+                        for (String brokerAddress : brokerData.getBrokerAddrs().values()) {
+                            mqAdmin.resetOffsetByQueueId(brokerAddress,
+                                    unionConsumer.getConsumerGroup(),
+                                    messageQueue.getTopic(),
+                                    messageQueue.getQueueId(),
+                                    minOffset);
+                        }
+                        break;
                     } catch (Exception e) {
-                        logger.error("get messageQueue failed, topic:{}.", topic, e);
+                        retryTimes++;
+                        if (retryTimes >= MAX_RETRY_SEEK_TIMES) {
+                            logger.error("reset messageQueue:{} consumer offset to zero failed. retry:{}", messageQueue, retryTimes, e);
+                            return e;
+                        }
                     }
                 }
             }
+            return null;
         }
 
         long prepareTime(MessageExt messageExt, SourceSupplier.SourceProcessor<K, V> processor) {
