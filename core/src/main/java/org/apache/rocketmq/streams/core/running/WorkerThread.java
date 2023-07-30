@@ -22,6 +22,8 @@ import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.admin.ConsumeStats;
+import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -49,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -96,7 +99,7 @@ public class WorkerThread extends Thread {
         RocksDBStore rocksDBStore = new RocksDBStore(threadName);
         RocketMQStore store = new RocketMQStore(producer, rocksDBStore, mqAdmin, this.properties);
 
-        this.planetaryEngine = new PlanetaryEngine<>(unionConsumer, producer, store, mqAdmin, wrapper);
+        this.planetaryEngine = new PlanetaryEngine<>(unionConsumer, producer, store, mqAdmin, wrapper, topicNames);
     }
 
     @Override
@@ -105,6 +108,7 @@ public class WorkerThread extends Thread {
             this.planetaryEngine.start();
             logger.info("worker thread=[{}], start task success, jobId:{}", this.getName(), jobId);
 
+            this.planetaryEngine.maybeResetOffsetToFirst();
             this.planetaryEngine.runInLoop();
         } catch (Throwable e) {
             logger.error("worker thread=[{}], error:{}.", this.getName(), e);
@@ -129,11 +133,13 @@ public class WorkerThread extends Thread {
         private final IdleWindowScaner idleWindowScaner;
         private volatile boolean stop = false;
 
+        private Set<String> sourceTopicSet;
+
         private final HashSet<MessageQueue> mq2Commit = new HashSet<>();
 
 
         public PlanetaryEngine(DefaultLitePullConsumer unionConsumer, DefaultMQProducer producer, StateStore stateStore,
-                               DefaultMQAdminExt mqAdmin, MessageQueueListenerWrapper wrapper) {
+                               DefaultMQAdminExt mqAdmin, MessageQueueListenerWrapper wrapper, Set<String> sourceTopicSet) {
             this.unionConsumer = unionConsumer;
             this.producer = producer;
             this.mqAdmin = mqAdmin;
@@ -148,7 +154,7 @@ public class WorkerThread extends Thread {
                     return e;
                 }
             });
-            this.wrapper.setResetOffsetHandler((addQueues) -> maybeResetOffsetToFirst(addQueues));
+            this.sourceTopicSet = sourceTopicSet;
 
             Integer idleTime = (Integer) WorkerThread.this.properties.getOrDefault(StreamConfig.IDLE_TIME_TO_FIRE_WINDOW, 2000);
             int commitInterval = (Integer) WorkerThread.this.properties.getOrDefault(StreamConfig.COMMIT_STATE_INTERNAL_MS, 2 * 1000);
@@ -245,20 +251,32 @@ public class WorkerThread extends Thread {
             }
         }
 
-        Throwable maybeResetOffsetToFirst(Set<MessageQueue> addQueues) {
+        void maybeResetOffsetToFirst() throws Exception {
             ConsumeFromWhere consumeFromWhere = (ConsumeFromWhere) properties.getOrDefault(ROCKETMQ_STREAMS_CONSUMER_FORM_WHERE, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 
             if (!consumeFromWhere.equals(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET)) {
-                return null;
+                return;
             }
-            RocketMQClient rocketMQClient = new RocketMQClient(properties.getProperty(MixAll.NAMESRV_ADDR_PROPERTY));
-            for (MessageQueue messageQueue : addQueues) {
-                int retryTimes = 0;
-                while(retryTimes < MAX_RETRY_SEEK_TIMES) {
+
+            for (String topic : sourceTopicSet) {
+                // 内部 topic 不能重置位点
+                if (topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX) || topic.endsWith(STATE_TOPIC_SUFFIX)) {
+                    continue;
+                }
+                ConsumeStats consumeStats = mqAdmin.examineConsumeStats(unionConsumer.getConsumerGroup(), topic);
+                Map<MessageQueue, OffsetWrapper> offsetTable = consumeStats.getOffsetTable();
+                Set<MessageQueue> messageQueues = offsetTable.keySet();
+                for (MessageQueue messageQueue : messageQueues) {
                     try {
+                        // 如果有消费进度，说明已经开始消费，跳过重置其消费进度
+                        if (offsetTable.containsKey(messageQueue) &&
+                                offsetTable.get(messageQueue).getConsumerOffset() != DEFAULT_CONSUME_OFFSET) {
+                            break;
+                        }
+
                         Long minOffset = mqAdmin.minOffset(messageQueue);
                         String brokerName = messageQueue.getBrokerName();
-                        ClusterInfo clusterInfo = rocketMQClient.getMQAdmin().examineBrokerClusterInfo();
+                        ClusterInfo clusterInfo = mqAdmin.examineBrokerClusterInfo();
                         BrokerData brokerData = clusterInfo.getBrokerAddrTable().get(brokerName);
                         if (brokerData == null) {
                             String msg = String.format("get broker error, have no broker info (name:%s)", brokerName);
@@ -272,18 +290,14 @@ public class WorkerThread extends Thread {
                                     messageQueue.getQueueId(),
                                     minOffset);
                         }
-                        break;
                     } catch (Exception e) {
-                        retryTimes++;
-                        if (retryTimes >= MAX_RETRY_SEEK_TIMES) {
-                            logger.error("reset messageQueue:{} consumer offset to zero failed. retry:{}", messageQueue, retryTimes, e);
-                            return e;
-                        }
+                        logger.error("reset messageQueue:{} consumer offset to first failed.", messageQueue, e);
+                        throw e;
                     }
                 }
             }
-            return null;
         }
+
 
         long prepareTime(MessageExt messageExt, SourceSupplier.SourceProcessor<K, V> processor) {
             TimeType type = (TimeType) properties.get(StreamConfig.TIME_TYPE);

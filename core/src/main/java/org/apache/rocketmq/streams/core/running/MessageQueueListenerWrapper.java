@@ -70,13 +70,6 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
             logger.info("recover messageQueue finish, addQueue: [{}], removeQueue:[{}].", addQueue, removeQueue);
         }
 
-        if (!topic.endsWith(Constant.SHUFFLE_TOPIC_SUFFIX) && !topic.endsWith(STATE_TOPIC_SUFFIX)) {
-            Throwable throwable = this.resetOffsetHandler.apply(addQueue);
-            if (throwable != null) {
-                throw new RuntimeException(throwable);
-            }
-        }
-
         buildTask(addQueue);
         //设计的不太好，移除q，添加消费任务之前，应该加一个状态移除函数;目前这样写的问题是：状态提前移除/加载了，consumer其实仍然在从某个将要移除的q中拉取数据，但是状态却被移除了。
         //也不能把originListener.messageQueueChanged放在loadState/removeState之前，那样会已经在拉取数据了，但是状态没有加载好。

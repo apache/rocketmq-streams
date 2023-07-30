@@ -18,8 +18,6 @@
 
 package org.apache.rocketmq.streams.core.common;
 
-import java.nio.charset.StandardCharsets;
-
 public class Constant {
 
     public static final String SHUFFLE_KEY_CLASS_NAME = "shuffle.key.class.name";
@@ -52,10 +50,6 @@ public class Constant {
 
     public static final String WATERMARK_KEY = "watermark_key";
 
-    public static final Integer MAX_RETRY_SEEK_TIMES = 3;
+    public static final Long DEFAULT_CONSUME_OFFSET = 0L;
 
-    public static final Integer MAX_RETRY_WAIT_TIMES = 3;
-
-
-    public static final Long WAIT_STEP = 1000L;
 }
