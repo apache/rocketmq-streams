@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.state;
 
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.util.Pair;
 import org.apache.rocketmq.streams.core.util.Utils;
@@ -40,15 +41,15 @@ public class RocksDBStoreTest {
         byte[] keyBytes2 = key2Byte(key2);
         byte[] valueBytes2 = Utils.object2Byte(value2);
 
-        rocksDBStore.put(keyBytes2, valueBytes2);
-        rocksDBStore.put(keyBytes, valueBytes);
+        rocksDBStore.put(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes2), keyBytes2, valueBytes2);
+        rocksDBStore.put(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes), keyBytes, valueBytes);
 
 
-        byte[] bytes = rocksDBStore.get(keyBytes);
+        byte[] bytes = rocksDBStore.get(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes), keyBytes);
         Object result = Utils.byte2Object(bytes, Object.class);
         System.out.println(result);
 
-        byte[] bytes2 = rocksDBStore.get(keyBytes2);
+        byte[] bytes2 = rocksDBStore.get(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes2), keyBytes2);
         Object result2 = Utils.byte2Object(bytes2, Object.class);
         System.out.println(result2);
 

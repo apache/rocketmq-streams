@@ -31,7 +31,7 @@ import org.apache.rocketmq.streams.examples.pojo.User;
 import java.util.Properties;
 
 public class JoinWithoutWindow {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         StreamBuilder builder = new StreamBuilder("JoinWithoutWindow");
 
         RStream<User> user = builder.source("user", total -> {

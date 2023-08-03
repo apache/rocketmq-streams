@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.streams.core.rstream;
 
+import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.serialization.KeyValueDeserializer;
 import org.apache.rocketmq.streams.core.topology.TopologyBuilder;
 import org.apache.rocketmq.streams.core.topology.virtual.GraphNode;
@@ -23,7 +24,6 @@ import org.apache.rocketmq.streams.core.topology.virtual.SourceGraphNode;
 import org.apache.rocketmq.streams.core.util.OperatorNameMaker;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import static org.apache.rocketmq.streams.core.util.OperatorNameMaker.SOURCE_PREFIX;
@@ -33,9 +33,16 @@ public class StreamBuilder {
     private final TopologyBuilder topologyBuilder;
     private final String jobId;
 
-    public StreamBuilder(String jobId) {
+    public StreamBuilder(String jobId) throws Throwable {
+        checkJobId(jobId);
         this.jobId = jobId;
         this.topologyBuilder = new TopologyBuilder(jobId);
+    }
+
+    private void checkJobId(String jobId) {
+        if (jobId.startsWith(Constant.WATERMARK_KEY)) {
+            throw new IllegalArgumentException("jobId startsWith watermarkPrefix. jodId=" + jobId);
+        }
     }
 
     public <OUT> RStream<OUT> source(String topicName, KeyValueDeserializer<Void, OUT> deserializer) {

@@ -16,7 +16,6 @@ package org.apache.rocketmq.streams.core.state;
  * limitations under the License.
  */
 
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -33,6 +32,7 @@ import org.apache.rocketmq.streams.core.common.Constant;
 import org.apache.rocketmq.streams.core.exception.RecoverStateStoreThrowable;
 import org.apache.rocketmq.streams.core.function.ValueMapperAction;
 import org.apache.rocketmq.streams.core.metadata.StreamConfig;
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.window.WindowKey;
 import org.apache.rocketmq.streams.core.serialization.ShuffleProtocol;
 import org.apache.rocketmq.streams.core.util.Pair;
@@ -113,7 +113,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         if (key == null || key.length == 0) {
             return new byte[0];
         }
-        return this.rocksDBStore.get(key);
+        return this.rocksDBStore.get(ColumnFamilyUtil.getColumnFamilyByKey(key), key);
     }
 
     @Override
@@ -126,9 +126,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
     @Override
     public void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable {
-        String stateTopicQueueKey = buildKey(stateTopicMessageQueue);
-        super.putInCalculating(stateTopicQueueKey, key);
-        this.rocksDBStore.put(key, value);
+        put(stateTopicMessageQueue, ColumnFamilyUtil.getColumnFamilyByKey(key), key, value);
     }
 
     @Override
@@ -175,7 +173,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
         producer.send(message, queue);
 
         //删除rocksdb
-        this.rocksDBStore.deleteByKey(key);
+        this.rocksDBStore.deleteByKey(ColumnFamilyUtil.getColumnFamilyByKey(key), key);
 
         //删除内存中的key
         super.removeAllKey(key);
@@ -204,7 +202,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
             for (byte[] key : keySet) {
 
-                byte[] valueBytes = this.rocksDBStore.get(key);
+                byte[] valueBytes = this.rocksDBStore.get(ColumnFamilyUtil.getColumnFamilyByKey(key), key);
                 if (valueBytes == null) {
                     continue;
                 }
@@ -280,7 +278,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
                 for (String stateUniqueQueue : groupByUniqueQueue.keySet()) {
                     Set<byte[]> stateTopicQueueKey = super.getAll(stateUniqueQueue);
                     for (byte[] key : stateTopicQueueKey) {
-                        this.rocksDBStore.deleteByKey(key);
+                        this.rocksDBStore.deleteByKey(ColumnFamilyUtil.getColumnFamilyByKey(key), key);
                     }
                     super.removeAll(stateUniqueQueue);
                 }
@@ -380,7 +378,7 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
                 String stateTopicQueueKey = buildKey(stateTopicQueue);
                 super.putInRecover(stateTopicQueueKey, key);
-                this.rocksDBStore.put(key, value);
+                this.rocksDBStore.put(ColumnFamilyUtil.getColumnFamilyByKey(key), key, value);
             }
         }
     }

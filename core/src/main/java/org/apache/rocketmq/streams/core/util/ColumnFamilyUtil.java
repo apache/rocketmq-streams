@@ -17,7 +17,6 @@ public class ColumnFamilyUtil {
     public static final String VALUE_STATE_CF = "value-state";
 
     private enum ColumnFamilyEnum {
-        // todo 如何解决 topicName 的值中包含 watermarkPrefix
         WATERMARK_STATE_COLUMN_FAMILY(WATERMARK_STATE_CF, str -> {
             return str.startsWith(Constant.WATERMARK_KEY);
         }),
@@ -52,14 +51,17 @@ public class ColumnFamilyUtil {
         }
     }
 
-    public static ColumnFamilyHandle getColumnFamilyHandleByKey(byte[] key) {
-        return getColumnFamilyHandleByKey(new String(key, StandardCharsets.UTF_8));
+    public static String getColumnFamilyByKey(byte[] key) {
+        if (key == null) {
+            return null;
+        }
+        return getColumnFamilyByKey(new String(key, StandardCharsets.UTF_8));
     }
 
-    public static ColumnFamilyHandle getColumnFamilyHandleByKey(String key) {
+    public static String getColumnFamilyByKey(String key) {
         for (ColumnFamilyEnum columnFamilyEnum : ColumnFamilyEnum.values()) {
             if (columnFamilyEnum.keyCheckFunc.test(key)) {
-                return getColumnFamilyHandleByName(columnFamilyEnum.name);
+                return columnFamilyEnum.name;
             }
         }
         return null;

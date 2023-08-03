@@ -78,25 +78,12 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
         }
     }
 
-
-    public byte[] get(byte[] key) throws RocksDBException {
-        if (key == null) {
-            return null;
-        }
-
-        return rocksDB.get(ColumnFamilyUtil.getColumnFamilyHandleByKey(key), key);
-    }
-
     public byte[] get(String columnFamilyName, byte[] key) throws RocksDBException {
         if (key == null) {
             return null;
         }
 
         return rocksDB.get(ColumnFamilyUtil.getColumnFamilyHandleByName(columnFamilyName), key);
-    }
-
-    public void put(byte[] key, byte[] value) throws RocksDBException {
-        rocksDB.put(ColumnFamilyUtil.getColumnFamilyHandleByKey(key), writeOptions, key, value);
     }
 
     public void put(String columnFamilyName, byte[] key, byte[] value) throws RocksDBException {
@@ -165,8 +152,8 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
         return temp;
     }
 
-    public void deleteByKey(byte[] key) throws RocksDBException {
-        rocksDB.delete(ColumnFamilyUtil.getColumnFamilyHandleByKey(key), key);
+    public void deleteByKey(String columnFamilyName, byte[] key) throws RocksDBException {
+        rocksDB.delete(ColumnFamilyUtil.getColumnFamilyHandleByName(columnFamilyName), key);
     }
 
     public void close() throws Exception {
@@ -207,15 +194,15 @@ public class RocksDBStore extends AbstractStore implements AutoCloseable {
         byte[] keyBytes2 = Utils.object2Byte(key2);
         byte[] valueBytes2 = Utils.object2Byte(value2);
 
-        rocksDBStore.put(keyBytes2, valueBytes2);
-        rocksDBStore.put(keyBytes, valueBytes);
+        rocksDBStore.put(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes2), keyBytes2, valueBytes2);
+        rocksDBStore.put(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes), keyBytes, valueBytes);
 
 
-        byte[] bytes = rocksDBStore.get(keyBytes);
+        byte[] bytes = rocksDBStore.get(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes), keyBytes);
         Object result = Utils.byte2Object(bytes, Object.class);
         System.out.println(result);
 
-        byte[] bytes2 = rocksDBStore.get(keyBytes2);
+        byte[] bytes2 = rocksDBStore.get(ColumnFamilyUtil.getColumnFamilyByKey(keyBytes2), keyBytes2);
         Object result2 = Utils.byte2Object(bytes2, Object.class);
         System.out.println(result2);
 

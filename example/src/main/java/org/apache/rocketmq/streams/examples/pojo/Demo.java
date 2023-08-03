@@ -35,7 +35,7 @@ import java.util.Properties;
  * 5、观察输出结果
  */
 public class Demo {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         StreamBuilder builder = new StreamBuilder("demo");
 
         builder.source("user", new KeyValueDeserializer<Void, User>() {
