@@ -109,24 +109,11 @@ public class RocketMQStore extends AbstractStore implements StateStore {
 
 
     @Override
-    public byte[] get(byte[] key) throws Throwable {
-        if (key == null || key.length == 0) {
-            return new byte[0];
-        }
-        return this.rocksDBStore.get(ColumnFamilyUtil.getColumnFamilyByKey(key), key);
-    }
-
-    @Override
     public byte[] get(String columnFamily, byte[] key) throws Throwable {
         if (key == null || key.length == 0) {
             return new byte[0];
         }
         return this.rocksDBStore.get(columnFamily, key);
-    }
-
-    @Override
-    public void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable {
-        put(stateTopicMessageQueue, ColumnFamilyUtil.getColumnFamilyByKey(key), key, value);
     }
 
     @Override
