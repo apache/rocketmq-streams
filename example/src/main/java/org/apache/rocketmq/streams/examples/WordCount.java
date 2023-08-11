@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Properties;
 
 public class WordCount {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         StreamBuilder builder = new StreamBuilder("wordCount");
 
         builder.source("sourceTopic", total -> {

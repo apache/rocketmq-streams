@@ -24,6 +24,7 @@ import org.apache.rocketmq.streams.core.metadata.Data;
 import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 import org.apache.rocketmq.streams.core.window.JoinType;
 import org.apache.rocketmq.streams.core.window.StreamType;
 import org.apache.rocketmq.streams.core.state.StateStore;
@@ -94,7 +95,7 @@ public class JoinAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor
                     byte[] keyBytes = Utils.object2Byte(storeKey);
                     byte[] valueBytes = super.object2Byte(data);
 
-                    this.stateStore.put(stateTopicMessageQueue, keyBytes, valueBytes);
+                    this.stateStore.put(stateTopicMessageQueue, ColumnFamilyUtil.VALUE_STATE_CF, keyBytes, valueBytes);
                     break;
                 }
             }
@@ -109,7 +110,7 @@ public class JoinAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor
                     String storeKey = Utils.buildKey(name, super.toHexString(key));
                     byte[] keyBytes = Utils.object2Byte(storeKey);
 
-                    byte[] bytes = this.stateStore.get(keyBytes);
+                    byte[] bytes = this.stateStore.get(ColumnFamilyUtil.VALUE_STATE_CF, keyBytes);
 
                     if (joinType == JoinType.INNER_JOIN) {
                         if (bytes == null || bytes.length == 0) {
@@ -136,7 +137,7 @@ public class JoinAggregateSupplier<K, V1, V2, OUT> implements Supplier<Processor
                     String storeKey = Utils.buildKey(name, super.toHexString(key));
                     byte[] keyBytes = Utils.object2Byte(storeKey);
 
-                    byte[] bytes = this.stateStore.get(keyBytes);
+                    byte[] bytes = this.stateStore.get(ColumnFamilyUtil.VALUE_STATE_CF, keyBytes);
                     if (bytes == null || bytes.length == 0) {
                         break;
                     }

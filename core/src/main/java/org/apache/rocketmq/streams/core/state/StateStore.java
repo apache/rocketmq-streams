@@ -37,12 +37,11 @@ public interface StateStore extends AutoCloseable {
     void waitIfNotReady(MessageQueue messageQueue) throws RecoverStateStoreThrowable;
 
 
-    byte[] get(byte[] key) throws Throwable;
+    byte[] get(String columnFamily, byte[] key) throws Throwable;
 
-    void put(MessageQueue stateTopicMessageQueue, byte[] key, byte[] value) throws Throwable;
+    void put(MessageQueue stateTopicMessageQueue, String columnFamily, byte[] key, byte[] value) throws Throwable;
 
     List<Pair<byte[], byte[]>> searchStateLessThanWatermark(String operatorName, long lessThanThisTime, ValueMapperAction<byte[], WindowKey> deserializer) throws Throwable;
-
 
     List<Pair<String, byte[]>> searchByKeyPrefix(String keyPrefix, ValueMapperAction<String, byte[]> string2Bytes, ValueMapperAction<byte[], String> byte2String) throws Throwable;
 

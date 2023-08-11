@@ -35,7 +35,7 @@ import java.util.Properties;
  * 5、观察输出结果
  */
 public class SlideWindowCount {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         StreamBuilder builder = new StreamBuilder("slideWindowCount");
         builder.source("windowCount", source -> {
                     String value = new String(source, StandardCharsets.UTF_8);

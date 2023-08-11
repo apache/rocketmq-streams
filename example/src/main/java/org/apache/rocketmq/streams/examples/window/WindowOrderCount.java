@@ -15,7 +15,7 @@ import org.apache.rocketmq.streams.examples.pojo.Order;
 import java.util.Properties;
 
 public class WindowOrderCount {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         StreamBuilder builder = getOrder2();
 
         TopologyBuilder topologyBuilder = builder.build();
@@ -36,7 +36,7 @@ public class WindowOrderCount {
         rocketMQStream.start();
     }
 
-    private static StreamBuilder getOrder1() {
+    private static StreamBuilder getOrder1() throws Throwable {
         /**
          * Get the count of drink/food orders in last 30 seconds every 10 seconds
          **/
@@ -56,7 +56,7 @@ public class WindowOrderCount {
         return builder;
     }
 
-    private static StreamBuilder getOrder2() {
+    private static StreamBuilder getOrder2() throws Throwable {
         /**
          * Get how much the customers pay for drink/food every 100 seconds
          **/

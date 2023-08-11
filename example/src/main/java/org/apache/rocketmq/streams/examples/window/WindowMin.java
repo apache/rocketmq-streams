@@ -41,7 +41,7 @@ import java.util.Properties;
 public class WindowMin {
     private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         StreamBuilder builder = new StreamBuilder("windowMinGrade");
 
         builder.source("grade", source -> {

@@ -39,7 +39,7 @@ import java.util.Properties;
  * 5、观察输出结果
  */
 public class WindowCount {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         StreamBuilder builder = new StreamBuilder("windowCountUser");
 
         builder.source("user", source -> {

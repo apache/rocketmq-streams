@@ -26,6 +26,7 @@ import org.apache.rocketmq.streams.core.running.AbstractProcessor;
 import org.apache.rocketmq.streams.core.running.Processor;
 import org.apache.rocketmq.streams.core.running.StreamContext;
 import org.apache.rocketmq.streams.core.state.StateStore;
+import org.apache.rocketmq.streams.core.util.ColumnFamilyUtil;
 
 import java.util.function.Supplier;
 
@@ -78,7 +79,7 @@ public class AccumulatorSupplier<K, V, R, OV> implements Supplier<Processor<V>> 
 
             byte[] keyBytes = super.object2Byte(key);
 
-            byte[] valueBytes = stateStore.get(keyBytes);
+            byte[] valueBytes = stateStore.get(ColumnFamilyUtil.VALUE_STATE_CF, keyBytes);
             if (valueBytes == null || valueBytes.length == 0) {
                 value = accumulator.clone();
             } else {
@@ -91,7 +92,7 @@ public class AccumulatorSupplier<K, V, R, OV> implements Supplier<Processor<V>> 
             OV result = value.result(null);
             byte[] newValueBytes = super.object2Byte(value);
 
-            stateStore.put(this.stateTopicMessageQueue, keyBytes, newValueBytes);
+            stateStore.put(this.stateTopicMessageQueue, ColumnFamilyUtil.VALUE_STATE_CF, keyBytes, newValueBytes);
 
             Data<K, OV> temp = new Data<>(key, result, this.context.getDataTime(), this.context.getHeader());
             Data<K, V> convert = super.convert(temp);
