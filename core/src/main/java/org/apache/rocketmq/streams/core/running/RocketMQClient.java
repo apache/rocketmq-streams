@@ -20,14 +20,22 @@ import org.apache.rocketmq.client.consumer.DefaultLitePullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData.SUB_ALL;
+import static org.apache.rocketmq.streams.core.common.Constant.*;
 
 public class RocketMQClient {
     private static final Logger logger = LoggerFactory.getLogger(RocketMQClient.class);
@@ -37,13 +45,12 @@ public class RocketMQClient {
         this.nameSrvAddr = nameSrvAddr;
     }
 
-    public DefaultLitePullConsumer pullConsumer(String groupName, Set<String> topics) throws MQClientException {
+    public DefaultLitePullConsumer pullConsumer(String groupName,
+                                                Set<String> topics) throws MQClientException {
         DefaultLitePullConsumer pullConsumer = new DefaultLitePullConsumer(groupName);
         pullConsumer.setNamesrvAddr(nameSrvAddr);
-        pullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         pullConsumer.setAutoCommit(false);
         pullConsumer.setPullBatchSize(1000);
-
 
         for (String topic : topics) {
             pullConsumer.subscribe(topic, SUB_ALL);

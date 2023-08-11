@@ -18,8 +18,6 @@
 
 package org.apache.rocketmq.streams.core.common;
 
-import java.nio.charset.StandardCharsets;
-
 public class Constant {
 
     public static final String SHUFFLE_KEY_CLASS_NAME = "shuffle.key.class.name";
@@ -51,4 +49,7 @@ public class Constant {
     public static final String STATIC_TOPIC_BROKER_NAME = "__syslo__global__";
 
     public static final String WATERMARK_KEY = "watermark_key";
+
+    public static final Long DEFAULT_CONSUME_OFFSET = 0L;
+
 }
