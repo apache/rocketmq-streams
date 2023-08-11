@@ -77,22 +77,6 @@ public class GroupedStreamImpl<K, V> implements GroupedStream<K, V> {
     }
 
     @Override
-    public <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction) {
-        String name = OperatorNameMaker.makeName(COUNT_PREFIX, pipeline.getJobId());
-
-        Supplier<Processor<V>> supplier = new AggregateSupplier<>(name, parent.getName(), () -> 0, (K key, V value, Integer agg) -> agg + 1);
-
-        GraphNode graphNode;
-        if (this.parent.shuffleNode()) {
-            graphNode = new ShuffleProcessorNode<>(name, parent.getName(), supplier);
-        } else {
-            graphNode = new ProcessorNode<>(name, parent.getName(), supplier);
-        }
-
-        return this.pipeline.addGroupedStreamVirtualNode(graphNode, parent);
-    }
-
-    @Override
     public GroupedStream<K, V> min(SelectAction<? extends Number, V> selectAction) {
         String name = OperatorNameMaker.makeName(MIN_PREFIX, pipeline.getJobId());
 

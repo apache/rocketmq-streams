@@ -30,9 +30,6 @@ public interface GroupedStream<K, V> {
 
     GroupedStream<K, Integer> count();
 
-    <OUT> GroupedStream<K, Integer> count(SelectAction<OUT, V> selectAction);
-
-
     GroupedStream<K, V> min(SelectAction<? extends Number, V> selectAction);
 
 
