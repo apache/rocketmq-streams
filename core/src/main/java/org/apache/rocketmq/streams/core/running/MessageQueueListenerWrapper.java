@@ -41,8 +41,6 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
 
     private BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> recoverHandler;
 
-    private Function<Set<MessageQueue>, Throwable> resetOffsetHandler;
-
     MessageQueueListenerWrapper(MessageQueueListener originListener, TopologyBuilder topologyBuilder) {
         this.originListener = originListener;
         this.topologyBuilder = topologyBuilder;
@@ -102,9 +100,5 @@ class MessageQueueListenerWrapper implements MessageQueueListener {
 
     public void setRecoverHandler(BiFunction<Set<MessageQueue>, Set<MessageQueue>, Throwable> handler) {
         this.recoverHandler = handler;
-    }
-
-    public void setResetOffsetHandler(Function<Set<MessageQueue>, Throwable> handler) {
-        this.resetOffsetHandler = handler;
     }
 }
