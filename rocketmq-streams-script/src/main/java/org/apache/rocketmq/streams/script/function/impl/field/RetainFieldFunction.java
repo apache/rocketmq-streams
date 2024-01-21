@@ -34,7 +34,7 @@ public class RetainFieldFunction {
 
     @FunctionMethod(value = "retainField", alias = "retain", comment = "需要保留的字段")
     public void retainField(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "array", comment = "字段名，不需要引号") String... msgFieldNames) {
+        @FunctionParamter(value = "array", comment = "字段名，不需要引号") String... msgFieldNames) {
         Map<String, Object> map = new HashMap<>();
         for (String field : msgFieldNames) {
             if (FunctionUtils.isConstant(field)) {

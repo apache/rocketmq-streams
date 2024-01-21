@@ -40,9 +40,9 @@ public class IsEncodingFunction {
      */
     @FunctionMethod(value = "isencoding", alias = "is_encoding", comment = "编码判断")
     public Boolean isencoding(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String param,
-                              @FunctionParamter(value = "string", comment = "代表输入编码格式的字段名或常量") String from,
-                              @FunctionParamter(value = "string", comment = "代表输出编码格式的字段名或常量") String to) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String param,
+        @FunctionParamter(value = "string", comment = "代表输入编码格式的字段名或常量") String from,
+        @FunctionParamter(value = "string", comment = "代表输出编码格式的字段名或常量") String to) {
         String ori = FunctionUtils.getValueString(message, context, param);
         from = FunctionUtils.getValueString(message, context, from);
         to = FunctionUtils.getValueString(message, context, to);

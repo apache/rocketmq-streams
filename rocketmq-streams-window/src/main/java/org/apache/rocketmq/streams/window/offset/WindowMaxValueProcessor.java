@@ -41,6 +41,7 @@ public class WindowMaxValueProcessor {
     protected AbstractWindow window;
     protected String splitId;
     protected SQLCache sqlCache;
+    protected Map<String, WindowMaxValue> windowOffsetMap = new HashMap<>();//all window offsets
 
     public WindowMaxValueProcessor(String splitId, AbstractWindow window,
         SQLCache sqlCache) {
@@ -48,8 +49,6 @@ public class WindowMaxValueProcessor {
         this.window = window;
         this.sqlCache = sqlCache;
     }
-
-    protected Map<String, WindowMaxValue> windowOffsetMap = new HashMap<>();//all window offsets
 
     public Long incrementAndGetSplitNumber(WindowInstance instance) {
         String key = createSplitNumberKey(instance, splitId);
@@ -100,7 +99,7 @@ public class WindowMaxValueProcessor {
             if (windowMaxValue.getMaxOffset().equals("-1")) {
                 windowMaxValue.setMaxOffset(currentOffset);
             } else {
-                if (messageOffset.greateThan(windowMaxValue.getMaxOffset())) {
+                if (messageOffset.greaterThan(windowMaxValue.getMaxOffset())) {
                     windowMaxValue.setMaxOffset(currentOffset);
                 }
             }
@@ -127,7 +126,7 @@ public class WindowMaxValueProcessor {
         }
 
         String keyPrefix = MapKeyUtil.createKey(name, splitId);
-        String sql = "select * from " + ORMUtil.getTableName(WindowMaxValue.class) + " where configure_name like '%" + name + "%' and partition like '%" + splitId + "%'";
+        String sql = "select * from " + ORMUtil.getTableName(WindowMaxValue.class) + " where msg_key like '%" + keyPrefix + "%'";
         List<WindowMaxValue> windowMaxValues = ORMUtil.queryForList(sql, null, WindowMaxValue.class);
         if (windowMaxValues == null || windowMaxValues.size() == 0) {
             return result;

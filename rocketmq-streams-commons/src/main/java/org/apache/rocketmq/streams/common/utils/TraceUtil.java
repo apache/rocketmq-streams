@@ -19,20 +19,15 @@ package org.apache.rocketmq.streams.common.utils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TraceUtil {
 
-    protected static final Log LOG = LogFactory.getLog(TraceUtil.class);
-
     public static final String TRACE_ID_FLAG = "traceId";
-
-    private static final String RUNNING_MODE = "true";
-
     public static final String IGNORE_TRACE_ID = "-1";
-
+    protected static final Logger LOG = LoggerFactory.getLogger(TraceUtil.class);
+    private static final String RUNNING_MODE = "true";
     private static final String TRACE_SPLIT_FLAG = "@@";
 
     /**

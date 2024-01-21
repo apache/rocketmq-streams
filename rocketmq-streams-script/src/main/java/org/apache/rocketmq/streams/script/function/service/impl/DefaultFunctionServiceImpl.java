@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -39,10 +37,12 @@ import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.function.service.IDipperInterfaceAdpater;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultFunctionServiceImpl implements IFunctionService {
 
-    private static final Log LOG = LogFactory.getLog(DefaultFunctionServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultFunctionServiceImpl.class);
 
     /**
      * 重要，函数注册中心。FunctionConfigureMap 保存多个同名的FunctionConfigure
@@ -66,46 +66,26 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     @Deprecated
     protected Map<String, FunctionInfoMap> functionParam2Engies = new IngoreInsensitiveMap<FunctionInfoMap>();
 
-    protected class IngoreInsensitiveMap<V> extends HashMap<String, V> {
-
-        @Override
-        public V get(Object key) {
-            if (key == null) {
-                return null;
-            }
-            String keyString = (String)key;
-            keyString = keyString.toLowerCase();
-            return super.get(keyString);
-        }
-
-        @Override
-        public V put(String key, V value) {
-            if (key == null) {
-                return value;
-            }
-            String keyString = key.toLowerCase();
-            return super.put(keyString, value);
-        }
-    }
-
     public void registeFunction(String functionName, IDipperInterfaceAdpater dipperInterfaceAdpater) {
         this.functionName2Adapter.put(functionName, dipperInterfaceAdpater);
     }
+
     @Override
     public void registeUserDefinedUDTFFunction(String functionName, Object bean, Method method) {
-        FunctionConfigure functionConfigure= registeFunctionInner(functionName,bean,method,FunctionType.UDTF);
+        FunctionConfigure functionConfigure = registeFunctionInner(functionName, bean, method, FunctionType.UDTF);
         functionConfigure.setUserDefinedUDTF(true);
     }
+
     @Override
     public void registeFunction(String functionName, Object bean, Method method, FunctionType functionType) {
-        registeFunctionInner(functionName,bean,method,functionType);
+        registeFunctionInner(functionName, bean, method, functionType);
     }
 
     private FunctionConfigure registeFunctionInner(String functionName, Object bean, Method method, FunctionType functionType) {
-       // LOG.debug("FunctionServiceImpl registeFunction,functionName:" + functionName + " ,method:" + method);
+        // LOG.debug("FunctionServiceImpl registeFunction,functionName:" + functionName + " ,method:" + method);
         try {
             if (IDipperInterfaceAdpater.class.isInstance(bean)) {
-                registeFunction(functionName, (IDipperInterfaceAdpater)bean);
+                registeFunction(functionName, (IDipperInterfaceAdpater) bean);
                 return null;
             }
             FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
@@ -117,8 +97,8 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
             functionConfigureMap.registFunction(engine);
             return engine;
         } catch (Exception e) {
-            LOG.error("DefaultFunctionServiceImpl registeFunction error", e);
-            throw new RuntimeException("can not regeiste this method "+functionName);
+            LOGGER.error("DefaultFunctionServiceImpl registeFunction error", e);
+            throw new RuntimeException("can not regeiste this method " + functionName);
         }
     }
 
@@ -161,7 +141,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
         FunctionType functionType = FunctionType.UDF;
         if (udaf != null) {
             functionType = FunctionType.UDAF;
-            String name = ((UDAFFunction)udaf).value();
+            String name = ((UDAFFunction) udaf).value();
             this.className2InnerInterface.put(name, bean);
             this.className2InnerInterface.put(name.toUpperCase(), bean);
             return;
@@ -217,7 +197,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
             for (Annotation[] parameterAnnotation : parameterAnnotations) {
                 for (Annotation annotation : parameterAnnotation) {
                     if (annotation instanceof FunctionParamter) {
-                        FunctionParamter param = (FunctionParamter)annotation;
+                        FunctionParamter param = (FunctionParamter) annotation;
                         result.append(param.comment() + "@" + param.value() + ",");
                     }
                 }
@@ -264,7 +244,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
         Object[] allParameters = createAllParameter(message, context, parameters);
         FunctionConfigure functionConfigure = getFunctionConfigure(functionName, allParameters);
         if (functionConfigure == null) {
-            LOG.warn("not found engine for " + functionName);
+            LOGGER.warn("not found engine for " + functionName);
             return null;
         }
         return directExecuteFunction(functionConfigure, allParameters);
@@ -272,7 +252,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
 
     @Override
     public FunctionConfigure getFunctionConfigure(IMessage message, FunctionContext context, String functionName,
-                                                  Object... parameters) {
+        Object... parameters) {
         Object[] allParameters = createAllParameter(message, context, parameters);
         return getFunctionConfigure(functionName, allParameters);
     }
@@ -313,25 +293,26 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     @Override public DataType getReturnDataType(String functionName) {
         FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
         if (functionConfigureMap == null) {
-            LOG.warn("get function may be not registe engine for " + functionName);
+            LOGGER.warn("get function may be not registe engine for " + functionName);
             return null;
         }
         List<FunctionConfigure> functionConfigureList = functionConfigureMap.getFunctionConfigureList();
-        if(functionConfigureList==null||functionConfigureList.size()==0){
+        if (functionConfigureList == null || functionConfigureList.size() == 0) {
             return null;
         }
-        DataType returnDataType=null;
-        for(FunctionConfigure functionConfigure:functionConfigureList){
-            if(returnDataType==null){
-                returnDataType=  functionConfigure.getReturnDataType();
+        DataType returnDataType = null;
+        for (FunctionConfigure functionConfigure : functionConfigureList) {
+            if (returnDataType == null) {
+                returnDataType = functionConfigure.getReturnDataType();
                 continue;
             }
-            if(!returnDataType.getDataTypeName().equals(functionConfigure.getReturnDataType().getDataTypeName())){
-                throw new RuntimeException("can not return returnDataType , the FunctionConfigureMap has different returnDataType, the funtcion is "+functionName);
+            if (!returnDataType.getDataTypeName().equals(functionConfigure.getReturnDataType().getDataTypeName())) {
+                throw new RuntimeException("can not return returnDataType , the FunctionConfigureMap has different returnDataType, the funtcion is " + functionName);
             }
         }
         return null;
     }
+
     @Override
     public <T> T directExecuteFunction(String functionName, Object... allParameters) {
         FunctionConfigure engine = getFunctionConfigure(functionName, allParameters);
@@ -343,21 +324,21 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     }
 
     protected <T> T directExecuteFunction(FunctionConfigure engine, Object... allParameters) {
-        return (T)engine.execute(allParameters);
+        return (T) engine.execute(allParameters);
     }
 
     @Override
     public boolean startWith(String functionName, Class[] classes) {
         FunctionConfigureMap functionConfigureMap = functionName2Engies.get(functionName);
         if (functionConfigureMap == null) {
-            LOG.warn("startWith may be not registe engine for " + functionName);
+            LOGGER.warn("startWith may be not registe engine for " + functionName);
             return false;
         }
         return functionConfigureMap.startWith(classes);
     }
 
     private <T> T doDipperInterface(IMessage message, FunctionContext context, IDipperInterfaceAdpater adpater,
-                                    Object[] parameters) {
+        Object[] parameters) {
         JSONObject jsonObject = new JSONObject();
 
         for (int i = 0; i < adpater.count(); i++) {
@@ -370,7 +351,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
             }
             jsonObject.put(name, FunctionUtils.getValue(message, context, parameters[i].toString()));
         }
-        T t = (T)adpater.doScript(jsonObject.toJSONString());
+        T t = (T) adpater.doScript(jsonObject.toJSONString());
         dealBreakExecute(context, t);
         return t;
     }
@@ -378,7 +359,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
     private <T> void dealBreakExecute(FunctionContext context, T t) {
         try {
             if (t instanceof Map) {
-                if (StringUtil.equals((((Map)t).get("breakExecute") + ""), "1")) {
+                if (StringUtil.equals((((Map) t).get("breakExecute") + ""), "1")) {
                     context.breakExecute();
                 }
             }
@@ -409,7 +390,7 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
         if (!className2InnerInterface.containsKey(interfacName)) {
             return null;
         }
-        return (T)className2InnerInterface.get(interfacName);
+        return (T) className2InnerInterface.get(interfacName);
     }
 
     public Map<String, FunctionConfigureMap> getFunctionName2Engies() {
@@ -422,6 +403,28 @@ public class DefaultFunctionServiceImpl implements IFunctionService {
 
     public Map<String, FunctionInfoMap> getFunctionParam2Engies() {
         return functionParam2Engies;
+    }
+
+    protected class IngoreInsensitiveMap<V> extends HashMap<String, V> {
+
+        @Override
+        public V get(Object key) {
+            if (key == null) {
+                return null;
+            }
+            String keyString = (String) key;
+            keyString = keyString.toLowerCase();
+            return super.get(keyString);
+        }
+
+        @Override
+        public V put(String key, V value) {
+            if (key == null) {
+                return value;
+            }
+            String keyString = key.toLowerCase();
+            return super.put(keyString, value);
+        }
     }
 
 }

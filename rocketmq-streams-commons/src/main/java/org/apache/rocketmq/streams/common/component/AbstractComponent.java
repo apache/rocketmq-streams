@@ -20,68 +20,46 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.utils.ENVUtile;
-import org.apache.rocketmq.streams.common.utils.PropertiesUtils;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.utils.ENVUtil;
+import org.apache.rocketmq.streams.common.utils.PropertiesUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFileKey {
+public abstract class AbstractComponent<T> implements IComponent<T> {
 
-    private static final Log LOG = LogFactory.getLog(AbstractComponent.class);
-
-    public final static String ENV_JDBC_URL = "rocketmq_streams_sync_jdbc_url";
-
-    public final static String ENV_JDBC_USERNAME = "rocketmq_streams_sync_jdbc_username";
-
-    public final static String ENV_JDBC_PASSWORD = "rocketmq_streams_sync_jdbc_password";
-
-    public final static String ENV_JDBC_DRIVER = "rocketmq_streams_sync_jdbc_driver";
-
-    public final static String HTTP_AK = "rocketmq.streams.channel.ak";
-
-    public final static String HTTP_SK = "rocketmq.streams.channel.sk";
-
-    public final static String DEFAULT_JDBC_DRIVER = "com.mysql.jdbc.Driver";
-
-    public final static String DEFAULT_JDBC_TABLE_NAME = "rocketmq_streams_checkpoint_table";
-
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractComponent.class);
     /**
      * xml的位置，如果没有即默认位置
      */
     protected PropertyConfigureDescriptorManager configureDescriptorManager = new PropertyConfigureDescriptorManager();
-
+    protected AtomicBoolean isStart = new AtomicBoolean(false);
     private Properties properties;
 
-    @Override
-    public boolean init() {
+    @Override public boolean init() {
         Properties properties = createDefaultProperty();
         return initProperty(properties);
     }
 
     protected Properties createDefaultProperty() {
         //createENVProperties();
-        Properties properties ;
-        properties = ComponentCreator.getProperties();
-        if (properties == null) {
-            properties = getDefaultProperties();
-        }
+        Properties properties = getDefaultProperties();
         if (properties == null) {
             properties = new Properties();
         }
-        Properties newProperties=new Properties();
+        Properties newProperties = new Properties();
         newProperties.putAll(properties);
         addSystemProperties(newProperties);
         return newProperties;
     }
 
     public void initConfigurableServiceDescriptor() {
-        addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_URL, null, true, ENV_JDBC_URL));
-        addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_USERNAME, null, true, ENV_JDBC_USERNAME));
-        addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_PASSWORD, null, true, ENV_JDBC_PASSWORD));
-        addConfigureDescriptor(new ConfigureDescriptor("jdbc", JDBC_DRIVER, DEFAULT_JDBC_DRIVER, false, ENV_JDBC_DRIVER));
-        addConfigureDescriptor(new ConfigureDescriptor("http", HTTP_AK, true));
-        addConfigureDescriptor(new ConfigureDescriptor("http", HTTP_SK, true));
+        addConfigureDescriptor(new ConfigureDescriptor("jdbc", ConfigurationKey.JDBC_URL, null, true, ConfigurationKey.ENV_JDBC_URL));
+        addConfigureDescriptor(new ConfigureDescriptor("jdbc", ConfigurationKey.JDBC_USERNAME, null, true, ConfigurationKey.ENV_JDBC_USERNAME));
+        addConfigureDescriptor(new ConfigureDescriptor("jdbc", ConfigurationKey.JDBC_PASSWORD, null, true, ConfigurationKey.ENV_JDBC_PASSWORD));
+        addConfigureDescriptor(new ConfigureDescriptor("jdbc", ConfigurationKey.JDBC_DRIVER, ConfigurationKey.DEFAULT_JDBC_DRIVER, false, ConfigurationKey.ENV_JDBC_DRIVER));
+        addConfigureDescriptor(new ConfigureDescriptor("http", ConfigurationKey.HTTP_AK, true));
+        addConfigureDescriptor(new ConfigureDescriptor("http", ConfigurationKey.HTTP_SK, true));
     }
 
     protected void addConfigureDescriptor(ConfigureDescriptor configureDescriptor) {
@@ -97,7 +75,7 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
         for (List<ConfigureDescriptor> configureDescriptors : configureDescriptorManager.getGroupByConfigures().values()) {
             for (ConfigureDescriptor configureDescriptor : configureDescriptors) {
                 String key = configureDescriptor.getPropertyKey();
-                String value = ENVUtile.getSystemParameter(key);
+                String value = ENVUtil.getSystemParameter(key);
                 if (value != null) {
                     properties.put(key, value);
                 }
@@ -131,24 +109,21 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
         return null;
     }
 
-    @Override
-    public boolean initByClassPath(String propertiesPath) {
-        Properties properties = PropertiesUtils.getResourceProperties(propertiesPath);
+    @Override public boolean initByClassPath(String propertiesPath) {
+        Properties properties = PropertiesUtil.getResourceProperties(propertiesPath);
         return initProperty(properties);
     }
 
-    @Override
-    public boolean initByFilePath(String filePath) {
-        Properties properties = PropertiesUtils.loadPropertyByFilePath(filePath);
+    @Override public boolean initByFilePath(String filePath) {
+        Properties properties = PropertiesUtil.loadPropertyByFilePath(filePath);
         return initProperty(properties);
     }
 
-    @Override
-    public boolean initByPropertiesStr(String... kvs) {
+    @Override public boolean initByPropertiesStr(String... kvs) {
         Properties properties = createDefaultProperty();
         if (kvs != null && kvs.length > 0) {
             for (String ky : kvs) {
-                PropertiesUtils.putProperty(ky, ":", properties);
+                PropertiesUtil.putProperty(ky, ":", properties);
             }
         }
         return initProperty(properties);
@@ -168,7 +143,7 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
 
     protected Properties getDefaultProperties() {
         try {
-            return PropertiesUtils.getResourceProperties(getComponentPropertyPath());
+            return PropertiesUtil.getResourceProperties(getComponentPropertyPath());
         } catch (Exception e) {
             LOG.error("load jar file error", e);
             return null;
@@ -177,13 +152,10 @@ public abstract class AbstractComponent<T> implements IComponent<T>, ConfigureFi
     }
 
     private String getComponentPropertyPath() {
-        return PropertiesUtils.getComponentPropertyPath(this.getClass());
+        return PropertiesUtil.getComponentPropertyPath(this.getClass());
     }
 
-    protected AtomicBoolean isStart = new AtomicBoolean(false);
-
-    @Override
-    public boolean start(String name) {
+    @Override public boolean start(String name) {
         if (isStart.compareAndSet(false, true)) {
             startComponent(name);
         }

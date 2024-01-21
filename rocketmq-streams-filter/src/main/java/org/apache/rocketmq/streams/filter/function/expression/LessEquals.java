@@ -34,7 +34,7 @@ public class LessEquals extends CompareFunction {
     @FunctionMethodAilas("小于等于")
     @Override
     public Boolean doFunction(IMessage message, AbstractContext context, Expression expression) {
-        return super.doFunction(message,context,expression);
+        return super.doFunction(message, context, expression);
     }
 
     public boolean compare(int a, int b) {

@@ -18,10 +18,6 @@ package org.apache.rocketmq.streams.window.storage;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class ShufflePartitionManager {
     private static ShufflePartitionManager instance = new ShufflePartitionManager();
@@ -77,7 +73,7 @@ public class ShufflePartitionManager {
 
     public synchronized void clearSplit(String queueId) {
         splitId2AllWindowInstanceFinishInit.remove(queueId);
-        Map<String, Boolean> map=new HashMap<>(this.windowInstanceId2FinishInit);
+        Map<String, Boolean> map = new HashMap<>(this.windowInstanceId2FinishInit);
         for (String windowInstanceId : map.keySet()) {
             if (windowInstanceId.startsWith(queueId)) {
                 this.windowInstanceId2FinishInit.remove(windowInstanceId);

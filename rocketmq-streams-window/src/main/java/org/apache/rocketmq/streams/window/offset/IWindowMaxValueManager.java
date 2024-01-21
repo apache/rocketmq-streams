@@ -34,14 +34,14 @@ public interface IWindowMaxValueManager {
      */
     Long incrementAndGetSplitNumber(WindowInstance instance, String splitId);
 
-
     WindowMaxValue querySplitNum(WindowInstance instance, String splitId);
+
     /**
+     *
      */
     void initMaxSplitNum(WindowInstance windowInstance, Long maxSplitNum);
 
-
-//    /**
+    //    /**
 //     * load mutil window instance split's max split num
 //     *
 //     * @param keys
@@ -58,22 +58,20 @@ public interface IWindowMaxValueManager {
 
     void resetSplitNum(WindowInstance instance, String splitId);
 
-//    void resetSplitNum(String key);
+    //    void resetSplitNum(String key);
 //
     void deleteSplitNum(WindowInstance instance, String splitId);
 
     /**
      * save window saved max offset，can filter the less offset
+     *
      * @param name
      * @param oriQueueId2Offsets
      */
-    Map<String,WindowMaxValue> saveMaxOffset(boolean isLong, String name, String shuffleId,
+    Map<String, WindowMaxValue> saveMaxOffset(boolean isLong, String name, String shuffleId,
         Map<String, String> oriQueueId2Offsets);
 
-
-
     Map<String, String> loadOffsets(String name, String shuffleId);
-
 
     Map<String, WindowMaxValue> queryOffsets(String name, String shuffleId, Set<String> oriQueueIds);
 }

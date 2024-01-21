@@ -35,7 +35,7 @@ public class CbrtFunction {
      */
     @FunctionMethod(value = "cbrt", alias = "cbrt", comment = "返回立方根")
     public Double cbrt(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment = "待求值的常量") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "待求值的常量") Integer number) {
         Double result = null;
         if (number == null || number < 0 || number > 20) {
             return result;
@@ -53,7 +53,7 @@ public class CbrtFunction {
      */
     @FunctionMethod(value = "cbrt", alias = "cbrt", comment = "返回立方根")
     public Double cbrt(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "待求值的字段名或常量") String number) {
+        @FunctionParamter(value = "String", comment = "待求值的字段名或常量") String number) {
         Double result = null;
         Integer numberTem = Integer.parseInt(FunctionUtils.getValueString(message, context, number));
         if (number == null || numberTem < 0 || numberTem > 20) {

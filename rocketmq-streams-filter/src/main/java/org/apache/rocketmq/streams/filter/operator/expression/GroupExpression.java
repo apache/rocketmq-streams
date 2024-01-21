@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.optimization.RegexEngine;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
@@ -52,16 +51,27 @@ public class GroupExpression extends Expression<List<Expression>> {
     protected List<Expression> notRegexExpression = new ArrayList<>();
     protected AtomicBoolean hasCompile = new AtomicBoolean(false);
     protected transient Var var;
+    protected transient String fingerpringtNamespace;
 
     public GroupExpression(Rule rule, Var var, boolean isOrRelation) {
         this.rule = rule;
         this.var = var;
         this.varName = var.getVarName();
         this.isOrRelation = isOrRelation;
-        this.setConfigureName(NameCreatorContext.get().createNewName("expression.group"));
+        this.setName(NameCreatorContext.get().createName("expression.group"));
         value = new ArrayList<>();
         this.setNameSpace(rule.getNameSpace());
         fingerprintCache = FingerprintCache.getInstance();
+    }
+
+    public static void main(String[] args) {
+//        String content = "abdfdfd";
+//        String regex = "ab.*fd";
+//        System.out.println(StringUtil.matchRegex(content, regex));
+
+        BitSetCache.BitSet bitset = new BitSetCache.BitSet(1);
+//        bitset.set(0);
+        System.out.println(bitset.getBytes().length);
     }
 
     public void compile() {
@@ -71,7 +81,7 @@ public class GroupExpression extends Expression<List<Expression>> {
         regexEngine = new RegexEngine();
         for (Expression expression : getValue()) {
             if (SimpleExpression.class.isInstance(expression) && (RegexFunction.isRegex(expression.getFunctionName()))) {
-                regexEngine.addRegex((String) expression.getValue(), expression.getConfigureName());
+                regexEngine.addRegex((String) expression.getValue(), expression.getName());
             } else {
                 notRegexExpression.add(expression);
             }
@@ -108,11 +118,9 @@ public class GroupExpression extends Expression<List<Expression>> {
         return set;
     }
 
-    protected transient String fingerpringtNamespace;
-
     protected String getFingerprintNamespace() {
         if (fingerpringtNamespace == null) {
-            return MapKeyUtil.createKey(getNameSpace(), rule.getConfigureName(), getConfigureName());
+            return MapKeyUtil.createKey(getNameSpace(), rule.getName(), getName());
         }
         return fingerpringtNamespace;
     }
@@ -153,7 +161,7 @@ public class GroupExpression extends Expression<List<Expression>> {
 
     public void addExpressionName(Expression expression) {
         if (RegexFunction.isRegex(expression.getFunctionName())) {
-            regexExpressionNameSet.add(expression.getConfigureName());
+            regexExpressionNameSet.add(expression.getName());
         }
 //        if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
 //            regexExpressionNameSet.add(expression.getConfigureName());
@@ -181,18 +189,8 @@ public class GroupExpression extends Expression<List<Expression>> {
     public Collection<? extends String> getAllExpressionNames() {
         Set<String> names = new HashSet<>();
         for (Expression expression : getValue()) {
-            names.add(expression.getConfigureName());
+            names.add(expression.getName());
         }
         return names;
-    }
-
-    public static void main(String[] args) {
-//        String content = "abdfdfd";
-//        String regex = "ab.*fd";
-//        System.out.println(StringUtil.matchRegex(content, regex));
-
-        BitSetCache.BitSet bitset = new BitSetCache.BitSet(1);
-//        bitset.set(0);
-        System.out.println(bitset.getBytes().length);
     }
 }

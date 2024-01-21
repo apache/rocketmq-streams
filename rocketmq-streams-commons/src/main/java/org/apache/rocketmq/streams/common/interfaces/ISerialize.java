@@ -18,5 +18,4 @@ package org.apache.rocketmq.streams.common.interfaces;
 
 public interface ISerialize {
 
-
 }

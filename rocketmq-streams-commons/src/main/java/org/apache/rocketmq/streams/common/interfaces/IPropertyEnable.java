@@ -24,15 +24,15 @@ import org.apache.rocketmq.streams.common.utils.ReflectUtil;
  */
 public interface IPropertyEnable {
 
-    void initProperty(Properties properties);
-
     static <T extends IPropertyEnable> T create(String className, Properties properties) {
         IPropertyEnable propertyEnable = ReflectUtil.forInstance(className);
         propertyEnable.initProperty(properties);
-        return (T)propertyEnable;
+        return (T) propertyEnable;
     }
 
     static <T extends IPropertyEnable> T create(Class claszz, Properties properties) {
         return create(claszz.getName(), properties);
     }
+
+    void initProperty(Properties properties);
 }

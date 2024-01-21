@@ -34,6 +34,15 @@ public class HllDataType extends BaseDataType<HLL> {
         setDataClazz(HLL.class);
     }
 
+    public static void main(String[] args) {
+        HLL hll = new HLL(30, 8);
+        hll.addRaw(123456);
+        HllDataType dataType = new HllDataType();
+        String content = dataType.toDataJson(hll);
+        HLL copy = dataType.getData(content);
+        System.out.println(copy.cardinality());
+    }
+
     @Override protected void setFieldValueToJson(JSONObject jsonObject) {
     }
 
@@ -65,15 +74,6 @@ public class HllDataType extends BaseDataType<HLL> {
             return HLL.fromBytes(Base64Utils.decode(jsonValue));
         }
         return null;
-    }
-
-    public static void main(String[] args) {
-        HLL hll = new HLL(30, 8);
-        hll.addRaw(123456);
-        HllDataType dataType = new HllDataType();
-        String content = dataType.toDataJson(hll);
-        HLL copy = dataType.getData(content);
-        System.out.println(copy.cardinality());
     }
 
 }

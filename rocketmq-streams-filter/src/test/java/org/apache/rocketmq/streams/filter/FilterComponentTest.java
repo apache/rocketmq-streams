@@ -30,7 +30,7 @@ public class FilterComponentTest {
         jsonObject.put("ip", "1.2.2.3");
         jsonObject.put("uid", 1224);
         jsonObject.put("vmip", "1.1.1.1");
-        List<Rule> ruleList=filterComponent.excuteRule(jsonObject, rule);
+        List<Rule> ruleList = filterComponent.excuteRule(jsonObject, rule);
         System.out.println(ruleList.size());
     }
 }

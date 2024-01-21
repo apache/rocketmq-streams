@@ -40,9 +40,9 @@ public class TransLateFunction {
 
     @FunctionMethod(value = "translate", comment = "将原字符串中指定的字符串替换为新的字符串")
     public String translate(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "原字符串代表列名称或常量值") String str1,
-                            @FunctionParamter(value = "string", comment = "指定的要替换的字符串代表列名称或常量值") String str2,
-                            @FunctionParamter(value = "string", comment = "新的字符串代表列名称或常量值") String str3) {
+        @FunctionParamter(value = "string", comment = "原字符串代表列名称或常量值") String str1,
+        @FunctionParamter(value = "string", comment = "指定的要替换的字符串代表列名称或常量值") String str2,
+        @FunctionParamter(value = "string", comment = "新的字符串代表列名称或常量值") String str3) {
         str1 = FunctionUtils.getValueString(message, context, str1);
         str2 = FunctionUtils.getValueString(message, context, str2);
         str3 = FunctionUtils.getValueString(message, context, str3);

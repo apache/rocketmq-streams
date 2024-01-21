@@ -23,13 +23,15 @@ import java.util.StringTokenizer;
 
 public class SQLFormatterUtil {
 
+    public static final String WHITESPACE = " \n\r\f\t";
+    static final String indentString = "    ";
+    static final String initial = "\n    ";
     private static final Set<String> BEGIN_CLAUSES = new HashSet<String>();
     private static final Set<String> END_CLAUSES = new HashSet<String>();
     private static final Set<String> LOGICAL = new HashSet<String>();
     private static final Set<String> QUANTIFIERS = new HashSet<String>();
     private static final Set<String> DML = new HashSet<String>();
     private static final Set<String> MISC = new HashSet<String>();
-    public static final String WHITESPACE = " \n\r\f\t";
 
     static {
         BEGIN_CLAUSES.add("left");
@@ -70,9 +72,6 @@ public class SQLFormatterUtil {
         MISC.add("on");
     }
 
-    static final String indentString = "    ";
-    static final String initial = "\n    ";
-
     public String format(String source) {
         return new FormatProcess(source).perform();
     }
@@ -87,16 +86,14 @@ public class SQLFormatterUtil {
         boolean afterInsert = false;
         int inFunction = 0;
         int parensSinceSelect = 0;
-        private LinkedList<Integer> parenCounts = new LinkedList<Integer>();
-        private LinkedList<Boolean> afterByOrFromOrSelects = new LinkedList<Boolean>();
-
         int indent = 0;
-
         StringBuilder result = new StringBuilder();
         StringTokenizer tokens;
         String lastToken;
         String token;
         String lcToken;
+        private LinkedList<Integer> parenCounts = new LinkedList<Integer>();
+        private LinkedList<Boolean> afterByOrFromOrSelects = new LinkedList<Boolean>();
 
         public FormatProcess(String sql) {
             tokens = new StringTokenizer(
@@ -104,6 +101,21 @@ public class SQLFormatterUtil {
                 "()+*/-=<>'`\"[]," + WHITESPACE,
                 true
             );
+        }
+
+        private static boolean isFunctionName(String tok) {
+            final char begin = tok.charAt(0);
+            final boolean isIdentifier = Character.isJavaIdentifierStart(begin) || '"' == begin;
+            return isIdentifier &&
+                !LOGICAL.contains(tok) &&
+                !END_CLAUSES.contains(tok) &&
+                !QUANTIFIERS.contains(tok) &&
+                !DML.contains(tok) &&
+                !MISC.contains(tok);
+        }
+
+        private static boolean isWhitespace(String token) {
+            return WHITESPACE.indexOf(token) >= 0;
         }
 
         public String perform() {
@@ -328,21 +340,6 @@ public class SQLFormatterUtil {
                 }
             }
             parensSinceSelect++;
-        }
-
-        private static boolean isFunctionName(String tok) {
-            final char begin = tok.charAt(0);
-            final boolean isIdentifier = Character.isJavaIdentifierStart(begin) || '"' == begin;
-            return isIdentifier &&
-                !LOGICAL.contains(tok) &&
-                !END_CLAUSES.contains(tok) &&
-                !QUANTIFIERS.contains(tok) &&
-                !DML.contains(tok) &&
-                !MISC.contains(tok);
-        }
-
-        private static boolean isWhitespace(String token) {
-            return WHITESPACE.indexOf(token) >= 0;
         }
 
         private void newline() {

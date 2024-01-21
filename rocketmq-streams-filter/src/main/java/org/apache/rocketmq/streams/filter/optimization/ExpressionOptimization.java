@@ -43,6 +43,11 @@ public class ExpressionOptimization {
         this.expressionMap = expressionMap;
     }
 
+    public static void main(String[] args) {
+        String expressionName = "((a,=,c)&((d,=,e)|(f,=,d)))&(label|label2)";
+        ExpressionBuilder.executeExecute("reew", expressionName, null);
+    }
+
     /**
      * 去除不必要的关系，生成只需要的表达式和关系
      *
@@ -53,7 +58,7 @@ public class ExpressionOptimization {
         if (!RelationExpression.class.isInstance(rootExpression)) {
             return new ArrayList<>();
         }
-        RelationExpression relationExpression = (RelationExpression)rootExpression;
+        RelationExpression relationExpression = (RelationExpression) rootExpression;
         optimizate(relationExpression);
         List<Expression> expressions = new ArrayList<>();
         createExpressionList(relationExpression, expressions);
@@ -73,7 +78,7 @@ public class ExpressionOptimization {
         if (RelationExpression.class.isInstance(expression) == false) {
             return;
         }
-        RelationExpression relationExpression = (RelationExpression)expression;
+        RelationExpression relationExpression = (RelationExpression) expression;
         for (String name : relationExpression.getValue()) {
             Expression subExpression = getExpression(name);
             if (subExpression == null) {
@@ -93,12 +98,12 @@ public class ExpressionOptimization {
     protected void initExpressionMap(List<Expression> simpleExpressions, List<RelationExpression> relationExpressions) {
         if (simpleExpressions != null) {
             for (Expression expression : simpleExpressions) {
-                this.expressionMap.put(expression.getConfigureName(), expression);
+                this.expressionMap.put(expression.getName(), expression);
             }
         }
         if (relationExpressions != null) {
             for (RelationExpression relationExpression : relationExpressions) {
-                this.expressionMap.put(relationExpression.getConfigureName(), relationExpression);
+                this.expressionMap.put(relationExpression.getName(), relationExpression);
             }
         }
     }
@@ -121,10 +126,10 @@ public class ExpressionOptimization {
                 names.add(expressionName);
                 continue;
             }
-            RelationExpression relationExpression = (RelationExpression)children;
+            RelationExpression relationExpression = (RelationExpression) children;
             optimizate(relationExpression);
             if (!relationExpression.getRelation().equals(parentRelation)) {
-                names.add(relationExpression.getConfigureName());
+                names.add(relationExpression.getName());
             } else {
                 names.addAll(relationExpression.getValue());
             }
@@ -134,10 +139,5 @@ public class ExpressionOptimization {
 
     private Expression getExpression(String expressionName) {
         return this.expressionMap.get(expressionName);
-    }
-
-    public static void main(String[] args) {
-        String expressionName = "((a,=,c)&((d,=,e)|(f,=,d)))&(label|label2)";
-        ExpressionBuilder.executeExecute("reew", expressionName, null);
     }
 }

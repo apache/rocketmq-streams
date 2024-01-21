@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.client.windows;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ public class ShuffleOverWindowTest {
 
     @Test
     public void testShuffleWindow() {
-        StreamBuilder.dataStream("namespace", "name1")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name1")
             .fromFile(filePath, true)
             .topN("rowNum", 10000, "city")
             .addOrderByFieldName("name", true)

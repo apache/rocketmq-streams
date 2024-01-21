@@ -51,6 +51,17 @@ public class ListDataType extends GenericParameterDataType<List> {
         setDataClazz(List.class);
     }
 
+    public static String getTypeName() {
+        return "list";
+    }
+
+    public static void main(String[] args) {
+        ListDataType listDataType = new ListDataType(new StringDataType());
+        List<String> list = listDataType.getData("[\"fdsdfds\",\"dfs\"]");
+        list = listDataType.getData(listDataType.toDataStr(list));
+        System.out.println(listDataType.toDataStr(list));
+    }
+
     @Override
     public String toDataStr(List value) {
         StringBuilder stringBuilder = new StringBuilder();
@@ -158,10 +169,6 @@ public class ListDataType extends GenericParameterDataType<List> {
             return false;
         }
         return !jsonValue.trim().startsWith("{") && !jsonValue.trim().startsWith("[");
-    }
-
-    public static String getTypeName() {
-        return "set";
     }
 
     @Override
@@ -274,11 +281,8 @@ public class ListDataType extends GenericParameterDataType<List> {
         return List.class.getName() + "<" + subStr + ">";
     }
 
-    public static void main(String[] args) {
-        ListDataType listDataType = new ListDataType(new StringDataType());
-        List<String> list = listDataType.getData("[\"fdsdfds\",\"dfs\"]");
-        list = listDataType.getData(listDataType.toDataStr(list));
-        System.out.println(listDataType.toDataStr(list));
+    public DataType getParadigmType() {
+        return paradigmType;
     }
 
     public void setParadigmType(DataType paradigmType) {

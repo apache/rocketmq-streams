@@ -39,67 +39,64 @@ public abstract class AbstractWhenExpression implements IScriptExpression {
     protected String namespace;
     protected String name;
     //group by varname, if has mutil varname, join by ;
-    protected Map<String,GroupByVarCaseWhen> varNames2GroupByVarCaseWhen=new HashMap<>();
+    protected Map<String, GroupByVarCaseWhen> varNames2GroupByVarCaseWhen = new HashMap<>();
     //all case when element
-    protected List<CaseWhenElement> allCaseWhenElement=new ArrayList<>();
+    protected List<CaseWhenElement> allCaseWhenElement = new ArrayList<>();
     //can not cache CaseWhenElement
-    protected List<CaseWhenElement> notCacheCaseWhenElement=new ArrayList<>();
+    protected List<CaseWhenElement> notCacheCaseWhenElement = new ArrayList<>();
     //key:varnames join by ;  value:varname list
-    protected Map<String,List<String>>varNames=new HashMap<>();
+    protected Map<String, List<String>> varNames = new HashMap<>();
     //key:varnames join by ;  value:index in allCaseWhenElement
-    protected Map<String,Integer> varName2Indexs=new HashMap<>();
+    protected Map<String, Integer> varName2Indexs = new HashMap<>();
     //key:allCaseWhenElement value:index in allCaseWhenElement
-    protected Map<CaseWhenElement,Integer> caseWhenElementIndexMap=new HashMap<>();
+    protected Map<CaseWhenElement, Integer> caseWhenElementIndexMap = new HashMap<>();
     //create index
-    protected AtomicInteger groupIndex=new AtomicInteger(0);
+    protected AtomicInteger groupIndex = new AtomicInteger(0);
 
-    public AbstractWhenExpression(String namespace,String name){
-        this.name=name;
-        this.namespace=namespace;
+    public AbstractWhenExpression(String namespace, String name) {
+        this.name = name;
+        this.namespace = namespace;
     }
 
-    @Override public abstract Object executeExpression(IMessage message, FunctionContext context) ;
+    @Override public abstract Object executeExpression(IMessage message, FunctionContext context);
 
-
-
-    public void registe(CaseWhenElement caseWhenElement, Set<String> varNames){
-        List<String> varNameList=new ArrayList<>();
+    public void registe(CaseWhenElement caseWhenElement, Set<String> varNames) {
+        List<String> varNameList = new ArrayList<>();
         varNameList.addAll(varNames);
         Collections.sort(varNameList);
-        String key= MapKeyUtil.createKey(varNameList);
-        GroupByVarCaseWhen groupByVarCaseWhen=varNames2GroupByVarCaseWhen.get(key);
-        if(groupByVarCaseWhen==null){
-            groupByVarCaseWhen=new GroupByVarCaseWhen(groupIndex.incrementAndGet());
-            varNames2GroupByVarCaseWhen.put(key,groupByVarCaseWhen);
+        String key = MapKeyUtil.createKey(varNameList);
+        GroupByVarCaseWhen groupByVarCaseWhen = varNames2GroupByVarCaseWhen.get(key);
+        if (groupByVarCaseWhen == null) {
+            groupByVarCaseWhen = new GroupByVarCaseWhen(groupIndex.incrementAndGet());
+            varNames2GroupByVarCaseWhen.put(key, groupByVarCaseWhen);
         }
         groupByVarCaseWhen.registe(caseWhenElement);
         allCaseWhenElement.add(caseWhenElement);
-        this.varNames.put(key,varNameList);
-        this.varName2Indexs.put(key,allCaseWhenElement.size()-1);
-        caseWhenElementIndexMap.put(caseWhenElement,allCaseWhenElement.size()-1);
+        this.varNames.put(key, varNameList);
+        this.varName2Indexs.put(key, allCaseWhenElement.size() - 1);
+        caseWhenElementIndexMap.put(caseWhenElement, allCaseWhenElement.size() - 1);
     }
 
-    public void compile(){
-        Map<String,GroupByVarCaseWhen> groupByVarCaseWhenMap=new HashMap<>();
-        for(String key:varNames2GroupByVarCaseWhen.keySet()){
-            GroupByVarCaseWhen groupByVarCaseWhen=varNames2GroupByVarCaseWhen.get(key);
-            if(groupByVarCaseWhen.size()<5||varNames.get(key).size()>5){
+    public void compile() {
+        Map<String, GroupByVarCaseWhen> groupByVarCaseWhenMap = new HashMap<>();
+        for (String key : varNames2GroupByVarCaseWhen.keySet()) {
+            GroupByVarCaseWhen groupByVarCaseWhen = varNames2GroupByVarCaseWhen.get(key);
+            if (groupByVarCaseWhen.size() < 5 || varNames.get(key).size() > 5) {
                 notCacheCaseWhenElement.addAll(groupByVarCaseWhen.getAllCaseWhenElements());
-            }else {
-                groupByVarCaseWhenMap.put(key,groupByVarCaseWhen);
+            } else {
+                groupByVarCaseWhenMap.put(key, groupByVarCaseWhen);
             }
             //最大个数不超过1个字节能表示的数量
-            if(groupByVarCaseWhen.size()>254){
-                List<CaseWhenElement> removeElements=groupByVarCaseWhen.removeUtilSize(255);
-                if(removeElements!=null){
+            if (groupByVarCaseWhen.size() > 254) {
+                List<CaseWhenElement> removeElements = groupByVarCaseWhen.removeUtilSize(255);
+                if (removeElements != null) {
                     this.notCacheCaseWhenElement.addAll(removeElements);
                 }
             }
 
         }
-        this.varNames2GroupByVarCaseWhen=groupByVarCaseWhenMap;
+        this.varNames2GroupByVarCaseWhen = groupByVarCaseWhenMap;
     }
-
 
     @Override public List<IScriptParamter> getScriptParamters() {
         return null;
@@ -108,6 +105,7 @@ public abstract class AbstractWhenExpression implements IScriptExpression {
     @Override public String getFunctionName() {
         return "condition";
     }
+
     @Override public String getExpressionDescription() {
         return null;
     }
@@ -121,41 +119,39 @@ public abstract class AbstractWhenExpression implements IScriptExpression {
     }
 
     @Override public List<String> getDependentFields() {
-        Set<String> varNames=new HashSet<>();
-        for(CaseWhenElement caseWhenElement:this.allCaseWhenElement){
+        Set<String> varNames = new HashSet<>();
+        for (CaseWhenElement caseWhenElement : this.allCaseWhenElement) {
             varNames.addAll(caseWhenElement.getDependentFields());
         }
-        List<String> varNameList=new ArrayList<>();
+        List<String> varNameList = new ArrayList<>();
         varNameList.addAll(varNames);
         Collections.sort(varNameList);
         return varNameList;
     }
 
     @Override public Set<String> getNewFieldNames() {
-        Set<String> varNames=new HashSet<>();
-        for(CaseWhenElement caseWhenElement:this.allCaseWhenElement){
+        Set<String> varNames = new HashSet<>();
+        for (CaseWhenElement caseWhenElement : this.allCaseWhenElement) {
             varNames.addAll(caseWhenElement.getNewFieldNames());
         }
         return varNames;
     }
 
-
-
-    protected List<CaseWhenElement> executeGroupByVarCaseWhen(String key,GroupByVarCaseWhen groupByVarCaseWhen, IMessage message, FunctionContext context) {
-        List<String> varList=varNames.get(key);
-        String varValue=createVarValue(varList,message);
-        String cacheKey=MapKeyUtil.createKey(namespace,name,groupByVarCaseWhen.index+"");
-        BitSetCache.BitSet bitSet = FingerprintCache.getInstance().getLogFingerprint(cacheKey,varValue);
-        List<CaseWhenElement> matchCaseWhenElements=new ArrayList<>();
-        if(bitSet==null){
-            List<Integer> matchIndexs=groupByVarCaseWhen.executeCase(message,context,executeThenDirectly(),matchCaseWhenElements);
-            bitSet=new BitSetCache.BitSet(createBytes(matchIndexs));
-            FingerprintCache.getInstance().addLogFingerprint(cacheKey,varValue,bitSet);
+    protected List<CaseWhenElement> executeGroupByVarCaseWhen(String key, GroupByVarCaseWhen groupByVarCaseWhen, IMessage message, FunctionContext context) {
+        List<String> varList = varNames.get(key);
+        String varValue = createVarValue(varList, message);
+        String cacheKey = MapKeyUtil.createKey(namespace, name, groupByVarCaseWhen.index + "");
+        BitSetCache.BitSet bitSet = FingerprintCache.getInstance().getLogFingerprint(cacheKey, varValue);
+        List<CaseWhenElement> matchCaseWhenElements = new ArrayList<>();
+        if (bitSet == null) {
+            List<Integer> matchIndexs = groupByVarCaseWhen.executeCase(message, context, executeThenDirectly(), matchCaseWhenElements);
+            bitSet = new BitSetCache.BitSet(createBytes(matchIndexs));
+            FingerprintCache.getInstance().addLogFingerprint(cacheKey, varValue, bitSet);
             return matchCaseWhenElements;
-        }else {
-            byte[] bytes=bitSet.getBytes();
-            List<Integer> matchIndexs=createMatchIndex(bytes);
-            groupByVarCaseWhen.executeByResult(message,context,matchIndexs,executeThenDirectly(),matchCaseWhenElements);
+        } else {
+            byte[] bytes = bitSet.getBytes();
+            List<Integer> matchIndexs = createMatchIndex(bytes);
+            groupByVarCaseWhen.executeByResult(message, context, matchIndexs, executeThenDirectly(), matchCaseWhenElements);
             return matchCaseWhenElements;
         }
 
@@ -163,52 +159,52 @@ public abstract class AbstractWhenExpression implements IScriptExpression {
 
     protected abstract boolean executeThenDirectly();
 
-
     protected byte[] createBytes(List<Integer> indexs) {
-        if(CollectionUtil.isEmpty(indexs)){
-            byte[] bytes=new byte[1];
-            bytes[0]=NumberUtils.toByte(0)[0];
+        if (CollectionUtil.isEmpty(indexs)) {
+            byte[] bytes = new byte[1];
+            bytes[0] = NumberUtils.toByte(0)[0];
             return bytes;
         }
-        byte[] bytes=new byte[indexs.size()];
-        for(int i=0;i<bytes.length;i++){
-            Integer index=indexs.get(i)+1;//if index=0, maybe cannot judge is false or index
-            byte b=NumberUtils.toByte(index)[0];
-            bytes[i]=b;
+        byte[] bytes = new byte[indexs.size()];
+        for (int i = 0; i < bytes.length; i++) {
+            Integer index = indexs.get(i) + 1;//if index=0, maybe cannot judge is false or index
+            byte b = NumberUtils.toByte(index)[0];
+            bytes[i] = b;
         }
         return bytes;
     }
 
-
     protected List<Integer> createMatchIndex(byte[] bytes) {
-        if(bytes.length==1&&NumberUtils.toInt(bytes)==0){
+        if (bytes.length == 1 && NumberUtils.toInt(bytes) == 0) {
             return null;
         }
-        List<Integer> matchIndexs=new ArrayList<>();
-        for(byte b:bytes){
-           Integer index= NumberUtils.toInt(b);
-           matchIndexs.add(index-1);
+        List<Integer> matchIndexs = new ArrayList<>();
+        for (byte b : bytes) {
+            Integer index = NumberUtils.toInt(b);
+            matchIndexs.add(index - 1);
         }
         return matchIndexs;
     }
+
     /**
-     *  var name to var message value
+     * var name to var message value
+     *
      * @param varNames var name list
      * @param message
      * @return
      */
     protected String createVarValue(List<String> varNames, IMessage message) {
-        StringBuilder stringBuilder=new StringBuilder();
-        for(String varName:varNames){
-            String varValue=message.getMessageBody().getString(varName);
-            stringBuilder.append(varValue+";");
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String varName : varNames) {
+            String varValue = message.getMessageBody().getString(varName);
+            stringBuilder.append(varValue + ";");
         }
         return stringBuilder.toString();
     }
 
     public List<IScriptExpression> getIfExpressions() {
-        List<IScriptExpression> ruleScripts=new ArrayList<>();
-        for(CaseWhenElement caseWhenElement:allCaseWhenElement){
+        List<IScriptExpression> ruleScripts = new ArrayList<>();
+        for (CaseWhenElement caseWhenElement : allCaseWhenElement) {
             ruleScripts.add(new RuleExpression(caseWhenElement.getRule()));
         }
         return ruleScripts;

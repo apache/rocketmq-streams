@@ -56,7 +56,6 @@ public class DynamicMultipleDBSplit extends BasedConfigurable implements ISplit<
         return logicTableName + "_" + suffix;
     }
 
-
     @Override
     public String getQueue() {
         return logicTableName + "_" + suffix;

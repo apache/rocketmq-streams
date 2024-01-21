@@ -111,13 +111,6 @@ public class JobStage {
     private long createTime = System.currentTimeMillis();
 
     /**
-     * setter for column 主键
-     */
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    /**
      * getter for column 主键
      */
     public int getId() {
@@ -125,10 +118,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column 任务名称
+     * setter for column 主键
      */
-    public void setJobName(String jobName) {
-        this.jobName = jobName;
+    public void setId(int id) {
+        this.id = id;
     }
 
     /**
@@ -139,10 +132,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column 机器名称
+     * setter for column 任务名称
      */
-    public void setMachineName(String machineName) {
-        this.machineName = machineName;
+    public void setJobName(String jobName) {
+        this.jobName = jobName;
     }
 
     /**
@@ -153,10 +146,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column stage名称
+     * setter for column 机器名称
      */
-    public void setStageName(String stageName) {
-        this.stageName = stageName;
+    public void setMachineName(String machineName) {
+        this.machineName = machineName;
     }
 
     /**
@@ -167,10 +160,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column stage类型
+     * setter for column stage名称
      */
-    public void setStageType(String stageType) {
-        this.stageType = stageType;
+    public void setStageName(String stageName) {
+        this.stageName = stageName;
     }
 
     /**
@@ -181,10 +174,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column 输入数据量
+     * setter for column stage类型
      */
-    public void setInput(long input) {
-        this.input = input;
+    public void setStageType(String stageType) {
+        this.stageType = stageType;
     }
 
     /**
@@ -195,10 +188,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column 输出数据量
+     * setter for column 输入数据量
      */
-    public void setOutput(long output) {
-        this.output = output;
+    public void setInput(long input) {
+        this.input = input;
     }
 
     /**
@@ -206,6 +199,13 @@ public class JobStage {
      */
     public long getOutput() {
         return this.output;
+    }
+
+    /**
+     * setter for column 输出数据量
+     */
+    public void setOutput(long output) {
+        this.output = output;
     }
 
     public double getTps() {
@@ -217,13 +217,6 @@ public class JobStage {
     }
 
     /**
-     * setter for column 最后输入数据
-     */
-    public void setLastInputMsg(String lastInputMsg) {
-        this.lastInputMsg = lastInputMsg;
-    }
-
-    /**
      * getter for column 最后输入数据
      */
     public String getLastInputMsg() {
@@ -231,10 +224,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column 最后输入数据时间
+     * setter for column 最后输入数据
      */
-    public void setLastInputMsgTime(Date lastInputMsgTime) {
-        this.lastInputMsgTime = lastInputMsgTime;
+    public void setLastInputMsg(String lastInputMsg) {
+        this.lastInputMsg = lastInputMsg;
     }
 
     /**
@@ -245,10 +238,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column 最后输出数据时间
+     * setter for column 最后输入数据时间
      */
-    public void setLastOutputMsgTime(Date lastOutputMsgTime) {
-        this.lastOutputMsgTime = lastOutputMsgTime;
+    public void setLastInputMsgTime(Date lastInputMsgTime) {
+        this.lastInputMsgTime = lastInputMsgTime;
     }
 
     /**
@@ -259,10 +252,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column stage下游集合
+     * setter for column 最后输出数据时间
      */
-    public void setNextStageLables(String nextStageLables) {
-        this.nextStageLables = nextStageLables;
+    public void setLastOutputMsgTime(Date lastOutputMsgTime) {
+        this.lastOutputMsgTime = lastOutputMsgTime;
     }
 
     /**
@@ -273,10 +266,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column stage上游集合
+     * setter for column stage下游集合
      */
-    public void setPrevStageLables(String prevStageLables) {
-        this.prevStageLables = prevStageLables;
+    public void setNextStageLables(String nextStageLables) {
+        this.nextStageLables = nextStageLables;
     }
 
     /**
@@ -287,10 +280,10 @@ public class JobStage {
     }
 
     /**
-     * setter for column stage内容
+     * setter for column stage上游集合
      */
-    public void setStageContent(String stageContent) {
-        this.stageContent = stageContent;
+    public void setPrevStageLables(String prevStageLables) {
+        this.prevStageLables = prevStageLables;
     }
 
     /**
@@ -298,6 +291,13 @@ public class JobStage {
      */
     public String getStageContent() {
         return this.stageContent;
+    }
+
+    /**
+     * setter for column stage内容
+     */
+    public void setStageContent(String stageContent) {
+        this.stageContent = stageContent;
     }
 
     public Date getPingTime() {

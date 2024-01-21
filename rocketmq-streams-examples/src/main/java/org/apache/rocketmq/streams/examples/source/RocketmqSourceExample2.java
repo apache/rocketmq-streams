@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.examples.source;
 
 import java.util.Arrays;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
@@ -39,7 +39,7 @@ public class RocketmqSourceExample2 {
 
         System.out.println("begin streams code.");
 
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "pipeline");
         source.fromRocketmq(
                 RMQ_TOPIC,
                 RMQ_CONSUMER_GROUP_NAME,

@@ -27,9 +27,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.http.HttpEntity;
 import org.apache.http.ParseException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -45,14 +43,10 @@ import org.apache.rocketmq.streams.common.monitor.service.MonitorDataSyncService
 
 public class HttpMonitorDataSyncImpl implements MonitorDataSyncService {
 
-    protected String endPoint;
-
     public static final String GET_TRACE_IDS = "/queryValidTraceId";
-
     public static final String UPDATE_JOBSTAGE = "/updateJobStage";
-
     public static final String ADD_TRACEMONITOR = "/insertTraceMonitor";
-
+    protected String endPoint;
     protected HttpUtil client;
 
     public HttpMonitorDataSyncImpl(String accessId, String accessIdSecret, String endPoint) {

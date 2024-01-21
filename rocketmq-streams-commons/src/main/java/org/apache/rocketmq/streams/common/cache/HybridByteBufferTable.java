@@ -30,63 +30,44 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HybridByteBufferTable extends AbstractMemoryTable {
 
-    private static final Log logger = LogFactory.getLog(HybridByteBufferTable.class);
-
-    public static int PAGE_SIZE = 1 << 12; //4k
-
     protected static final ByteOrder order = ByteOrder.nativeOrder();
-
-    static String jobName;
-
     static final String mappedFilePrefix = "/tmp/dipper_";
     static final int MAX_FILE_SIZE = 1 << 35; //32 * 1024 * 1024 * 1024 = 32G; //文件的最大长度
     static final long MAX_CACHE_SIZE = 1L << 35; // 32 * 1024 * 1024 * 1024 = 32G
-
-    private transient long fileSizeLimit = -1;
-
-    private transient long cacheSizeLimit = -1;
-
-    //超过cache的部分,需要用内存映射方式读取
-    private transient FileChannel channel;
-
-    //row length固定位2个byte
-    private transient ByteBuffer rowLengthBuffer = ByteBuffer.allocateDirect(2);
-
-    private transient ByteBuffer buffer256 = ByteBuffer.allocateDirect(256);
-
+    private static final Logger logger = LoggerFactory.getLogger(HybridByteBufferTable.class);
+    public static int PAGE_SIZE = 1 << 12; //4k
+    static String jobName;
+    public ExecutorService executor;
     //cache的数据, cache会顺序写入
     protected transient List<byte[][]> cacheRows = new ArrayList<>();
-
-    //当前cache的行标
-    private transient int curCacheRowIndex = 0;
-
     //cache的字节数, 需要小于 cacheSize;
     protected transient long curCacheByteSize = 0;
-
     //总的字节数
     protected transient long curTotalByteSize = 0;
-
     //总的行数
     protected transient int curTotalRowCount;
-
     protected transient MemoryPageCache pageCache;
-
     protected transient ConcurrentLinkedQueue<MemoryPageCache> queue = new ConcurrentLinkedQueue<MemoryPageCache>();
-
-    public ExecutorService executor = Executors.newFixedThreadPool(1);
-
     //总的列的数量
     protected int columnCount;
-
     protected transient volatile boolean isFinishWrite = false;
+    private transient long fileSizeLimit = -1;
+    private transient long cacheSizeLimit = -1;
+    //超过cache的部分,需要用内存映射方式读取
+    private transient FileChannel channel;
+    //row length固定位2个byte
+    private transient ByteBuffer rowLengthBuffer = ByteBuffer.allocateDirect(2);
+    private transient ByteBuffer buffer256 = ByteBuffer.allocateDirect(256);
+    //当前cache的行标
+    private transient int curCacheRowIndex = 0;
 
     public HybridByteBufferTable(String jobName) {
         this.jobName = jobName;
@@ -96,6 +77,7 @@ public class HybridByteBufferTable extends AbstractMemoryTable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        executor = ThreadPoolFactory.createFixedThreadPool(1, HybridByteBufferTable.class.getName() + "-" + jobName);
         executor.submit(new WriteFileTask());
     }
 
@@ -124,23 +106,20 @@ public class HybridByteBufferTable extends AbstractMemoryTable {
         return fc;
     }
 
-    @Override
-    public Iterator<RowElement> newIterator() {
+    @Override public Iterator<RowElement> newIterator() {
 
         return new Iterator<RowElement>() {
 
-            protected long nextCursor = 0;
             private final long totalByteCount = curTotalByteSize;
+            protected long nextCursor = 0;
 //            private long count = 0;
 
-            @Override
-            public boolean hasNext() {
+            @Override public boolean hasNext() {
 //                check(getByteTotalSize());
                 return nextCursor < totalByteCount;
             }
 
-            @Override
-            public RowElement next() {
+            @Override public RowElement next() {
 //                check(getByteTotalSize());
                 long current = nextCursor;
                 Map<String, Object> row = new HashMap<>();
@@ -165,8 +144,7 @@ public class HybridByteBufferTable extends AbstractMemoryTable {
         return saveRowByte(values, -1);
     }
 
-    @Override
-    protected Long saveRowByte(byte[][] values, int byteSize) {
+    @Override protected Long saveRowByte(byte[][] values, int byteSize) {
         int size = 0;
         byte[][] byteList = new byte[values.length + 1][];
         int i = 0;
@@ -212,8 +190,7 @@ public class HybridByteBufferTable extends AbstractMemoryTable {
      * @param index
      * @return
      */
-    @Override
-    protected byte[][] loadRowByte(Long index) {
+    @Override protected byte[][] loadRowByte(Long index) {
 
 //        boolean isCached = ((index & 0x8000000000000000L) == 0x8000000000000000L);
 //        Long realIndex = index & 0x7fffffffffffffffL; //去掉第一位
@@ -604,8 +581,7 @@ public class HybridByteBufferTable extends AbstractMemoryTable {
 
     public class WriteFileTask implements Runnable {
 
-        @Override
-        public void run() {
+        @Override public void run() {
             MemoryPageCache cache = null;
             double count = 0.0;
             while (true) {

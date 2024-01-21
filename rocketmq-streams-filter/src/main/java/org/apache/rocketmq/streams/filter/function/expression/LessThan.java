@@ -35,9 +35,8 @@ public class LessThan extends CompareFunction {
     @FunctionMethod(value = "&lt;", alias = "<")
     @FunctionMethodAilas("小于")
     public Boolean doFunction(IMessage message, AbstractContext context, Expression expression) {
-        return super.doFunction(message,context,expression);
+        return super.doFunction(message, context, expression);
     }
-
 
     public boolean compare(int a, int b) {
         return a < b;

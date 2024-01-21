@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
@@ -88,7 +87,7 @@ public class RuleBuilder {
             for (Expression express : expressionList) {
                 Var var = RuleElementBuilder.createContextVar(namespace, ruleName, express.getVarName(),
                     null, express.getVarName());
-                var.setConfigureName(express.getVarName());
+                var.setName(express.getVarName());
                 varList.add(var);
             }
             return;
@@ -99,10 +98,10 @@ public class RuleBuilder {
         Set<String> existVarNames = new HashSet<>();//
         for (MetaDataField metaDataField : metaDataFields) {
             Var var = RuleElementBuilder.createContextVar(namespace, ruleName, metaDataField.getFieldName(),
-                metaData.getConfigureName(), metaDataField.getFieldName());
-            var.setConfigureName(metaDataField.getFieldName());
+                metaData.getName(), metaDataField.getFieldName());
+            var.setName(metaDataField.getFieldName());
             varList.add(var);
-            existVarNames.add(var.getConfigureName());
+            existVarNames.add(var.getName());
         }
         for (Expression express : expressionList) {
             if (existVarNames.contains(express.getVarName())) {
@@ -113,13 +112,13 @@ public class RuleBuilder {
             }
             Var var = RuleElementBuilder.createContextVar(namespace, ruleName, express.getVarName(),
                 null, express.getVarName());
-            var.setConfigureName(express.getVarName());
+            var.setName(express.getVarName());
             varList.add(var);
         }
         metaData.toObject(metaData.toJson());
         this.metaData = metaData;
         if (metaData != null) {
-            this.rule.setMsgMetaDataName(metaData.getConfigureName());
+            this.rule.setMsgMetaDataName(metaData.getName());
         }
         metaDataList.add(this.metaData);
     }
@@ -139,35 +138,6 @@ public class RuleBuilder {
         return rule;
     }
 
-    public RuleBuilder(IConfigurableService ruleEngineConfigurableService, String namespace, String ruleName) {
-        Rule rule =
-            (Rule)ruleEngineConfigurableService.queryConfigurableByIdent(RuleElementType.RULE.getType(), ruleName);
-        if (rule == null) {
-            init(namespace, ruleName);
-            createChannelMetaData();
-            return;
-        }
-        this.metaData =
-            (MetaData)ruleEngineConfigurableService.queryConfigurableByIdent(RuleElementType.METADATA.getType(),
-                rule.getMsgMetaDataName());
-        this.rootExpression =
-            (Expression)ruleEngineConfigurableService.queryConfigurableByIdent(RuleElementType.EXPRESSION.getType(),
-                rule.getExpressionName());
-        this.rule = rule;
-        this.ruleName = rule.getConfigureName();
-        this.namespace = rule.getNameSpace();
-        this.ruleTitle = rule.getRuleTitle();
-        this.ruleCode = rule.getRuleCode();
-        this.ruleDescription = rule.getRuleDesc();
-        this.varList = ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.VAR.getType());
-        this.expressionList =
-            ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.EXPRESSION.getType());
-        this.metaDataList = ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.METADATA.getType());
-        this.actionList = ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.ACTION.getType());
-        this.dataSourceList =
-            ruleEngineConfigurableService.queryConfigurableByType(RuleElementType.DATASOURCE.getType());
-    }
-
     /**
      * 创建规则必须的信息。
      *
@@ -177,7 +147,7 @@ public class RuleBuilder {
      */
     private void init(String namespace, String ruleName, String... rulecode_title_description) {
         rule.setNameSpace(namespace);
-        rule.setConfigureName(ruleName);
+        rule.setName(ruleName);
         rule.setRuleStatus(3);
         this.namespace = namespace;
         this.ruleName = ruleName;
@@ -232,7 +202,7 @@ public class RuleBuilder {
         this.metaData.getMetaDataFields().addAll(metaDataFields);
         for (MetaDataField metaDataField : metaDataFields) {
             ContextVar var = RuleElementBuilder.createContextVar(namespace, ruleName, metaDataField.getFieldName(),
-                metaData.getConfigureName(), metaDataField.getFieldName());
+                metaData.getName(), metaDataField.getFieldName());
             varList.add(var);
         }
         return this;
@@ -316,7 +286,7 @@ public class RuleBuilder {
      * @return
      */
     public RuleBuilder addExpression(String expressionName, String varName, String functionName, DataType dataType,
-                                     String value) {
+        String value) {
         Expression expression =
             RuleElementBuilder.createExpression(ruleName, expressionName, varName, functionName, dataType, value);
         expressionList.add(expression);
@@ -369,38 +339,24 @@ public class RuleBuilder {
     //    return this;
     //}
 
-
-
-
-
-
-
     /**
      * 保存规则相关的对象
      *
-     * @param ruleEngineConfigurableService
      * @return
      */
-    public Rule generateRule(IConfigurableService ruleEngineConfigurableService) {
+    public Rule generateRule() {
         Rule rule = createRule();
-        insertOrUpdate(ruleEngineConfigurableService);
+        insertOrUpdate();
         rule.initElements();
         return rule;
     }
 
-    public Rule generateRule() {
-        return generateRule(null);
-    }
-
-    private void insertOrUpdate(IConfigurableService ruleEngineConfigurableService) {
-        insertOrUpdate(ruleEngineConfigurableService, metaDataList, MetaData.TYPE);
-        insertOrUpdate(ruleEngineConfigurableService, varList, Var.TYPE);
-        insertOrUpdate(ruleEngineConfigurableService, expressionList, Expression.TYPE);
-        insertOrUpdate(ruleEngineConfigurableService, actionList, Action.TYPE);
-        insertOrUpdate(ruleEngineConfigurableService, dataSourceList, ISink.TYPE);
-        if (ruleEngineConfigurableService != null) {
-            ruleEngineConfigurableService.insert(rule);
-        }
+    private void insertOrUpdate() {
+        insertOrUpdate(metaDataList, MetaData.TYPE);
+        insertOrUpdate(varList, Var.TYPE);
+        insertOrUpdate(expressionList, Expression.TYPE);
+        insertOrUpdate(actionList, Action.TYPE);
+        insertOrUpdate(dataSourceList, ISink.TYPE);
     }
 
     /**
@@ -412,14 +368,15 @@ public class RuleBuilder {
         if (rootExpression == null && expressionList != null && expressionList.size() > 0) {
             rootExpression = expressionList.get(0);
         }
-        rule.setExpressionName(rootExpression.getConfigureName());
+        rule.setRootExpression(rootExpression);
+        rule.setExpressionName(rootExpression.getName());
         rule.setActionNames(convert(actionList));
         rule.setVarNames(convert(varList));
         rule.setRuleCode(ruleCode);
         rule.setRuleTitle(ruleTitle);
         rule.setRuleDesc(ruleDescription);
         if (this.metaData != null) {
-            rule.setMsgMetaDataName(metaData.getConfigureName());
+            rule.setMsgMetaDataName(metaData.getName());
         }
         return rule;
     }
@@ -467,15 +424,12 @@ public class RuleBuilder {
         return filedStr;
     }
 
-    private <T extends IConfigurable> void insertOrUpdate(IConfigurableService ruleEngineConfigurableService,
-                                                          List<T> configurables, String type) {
+    private <T extends IConfigurable> void insertOrUpdate(
+        List<T> configurables, String type) {
         if (configurables == null) {
             return;
         }
         for (IConfigurable configurable : configurables) {
-            if (ruleEngineConfigurableService != null) {
-                ruleEngineConfigurableService.insert(configurable);
-            }
             rule.putConfigurableMap(configurable, type);
         }
     }
@@ -483,7 +437,7 @@ public class RuleBuilder {
     private <T extends IConfigurable> List<String> convert(List<T> configurables) {
         List<String> configurableNames = new ArrayList<>();
         for (T t : configurables) {
-            configurableNames.add(t.getConfigureName());
+            configurableNames.add(t.getName());
         }
         return configurableNames;
     }
@@ -532,16 +486,16 @@ public class RuleBuilder {
         return ruleName;
     }
 
+    public void setRuleName(String ruleName) {
+        this.ruleName = ruleName;
+    }
+
     public Expression getRootExpression() {
         return rootExpression;
     }
 
     public void setRootExpression(Expression rootExpression) {
         this.rootExpression = rootExpression;
-    }
-
-    public void setRuleName(String ruleName) {
-        this.ruleName = ruleName;
     }
 
     public String getRuleCode() {

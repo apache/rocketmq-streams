@@ -34,7 +34,7 @@ public class Person extends BasedConfigurable {
         Person person = new Person();
         person.setNameSpace(namespace);
         person.setType("person");
-        person.setConfigureName("Chris");
+        person.setName("Chris");
         person.setName("Chris");
         List<String> addresses = new ArrayList<>();
         addresses.add("huilongguan");

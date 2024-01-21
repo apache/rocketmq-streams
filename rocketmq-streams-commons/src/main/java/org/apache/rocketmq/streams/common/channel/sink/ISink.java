@@ -23,29 +23,26 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
-import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
+import org.apache.rocketmq.streams.common.topology.IStageBuilder;
 
-
-public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>, IMessageFlushCallBack<IMessage> {
+public interface ISink<T> extends IConfigurable, IStageBuilder<T>, IMessageFlushCallBack<IMessage> {
 
     String TYPE = "sink";
 
     /**
-     * 根据channel推断 meta，或者不需要meta，如消息对垒
+     * 写入缓存，根据channel推断 meta，或者不需要meta，如消息对垒
      *
      * @param message
      * @return
      */
-    boolean batchAdd(IMessage message, ISplit<?,?> split);
+    boolean batchAdd(IMessage message, ISplit<?, ?> split);
 
     /**
-     * 根据channel推断 meta，或者不需要meta，如消息对垒
+     * 写入缓存
      *
-     * @param context
      * @return
      */
     boolean batchAdd(IMessage message);
@@ -59,19 +56,19 @@ public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>,
     boolean batchSave(List<IMessage> messages);
 
     /**
-     * 刷新某个分片
+     * 刷新某个分片，把缓存刷新到存储
      *
      * @return
      */
     boolean flush(Set<String> splitId);
 
-
     /**
-     * 刷新某个分片
+     * 刷新某个分片，，把缓存刷新到存储
      *
      * @return
      */
     boolean flush(String... splitIds);
+
     /**
      * 如果支持批量保存，此方法完成数据的全部写入
      *
@@ -80,26 +77,35 @@ public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>,
     boolean flush();
 
     /**
-     * 如果支持批量保存，此方法完成数据的全部写入
+     * 等同与flush
      *
      * @return
      */
     boolean checkpoint(Set<String> splitIds);
 
-
-
     /**
-     * 如果支持批量保存，此方法完成数据的全部写入
+     * 等同与flush，如果支持批量保存，此方法完成数据的全部写入
      *
      * @return
      */
     boolean checkpoint(String... splitIds);
+
     /**
-     * 调用这个方法后，不必调用flush，由框架定时或定批完成刷新
+     * 调用这个方法后，开启自动刷新缓存，由框架定时或定批完成刷新
      */
     void openAutoFlush();
 
+    /**
+     * 关闭自动刷新
+     */
     void closeAutoFlush();
+
+    /**
+     * 获取批次大小
+     *
+     * @return
+     */
+    int getBatchSize();
 
     /**
      * 设置缓存大小，超过条数，强制刷新
@@ -109,15 +115,13 @@ public interface ISink<T extends ISink> extends IConfigurable, IStageBuilder<T>,
     void setBatchSize(int batchSize);
 
     /**
-     * 获取批次大小
+     * 返回已经刷新到存储的每个分片，最大的offset
      *
+     * @param checkPointMessage
      * @return
      */
-    int getBatchSize();
-
     Map<String, MessageOffset> getFinishedQueueIdAndOffsets(CheckPointMessage checkPointMessage);
 
     void atomicSink(ISystemMessage message);
-
 
 }

@@ -24,7 +24,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.junit.Test;
 
@@ -60,9 +60,9 @@ public class JoinTest {
 
     @Test
     public void testInnerJoin() {
-        DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromFile("window_msg_10.txt", true);
+        DataStream left = StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp").fromFile("window_msg_10.txt", true);
 
-        DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
+        DataStream right = StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp2").fromFile("dim.txt", true);
 
         left.join(right).on("(ProjectName,=,project)").toDataSteam().toPrint().start();
 
@@ -70,9 +70,9 @@ public class JoinTest {
 
     @Test
     public void testLeftDim() {
-        DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromFile("window_msg_10.txt", true);
+        DataStream left = StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp").fromFile("window_msg_10.txt", true);
 
-        DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
+        DataStream right = StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp2").fromFile("dim.txt", true);
 
         left.leftJoin(right).on("(ProjectName,=,project)").toDataSteam().toPrint().start();
     }
@@ -80,7 +80,7 @@ public class JoinTest {
     @Test
     public void testRocketmqJoin() {
 
-        DataStream left = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupA", true, "localhost:9876");
+        DataStream left = StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp").fromRocketmq("TopicTest", "groupA", true, "localhost:9876");
         left.toPrint().start();
         //DataStream right = StreamBuilder.dataStream("tmp", "tmp2").fromFile("dim.txt", true);
 //        DataStream right = StreamBuilder.dataStream("tmp", "tmp").fromRocketmq("TopicTest", "groupB", true, "localhost:9876");

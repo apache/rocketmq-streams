@@ -17,24 +17,22 @@
 package org.apache.rocketmq.streams.filter.engine;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SplitFlow {
 
-    private static final Log LOG = LogFactory.getLog(SplitFlow.class);
-    private volatile String nameSpace;
-    private JSONObject uuidNameMap = new JSONObject();
-
-    // uuid尾号
-    private volatile String uuidEndNum = NUMBERS_ALL;
-    private volatile String ageis_split_namespaces = "topic_aegis_detect_msg_proc";
-    private volatile String sas_split_namespaces;
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(SplitFlow.class);
     // 全部尾号
     private static final String NUMBERS_ALL = "all";
     // 没有尾号
     private static final String NUMBERS_NONE = "none";
+    private volatile String nameSpace;
+    private JSONObject uuidNameMap = new JSONObject();
+    // uuid尾号
+    private volatile String uuidEndNum = NUMBERS_ALL;
+    private volatile String ageis_split_namespaces = "topic_aegis_detect_msg_proc";
+    private volatile String sas_split_namespaces;
 
     private void paserConfigToField(String jsonValue) {
         JSONObject jsonObject = JSONObject.parseObject(jsonValue);
@@ -50,7 +48,7 @@ public class SplitFlow {
      */
     public boolean aegisUuidMatch(String uuid) {
         if (uuidEndNum == null || "".equals(uuidEndNum)) {
-            LOG.warn("SplitFlow aegisUuidMatch,uuidEndNum is null");
+            LOGGER.warn("SplitFlow aegisUuidMatch,uuidEndNum is null");
             return true;
         }
         String numbers = uuidEndNum;
@@ -86,7 +84,7 @@ public class SplitFlow {
         try {
             this.uuidNameMap = JSONObject.parseObject(uuidNameJson);
         } catch (Exception e) {
-            LOG.error("SplitFlow setUuidNameJson error" + uuidNameJson, e);
+            LOGGER.error("SplitFlow setUuidNameJson error" + uuidNameJson, e);
         }
 
     }
@@ -134,7 +132,7 @@ public class SplitFlow {
         try {
             paserConfigToField(splitFlowJson);
         } catch (Exception e) {
-            LOG.error("SplitFlow setSplitFlowJson error,splitFlowJson is:" + splitFlowJson, e);
+            LOGGER.error("SplitFlow setSplitFlowJson error,splitFlowJson is:" + splitFlowJson, e);
         }
 
     }

@@ -37,7 +37,7 @@ public class ToUpperFunction {
      */
     @FunctionMethod(value = "toupper", alias = "upper", comment = "转换为大写")
     public String toupper(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "string", comment = "待转换的字符串代表列名称或常量值") String fieldName) {
+        @FunctionParamter(value = "string", comment = "待转换的字符串代表列名称或常量值") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

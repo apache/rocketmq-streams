@@ -16,25 +16,31 @@
  */
 package org.apache.rocketmq.streams.mqtt.source;
 
-import com.alibaba.fastjson.JSONObject;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.split.CommonSplit;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.apache.rocketmq.streams.mqtt.factory.MessageProcess;
+import org.apache.rocketmq.streams.mqtt.factory.MqttClientFactory;
+import org.apache.rocketmq.streams.mqtt.factory.MqttConnection;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PahoSource extends AbstractSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PahoSource.class);
-
+    protected transient String clientKey;
+    protected transient AtomicLong offsetGenerator;
     private String url;
     private String clientId;
     private String topic;
@@ -44,6 +50,9 @@ public class PahoSource extends AbstractSource {
     private Integer connectionTimeout;
     private Integer aliveInterval;
     private Boolean automaticReconnect;
+    private transient MqttClient client;
+    // 记录上次持久化 check point 的时间
+    private transient long mLastCheckTime = 0;
 
     public PahoSource() {
     }
@@ -72,134 +81,59 @@ public class PahoSource extends AbstractSource {
         this.automaticReconnect = automaticReconnect;
     }
 
-    private transient MqttClient client;
-    protected transient AtomicLong offsetGenerator;
-
-    @Override protected boolean startSource() {
+    @Override
+    protected boolean startSource() {
         try {
-            this.client = new MqttClient(url, clientId, new MemoryPersistence());
             this.offsetGenerator = new AtomicLong(System.currentTimeMillis());
-            this.client.setCallback(new MqttCallback() {
-
-                @Override public void connectionLost(Throwable throwable) {
-                    LOGGER.info("Reconnecting to broker: " + url);
-                    while (true) {
-                        MqttConnectOptions connOpts = new MqttConnectOptions();
-                        if (username != null && password != null) {
-                            connOpts.setUserName(username);
-                            connOpts.setPassword(password.toCharArray());
-                        }
-                        if (cleanSession == null) {
-                            connOpts.setCleanSession(true);
-                        } else {
-                            connOpts.setCleanSession(cleanSession);
-                        }
-
-                        if (connectionTimeout == null) {
-                            connOpts.setConnectionTimeout(10);
-                        } else {
-                            connOpts.setConnectionTimeout(connectionTimeout);
-                        }
-                        if (aliveInterval == null) {
-                            connOpts.setKeepAliveInterval(60);
-                        } else {
-                            connOpts.setKeepAliveInterval(aliveInterval);
-                        }
-                        if (automaticReconnect == null) {
-                            connOpts.setAutomaticReconnect(true);
-                        } else {
-                            connOpts.setAutomaticReconnect(automaticReconnect);
-                        }
-
-                        try {
-                            if (!client.isConnected()) {
-                                client.connect(connOpts);
-                                LOGGER.info("Reconnecting success");
-                            }
-                            client.subscribe(topic);
-                            break;
-                        } catch (MqttException e) {
-                            try {
-                                LOGGER.error("Reconnecting err: " + e.getMessage());
-                                e.printStackTrace();
-                                Thread.sleep(10000);
-                            } catch (InterruptedException ex) {
-                                ex.printStackTrace();
-                            }
-                        }
-                    }
-                }
-
-                @Override public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
-                    JSONObject msg = create(new String(mqttMessage.getPayload(), StandardCharsets.UTF_8));
-                    msg.put("__topic", s);
-                    doReceiveMessage(msg, false, RuntimeUtil.getDipperInstanceId(), offsetGenerator.incrementAndGet() + "");
-                }
-
-                @Override public void deliveryComplete(IMqttDeliveryToken token) {
-                    LOGGER.info("deliveryComplete---------" + token.isComplete());
-                }
-            });
-
-            MqttConnectOptions connOpts = new MqttConnectOptions();
-            if (username != null && password != null) {
-                connOpts.setUserName(username);
-                connOpts.setPassword(password.toCharArray());
+            MqttConnection connection = new MqttConnection(this.url, this.topic, this.username, this.password, this.clientId, getOptions());
+            connection.setAutoConnect(true);
+            connection.setMessageProcess(new SourceMessageProcess());
+            clientKey = connection.getClientKey();
+            MqttClient client = MqttClientFactory.getClient(connection);
+            if (null == client) {
+                LOGGER.error("PahoSource startSource error,MQTT Client IS Empty!");
+                return false;
             }
-            if (this.cleanSession == null) {
-                connOpts.setCleanSession(true);
-            } else {
-                connOpts.setCleanSession(this.cleanSession);
-            }
-
-            if (this.connectionTimeout == null) {
-                connOpts.setConnectionTimeout(10);
-            } else {
-                connOpts.setConnectionTimeout(this.connectionTimeout);
-            }
-            if (this.aliveInterval == null) {
-                connOpts.setKeepAliveInterval(60);
-            } else {
-                connOpts.setKeepAliveInterval(this.aliveInterval);
-            }
-            if (this.automaticReconnect == null) {
-                connOpts.setAutomaticReconnect(true);
-            } else {
-                connOpts.setAutomaticReconnect(this.automaticReconnect);
-            }
-
-            LOGGER.info("Connecting to broker: " + url);
-            if (!this.client.isConnected()) {
-                this.client.connect(connOpts);
-                LOGGER.info("Connected");
-            }
-            this.client.subscribe(topic);
+            this.client = client;
             return true;
-        } catch (MqttException e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            LOGGER.error("PahoSource startSource error,broker:{},ex:{}", url, ExceptionUtils.getStackTrace(ex));
         }
         return false;
     }
 
-    @Override public void destroy() {
-        super.destroy();
-        try {
-            if (this.client != null && this.client.isConnected()) {
-                this.client.disconnect();
-                this.client.close();
-            }
-            super.destroy();
-        } catch (MqttException e) {
-            e.printStackTrace();
+    public MqttConnectOptions getOptions() {
+        MqttConnectOptions connOpts = new MqttConnectOptions();
+        if (username != null && password != null) {
+            connOpts.setUserName(username);
+            connOpts.setPassword(password.toCharArray());
         }
+        if (this.cleanSession == null) {
+            connOpts.setCleanSession(true);
+        } else {
+            connOpts.setCleanSession(this.cleanSession);
+        }
+        if (this.connectionTimeout == null) {
+            connOpts.setConnectionTimeout(10);
+        } else {
+            connOpts.setConnectionTimeout(this.connectionTimeout);
+        }
+        if (this.aliveInterval == null) {
+            connOpts.setKeepAliveInterval(60);
+        } else {
+            connOpts.setKeepAliveInterval(this.aliveInterval);
+        }
+        if (this.automaticReconnect == null) {
+            connOpts.setAutomaticReconnect(true);
+        } else {
+            connOpts.setAutomaticReconnect(this.automaticReconnect);
+        }
+        return connOpts;
     }
 
-    @Override public boolean supportRemoveSplitFind() {
-        return false;
-    }
-
-    @Override protected boolean isNotDataSplit(String queueId) {
-        return false;
+    @Override
+    public void destroySource() {
+        MqttClientFactory.removeClient(clientKey);
     }
 
     public String getUrl() {
@@ -218,12 +152,22 @@ public class PahoSource extends AbstractSource {
         this.clientId = clientId;
     }
 
-    @Override public String getTopic() {
+    @Override
+    public String getTopic() {
         return topic;
     }
 
-    @Override public void setTopic(String topic) {
+    @Override
+    public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    @Override
+    public List<ISplit<?, ?>> fetchAllSplits() {
+        ISplit<?, ?> split = new CommonSplit("1");
+        List<ISplit<?, ?>> splits = new ArrayList<>();
+        splits.add(split);
+        return splits;
     }
 
     public String getUsername() {
@@ -272,6 +216,29 @@ public class PahoSource extends AbstractSource {
 
     public void setAutomaticReconnect(Boolean automaticReconnect) {
         this.automaticReconnect = automaticReconnect;
+    }
+
+    /**
+     * 消息回调
+     */
+    class SourceMessageProcess implements MessageProcess {
+        @Override
+        public void process(String topic, MqttMessage message) {
+            String msg = new String(message.getPayload(), StandardCharsets.UTF_8);
+            Map<String, Object> additionValues = new HashMap<>();
+            additionValues.put("__topic", topic);
+            String queueId = offsetGenerator.incrementAndGet() + "";
+            doReceiveMessage(msg, false, RuntimeUtil.getDipperInstanceId(), queueId, additionValues);
+
+            long curTime = System.currentTimeMillis();
+            //每200ms调用一次
+            // 每隔 60 秒，写一次 check point 到服务端，如果 60 秒内，worker crash，
+            // 新启动的 worker 会从上一个 checkpoint 其消费数据，有可能有重复数据
+            if (curTime - mLastCheckTime > getCheckpointTime()) {
+                mLastCheckTime = curTime;
+                sendCheckpoint(String.valueOf(queueId));
+            }
+        }
     }
 
 }

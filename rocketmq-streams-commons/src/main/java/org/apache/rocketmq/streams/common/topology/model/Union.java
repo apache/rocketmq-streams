@@ -20,13 +20,12 @@ import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
-import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
+import org.apache.rocketmq.streams.common.topology.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.topology.stages.udf.UDFUnionChainStage;
 
 public class Union extends BasedConfigurable implements IStreamOperator<IMessage, AbstractContext<IMessage>>,
-    IStageBuilder<ChainStage> {
+    IStageBuilder<AbstractChainStage<?>> {
     public static String TYPE = "union";
     protected transient IStreamOperator<IMessage, AbstractContext<IMessage>> receiver;
 
@@ -49,7 +48,7 @@ public class Union extends BasedConfigurable implements IStreamOperator<IMessage
     }
 
     @Override
-    public ChainStage createStageChain(PipelineBuilder pipelineBuilder) {
+    public AbstractChainStage createStageChain(PipelineBuilder pipelineBuilder) {
         pipelineBuilder.addConfigurables(this);
         UDFUnionChainStage chainStage = new UDFUnionChainStage();
         chainStage.setUnion(this);

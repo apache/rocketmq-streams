@@ -26,7 +26,7 @@ public class CycleScheduleFilter extends AbstractPatternFilter implements Serial
 
     List<String> allPattern;
 
-    public CycleScheduleFilter(List<String> allPattern){
+    public CycleScheduleFilter(List<String> allPattern) {
         this.allPattern = allPattern;
     }
 

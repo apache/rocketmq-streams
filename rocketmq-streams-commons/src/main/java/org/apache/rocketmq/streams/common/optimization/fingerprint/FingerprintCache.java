@@ -21,7 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
@@ -33,12 +34,20 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
  * can set cache size by sdk or property file
  */
 public class FingerprintCache {
+    public static String FIELD_VALUE_SPLIT_SIGN = ";;;;;";
     protected static FingerprintCache fingerprintCache;
-    protected static int CACHE_SIZE = 5000000;//default cache size，support 3000000 log size
-    public static String FIELD_VALUE_SPLIT_SIGN=";;;;;";
+    protected static int CACHE_SIZE = 3000000;//default cache size，support 3000000 log size
+    protected static Map<String, List<String>> logFingerprintFieldNameListMap = new HashMap<>();
+
+    static {
+        Integer sizeValue = SystemContext.getIntParameter(ConfigurationKey.FINGERPRINT_CACHE_SIZE);
+        if (sizeValue != null) {
+            CACHE_SIZE = sizeValue;
+        }
+    }
+
     //key: namespace  value:FingerprintMetric
     protected Map<String, FingerprintMetric> metricMap = new HashMap<>();
-
     protected BitSetCache bitSetCache;
     protected int cacheSize;
     protected int reHashCount = 0;
@@ -46,103 +55,12 @@ public class FingerprintCache {
     protected Long firstUpdateTime;
     protected double minHitCacheRate = 0.4;
 
-    public FingerprintCache(int cacheSize) {
+    private FingerprintCache(int cacheSize) {
         this.cacheSize = cacheSize;
-        this.bitSetCache = new BitSetCache(this.cacheSize);
-    }
-
-    public void addLogFingerprint(String namespace, String msgKey, BitSetCache.BitSet bitSet) {
-        if (msgKey == null) {
-            return;
+        if (this.cacheSize > 0) {
+            this.bitSetCache = new BitSetCache(this.cacheSize);
         }
 
-        if (bitSetCache != null) {
-            FingerprintMetric fingerprintMetric = getOrCreateMetric(namespace);
-            fingerprintMetric.addCaceSize();
-            this.rootFingerprintMetric.addCaceSize();
-            if (fingerprintMetric.isCloseFingerprint()) {
-                return;
-            }
-            if (this.bitSetCache.size() > CACHE_SIZE) {
-                synchronized (this) {
-                    if (this.bitSetCache.size() > CACHE_SIZE) {
-
-                        executeCloseStrategy();
-                        for (FingerprintMetric metric : this.metricMap.values()) {
-                            metric.clear();
-                        }
-                        this.bitSetCache = new BitSetCache(this.cacheSize);
-                        reHashCount++;
-                        this.rootFingerprintMetric.clear();
-                        firstUpdateTime = System.currentTimeMillis();
-                    }
-                }
-            }
-            this.bitSetCache.put(namespace + "->" + msgKey, bitSet);
-        }
-    }
-
-    protected void executeCloseStrategy() {
-        this.rootFingerprintMetric.print();
-        if (System.currentTimeMillis() - firstUpdateTime > 1000 * 60 * 60 * 4) {
-            return;
-        }
-        if (metricMap.size() == 1) {
-            return;
-        }
-        List<FingerprintMetric> fingerprintMetricList = new ArrayList<>(metricMap.values());
-        for (int i = 0; i < fingerprintMetricList.size() - 1; i++) {
-            FingerprintMetric fingerprintMetric = fingerprintMetricList.get(i);
-            if (!fingerprintMetric.isCloseFingerprint() && fingerprintMetric.getHitCacheRate() < this.minHitCacheRate) {
-                fingerprintMetric.setCloseFingerprint(true);
-                System.out.println("close fingerprint " + PrintUtil.LINE);
-                fingerprintMetric.print();
-            }
-        }
-
-    }
-
-    public BitSetCache.BitSet getLogFingerprint(String namespace, String msgKey) {
-        if (msgKey == null) {
-            return null;
-        }
-        FingerprintMetric fingerprintMetric = getOrCreateMetric(namespace);
-        if (fingerprintMetric.isCloseFingerprint()) {
-            return null;
-        }
-        if (firstUpdateTime == null) {
-            firstUpdateTime = System.currentTimeMillis();
-        }
-        BitSetCache.BitSet bitSet = this.bitSetCache.get(namespace + "->" + msgKey);
-        this.rootFingerprintMetric.addMetric(bitSet != null);
-        fingerprintMetric.addMetric(bitSet != null);
-        return bitSet;
-    }
-
-    public void addLogFingerprint(String namespace, IMessage message, BitSetCache.BitSet bitSet,
-        String logFingerprintFieldNames) {
-        String msgKey = creatFingerpringKey(message, namespace, logFingerprintFieldNames);
-        addLogFingerprint(namespace, msgKey, bitSet);
-    }
-
-    public BitSetCache.BitSet getLogFingerprint(String namespace, IMessage message, String logFingerprintFieldNames) {
-        String msgKey = creatFingerpringKey(message, namespace, logFingerprintFieldNames);
-        return getLogFingerprint(namespace, msgKey);
-    }
-
-    public FingerprintMetric getOrCreateMetric(String namespace) {
-        FingerprintMetric fingerprintMetric = metricMap.get(namespace);
-        if (fingerprintMetric == null) {
-            synchronized (this) {
-                fingerprintMetric = metricMap.get(namespace);
-                if (fingerprintMetric == null) {
-                    fingerprintMetric = new FingerprintMetric(namespace);
-                    metricMap.put(namespace, fingerprintMetric);
-                }
-            }
-
-        }
-        return fingerprintMetric;
     }
 
     public static FingerprintCache getInstance() {
@@ -155,15 +73,6 @@ public class FingerprintCache {
         }
         return fingerprintCache;
     }
-
-    static {
-        String sizeValue = ComponentCreator.getProperties().getProperty("fingerprint.cache.size");
-        if (StringUtil.isNotEmpty(sizeValue)) {
-            CACHE_SIZE = Integer.valueOf(sizeValue);
-        }
-    }
-
-    protected static Map<String, List<String>> logFingerprintFieldNameListMap = new HashMap<>();
 
     /**
      * 创建代表日志指纹的字符串
@@ -206,6 +115,120 @@ public class FingerprintCache {
         }
         return sb.toString();
 
+    }
+
+    public void put(String namespace, String key, boolean isTrue) {
+        BitSetCache.BitSet bitSetCache = new BitSetCache.BitSet(1);
+        if (isTrue) {
+            bitSetCache.set(0);
+        }
+        addLogFingerprint("default", key, bitSetCache);
+    }
+
+    public Boolean get(String namespace, String key) {
+        BitSetCache.BitSet bitSet = getLogFingerprint("default", key);
+        if (bitSet == null) {
+            return null;
+        }
+        return bitSet.get(0);
+    }
+
+    public void addLogFingerprint(String namespace, String msgKey, BitSetCache.BitSet bitSet) {
+        if (msgKey == null) {
+            return;
+        }
+
+        if (bitSetCache != null) {
+            FingerprintMetric fingerprintMetric = getOrCreateMetric(namespace);
+            fingerprintMetric.addCaceSize();
+            this.rootFingerprintMetric.addCaceSize();
+            if (fingerprintMetric.isCloseFingerprint()) {
+                return;
+            }
+            if (this.bitSetCache.size() > CACHE_SIZE) {
+                synchronized (this) {
+                    if (this.bitSetCache.size() > CACHE_SIZE) {
+
+                        executeCloseStrategy();
+                        for (FingerprintMetric metric : this.metricMap.values()) {
+                            metric.clear();
+                        }
+                        this.bitSetCache = new BitSetCache(this.cacheSize);
+                        reHashCount++;
+                        this.rootFingerprintMetric.clear();
+                        firstUpdateTime = System.currentTimeMillis();
+                    }
+                }
+            }
+            this.bitSetCache.put(namespace + "->" + msgKey, bitSet);
+        }
+    }
+
+    protected void executeCloseStrategy() {
+        this.rootFingerprintMetric.print();
+
+        if (firstUpdateTime != null && System.currentTimeMillis() - firstUpdateTime > 1000 * 60 * 60 * 4) {
+            return;
+        }
+        if (metricMap.size() == 1) {
+            return;
+        }
+        List<FingerprintMetric> fingerprintMetricList = new ArrayList<>(metricMap.values());
+        for (int i = 0; i < fingerprintMetricList.size() - 1; i++) {
+            FingerprintMetric fingerprintMetric = fingerprintMetricList.get(i);
+            if (!fingerprintMetric.isCloseFingerprint() && fingerprintMetric.getHitCacheRate() < this.minHitCacheRate) {
+                fingerprintMetric.setCloseFingerprint(true);
+                System.out.println("close fingerprint " + PrintUtil.LINE);
+                fingerprintMetric.print();
+            }
+        }
+
+    }
+
+    public BitSetCache.BitSet getLogFingerprint(String namespace, String msgKey) {
+        if (msgKey == null) {
+            return null;
+        }
+        if (this.bitSetCache == null) {
+            return null;
+        }
+        FingerprintMetric fingerprintMetric = getOrCreateMetric(namespace);
+        if (fingerprintMetric.isCloseFingerprint()) {
+            return null;
+        }
+        if (firstUpdateTime == null) {
+            firstUpdateTime = System.currentTimeMillis();
+        }
+        BitSetCache.BitSet bitSet = this.bitSetCache.get(namespace + "->" + msgKey);
+        this.rootFingerprintMetric.addMetric(bitSet != null);
+        fingerprintMetric.addMetric(bitSet != null);
+        return bitSet;
+    }
+
+    public void addLogFingerprint(String namespace, IMessage message, BitSetCache.BitSet bitSet,
+        String logFingerprintFieldNames) {
+        String msgKey = creatFingerpringKey(message, namespace, logFingerprintFieldNames);
+        addLogFingerprint(namespace, msgKey, bitSet);
+    }
+
+    public BitSetCache.BitSet getLogFingerprint(String namespace, IMessage message, String logFingerprintFieldNames) {
+        String msgKey = creatFingerpringKey(message, namespace, logFingerprintFieldNames);
+        return getLogFingerprint(namespace, msgKey);
+    }
+
+    public FingerprintMetric getOrCreateMetric(String namespace) {
+        FingerprintMetric fingerprintMetric = metricMap.get(namespace);
+        if (fingerprintMetric == null) {
+            synchronized (this) {
+                fingerprintMetric = metricMap.get(namespace);
+                if (fingerprintMetric == null) {
+                    fingerprintMetric = new FingerprintMetric(namespace);
+                    metricMap.put(namespace, fingerprintMetric);
+                }
+            }
+
+        }
+        return fingerprintMetric;
     }
 
     public double getMinHitCacheRate() {

@@ -16,26 +16,21 @@
  */
 package org.apache.rocketmq.streams.common.channel.sinkcache;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.schedule.IScheduleCondition;
-
 /**
  * 自动刷新缓存的任务，开始openAutoFlush后，可以由独立线程完成数据的flush，不必显式调用
  */
-public class DataSourceAutoFlushTask implements Runnable, IScheduleCondition {
+public class DataSourceAutoFlushTask implements Runnable {
 
-    private static final Log LOG = LogFactory.getLog(DataSourceAutoFlushTask.class);
-
-    private volatile boolean isAutoFlush = false;
     private final IMessageCache<?> messageCache;
     protected transient Long lastUpdateTime;
     protected volatile int autoFlushSize = 300;
     protected volatile int autoFlushTimeGap = 1000;
+    private volatile boolean isAutoFlush = false;
 
     public DataSourceAutoFlushTask(boolean isAutoFlush, IMessageCache<?> messageCache) {
         this.isAutoFlush = isAutoFlush;
         this.messageCache = messageCache;
+        lastUpdateTime = System.currentTimeMillis();
     }
 
     @Override
@@ -76,8 +71,4 @@ public class DataSourceAutoFlushTask implements Runnable, IScheduleCondition {
         this.autoFlushTimeGap = autoFlushTimeGap;
     }
 
-    @Override
-    public boolean canExecute() {
-        return messageCache.getMessageCount() >= autoFlushSize || (lastUpdateTime == null || (System.currentTimeMillis() - lastUpdateTime) >= autoFlushTimeGap);
-    }
 }

@@ -45,8 +45,8 @@ public interface IFunctionService {
      */
     void registeFunction(String functionName, Object bean, Method method, FunctionType functionType);
 
-
     void registeUserDefinedUDTFFunction(String functionName, Object bean, Method method);
+
     /**
      * 给一个接口取名字，并注册。 可以通过名字获取接口，单不支持通过函数名调用
      *
@@ -91,8 +91,8 @@ public interface IFunctionService {
      */
     FunctionConfigure getFunctionConfigure(String functionName, Object... parameters);
 
-
     DataType getReturnDataType(String functionName);
+
     /**
      * 执行函数，或先找到合适的FunctionConfigure，然后执行反射。函数带message，context前缀
      *

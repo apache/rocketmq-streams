@@ -27,7 +27,7 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class AESUtil {
 
-    private static final String PRIVATE_KEY = "f835mnga013mb39c";
+    private static final String PRIVATE_KEY = "";
 
     private static final String CHARSET = "UTF-8";
 
@@ -36,8 +36,7 @@ public class AESUtil {
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         IvParameterSpec iv = new IvParameterSpec(PRIVATE_KEY.getBytes(CHARSET));
         cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
-        byte[] encrypted = cipher.doFinal(content.getBytes(CHARSET));
-        return encrypted;
+        return cipher.doFinal(content.getBytes(CHARSET));
     }
 
     private static String decrypt(byte[] content, String strKey) throws Exception {
@@ -57,9 +56,7 @@ public class AESUtil {
             arrB[i] = arrBTmp[i];
         }
 
-        SecretKeySpec skeySpec = new SecretKeySpec(arrB, "AES");
-
-        return skeySpec;
+        return new SecretKeySpec(arrB, "AES");
     }
 
     public static byte[] stringToMD5(String plainText) {

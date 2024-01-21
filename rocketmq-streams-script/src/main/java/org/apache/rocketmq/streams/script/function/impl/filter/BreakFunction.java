@@ -24,7 +24,7 @@ import org.apache.rocketmq.streams.script.context.FunctionContext;
 @Function
 public class BreakFunction {
 
-    @FunctionMethod(value = "break", alias = "return", comment = "终止消息处理")
+    @FunctionMethod(value = "break", comment = "终止消息处理")
     public String breakExecute(IMessage message, FunctionContext context) {
         IMessage m = context.breakExecute();
         return m.getMessageBody().toJSONString();

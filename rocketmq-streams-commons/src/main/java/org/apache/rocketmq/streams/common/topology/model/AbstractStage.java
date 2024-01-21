@@ -16,36 +16,41 @@
  */
 package org.apache.rocketmq.streams.common.topology.model;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
+import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
+import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.interfaces.ISystemMessageProcessor;
+import org.apache.rocketmq.streams.common.interfaces.IStage;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
+import org.apache.rocketmq.streams.common.optimization.MessageTrace;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
 import org.apache.rocketmq.streams.common.topology.metric.StageGroup;
 import org.apache.rocketmq.streams.common.topology.metric.StageMetric;
+import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
+import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable implements IStreamOperator<T, T>, ISystemMessageProcessor {
-    protected String filterFieldNames;
-
-    private static final Log LOG = LogFactory.getLog(AbstractStage.class);
-
+public abstract class AbstractStage<T extends IMessage> extends BasedConfigurable implements IStage<T> {
     public static final String TYPE = "stage";
-
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractStage.class);
+    protected String filterFieldNames;
     protected transient String name;
 
     /**
@@ -55,7 +60,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
 
     protected String splitDataFieldName;
 
-    protected transient Pipeline<?> pipeline;
+    protected transient AbstractPipeline<?> pipeline;
 
     /**
      * 设置路由label，当需要做路由选择时需要设置
@@ -86,42 +91,148 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      * 主要用于排错，把stage按sql分组，可以快速定位问题
      */
     protected String sql;
-    protected StageGroup stageGroup;
+    protected transient StageGroup stageGroup;
     /**
      * 前置指纹记录
      */
     protected transient PreFingerprint preFingerprint = null;
 
     //监控信息
-    protected transient StageMetric stageMetric=new StageMetric();
+    protected transient StageMetric stageMetric = new StageMetric();
 
     public AbstractStage() {
         setType(TYPE);
     }
 
-    @Override public T doMessage(T t, AbstractContext context) {
-        long startTime=stageMetric.startCalculate(t);
+    /**
+     * 执行一个stage
+     *
+     * @param t
+     * @param context
+     */
+    @Override
+    public boolean executeStage(T t, AbstractContext context) {
+        if (t.getHeader().isSystemMessage()) {
+            ISystemMessage systemMessage = t.getSystemMessage();
+            if (systemMessage instanceof CheckPointMessage) {
+                checkpoint(t, context, (CheckPointMessage) systemMessage);
+            } else if (systemMessage instanceof NewSplitMessage) {
+                addNewSplit(t, context, (NewSplitMessage) systemMessage);
+            } else if (systemMessage instanceof RemoveSplitMessage) {
+                removeSplit(t, context, (RemoveSplitMessage) systemMessage);
+            } else if (systemMessage instanceof BatchFinishMessage) {
+                batchMessageFinish(t, context, (BatchFinishMessage) systemMessage);
+            } else {
+                if (systemMessage == null) {
+                    return true;
+                }
+                throw new RuntimeException("can not support this system message " + systemMessage.getClass().getName());
+            }
+            if (isAsyncNode()) {
+                context.breakExecute();
+                return false;
+            }
+            return true;
+        }
+        context.resetIsContinue();
+        if (context.isSplitModel() && !isCloseSplitMode()) {
+            List<T> oldSplits = context.getSplitMessages();
+            List<T> newSplits = new ArrayList<T>();
+            int splitMessageOffset = 0;
+            boolean isFinishTrace = MessageTrace.existFinishBranch(t);
+            for (T subT : oldSplits) {
+                context.closeSplitMode(subT);
+                subT.getHeader().setMsgRouteFromLable(t.getHeader().getMsgRouteFromLable());
+                subT.getHeader().addLayerOffset(splitMessageOffset);
+                splitMessageOffset++;
+                Object result = this.doMessage(t, context);
+                boolean isContinue = (result != null && context.isContinue());
+                if (!isContinue) {
+                    context.removeSpliteMessage(subT);
+                    context.cancelBreak();
+                    continue;
+                }
+                //lastMsg=subT;
+                if (context.isSplitModel()) {
+                    newSplits.addAll(context.getSplitMessages());
+                } else {
+                    newSplits.add(subT);
+                }
+            }
+            MessageTrace.setResult(t, isFinishTrace);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
+            //if (needFlush) {
+            //    flushStage(stage, lastMsg, context);
+            //}
+            context.setSplitMessages(newSplits);
+            context.openSplitModel();
+
+            if (newSplits == null || newSplits.size() == 0) {
+                context.breakExecute();
+                return false;
+            }
+
+        } else {
+            if (isCloseSplitMode()) {
+                if (StringUtil.isNotEmpty(getSplitDataFieldName())) {
+                    List<T> msgs = context.getSplitMessages();
+                    JSONArray jsonArray = createJsonArray(msgs);
+                    t.getMessageBody().put(getSplitDataFieldName(), jsonArray);
+                }
+                context.closeSplitMode(t);
+            }
+            Boolean isFinishTrace = MessageTrace.existFinishBranch(t);
+            Object result = this.doMessage(t, context);
+            boolean isContinue = (result != null && context.isContinue());
+            MessageTrace.setResult(t, isFinishTrace);//因为某些stage可能会嵌套pipline，导致某个pipline执行完成，这里把局部pipline带来的成功清理掉，所以不参与整体的pipline触发逻辑
+            return isContinue;
+        }
+        return true;
+    }
+
+    @Override
+    public T doMessage(T t, AbstractContext<T> context) {
+        long startTime = stageMetric.startCalculate(t);
+        T result = null;
         try {
             TraceUtil.debug(t.getHeader().getTraceId(), "AbstractStage", label, t.getMessageBody().toJSONString());
-        } catch (Exception e) {
-            LOG.error("t.getMessageBody() parse error", e);
-        }
-        IStageHandle<T> handle = selectHandle(t, context);
-        if (handle == null) {
-            return t;
-        }
-        Object result = handle.doMessage(t, context);
-        stageMetric.endCalculate(startTime);
-        if (!context.isContinue() || result == null) {
-            if(context.getNotFireReason()!=null){
-                stageMetric.filterCalculate(context.getNotFireReason());
+            result = handleMessage(t, context);
+            long cost = stageMetric.endCalculate(startTime);
+            if (cost > 3000) {
+                LOG.warn("[{}][{}] Stage_Slow_On[{}]----[{}]", IdUtil.instanceId(), this.getPipeline().getName(), this.getSql(), cost);
             }
-            return (T) context.breakExecute();
+            if (!context.isContinue() || result == null) {
+                NotFireReason notFireReason = null;
+                if ("true".equals(getConfiguration().getProperty(ConfigurationKey.MONITOR_PIPELINE_HTML_SWITCH))) {
+                    notFireReason = createNotReason(t, context);
+                    if (notFireReason != null) {
+                        stageMetric.filterCalculate(notFireReason);
+                    }
+                }
+                if (LOG.isDebugEnabled()) {
+
+                    if (notFireReason == null) {
+                        notFireReason = createNotReason(t, context);
+                    }
+                    if (notFireReason != null) {
+                        String info = JsonableUtil.formatJson(notFireReason.toJson()).replace("<p>", "\n").replace("<br>", "\r");
+                        LOG.debug("[{}][{}] Filter_NotMatch_Reason[{}]----\n\r[{}]", IdUtil.instanceId(), this.getPipeline().getName(), this.getSql(), info);
+                    }
+
+                }
+
+                return (T) context.breakExecute();
+            }
+            stageMetric.outCalculate();
+            context.removeNotFireReason();
+        } catch (Exception e) {
+            LOG.error("[{}][{}] Stage_Error_On({})-errorMsg({})", IdUtil.instanceId(), this.getPipeline().getName(), this.getSql(), e.getMessage(), e);
+            context.breakExecute();
         }
-        stageMetric.outCalculate();
-        context.removeNotFireReason();
-        return (T) result;
+
+        return result;
     }
+
+    protected abstract T handleMessage(T t, AbstractContext context);
 
     /**
      * 是否是异步节点，流程会在此节点终止，启动新线程开启后续流程
@@ -130,17 +241,12 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
      */
     public abstract boolean isAsyncNode();
 
-    /**
-     * 复制一个新的stage，主要用于并发场景
-     *
-     * @return
-     */
-    protected abstract IStageHandle<T> selectHandle(T t, AbstractContext context);
-
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void setName(String name) {
         this.name = name;
     }
@@ -184,10 +290,9 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             return this.nextStageLabels;
         }
 
-
         List<String> labels = new ArrayList<>(this.nextStageLabels);
         if (StringUtil.isNotEmpty(routeLabel)) {
-            Set<String> routeLabelSet=t.getHeader().createRouteLableSet(routeLabel);
+            Set<String> routeLabelSet = t.getHeader().createRouteLabelSet(routeLabel);
             labels = new ArrayList<>();
             for (String tempLabel : this.nextStageLabels) {
                 if (routeLabelSet.contains(tempLabel)) {
@@ -196,7 +301,7 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
         }
         if (StringUtil.isNotEmpty(filterLabel)) {
-            Set<String> routeFilterLabelSet=t.getHeader().createRouteLableSet(filterLabel);
+            Set<String> routeFilterLabelSet = t.getHeader().createRouteLabelSet(filterLabel);
             for (String tempLabel : this.nextStageLabels) {
                 if (routeFilterLabelSet.contains(label)) {
                     labels.remove(tempLabel);
@@ -223,9 +328,9 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             }
             filterName = i + "";
         }
-        String stageIdentification = MapKeyUtil.createKeyBySign(".", pipeline.getNameSpace(), pipeline.getConfigureName(), filterName);
+        String stageIdentification = MapKeyUtil.createKeyBySign(".", pipeline.getNameSpace(), pipeline.getName(), filterName);
         if (this.filterFieldNames == null) {
-            this.filterFieldNames = ComponentCreator.getProperties().getProperty(stageIdentification);
+            this.filterFieldNames = getConfiguration().getProperty(stageIdentification);
         }
         if (this.filterFieldNames == null) {
             return null;
@@ -286,18 +391,51 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
             if (sourceLabel == null || nextLabel == null) {
                 return null;
             }
-            return new PreFingerprint(this.filterFieldNames, stageIdentification, sourceLabel, nextLabel, -1, this, FingerprintCache.getInstance());
+            PreFingerprint preFingerprint = new PreFingerprint(this.filterFieldNames, stageIdentification, sourceLabel, nextLabel, -1, this);
+            preFingerprint.setFingerprintCache(FingerprintCache.getInstance());
+            return preFingerprint;
         } else {
-            return new PreFingerprint(this.filterFieldNames, stageIdentification, "0", "0", -1, this, FingerprintCache.getInstance());
+            PreFingerprint preFingerprint = new PreFingerprint(this.filterFieldNames, stageIdentification, "0", "0", -1, this);
+            preFingerprint.setFingerprintCache(FingerprintCache.getInstance());
+            return preFingerprint;
         }
     }
 
-    @Override public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
+    /**
+     * 分析被过滤的原因
+     *
+     * @param message
+     * @param context
+     * @return
+     */
+    private NotFireReason createNotReason(T message, AbstractContext<T> context) {
+        if (getPipeline().getHomologousOptimization() != null) {
+            PreFingerprint preFingerprint = getPreFingerprint();
+            if (preFingerprint == null) {
+                return null;
+            }
+            String msgKey = preFingerprint.createFieldMsg(message);
+            NotFireReason notFireReason = getPipeline().getHomologousOptimization().analysisNotFireReason((FilterChainStage) this, msgKey, context.getNotFireExpressionMonitor());
+            notFireReason.analysis(message);
+            return notFireReason;
+        }
+        return null;
+    }
 
+    private JSONArray createJsonArray(List<T> msgs) {
+        JSONArray jsonArray = new JSONArray();
+        for (T msg : msgs) {
+            jsonArray.add(msg.getMessageBody());
+        }
+        return jsonArray;
     }
 
     public List<String> getNextStageLabels() {
         return nextStageLabels;
+    }
+
+    public void setNextStageLabels(List<String> nextStageLabels) {
+        this.nextStageLabels = nextStageLabels;
     }
 
     public List<String> getPrevStageLabels() {
@@ -316,11 +454,11 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         this.msgSourceName = msgSourceName;
     }
 
-    public Pipeline<?> getPipeline() {
+    public AbstractPipeline<?> getPipeline() {
         return pipeline;
     }
 
-    public void setPipeline(Pipeline<?> pipeline) {
+    public void setPipeline(AbstractPipeline<?> pipeline) {
         this.pipeline = pipeline;
     }
 
@@ -336,16 +474,20 @@ public abstract class AbstractStage<T extends IMessage> extends BasedConfigurabl
         return stageMetric;
     }
 
+    public Long calculateInCount() {
+        return stageMetric.getInCount();
+    }
+
+    public double calculateInQPS() {
+        return stageMetric.getQps();
+    }
+
     public String getSql() {
         return sql;
     }
 
     public void setSql(String sql) {
         this.sql = sql;
-    }
-
-    public void setNextStageLabels(List<String> nextStageLabels) {
-        this.nextStageLabels = nextStageLabels;
     }
 
     public String getFilterFieldNames() {

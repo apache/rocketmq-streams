@@ -17,4 +17,12 @@
 package org.apache.rocketmq.streams.common.interfaces;
 
 public interface ISystemMessage {
+    int CHECK_POINT = 1;
+    int SPLIT_ADD = 2;
+    int SPLIT_REMOVE = 3;
+    int WATER_MARK = 4;
+    int BATCH_FINISH = 5;
+    int CHANGE_TABLE_NAME = 6;
+
+    int getSystemMessageType();
 }

@@ -22,12 +22,11 @@ public class FilterOperator extends Rule {
         super(namespace, name, expression);
     }
 
-    public FilterOperator() {}
+    public FilterOperator() {
+    }
 
     public FilterOperator(String expression) {
         super(expression);
     }
-
-
 
 }

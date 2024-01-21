@@ -28,17 +28,24 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * cache sql， async and batch commit
  */
 
 public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SQLCache.class);
+
     protected Boolean isOpenCache = true;//if false，then execute sql when receive sql
     protected Set<String> firedWindowInstances = new HashSet<>();//fired window instance ，if the owned sqls have not commit， can cancel the sqls
     protected Map<String, Integer> windowInstance2Index = new HashMap<>();//set index to ISQLElement group by window instance
 
     protected boolean isLocalOnly;
+    protected AtomicInteger executeSQLCount = new AtomicInteger(0);
+    protected AtomicInteger cancelQLCount = new AtomicInteger(0);
 
     public SQLCache(boolean isLocalOnly) {
         super(null);
@@ -55,7 +62,7 @@ public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
         if (isLocalOnly) {
             return 0;
         }
-        if (isOpenCache == false) {
+        if (!isOpenCache) {
             DriverBuilder.createDriver().execute(isqlElement.getSQL());
             return 1;
         }
@@ -78,9 +85,6 @@ public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
     protected String createSplitId(ISQLElement msg) {
         return msg.getQueueId();
     }
-
-    protected AtomicInteger executeSQLCount = new AtomicInteger(0);
-    protected AtomicInteger cancelQLCount = new AtomicInteger(0);
 
     protected class SQLCacheCallback implements IMessageFlushCallBack<ISQLElement> {
 
@@ -105,15 +109,13 @@ public class SQLCache extends AbstractMultiSplitMessageCache<ISQLElement> {
             JDBCDriver dataSource = DriverBuilder.createDriver();
             try {
                 executeSQLCount.addAndGet(sqls.size());
-                dataSource.executSqls(sqls);
-                System.out.println("execute sql count is " + executeSQLCount.get() + ";  cancel sql count is " + cancelQLCount.get());
+                dataSource.executeSqls(sqls);
+                LOGGER.debug("execute sql count is {};  cancel sql count is {}", executeSQLCount.get(), cancelQLCount.get());
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
             } finally {
-                if (dataSource != null) {
-                    dataSource.destroy();
-                }
+                dataSource.destroy();
             }
             return true;
         }

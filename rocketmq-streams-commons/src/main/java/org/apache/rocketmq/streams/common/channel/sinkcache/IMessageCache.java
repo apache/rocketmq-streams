@@ -62,16 +62,16 @@ public interface IMessageCache<R> {
     void closeAutoFlush();
 
     /**
-     * 设置缓存大小，超过条数，强制刷新
-     *
-     * @param batchSize
-     */
-    void setBatchSize(int batchSize);
-
-    /**
      * 获取批次大小
      *
      * @return
      */
     int getBatchSize();
+
+    /**
+     * 设置缓存大小，超过条数，强制刷新
+     *
+     * @param batchSize
+     */
+    void setBatchSize(int batchSize);
 }

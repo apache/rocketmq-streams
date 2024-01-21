@@ -16,59 +16,35 @@
  */
 package org.apache.rocketmq.streams.window.minibatch;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.context.MessageHeader;
-import org.apache.rocketmq.streams.common.topology.shuffle.IShuffleKeyGenerator;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
-import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.common.topology.IShuffleKeyGenerator;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
-import org.apache.rocketmq.streams.window.operator.AbstractWindow;
-import org.apache.rocketmq.streams.window.state.impl.WindowValue;
-import org.apache.rocketmq.streams.window.util.ShuffleUtil;
 
-public class MiniBatchMsgCache extends AbstractMultiSplitMessageCache<Pair<ISplit,IMessage>> {
-    public static String SHUFFLE_KEY="shuffle_key";
-
-
+public class MiniBatchMsgCache extends AbstractMultiSplitMessageCache<Pair<ISplit<?, ?>, IMessage>> {
+    public static String SHUFFLE_KEY = "shuffle_key";
 
     protected transient IShuffleKeyGenerator shuffleKeyGenerator;
     protected transient AbstractShuffleWindow window;
 
-
-
-
     public MiniBatchMsgCache(
-        IMessageFlushCallBack<Pair<ISplit,IMessage>> flushCallBack, IShuffleKeyGenerator shuffleKeyGenerator,
+        IMessageFlushCallBack<Pair<ISplit<?, ?>, IMessage>> flushCallBack, IShuffleKeyGenerator shuffleKeyGenerator,
         AbstractShuffleWindow window) {
         super(flushCallBack);
-        this.shuffleKeyGenerator=shuffleKeyGenerator;
-        this.window=window;
+        this.shuffleKeyGenerator = shuffleKeyGenerator;
+        this.window = window;
     }
 
-
-    @Override protected String createSplitId(Pair<ISplit, IMessage> msg) {
+    @Override protected String createSplitId(Pair<ISplit<?, ?>, IMessage> msg) {
         return msg.getLeft().getQueueId();
     }
 
     @Override protected MessageCache createMessageCache() {
-        ShuffleMessageCache messageCache=new ShuffleMessageCache(this.flushCallBack);
+        ShuffleMessageCache messageCache = new ShuffleMessageCache(this.flushCallBack);
         messageCache.setWindow(window);
         messageCache.setShuffleKeyGenerator(shuffleKeyGenerator);
         return messageCache;

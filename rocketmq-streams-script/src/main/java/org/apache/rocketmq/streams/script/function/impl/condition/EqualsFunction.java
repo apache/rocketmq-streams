@@ -46,18 +46,21 @@ public class EqualsFunction {
 
     @FunctionMethod(value = "equal", alias = "==", comment = "判断两个值是否相等")
     public Boolean match(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "字段名称或常量") String fieldName,
-                         @FunctionParamter(value = "string", comment = "字段名称或常量") String value) {
+        @FunctionParamter(value = "string", comment = "字段名称或常量") String fieldName,
+        @FunctionParamter(value = "string", comment = "字段名称或常量") String value) {
         String leftValue = FunctionUtils.getValueString(message, context, fieldName);
-        if (leftValue == null && value == null || (NULL.equals(value.toLowerCase()))) {
+        String rightValue = FunctionUtils.getValueString(message, context, value);
+
+        if (leftValue == null && rightValue == null) {
             return true;
+        }
+
+        if (leftValue == null || rightValue == null) {
+            return false;
         }
         //FIXME 感觉这样解不合理，解析equals函数的时候应该将value置成空
-        if ("".equals(leftValue) && ("".equals(value) || "''".equals(value))) {
+        if ("".equals(leftValue) && ("".equals(rightValue) || "''".equals(rightValue))) {
             return true;
-        }
-        if (StringUtil.isEmpty(leftValue)) {
-            return false;
         }
         if (FunctionUtils.isConstant(value)) {
             boolean result = leftValue.equals(FunctionUtils.getConstant(value));
@@ -80,8 +83,8 @@ public class EqualsFunction {
     @Deprecated
     @FunctionMethod(value = "equals", comment = "判断两个值是否相等")
     public boolean equals(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "string", comment = "字段名称") String fieldName,
-                          @FunctionParamter(value = "string", comment = "常量，不加引号也默认为常量") String value) {
+        @FunctionParamter(value = "string", comment = "字段名称") String fieldName,
+        @FunctionParamter(value = "string", comment = "常量，不加引号也默认为常量") String value) {
 
         return match(message, context, fieldName, value);
     }
@@ -89,16 +92,16 @@ public class EqualsFunction {
     @Deprecated
     @FunctionMethod(value = "!equals", comment = "判断两个值是否相等")
     public boolean notEquals(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "字段名称") String fieldName,
-                             @FunctionParamter(value = "string", comment = "常量，不加引号也默认为常量") String value) {
+        @FunctionParamter(value = "string", comment = "字段名称") String fieldName,
+        @FunctionParamter(value = "string", comment = "常量，不加引号也默认为常量") String value) {
         return !equals(message, context, fieldName, value);
     }
 
     @Deprecated
     @FunctionMethod(value = "equalsByField", comment = "判断两个值是否相等")
     public boolean equalsByField(IMessage message, FunctionContext context,
-                                 @FunctionParamter(value = "string", comment = "字段名称") String fieldName,
-                                 @FunctionParamter(value = "string", comment = "字段名称") String otherFieldName) {
+        @FunctionParamter(value = "string", comment = "字段名称") String fieldName,
+        @FunctionParamter(value = "string", comment = "字段名称") String otherFieldName) {
         String ori = ReflectUtil.getBeanFieldOrJsonValue(message.getMessageBody(), fieldName);
         String dest = ReflectUtil.getBeanFieldOrJsonValue(message.getMessageBody(), otherFieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(dest)) {
@@ -116,15 +119,15 @@ public class EqualsFunction {
      */
     @FunctionMethod(value = "isFieldEmpty", comment = "判断一个字段是否为空")
     public boolean isFieldEmpty(IMessage channelMessage, FunctionContext context,
-                                @FunctionParamter(value = "string", comment = "字段名称") String fieldName, String noUseValue) {
+        @FunctionParamter(value = "string", comment = "字段名称") String fieldName, String noUseValue) {
         Object value = FunctionUtils.getValue(channelMessage, context, fieldName);
         if (value == null) {
             return true;
         }
-        if (String.class.isInstance(value) && StringUtil.isEmpty((String)value)) {
+        if (String.class.isInstance(value) && StringUtil.isEmpty((String) value)) {
             return true;
         }
-        if (JSONArray.class.isInstance(value) && ((JSONArray)value).size() == 0) {
+        if (JSONArray.class.isInstance(value) && ((JSONArray) value).size() == 0) {
             return true;
         }
         return false;
@@ -133,15 +136,15 @@ public class EqualsFunction {
 
     @FunctionMethod(value = "isNull", alias = "null", comment = "判断值是否为NULL")
     public boolean isNull(IMessage channelMessage, FunctionContext context,
-                          @FunctionParamter(value = "string", comment = "字段名称") String fieldName) {
+        @FunctionParamter(value = "string", comment = "字段名称") String fieldName) {
         Object value = FunctionUtils.getValue(channelMessage, context, fieldName);
         if (value == null) {
             return true;
         }
-        if (String.class.isInstance(value) && StringUtil.isEmpty((String)value)) {
+        if (String.class.isInstance(value) && StringUtil.isEmpty((String) value)) {
             return true;
         }
-        if (String.class.isInstance(value) && ((String)value).toLowerCase().equals("null")) {
+        if (String.class.isInstance(value) && ((String) value).toLowerCase().equals("null")) {
             return true;
         }
         return false;
@@ -149,7 +152,7 @@ public class EqualsFunction {
 
     @FunctionMethod(value = "isNotNull", alias = "!null", comment = "判断值是否不为NULL")
     public boolean isNotNull(IMessage channelMessage, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "字段名称") String fieldName) {
+        @FunctionParamter(value = "string", comment = "字段名称") String fieldName) {
         return !isNull(channelMessage, context, fieldName);
     }
 }

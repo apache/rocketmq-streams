@@ -38,16 +38,15 @@ public class ConstantVar<T> extends Var<T> {
         return value;
     }
 
-
     @SuppressWarnings("unchecked")
     @Override
     protected void getJsonObject(JSONObject jsonObject) {
         // value很多时候会是String类型，这样dataType.toDataJson会报错，所以先转为dataType类型
         if (dataType == null) {
-            dataType = (DataType<T>)new StringDataType(String.class);
+            dataType = (DataType<T>) new StringDataType(String.class);
         }
         try {
-            this.value = (T)dataType.getData(String.valueOf(value));
+            this.value = (T) dataType.getData(String.valueOf(value));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -62,7 +61,7 @@ public class ConstantVar<T> extends Var<T> {
         String dataTypeJson = jsonObject.getString("dataType");
         dataType = (DataType<T>) DataTypeUtil.createDataType(dataTypeJson);
         String valueString = jsonObject.getString("value");
-        this.value = (T)dataType.getData(valueString);
+        this.value = (T) dataType.getData(valueString);
 
         // 前端显示用
         String dataTypestr = "";

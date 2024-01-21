@@ -25,8 +25,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.transport.AbstractFileTransport;
 import org.apache.rocketmq.streams.common.transport.IFileTransport;
@@ -44,10 +44,10 @@ public class MinioFileTransport extends AbstractFileTransport {
     protected MinioClient minioClient;
 
     public MinioFileTransport() {
-        this.ak = ComponentCreator.getProperties().getProperty(ConfigureFileKey.FILE_TRANSPORT_AK);
-        this.sk = ComponentCreator.getProperties().getProperty(ConfigureFileKey.FILE_TRANSPORT_SK);
-        this.endpoint = ComponentCreator.getProperties().getProperty(ConfigureFileKey.FILE_TRANSPORT_ENDPOINT);
-        this.dirpperDir = ComponentCreator.getProperties().getProperty(ConfigureFileKey.FILE_TRANSPORT_DIPPER_DIR);
+        this.ak = SystemContext.getProperty(ConfigurationKey.FILE_TRANSPORT_AK);
+        this.sk = SystemContext.getProperty(ConfigurationKey.FILE_TRANSPORT_SK);
+        this.endpoint = SystemContext.getProperty(ConfigurationKey.FILE_TRANSPORT_ENDPOINT);
+        this.dirpperDir = SystemContext.getProperty(ConfigurationKey.FILE_TRANSPORT_DIPPER_DIR);
         if (StringUtil.isEmpty(this.dirpperDir)) {
             this.dirpperDir = "dipper_files";
         }

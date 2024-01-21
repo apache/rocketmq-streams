@@ -30,57 +30,45 @@ public abstract class AbstractRule extends BasedConfigurable implements IStreamO
     public static final String TYPE = "rule";
 
     public static final String FIRE_RULES = "fireRules";
-
-    /**
-     * 这个字段以前存在remark中，现在会在映射时做兼容转换，建议后续直接存储在这个字段
-     */
-    private String msgMetaDataName;
-
     protected List<String> varNames = new ArrayList<String>();
-
     protected List<String> actionNames = new ArrayList<String>();
-
     @Deprecated
     protected List<String> scriptNames = new ArrayList<String>();
-
     protected String expressionName;
-
     /**
      * 规则编号
      */
     protected String ruleCode;
-
     /**
      * 规则描述
      */
     protected String ruleDesc;
-
     /**
      * 规则标题
      */
     protected String ruleTitle;
-
     /**
      * 规则发布状态
      */
     protected Integer ruleStatus = 0;
-
+    protected boolean supportHyperscan = false;// support hyperscan optimization, if the rule has many regex, suggest open
+    /**
+     * 这个字段以前存在remark中，现在会在映射时做兼容转换，建议后续直接存储在这个字段
+     */
+    private String msgMetaDataName;
     /**
      * 风险级别
      */
     private String ruleLevel;
 
-
-    protected boolean supportHyperscan=false;// support hyperscan optimization, if the rule has many regex, suggest open
-
-    public abstract Set<String> getDependentFields();
+    public AbstractRule() {
+        setType(TYPE);
+    }
 
     //
     //public abstract Set<String> getFunctionNames();
 
-    public AbstractRule() {
-        setType(TYPE);
-    }
+    public abstract Set<String> getDependentFields();
 
     public String getMsgMetaDataName() {
         return msgMetaDataName;
@@ -157,7 +145,7 @@ public abstract class AbstractRule extends BasedConfigurable implements IStreamO
     public JSONObject toOutputJson() {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("ruleNameSpace", getNameSpace());
-        jsonObject.put("ruleName", getConfigureName());
+        jsonObject.put("ruleName", getName());
         if (StringUtil.isNotEmpty(ruleCode)) {
             jsonObject.put("ruleCode", ruleCode);
         }

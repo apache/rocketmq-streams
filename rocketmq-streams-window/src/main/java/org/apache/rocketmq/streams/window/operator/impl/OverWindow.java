@@ -18,10 +18,13 @@ package org.apache.rocketmq.streams.window.operator.impl;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.topology.ISynchronousWindow;
+import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
+import org.apache.rocketmq.streams.common.topology.stages.SynchronousWindowChainStage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
@@ -29,7 +32,7 @@ import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 /**
  * 只支持 时间去重的场景，日志是按系统时间顺序，所以不落盘。需要设置groupByFieldName和rowNumerName字段
  */
-public class OverWindow extends AbstractWindow {
+public class OverWindow extends AbstractWindow implements ISynchronousWindow {
 
     private static int MAX_SIZE = 1000000;
     protected transient IntValueKV intValueKV;
@@ -38,7 +41,7 @@ public class OverWindow extends AbstractWindow {
      * 需要把生成的序列号返回设置到message，这个是序列号对应的名字
      */
     protected String rowNumerName;
-    protected boolean isReservedOne=false;
+    protected boolean isReservedOne = false;
 
     /**
      * 针对这个窗口实例完成计算，实际上是写入了缓存，在flush时完成真正的计算。写入缓存时把上下文（header，windowinstance，window）保存在消息中
@@ -47,7 +50,7 @@ public class OverWindow extends AbstractWindow {
      * @param context
      */
     @Override
-    public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
+    public void accumulateDirectly(IMessage message, AbstractContext context) {
         String key = generateShuffleKey(message);
         createWindowInstanceByDate(new Date());
         Integer value = intValueKV.get(key);
@@ -61,13 +64,13 @@ public class OverWindow extends AbstractWindow {
             }
 
         }
-        if(isReservedOne){
-            if(value>1){
+        if (isReservedOne) {
+            if (value > 1) {
                 context.breakExecute();
-                return context;
+                return;
             }
         }
-        if(rowNumerName!=null){
+        if (rowNumerName != null) {
             message.getMessageBody().put(rowNumerName, value);
         }
 
@@ -81,7 +84,6 @@ public class OverWindow extends AbstractWindow {
                 }
             }
         }
-        return context;
     }
 
     /**
@@ -150,16 +152,6 @@ public class OverWindow extends AbstractWindow {
         return null;
     }
 
-    @Override
-    public int fireWindowInstance(WindowInstance windowInstance, Map<String, String> queueId2Offsets) {
-        return 0;
-    }
-
-    @Override
-    public void clearFireWindowInstance(WindowInstance windowInstance) {
-
-    }
-
     public boolean isReservedOne() {
         return isReservedOne;
     }
@@ -176,4 +168,14 @@ public class OverWindow extends AbstractWindow {
         this.rowNumerName = rowNumerName;
     }
 
+    @Override public AbstractChainStage createStageChain(PipelineBuilder pipelineBuilder) {
+        SynchronousWindowChainStage windowChainStage = new SynchronousWindowChainStage();
+        windowChainStage.setWindow(this);
+        windowChainStage.setNameSpace(getNameSpace());
+        return windowChainStage;
+    }
+
+    @Override public void addConfigurables(PipelineBuilder pipelineBuilder) {
+        pipelineBuilder.addConfigurables(this);
+    }
 }

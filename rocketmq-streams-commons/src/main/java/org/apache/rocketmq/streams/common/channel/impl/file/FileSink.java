@@ -34,18 +34,17 @@ import org.apache.rocketmq.streams.common.utils.PrintUtil;
  */
 public class FileSink extends AbstractSupportShuffleSink {
 
+    private static final String PREFIX = "dipper.upgrade.channel.file.envkey";
+    protected transient BufferedWriter writer;
     /**
      * 文件全路径。如果目录是环境变量，可以写成evnDir/文件名
      */
     @ENVDependence
     private String filePath;
-
     /**
      * 文件写入时，是否追加
      */
     private boolean needAppend = true;
-
-    protected transient BufferedWriter writer;
     /**
      * FileChannel 中 writer 完成 初始化 标识
      */
@@ -63,6 +62,10 @@ public class FileSink extends AbstractSupportShuffleSink {
 
     }
 
+    public FileSink() {
+        setType(ISink.TYPE);
+    }
+
     @Override
     public String getShuffleTopicFieldName() {
         return "filePath";
@@ -74,9 +77,9 @@ public class FileSink extends AbstractSupportShuffleSink {
     }
 
     @Override
-    public List<ISplit<?,?>> getSplitList() {
+    public List<ISplit<?, ?>> getSplitList() {
         File file = new File(filePath);
-        List<ISplit<?,?>> splits = new ArrayList<>();
+        List<ISplit<?, ?>> splits = new ArrayList<>();
         splits.add(new FileSplit(file));
         return splits;
     }
@@ -105,23 +108,15 @@ public class FileSink extends AbstractSupportShuffleSink {
 
     @Override
     public void destroy() {
-
         try {
             if (writer != null) {
                 writer.flush();
                 writer.close();
             }
-
         } catch (IOException e) {
             throw new RuntimeException("close error " + filePath, e);
         }
     }
-
-    public FileSink() {
-        setType(ISink.TYPE);
-    }
-
-    private static final String PREFIX = "dipper.upgrade.channel.file.envkey";
 
     /**
      * 初始化 witer 防止文件不存在异常
@@ -131,12 +126,12 @@ public class FileSink extends AbstractSupportShuffleSink {
             synchronized (this) {
                 if (!writerInitFlag) {
                     try {
-                        File file=new File(filePath);
-                        File dir=file.getParentFile();
-                        if(dir.exists()==false){
+                        File file = new File(filePath);
+                        File dir = file.getParentFile();
+                        if (dir.exists() == false) {
                             dir.mkdirs();
                         }
-                        if(file.exists()==false){
+                        if (file.exists() == false) {
                             file.createNewFile();
                         }
                         writer = new BufferedWriter(new FileWriter(filePath, needAppend));

@@ -21,30 +21,29 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.junit.Test;
 
 public class ORMUtilTest {
-    private String URL="";
-    protected String USER_NAME="";
-    protected String PASSWORD="";
+    protected String USER_NAME = "";
+    protected String PASSWORD = "";
+    private String URL = "";
 
-    public ORMUtilTest(){
+    public ORMUtilTest() {
         //正式使用时，在配置文件配置
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL,URL);//数据库连接url
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME,USER_NAME);//用户名
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD,PASSWORD);//password
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL, URL);//数据库连接url
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME, USER_NAME);//用户名
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD, PASSWORD);//password
     }
+
     @Test
-    public void testInsert(){
-        String namespace="org.apache.configuable.test";
-        List<Person> personList=new ArrayList<>();
-        for(int i=0;i<10;i++){
-            personList.add(createPerson(namespace,"chris"+i));
+    public void testInsert() {
+        String namespace = "org.apache.configuable.test";
+        List<Person> personList = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            personList.add(createPerson(namespace, "chris" + i));
         }
         /**
          * 不带数据库连接信息（url,userName,Password），使用ConfiguableComponet的连接信息
@@ -55,36 +54,36 @@ public class ORMUtilTest {
     }
 
     @Test
-    public void testQueryList(){
-        Map<String,Integer> paras=new HashMap<>();
-        paras.put("age",18);
-        List<Person> personList=ORMUtil.queryForList("select * from person where age >${age} limit 100",paras,Person.class);
+    public void testQueryList() {
+        Map<String, Integer> paras = new HashMap<>();
+        paras.put("age", 18);
+        List<Person> personList = ORMUtil.queryForList("select * from person where age >${age} limit 100", paras, Person.class);
     }
 
     @Test
-    public void testQueryOneRow(){
-        Person personPara=new Person();
+    public void testQueryOneRow() {
+        Person personPara = new Person();
         personPara.setAge(18);
         personPara.setName("chris1");
-        Person person=ORMUtil.queryForObject("select * from person where age =${age} and name='${name}' ",personPara,Person.class,URL,USER_NAME,PASSWORD);
+        Person person = ORMUtil.queryForObject("select * from person where age =${age} and name='${name}' ", personPara, Person.class, URL, USER_NAME, PASSWORD);
     }
 
     /**
      * 创建configuable对象
+     *
      * @param namespace
      * @return
      */
-    protected Person createPerson(String namespace,String name){
-        Person person=new Person();
+    protected Person createPerson(String namespace, String name) {
+        Person person = new Person();
         person.setName(name);
         person.setAge(18);
         person.setNameSpace(namespace);
-        person.setConfigureName("peronName");
+        person.setName("peronName");
         person.setType("person");
         return person;
     }
 }
-
 
 class Person extends BasedConfigurable {
     @ENVDependence
@@ -98,7 +97,7 @@ class Person extends BasedConfigurable {
         Person person = new Person();
         person.setNameSpace(namespace);
         person.setType("person");
-        person.setConfigureName("Chris");
+        person.setName("Chris");
         person.setName("Chris");
         List<String> addresses = new ArrayList<>();
         addresses.add("huilongguan");
@@ -163,7 +162,7 @@ class Person extends BasedConfigurable {
     public Object clone() {
         Person person = null;
         try {
-            person = (Person)super.clone();
+            person = (Person) super.clone();
         } catch (CloneNotSupportedException e) {
             System.out.println("clone error " + e);
         }

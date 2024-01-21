@@ -16,21 +16,20 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class CompareFunction extends AbstractExpressionFunction {
-    public static String VAR_PREFIX="##*^%$#@!*";//标识一个表达式的值式一个变量，是一个特殊处理。这个标识会放到值的前面。如变量式uuid，值会变成&&&&##$$%^*uuid
-    private static final Log LOG = LogFactory.getLog(CompareFunction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CompareFunction.class);
+    public static String VAR_PREFIX = "##*^%$#@!*";//标识一个表达式的值式一个变量，是一个特殊处理。这个标识会放到值的前面。如变量式uuid，值会变成&&&&##$$%^*uuid
 
     @Override
     public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
@@ -39,12 +38,10 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
         }
         Object varValue = null;
         String varName = expression.getVarName();
-        Var var =expression.getVar();
+        Var<?> var = expression.getVar();
         varValue = var.doMessage(message, context);
 
-        /**
-         * 两个数字比较的情况
-         */
+        //两个数字比较的情况
         if ((FunctionUtils.isNumber(varName) || FunctionUtils.isConstant(varName)) && varValue == null) {
             varValue = varName;
         }
@@ -52,34 +49,34 @@ public abstract class CompareFunction extends AbstractExpressionFunction {
         if (varValue == null || expression.getValue() == null) {
             return false;
         }
-        if(StringUtil.isEmpty(varValue.toString())||StringUtil.isEmpty(expression.getValue().toString())){
+        if (expression.getValue() == null) {
             return false;
         }
         Object basicVarValue = expression.getDataType().getData(varValue.toString());
         Object basicValue = expression.getDataType().getData(expression.getValue().toString());
-        if (varValue == null || expression.getValue() == null) {
+        if (expression.getValue() == null) {
             return false;
         }
         boolean match = false;
         if (basicValue == null || basicVarValue == null) {
             return false;
         }
-        DataType dataType=expression.getDataType();
-        if(String.class.isInstance(basicValue)&&basicValue.toString().startsWith(VAR_PREFIX)){
-            String valueVarName=basicValue.toString().replace(VAR_PREFIX,"");
-            basicValue=message.getMessageBody().get(valueVarName);
-            dataType= DataTypeUtil.getDataTypeFromClass(varValue.getClass());
-            basicVarValue=dataType.getData(varValue.toString());
+        DataType<?> dataType = expression.getDataType();
+        if (basicValue instanceof String && basicValue.toString().startsWith(VAR_PREFIX)) {
+            String valueVarName = basicValue.toString().replace(VAR_PREFIX, "");
+            basicValue = message.getMessageBody().get(valueVarName);
+            dataType = DataTypeUtil.getDataTypeFromClass(varValue.getClass());
+            basicVarValue = dataType.getData(varValue.toString());
         }
 
-        Class varClass = basicVarValue == null ? dataType.getDataClass() : basicVarValue.getClass();
-        Class valueClass = basicValue == null ? dataType.getDataClass() : basicValue.getClass();
+        Class<?> varClass = basicVarValue == null ? dataType.getDataClass() : basicVarValue.getClass();
+        Class<?> valueClass = basicValue == null ? dataType.getDataClass() : basicValue.getClass();
         try {
             match = (Boolean) ReflectUtil.invoke(this, "compare",
                 new Class[] {varClass, valueClass},
                 new Object[] {basicVarValue, basicValue});
         } catch (Exception e) {
-            LOG.error("CompareFunction doFunction ReflectUtil.invoke error: ", e);
+            LOGGER.error("CompareFunction doFunction ReflectUtil.invoke error: ", e);
         }
 
         return match;

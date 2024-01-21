@@ -24,9 +24,10 @@ public class SplitChanged {
     protected int splitCount;//变动多分片个数
     protected boolean isNewSplit;//是否新增，false是删除
     protected List<ISplit> changedSplits;
-    public SplitChanged(int splitCount,boolean isNewSplit){
-        this.splitCount=splitCount;
-        this.isNewSplit=isNewSplit;
+
+    public SplitChanged(int splitCount, boolean isNewSplit) {
+        this.splitCount = splitCount;
+        this.isNewSplit = isNewSplit;
     }
 
     public int getSplitCount() {

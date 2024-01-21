@@ -37,31 +37,6 @@ public class GrokFunction {
         grokCompiler.registerDefaultPatterns();
     }
 
-    @FunctionMethod(value = "grok", alias = "GROK")
-    public JSONObject doGrok(IMessage message, AbstractContext context, String fieldName, String grokStr) {
-        /*
-         传入自定义的pattern, 会从已注册的patterns里面进行配对, 例如: TIMESTAMP_ISO8601:timestamp1, TIMESTAMP_ISO8601在注册的
-         patterns里面有对应的解析格式, 配对成功后, 会在match时按照固定的解析格式将解析结果存入map中, 此处timestamp1作为输出的key
-          */
-        grokStr = FunctionUtils.getConstant( grokStr);
-        Grok grok = grokCompiler.compile(grokStr);
-        fieldName = FunctionUtils.getConstant(fieldName);
-        String logMsg = message.getMessageBody().getString(fieldName);
-        // 通过match()方法进行匹配, 对log进行解析, 按照指定的格式进行输出
-        Match grokMatch = grok.match(logMsg);
-        // 获取结果
-        Map<String, Object> resultMap = grokMatch.capture();
-        message.getMessageBody().putAll(resultMap);
-        return message.getMessageBody();
-    }
-
-    @FunctionMethod(value = "add_grok", alias = "addGrok")
-    public void addGrok(IMessage message, AbstractContext context, String name, String pattern) {
-        name = FunctionUtils.getValueString(message, context, name);
-        pattern = FunctionUtils.getValueString(message, context, pattern);
-        grokCompiler.register(name, pattern);
-    }
-
     public static void main(String[] args) {
         String log = "localhost GET /index.html 1024 0.016";
         String grok = "%{IPORHOST:client} %{WORD:method} %{URIPATHPARAM:request} %{INT:size} %{NUMBER:duration}";
@@ -86,5 +61,30 @@ public class GrokFunction {
         System.out.println(System.currentTimeMillis() - start);
         //        value.remove("log");
         System.out.println(value);
+    }
+
+    @FunctionMethod(value = "grok", alias = "GROK")
+    public JSONObject doGrok(IMessage message, AbstractContext context, String fieldName, String grokStr) {
+        /*
+         传入自定义的pattern, 会从已注册的patterns里面进行配对, 例如: TIMESTAMP_ISO8601:timestamp1, TIMESTAMP_ISO8601在注册的
+         patterns里面有对应的解析格式, 配对成功后, 会在match时按照固定的解析格式将解析结果存入map中, 此处timestamp1作为输出的key
+          */
+        grokStr = FunctionUtils.getConstant(grokStr);
+        Grok grok = grokCompiler.compile(grokStr);
+        fieldName = FunctionUtils.getConstant(fieldName);
+        String logMsg = message.getMessageBody().getString(fieldName);
+        // 通过match()方法进行匹配, 对log进行解析, 按照指定的格式进行输出
+        Match grokMatch = grok.match(logMsg);
+        // 获取结果
+        Map<String, Object> resultMap = grokMatch.capture();
+        message.getMessageBody().putAll(resultMap);
+        return message.getMessageBody();
+    }
+
+    @FunctionMethod(value = "add_grok", alias = "addGrok")
+    public void addGrok(IMessage message, AbstractContext context, String name, String pattern) {
+        name = FunctionUtils.getValueString(message, context, name);
+        pattern = FunctionUtils.getValueString(message, context, pattern);
+        grokCompiler.register(name, pattern);
     }
 }

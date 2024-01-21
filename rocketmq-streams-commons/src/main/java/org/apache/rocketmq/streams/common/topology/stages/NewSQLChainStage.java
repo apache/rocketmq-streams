@@ -16,62 +16,28 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 
-public class NewSQLChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
-    protected String sqlMessageProcessorName;
-    protected transient IStreamOperator<IMessage, IMessage> messageProcessor;
+public class NewSQLChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> {
+    @ConfigurableReference protected IStreamOperator<IMessage, IMessage> messageProcessor;
 
     public NewSQLChainStage() {
         setEntityName("SQL");
     }
 
-    protected transient IStageHandle handle = new IStageHandle() {
-        @Override
-        protected IMessage doProcess(IMessage message, AbstractContext context) {
-            IMessage msg = messageProcessor.doMessage(message, context);
-            message.setMessageBody(msg.getMessageBody());
-            context.setMessage(message);
-            return message;
-        }
-
-        @Override
-        public String getName() {
-            return NewSQLChainStage.class.getName();
-        }
-    };
-
     @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        this.messageProcessor = configurableService.<IStreamOperator>queryConfigurable(IStreamOperator.TYPE,
-            sqlMessageProcessorName);
-    }
-
-    @Override
-    protected IStageHandle selectHandle(T t, AbstractContext context) {
-        return handle;
-    }
-
-    public String getSqlMessageProcessorName() {
-        return sqlMessageProcessorName;
-    }
-
-    public void setSqlMessageProcessorName(String sqlMessageProcessorName) {
-        this.sqlMessageProcessorName = sqlMessageProcessorName;
+    protected IMessage handleMessage(IMessage message, AbstractContext context) {
+        IMessage msg = messageProcessor.doMessage(message, context);
+        message.setMessageBody(msg.getMessageBody());
+        context.setMessage(message);
+        return message;
     }
 
     public void setMessageProcessor(IStreamOperator messageProcessor) {
         this.messageProcessor = messageProcessor;
-        if (IConfigurable.class.isInstance(messageProcessor)) {
-            IConfigurable configurable = (IConfigurable)messageProcessor;
-            this.sqlMessageProcessorName = configurable.getConfigureName();
-        }
 
     }
 

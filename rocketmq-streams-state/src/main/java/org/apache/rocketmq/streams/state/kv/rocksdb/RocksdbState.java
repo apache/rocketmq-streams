@@ -43,11 +43,23 @@ import static org.apache.rocketmq.streams.state.kv.rocksdb.RocksDBOperator.UTF8;
  */
 public class RocksdbState implements IKvState<String, String> {
 
+    private final static Byte SIGN = 1;
     private static RocksDBOperator operator = new RocksDBOperator();
-
     private final LruState<String> cache = new LruState<>(100, "");
 
-    private final static Byte SIGN = 1;
+    /**
+     * 把byte转化成值
+     *
+     * @param bytes
+     * @return
+     */
+    protected static String getValueFromByte(byte[] bytes) {
+        try {
+            return new String(bytes, UTF8);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override public String get(String key) {
         try {
@@ -69,12 +81,10 @@ public class RocksdbState implements IKvState<String, String> {
         }
         try {
             Map<String, String> resultMap = new HashMap<>(keys.size());
-            Map<byte[], byte[]> map = operator.getInstance().multiGet(keyByteList);
-            Iterator<Map.Entry<byte[], byte[]>> it = map.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<byte[], byte[]> entry = it.next();
-                String key = getValueFromByte(entry.getKey());
-                String value = getValueFromByte(entry.getValue());
+            List<byte[]> valueByteList = operator.getInstance().multiGetAsList(keyByteList);
+            for (int i = 0; i < keyByteList.size(); i++) {
+                String key = getValueFromByte(keyByteList.get(i));
+                String value = getValueFromByte(valueByteList.get(i));
                 resultMap.put(key, value);
             }
             return resultMap;
@@ -176,29 +186,12 @@ public class RocksdbState implements IKvState<String, String> {
         }
     }
 
-    /**
-     * 把byte转化成值
-     *
-     * @param bytes
-     * @return
-     */
-    protected static String getValueFromByte(byte[] bytes) {
-        try {
-            return new String(bytes, UTF8);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static class RocksDBIterator implements Iterator<Map.Entry<String, String>> {
 
         protected AtomicBoolean hasInit = new AtomicBoolean(false);
-
-        private ReadOptions readOptions = new ReadOptions();
-
-        private RocksIterator iter;
-
         protected String keyPrefix;
+        private ReadOptions readOptions = new ReadOptions();
+        private RocksIterator iter;
 
         public RocksDBIterator(String keyPrefix) {
             readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);

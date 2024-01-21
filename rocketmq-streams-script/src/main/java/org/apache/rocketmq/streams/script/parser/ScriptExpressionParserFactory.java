@@ -31,14 +31,14 @@ public class ScriptExpressionParserFactory implements IScriptExpressionParser {
 
     private static List<IScriptExpressionParser> parserList = new ArrayList<>();
 
-    private ScriptExpressionParserFactory() {
-    }
-
     static {
         INSTANCE = new ScriptExpressionParserFactory();
         parserList.add(new ConditionExpressionParser("if", "{", "else"));
         parserList.add(new ConditionExpressionParser("case", "{", "then"));
         parserList.add(new FunctionExpressionParser());
+    }
+
+    private ScriptExpressionParserFactory() {
     }
 
     public static ScriptExpressionParserFactory getInstance() {

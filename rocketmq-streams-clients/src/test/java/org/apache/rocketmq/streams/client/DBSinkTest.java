@@ -17,16 +17,13 @@
 package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.client.source.DataStreamSource;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import org.apache.rocketmq.streams.client.source.DataStreamSource;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * /**
@@ -44,8 +41,8 @@ public class DBSinkTest {
 
     @Before
     public void init() {
-        dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
-        ComponentCreator.getProperties().put(ConfigureFileKey.CHECKPOINT_STORAGE_NAME, "db");
+        dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("test_namespace", "graph_pipeline");
+        // ComponentCreator.getProperties().put(ConfigureFileKey.CHECKPOINT_STORAGE_NAME, "db");
     }
 
     @Test
@@ -57,7 +54,7 @@ public class DBSinkTest {
         };
         for (int i = 0; i < 100000; i++) {
             //0,1随机数，整数
-            int index = (int)(2 * Math.random());
+            int index = (int) (2 * Math.random());
             JSONObject msg = new JSONObject();
             msg.put("ds", partitions[index]);
             msg.put("value", String.valueOf(Math.random()));
@@ -74,7 +71,7 @@ public class DBSinkTest {
         List<JSONObject> list = new ArrayList();
         for (int i = 0; i < 100000; i++) {
             //0,1随机数，整数
-            int index = (int)(2 * Math.random());
+            int index = (int) (2 * Math.random());
             JSONObject msg = new JSONObject();
             msg.put("name", String.valueOf(Math.random()));
             msg.put("age", new Random().nextInt());

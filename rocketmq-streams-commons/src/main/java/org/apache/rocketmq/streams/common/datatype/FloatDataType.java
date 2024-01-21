@@ -31,6 +31,30 @@ public class FloatDataType extends BaseDataType<Float> {
         setDataClazz(Float.class);
     }
 
+    public static String getTypeName() {
+        return "float";
+    }
+
+    public static void main(String[] args) {
+        FloatDataType fdt = new FloatDataType();
+        float f1 = 3.2f;
+        byte[] b1 = fdt.toBytes(f1, true);
+        byte[] b2 = fdt.toBytes(f1, false);
+        float f11 = fdt.byteToValue(b1);
+        float f12 = fdt.byteToValue(b2);
+        System.out.println(f11);
+        System.out.println(f12);
+
+        DoubleDataType dt = new DoubleDataType();
+        double d1 = 3.2d;
+        byte[] db1 = dt.toBytes(d1, true);
+        byte[] db2 = dt.toBytes(d1, false);
+        double d11 = dt.byteToValue(db1);
+        double d12 = dt.byteToValue(db2);
+        System.out.println(d11);
+        System.out.println(d12);
+    }
+
     @Override
     public Float getData(String jsonValue) {
         if (jsonValue == null || "N/A".equals(jsonValue)) {
@@ -42,10 +66,6 @@ public class FloatDataType extends BaseDataType<Float> {
     @Override
     public String getName() {
         return float.class.getSimpleName();
-    }
-
-    public static String getTypeName() {
-        return "float";
     }
 
     @Override
@@ -116,25 +136,5 @@ public class FloatDataType extends BaseDataType<Float> {
         byte[] bytesArray = NumberUtils.getSubByteFromIndex(bytes, index, 8);
         offset.set(index + 8);
         return byteToValue(bytesArray);
-    }
-
-    public static void main(String[] args) {
-        FloatDataType fdt = new FloatDataType();
-        float f1 = 3.2f;
-        byte[] b1 = fdt.toBytes(f1, true);
-        byte[] b2 = fdt.toBytes(f1, false);
-        float f11 = fdt.byteToValue(b1);
-        float f12 = fdt.byteToValue(b2);
-        System.out.println(f11);
-        System.out.println(f12);
-
-        DoubleDataType dt = new DoubleDataType();
-        double d1 = 3.2d;
-        byte[] db1 = dt.toBytes(d1, true);
-        byte[] db2 = dt.toBytes(d1, false);
-        double d11 = dt.byteToValue(db1);
-        double d12 = dt.byteToValue(db2);
-        System.out.println(d11);
-        System.out.println(d12);
     }
 }

@@ -28,8 +28,8 @@ public class InstrFunction {
 
     @FunctionMethod(value = "contains", comment = "返回字符串str2在str1中的位置")
     public boolean contains(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
-                            @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
         Integer index = instr(message, context, str1, str2);
         return index > -1;
     }
@@ -45,8 +45,8 @@ public class InstrFunction {
      */
     @FunctionMethod(value = "instr", alias = "indexOf", comment = "返回字符串str2在str1中的位置")
     public Integer instr(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
-                         @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
         Integer number = null;
         str1 = FunctionUtils.getValueString(message, context, str1);
         str2 = FunctionUtils.getValueString(message, context, str2);
@@ -68,8 +68,8 @@ public class InstrFunction {
      */
     @FunctionMethod(value = "blink_instr", alias = "blink_indexOf", comment = "返回字符串str2在str1中的位置")
     public Integer blinkInstr(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
-                              @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
         int index = instr(message, context, str1, str2);
         return index + 1;
     }
@@ -85,9 +85,9 @@ public class InstrFunction {
      */
     @FunctionMethod(value = "instr", alias = "indexOf", comment = "返回字符串str2在str1中从index后的位置")
     public Integer instr(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
-                         @FunctionParamter(value = "string", comment = "字段名或常量") String str2,
-                         @FunctionParamter(value = "string", comment = "起始位置，数字，字段名或常量") String positionStr) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str2,
+        @FunctionParamter(value = "string", comment = "起始位置，数字，字段名或常量") String positionStr) {
         Integer number = null;
         str1 = FunctionUtils.getValueString(message, context, str1);
         str2 = FunctionUtils.getValueString(message, context, str2);
@@ -110,10 +110,10 @@ public class InstrFunction {
      */
     @FunctionMethod(value = "instr", alias = "indexOf", comment = "返回字符串str2在str1中从index后出现n次的位置")
     public Integer instr(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
-                         @FunctionParamter(value = "string", comment = "字段名或常量") String str2,
-                         @FunctionParamter(value = "string", comment = "起始位置，数字，字段名或常量") String positionStr,
-                         @FunctionParamter(value = "string", comment = "出现的次数，数字，字段名或常量") String appearanceStr) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str2,
+        @FunctionParamter(value = "string", comment = "起始位置，数字，字段名或常量") String positionStr,
+        @FunctionParamter(value = "string", comment = "出现的次数，数字，字段名或常量") String appearanceStr) {
         Integer number = null;
         str1 = FunctionUtils.getValueString(message, context, str1);
         str2 = FunctionUtils.getValueString(message, context, str2);

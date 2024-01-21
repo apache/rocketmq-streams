@@ -35,11 +35,11 @@ public class DateTruncFunction {
 
     @FunctionMethod(value = "for_time", alias = "timeInterval", comment = "根据时间段来进行数据拆分")
     public Integer splitByTimeInterval(IMessage message, FunctionContext context,
-                                       @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String from,
-                                       @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String until,
-                                       @FunctionParamter(value = "string", comment = "代表要增加时间单位的字段名或常量，包括YEAR，MONTH,DAY,HOUR,MINUTE,WEEK,SECOND,"
-                                           + "FRAC_SECOND") String datepart,
-                                       @FunctionParamter(value = "string", comment = "代表年月日的字段名或常量，支持year，day，month") String delta) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String from,
+        @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String until,
+        @FunctionParamter(value = "string", comment = "代表要增加时间单位的字段名或常量，包括YEAR，MONTH,DAY,HOUR,MINUTE,WEEK,SECOND,"
+            + "FRAC_SECOND") String datepart,
+        @FunctionParamter(value = "string", comment = "代表年月日的字段名或常量，支持year，day，month") String delta) {
         String fromValue = FunctionUtils.getValueString(message, context, from);
         String untilValue = FunctionUtils.getValueString(message, context, until);
         String datepartValue = FunctionUtils.getValueString(message, context, datepart);
@@ -51,7 +51,7 @@ public class DateTruncFunction {
         while (fromValue.compareTo(untilValue) < 0) {
             msg.put(from, fromValue);
             messages.add(new Message(msg));
-            fromValue = (String)context.executeFunction("adddate", message, context, "'" + fromValue + "'",
+            fromValue = (String) context.executeFunction("adddate", message, context, "'" + fromValue + "'",
                 "'" + datepartValue + "'", "'" + deltaValue + "'");
             msg = new JSONObject();
             msg.putAll(message.getMessageBody());
@@ -64,8 +64,8 @@ public class DateTruncFunction {
 
     @FunctionMethod(value = "datetrunc", alias = "datefirst", comment = "获取标准时间格式的年月日的起始时间")
     public String dateTrunc(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String datetime,
-                            @FunctionParamter(value = "string", comment = "代表年月日的字段名或常量，支持year，day，month") String datepart) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String datetime,
+        @FunctionParamter(value = "string", comment = "代表年月日的字段名或常量，支持year，day，month") String datepart) {
         return dateTrunc(message, context, datetime, datepart, "'" + DateUtil.DEFAULT_FORMAT + "'");
     }
 
@@ -80,9 +80,9 @@ public class DateTruncFunction {
      */
     @FunctionMethod(value = "datetrunc", alias = "datefirst", comment = "获取标准时间格式的年月日的起始时间")
     public String dateTrunc(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String datetime,
-                            @FunctionParamter(value = "string", comment = "代表年月日的字段名或常量，支持year，day，month") String datepart,
-                            @FunctionParamter(value = "string", comment = "代表时间格式的字段名或常量") String format) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名称或常量") String datetime,
+        @FunctionParamter(value = "string", comment = "代表年月日的字段名或常量，支持year，day，month") String datepart,
+        @FunctionParamter(value = "string", comment = "代表时间格式的字段名或常量") String format) {
         if (datetime == null || datepart == null) {
             return null;
         }

@@ -30,6 +30,8 @@ public class MonitorItem extends JSONObject {
     protected Exception e;
     protected String name;
     protected int index;
+    private JSONObject groupInfos = new JSONObject();
+    private Set<String> noRepeate = new HashSet<>();
 
     public MonitorItem(String name) {
         this.name = name;
@@ -62,7 +64,7 @@ public class MonitorItem extends JSONObject {
     }
 
     public long getCost() {
-        return (Long)this.get("cost");
+        return (Long) this.get("cost");
     }
 
     public MonitorItem occureError(Exception e, String... messages) {
@@ -92,9 +94,6 @@ public class MonitorItem extends JSONObject {
     public void addMessage(String key, JSONObject value) {
         this.put(key, value);
     }
-
-    private JSONObject groupInfos = new JSONObject();
-    private Set<String> noRepeate = new HashSet<>();
 
     /**
      * 基于组增加日志，每组日志存储在一起

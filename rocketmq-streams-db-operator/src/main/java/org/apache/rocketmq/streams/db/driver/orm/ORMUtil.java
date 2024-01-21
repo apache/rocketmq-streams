@@ -18,17 +18,15 @@ package org.apache.rocketmq.streams.db.driver.orm;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IFieldProcessor;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.Entity;
@@ -40,12 +38,14 @@ import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 轻量级的orm框架，如果pojo和table 符合驼峰的命名和下划线的命名规范，可以自动实现对象的orm
  */
 public class ORMUtil {
-    private static final Log LOG = LogFactory.getLog(ORMUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ORMUtil.class);
 
     public static <T> T queryForObject(String sql, Object paras, Class<T> convertClass) {
         return queryForObject(sql, paras, convertClass, null, null, null);
@@ -63,10 +63,9 @@ public class ORMUtil {
      * @param <T>
      * @return 转换后的对象
      */
-    public static <T> T queryForObject(String sql, Object paras, Class<T> convertClass, String url, String userName,
-                                       String password) {
+    public static <T> T queryForObject(String sql, Object paras, Class<T> convertClass, String url, String userName, String password) {
         List<T> result = queryForList(sql, paras, convertClass, url, userName, password);
-        if (result == null || result.size() == 0) {
+        if (result.size() == 0) {
             return null;
         }
         if (result.size() > 1) {
@@ -89,7 +88,7 @@ public class ORMUtil {
     }
 
     public static boolean hasConfigueDB() {
-        return ComponentCreator.getProperties().getProperty(ConfigureFileKey.JDBC_URL) != null;
+        return SystemContext.getProperty(ConfigurationKey.JDBC_URL) != null;
     }
 
     /**
@@ -102,19 +101,18 @@ public class ORMUtil {
      * @param <T>
      * @return 返回对象列表
      */
-    public static <T> List<T> queryForList(String sql, Object paras, Class<T> convertClass, String url, String userName,
-                                           String password) {
+    public static <T> List<T> queryForList(String sql, Object paras, Class<T> convertClass, String url, String userName, String password) {
         sql = SQLUtil.parseIbatisSQL(paras, sql);
         JDBCDriver dataSource = null;
         try {
             if (StringUtil.isEmpty(url) || StringUtil.isEmpty(userName)) {
                 dataSource = DriverBuilder.createDriver();
             } else {
-                dataSource = DriverBuilder.createDriver(DriverBuilder.DEFALUT_JDBC_DRIVER, url, userName, password);
+                dataSource = DriverBuilder.createDriver(ConfigurationKey.DEFAULT_JDBC_DRIVER, url, userName, password);
             }
 
             List<Map<String, Object>> rows = dataSource.queryForList(sql);
-            List<T> result = new ArrayList();
+            List<T> result = new ArrayList<>();
             for (Map<String, Object> row : rows) {
                 T t = convert(row, convertClass);
                 result.add(t);
@@ -122,7 +120,7 @@ public class ORMUtil {
             return result;
         } catch (Exception e) {
             String errorMsg = ("query for list  error ,the builder is " + sql + ". the error msg is " + e.getMessage());
-            LOG.error(errorMsg);
+            LOGGER.error(errorMsg);
             e.printStackTrace();
             throw new RuntimeException(errorMsg, e);
         } finally {
@@ -150,7 +148,7 @@ public class ORMUtil {
             return true;
         } catch (Exception e) {
             String errorMsg = ("execute sql  error ,the sql is " + sql + ". the error msg is " + e.getMessage());
-            LOG.error(errorMsg);
+            LOGGER.error(errorMsg);
             e.printStackTrace();
             throw new RuntimeException(errorMsg, e);
         } finally {
@@ -160,9 +158,7 @@ public class ORMUtil {
         }
     }
 
-
-    public static boolean executeSQL(String sql, Object paras, String driver, final String url, final String userName,
-                                     final String password) {
+    public static boolean executeSQL(String sql, Object paras, String driver, final String url, final String userName, final String password) {
         if (paras != null) {
             sql = SQLUtil.parseIbatisSQL(paras, sql);
         }
@@ -173,7 +169,7 @@ public class ORMUtil {
             return true;
         } catch (Exception e) {
             String errorMsg = ("execute sql  error ,the sql is " + sql + ". the error msg is " + e.getMessage());
-            LOG.error(errorMsg);
+            LOGGER.error(errorMsg);
             e.printStackTrace();
             throw new RuntimeException(errorMsg, e);
         } finally {
@@ -185,6 +181,7 @@ public class ORMUtil {
 
     /**
      * 执行sql，sql中可以有mybatis的参数#{name}
+     *
      * @param sql   insert语句
      * @param paras 可以是map，json或对象，只要key名或字段名和sql的参数名相同即可
      * @return
@@ -200,7 +197,7 @@ public class ORMUtil {
             return true;
         } catch (Exception e) {
             String errorMsg = ("execute sql  error ,the sql is " + sql + ". the error msg is " + e.getMessage());
-            LOG.error(errorMsg);
+            LOGGER.error(errorMsg);
             e.printStackTrace();
             throw new RuntimeException(errorMsg, e);
         } finally {
@@ -234,7 +231,7 @@ public class ORMUtil {
                 stringBuilder.append(" and ");
             }
             String columnName = getColumnNameFromFieldName(fieldName);
-            stringBuilder.append(" " + columnName + "=#{" + fieldName + "} ");
+            stringBuilder.append(" ").append(columnName).append("=#{").append(fieldName).append("} ");
         }
         return stringBuilder.toString();
     }
@@ -249,16 +246,14 @@ public class ORMUtil {
      */
     public static <T> T convert(Map<String, Object> row, Class<T> clazz) {
         T t = ReflectUtil.forInstance(clazz);
-        Iterator<Map.Entry<String, Object>> it = row.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Object> entry = it.next();
+        for (Map.Entry<String, Object> entry : row.entrySet()) {
             String columnName = entry.getKey();
             Object value = entry.getValue();
             if (value == null) {
                 continue;
             }
             String fieldName = getFieldNameFromColumnName(columnName);
-            DataType datatype = DataTypeUtil.createFieldDataType(clazz, fieldName);
+            DataType<?> datatype = DataTypeUtil.createFieldDataType(clazz, fieldName);
             Object columnValue = datatype.convert(value);
             ReflectUtil.setBeanFieldValue(t, fieldName, columnValue);
         }
@@ -291,18 +286,15 @@ public class ORMUtil {
      *
      * @param values 待插入对象
      */
-    public static void batchReplaceInto(Collection values) {
-        List list = new ArrayList<>();
-        list.addAll(values);
+    public static void batchReplaceInto(Collection<?> values) {
+        List<?> list = new ArrayList<>(values);
         batchReplaceInto(list);
     }
 
     public static void batchReplaceInto(Object... valueArray) {
-        List values = new ArrayList();
+        List<Object> values = new ArrayList<>();
         if (valueArray != null) {
-            for (Object value : valueArray) {
-                values.add(value);
-            }
+            values.addAll(Arrays.asList(valueArray));
         }
         batchReplaceInto(values);
     }
@@ -328,23 +320,22 @@ public class ORMUtil {
     public static void batchInsertInto(List<?> values) {
         batchIntoByFlag(values, 0);
     }
-    public static String createBatchReplacetSQL(Object...values) {
-        if(values==null){
+
+    public static String createBatchReplaceSQL(Object... values) {
+        if (values == null) {
             return null;
         }
-        List<Object> list=new ArrayList<>();
-        for(Object value:values){
-            list.add(value);
-        }
-        return createBatchReplacetSQL(list);
+        List<Object> list = new ArrayList<>(Arrays.asList(values));
+        return createBatchReplaceSQL(list);
     }
+
     /**
      * 批量插入对象，多个对象会拼接成一个sql flag==1 then replace into flag=-1 then insert ignore int flag=0 then insert int
      *
      * @param values
      */
-    public static String createBatchReplacetSQL(List<?> values) {
-        return createBatchInsertSQL(values,1);
+    public static String createBatchReplaceSQL(List<?> values) {
+        return createBatchInsertSQL(values, 1);
     }
 
     /**
@@ -365,19 +356,16 @@ public class ORMUtil {
             for (Object o : values) {
                 Object id = ReflectUtil.getDeclaredField(o, metaData.getIdFieldName());
                 if (id == null) {
-                    containsIdField = false;
                     break;
                 }
                 if (id instanceof Number) {
-                    if (Long.valueOf(id.toString()) == 0) {
-                        containsIdField = false;
+                    if (Long.parseLong(id.toString()) == 0) {
                         break;
                     }
                 }
                 if (id instanceof String) {
-                    String idStr = (String)id;
+                    String idStr = (String) id;
                     if (StringUtil.isEmpty(idStr)) {
-                        containsIdField = false;
                         break;
                     }
                 }
@@ -404,6 +392,7 @@ public class ORMUtil {
         sql = sql + valuesSQL + " ON DUPLICATE  KEY  UPDATE " + SQLUtil.createDuplicateKeyUpdateSQL(metaData);
         return sql;
     }
+
     /**
      * 批量插入对象，多个对象会拼接成一个sql flag==1 then replace into flag=-1 then insert ignore int flag=0 then insert int
      *
@@ -411,7 +400,7 @@ public class ORMUtil {
      * @param flag
      */
     protected static void batchIntoByFlag(List<?> values, int flag) {
-       String sql=createBatchInsertSQL(values,flag);
+        String sql = createBatchInsertSQL(values, flag);
         JDBCDriver dataSource = DriverBuilder.createDriver();
         try {
             dataSource.execute(sql);
@@ -419,17 +408,14 @@ public class ORMUtil {
             e.printStackTrace();
             throw new RuntimeException(e);
         } finally {
-            if (dataSource != null) {
-                dataSource.destroy();
-            }
+            dataSource.destroy();
         }
     }
 
     private static Map<String, Object> createRow(MetaData metaData, Object object) {
         Map<String, Object> row = new HashMap<>();
         ReflectUtil.scanFields(object, new IFieldProcessor() {
-            @Override
-            public void doProcess(Object o, Field field) {
+            @Override public void doProcess(Object o, Field field) {
                 String fieldName = field.getName();
                 String columnName = getColumnNameFromFieldName(fieldName);
                 Object value = ReflectUtil.getBeanFieldValue(o, fieldName);
@@ -454,8 +440,8 @@ public class ORMUtil {
      */
     public static void replaceInto(Object object, String url, String userName, String password) {
         Map<String, Object> paras = new HashMap<>();
-        if (Entity.class.isInstance(object)) {
-            Entity newEntity = (Entity)object;
+        if (object instanceof Entity) {
+            Entity newEntity = (Entity) object;
             newEntity.setGmtModified(new Date());
             if (newEntity.getGmtCreate() == null) {
                 newEntity.setGmtCreate(new Date());
@@ -468,16 +454,16 @@ public class ORMUtil {
             if (StringUtil.isEmpty(url) || StringUtil.isEmpty(userName)) {
                 dataSource = DriverBuilder.createDriver();
             } else {
-                dataSource = DriverBuilder.createDriver(DriverBuilder.DEFALUT_JDBC_DRIVER, url, userName, password);
+                dataSource = DriverBuilder.createDriver(ConfigurationKey.DEFAULT_JDBC_DRIVER, url, userName, password);
             }
             long id = dataSource.executeInsert(sql);
-            if (Entity.class.isInstance(object)) {
-                Entity newEntity = (Entity)object;
+            if (object instanceof Entity) {
+                Entity newEntity = (Entity) object;
                 newEntity.setId(id);
             }
         } catch (Exception e) {
             String errorMsg = ("replace into error ,the builder is " + sql + ". the error msg is " + e.getMessage());
-            LOG.error(errorMsg);
+            LOGGER.error(errorMsg);
             throw new RuntimeException(errorMsg, e);
         } finally {
             if (dataSource != null) {
@@ -499,11 +485,10 @@ public class ORMUtil {
      * @param userName
      * @param password
      */
-    public static void insertInto(Object object, boolean ignoreRepeateRow, String url, String userName,
-                                  String password) {
+    public static void insertInto(Object object, boolean ignoreRepeateRow, String url, String userName, String password) {
         Map<String, Object> paras = new HashMap<>();
-        if (Entity.class.isInstance(object)) {
-            Entity newEntity = (Entity)object;
+        if (object instanceof Entity) {
+            Entity newEntity = (Entity) object;
             newEntity.setGmtCreate(DateUtil.getCurrentTime());
             newEntity.setGmtModified(DateUtil.getCurrentTime());
         }
@@ -519,16 +504,16 @@ public class ORMUtil {
             if (StringUtil.isEmpty(url) || StringUtil.isEmpty(userName)) {
                 dataSource = DriverBuilder.createDriver();
             } else {
-                dataSource = DriverBuilder.createDriver(DriverBuilder.DEFALUT_JDBC_DRIVER, url, userName, password);
+                dataSource = DriverBuilder.createDriver(ConfigurationKey.DEFAULT_JDBC_DRIVER, url, userName, password);
             }
             long id = dataSource.executeInsert(sql);
-            if (Entity.class.isInstance(object)) {
-                Entity newEntity = (Entity)object;
+            if (object instanceof Entity) {
+                Entity newEntity = (Entity) object;
                 newEntity.setId(id);
             }
         } catch (Exception e) {
             String errorMsg = ("insert into error ,the builder is " + sql + ". the error msg is " + e.getMessage());
-            LOG.error(errorMsg);
+            LOGGER.error(errorMsg);
             throw new RuntimeException(errorMsg, e);
         } finally {
             if (dataSource != null) {
@@ -545,8 +530,7 @@ public class ORMUtil {
      * @return
      */
     public static MetaData createMetaDate(Object object, Map<String, Object> paras) {
-        MetaData metaData = MetaData.createMetaDate(object, paras);
-        return metaData;
+        return MetaData.createMetaDate(object, paras);
     }
 
     public static String getTableName(Class clazz) {

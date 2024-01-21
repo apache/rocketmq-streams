@@ -22,22 +22,21 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.channel.impl.view.ViewSink;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.model.NameCreatorContext;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
+import org.apache.rocketmq.streams.common.topology.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.metric.StageGroup;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
-import org.apache.rocketmq.streams.common.topology.model.Pipeline;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.stages.OutputChainStage;
-import org.apache.rocketmq.streams.common.topology.stages.ViewChainStage;
+import org.apache.rocketmq.streams.common.utils.ENVUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class PipelineBuilder implements Serializable {
@@ -64,6 +63,11 @@ public class PipelineBuilder implements Serializable {
     protected String pipelineName;
 
     /**
+     * 配置信息
+     */
+    protected Properties configuration;
+
+    /**
      * 数据源的格式，非必须
      */
 
@@ -72,7 +76,7 @@ public class PipelineBuilder implements Serializable {
     /**
      * 如果需要制作拓扑结构，则保存当前构建的stage
      */
-    protected ChainStage<?> currentChainStage;
+    protected AbstractChainStage<?> currentChainStage;
 
     /**
      * 在sql tree中，存储当前节点父节点的table name，主要用于双流join场景，用于判断是否是右流join
@@ -85,8 +89,10 @@ public class PipelineBuilder implements Serializable {
 
     protected boolean isRightJoin = false;
 
-
-    protected String rootTableName;//SQL Tree保存的是root tablename
+    /**
+     * SQL Tree保存的是root table name
+     */
+    protected String rootTableName;
 
     /**
      * 主要用于把sql 按create view聚合，然后分层展开，便于监控和排错，主要用于sql解析时，完成stage的分组和层次关系
@@ -95,11 +101,12 @@ public class PipelineBuilder implements Serializable {
 
     protected StageGroup parentStageGroup;
 
-    public PipelineBuilder(String namespace, String pipelineName) {
-        pipeline.setNameSpace(namespace);
-        pipeline.setConfigureName(pipelineName);
+    public PipelineBuilder(String namespace, String pipelineName, Properties properties) {
         this.pipelineNameSpace = namespace;
         this.pipelineName = pipelineName;
+        this.configuration = properties;
+        pipeline.setNameSpace(namespace);
+        pipeline.setName(pipelineName);
         addConfigurables(pipeline);
     }
 
@@ -116,13 +123,11 @@ public class PipelineBuilder implements Serializable {
 
     /**
      * 创建chain stage
-     *
-     * @param stageBuilder
-     * @return
      */
-    public ChainStage<?> createStage(IStageBuilder<ChainStage> stageBuilder) {
-        ChainStage<?> chainStage = stageBuilder.createStageChain(this);
-        stageBuilder.addConfigurables(this);// 这句一定要在addChainStage前，会默认赋值namespace和name
+    public AbstractChainStage<?> createStage(IStageBuilder<AbstractChainStage<?>> stageBuilder) {
+        AbstractChainStage<?> chainStage = stageBuilder.createStageChain(this);
+        // 这句一定要在addChainStage前，会默认赋值namespace和name
+        stageBuilder.addConfigurables(this);
         if (StringUtil.isEmpty(chainStage.getLabel())) {
             chainStage.setLabel(createConfigurableName(chainStage.getType()));
         }
@@ -130,44 +135,90 @@ public class PipelineBuilder implements Serializable {
         return chainStage;
     }
 
-    public List<String> createSQL() {
-        List<String> sqls = new ArrayList<>();
-        for (IConfigurable configurable : configurables) {
-            sqls.add(AbstractConfigurable.createSQL(configurable));
+    public ChainPipeline<?> build() {
+        pipeline.setChannelMetaData(channelMetaData);
+        if (configurables != null) {
+            for (IConfigurable configurable : configurables) {
+                configurable.setJobName(pipelineName);
+                configurable.setConfiguration(this.configuration);
+                initAndENVReplace(configurable, this.configuration);
+            }
+
         }
-        return sqls;
+        return pipeline;
     }
 
-    public ChainPipeline<?> build(IConfigurableService configurableService) {
-        List<IConfigurable> configurableList = configurables;
-        pipeline.setChannelMetaData(channelMetaData);
-        if (configurableList != null) {
-            for (IConfigurable configurable : configurableList) {
-                configurableService.insert(configurable);
-            }
+    protected void initAndENVReplace(IConfigurable configurable, Properties configuration) {
+        try {
+            doEVNReplace(configurable, configuration);
+        } catch (Exception e) {
+            throw new RuntimeException("the configurable do evn replace error " + configurable.getClass().getName());
         }
-        configurableService.refreshConfigurable(pipelineNameSpace);
-        return configurableService.queryConfigurable(Pipeline.TYPE, pipelineName);
+        try {
+            configurable.init();
+        } catch (Exception e) {
+            throw new RuntimeException("the configurable do init error " + configurable.getClass().getName());
+        }
+
+    }
+
+    protected void doEVNReplace(IConfigurable configurable, Properties configuration) {
+        ReflectUtil.scanConfiguableFields(configurable, (o, field) -> {
+            ENVDependence dependence = field.getAnnotation(ENVDependence.class);
+            if (dependence == null) {
+                return;
+            }
+            try {
+                field.setAccessible(true);
+                if (!field.getType().getName().equals(String.class.getName())) {
+                    return;
+                }
+                String fieldValue = ReflectUtil.getBeanFieldValue(o, field.getName());
+                String envValue = getENVVar(fieldValue, configuration);
+                if (StringUtil.isEmpty(envValue)) {
+                    return;
+                }
+                ReflectUtil.setBeanFieldValue(o, field.getName(), envValue);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
+        });
+    }
+
+    protected String getENVVar(String fieldValue, Properties configuration) {
+        if (StringUtil.isEmpty(fieldValue)) {
+            return null;
+        }
+        String value = configuration.getProperty(fieldValue);
+        if (StringUtil.isNotEmpty(value)) {
+            return value;
+        }
+        return ENVUtil.getENVParameter(fieldValue);
     }
 
     public List<IConfigurable> getAllConfigurables() {
-        List<IConfigurable> configurableList = configurables;
-        pipeline.setChannelMetaData(channelMetaData);
-        return configurableList;
+        return configurables;
+    }
+
+    public void addChainStage(AbstractChainStage<?> chainStage) {
+        if (StringUtil.isEmpty(chainStage.getName())) {
+            chainStage.setName(createConfigurableName(chainStage.getType()));
+            chainStage.setLabel(chainStage.getName());
+        }
+        pipeline.addChainStage(chainStage);
     }
 
     /**
      * 创建chain stage
-     *
-     * @param sink
-     * @return
      */
-    public ChainStage<?> createStage(ISink<?> sink) {
+    public AbstractChainStage<?> createStage(ISink<?> sink) {
         OutputChainStage<?> outputChainStage = new OutputChainStage();
         sink.addConfigurables(this);
         outputChainStage.setSink(sink);
-        if (StringUtil.isEmpty(sink.getConfigureName())) {
-            sink.setConfigureName(createConfigurableName(sink.getType()));
+        if (StringUtil.isEmpty(sink.getName())) {
+            sink.setName(createConfigurableName(sink.getType()));
         }
         pipeline.addChainStage(outputChainStage);
         return outputChainStage;
@@ -175,16 +226,9 @@ public class PipelineBuilder implements Serializable {
 
     /**
      * 增加输出
-     *
-     * @param sink
-     * @return
      */
     public OutputChainStage<?> addOutput(ISink<?> sink) {
-        OutputChainStage<?> outputChainStage = new OutputChainStage<>();;
-        if(ViewSink.class.isInstance(sink)){
-
-            outputChainStage=new ViewChainStage();
-        }
+        OutputChainStage<?> outputChainStage = new OutputChainStage<>();
         sink.addConfigurables(this);
         outputChainStage.setSink(sink);
         if (StringUtil.isEmpty(outputChainStage.getLabel())) {
@@ -196,8 +240,6 @@ public class PipelineBuilder implements Serializable {
 
     /**
      * 增加维表
-     *
-     * @param configurable
      */
     public void addNameList(IConfigurable configurable) {
         addConfigurables(configurable);
@@ -205,21 +247,16 @@ public class PipelineBuilder implements Serializable {
 
     /**
      * 增加中间chain stage
-     *
-     * @param stageChainBuilder
      */
-    public ChainStage<?> addChainStage(IStageBuilder<ChainStage> stageChainBuilder) {
-       return createStage(stageChainBuilder);
+    public AbstractChainStage<?> addChainStage(IStageBuilder<AbstractChainStage<?>> stageChainBuilder) {
+        return createStage(stageChainBuilder);
     }
 
     /**
      * 自动创建组建名称
-     *
-     * @param type
-     * @return
      */
     public String createConfigurableName(String type) {
-        return NameCreatorContext.get().createNewName(this.pipelineName, type);
+        return NameCreatorContext.get().createName(this.pipelineName, type);
     }
 
     /**
@@ -230,12 +267,12 @@ public class PipelineBuilder implements Serializable {
             if (StringUtil.isEmpty(configurable.getNameSpace())) {
                 configurable.setNameSpace(getPipelineNameSpace());
             }
-            if (StringUtil.isEmpty(configurable.getConfigureName())) {
-                configurable.setConfigureName(createConfigurableName(configurable.getType()));
+            if (StringUtil.isEmpty(configurable.getName())) {
+                configurable.setName(createConfigurableName(configurable.getType()));
             }
             //判断配置信息是否已经存在，如果不存在，则添加
             for (IConfigurable config : this.configurables) {
-                if (config.getType().equals(configurable.getType()) && config.getConfigureName().equals(configurable.getConfigureName())) {
+                if (config.getType().equals(configurable.getType()) && config.getName().equals(configurable.getName())) {
                     return;
                 }
             }
@@ -254,15 +291,13 @@ public class PipelineBuilder implements Serializable {
 
     /**
      * 在当前拓扑基础上，增加下一层级的拓扑。如果需要做拓扑，需要设置标签
-     *
-     * @param nextStages
      */
-    public void setTopologyStages(ChainStage<?> currentChainStage, List<ChainStage> nextStages) {
+    public void setTopologyStages(AbstractChainStage<?> currentChainStage, List<AbstractChainStage<?>> nextStages) {
         if (nextStages == null) {
             return;
         }
         List<String> labelNames = new ArrayList<>();
-        for (ChainStage<?> stage : nextStages) {
+        for (AbstractChainStage<?> stage : nextStages) {
             labelNames.add(stage.getLabel());
         }
 
@@ -270,7 +305,7 @@ public class PipelineBuilder implements Serializable {
             this.pipeline.setChannelNextStageLabel(labelNames);
         } else {
             currentChainStage.getNextStageLabels().addAll(labelNames);
-            for (ChainStage<?> stage : nextStages) {
+            for (AbstractChainStage<?> stage : nextStages) {
                 stage.getPrevStageLabels().add(currentChainStage.getLabel());
             }
         }
@@ -278,11 +313,9 @@ public class PipelineBuilder implements Serializable {
 
     /**
      * 拓扑的特殊形式，下层只有单个节点
-     *
-     * @param nextStage
      */
-    public void setTopologyStages(ChainStage<?> currentChainStage, ChainStage<?> nextStage) {
-        List<ChainStage> stages = new ArrayList<>();
+    public void setTopologyStages(AbstractChainStage<?> currentChainStage, AbstractChainStage<?> nextStage) {
+        List<AbstractChainStage<?>> stages = new ArrayList<>();
         stages.add(nextStage);
         setTopologyStages(currentChainStage, stages);
     }
@@ -299,56 +332,51 @@ public class PipelineBuilder implements Serializable {
         return pipeline;
     }
 
-    public void setHorizontalStages(ChainStage<?> stage) {
-//        if (isBreak) {
-//            return;
-//        }
-        List<ChainStage<?>> stages = new ArrayList<>();
+    public void setHorizontalStages(AbstractChainStage<?> stage) {
+        List<AbstractChainStage<?>> stages = new ArrayList<>();
         stages.add(stage);
         setHorizontalStages(stages);
     }
 
     /**
      * 如果需要做拓扑，需要设置标签
-     *
-     * @param stages
      */
-    public void setHorizontalStages(List<ChainStage<?>> stages) {
+    public void setHorizontalStages(List<AbstractChainStage<?>> stages) {
         if (stages == null) {
             return;
         }
-        List<String> lableNames = new ArrayList<>();
-        Map<String, ChainStage<?>> lableName2Stage = new HashMap();
-        for (ChainStage<?> stage : stages) {
-            if(stage==null){
+        List<String> labelNames = new ArrayList<>();
+        Map<String, AbstractChainStage<?>> labelName2Stage = new HashMap();
+        for (AbstractChainStage<?> stage : stages) {
+            if (stage == null) {
                 continue;
             }
-            lableNames.add(stage.getLabel());
-            lableName2Stage.put(stage.getLabel(), stage);
+            labelNames.add(stage.getLabel());
+            labelName2Stage.put(stage.getLabel(), stage);
         }
 
         if (currentChainStage == null) {
-            this.pipeline.setChannelNextStageLabel(lableNames);
-            for (String lableName : lableNames) {
-                ChainStage<?> chainStage = lableName2Stage.get(lableName);
-                if(this.pipeline.getChannelName()!=null){
+            this.pipeline.setChannelNextStageLabel(labelNames);
+            for (String lableName : labelNames) {
+                AbstractChainStage<?> chainStage = labelName2Stage.get(lableName);
+                if (this.pipeline.getChannelName() != null) {
                     chainStage.getPrevStageLabels().add(this.pipeline.getChannelName());
                 }
             }
         } else {
-            if(currentChainStage.getNextStageLabels()==null){
+            if (currentChainStage.getNextStageLabels() == null) {
                 currentChainStage.setNextStageLabels(new ArrayList<>());
             }
-            for (String lableName : lableNames) {
-                if(StringUtil.isEmpty(lableName)){
+            for (String labelName : labelNames) {
+                if (StringUtil.isEmpty(labelName)) {
                     continue;
                 }
-                if(!currentChainStage.getNextStageLabels().contains(lableName)){
-                    currentChainStage.getNextStageLabels().add(lableName);
+                if (!currentChainStage.getNextStageLabels().contains(labelName)) {
+                    currentChainStage.getNextStageLabels().add(labelName);
                 }
-                ChainStage<?> chainStage = lableName2Stage.get(lableName);
-                List<String> prewLables = chainStage.getPrevStageLabels();
-                if (!prewLables.contains(this.currentChainStage.getLabel())) {
+                AbstractChainStage<?> chainStage = labelName2Stage.get(labelName);
+                List<String> prevLabels = chainStage.getPrevStageLabels();
+                if (!prevLabels.contains(this.currentChainStage.getLabel())) {
                     chainStage.getPrevStageLabels().add(this.currentChainStage.getLabel());
                 }
 
@@ -356,24 +384,25 @@ public class PipelineBuilder implements Serializable {
         }
     }
 
-    public List<ChainStage<?>> getFirstStages(){
-        Map<String, AbstractStage<?>> stageMap= pipeline.createStageMap();
-        List<ChainStage<?>> stages=new ArrayList<>();
-        List<String> firstLables=pipeline.getChannelNextStageLabel();
-        if(firstLables==null){
+    public List<AbstractChainStage<?>> getFirstStages() {
+        Map<String, AbstractStage<?>> stageMap = pipeline.createStageMap();
+        List<AbstractChainStage<?>> stages = new ArrayList<>();
+        List<String> labels = pipeline.getChannelNextStageLabel();
+        if (labels == null) {
             return null;
         }
-        for(String lableName:firstLables){
-            stages.add((ChainStage) stageMap.get(lableName));
+        for (String labelName : labels) {
+            stages.add((AbstractChainStage) stageMap.get(labelName));
         }
         return stages;
     }
-    public void setCurrentChainStage(ChainStage<?> currentChainStage) {
-        this.currentChainStage = currentChainStage;
+
+    public AbstractChainStage<?> getCurrentChainStage() {
+        return currentChainStage;
     }
 
-    public ChainStage<?> getCurrentChainStage() {
-        return currentChainStage;
+    public void setCurrentChainStage(AbstractChainStage<?> currentChainStage) {
+        this.currentChainStage = currentChainStage;
     }
 
     public List<IConfigurable> getConfigurables() {
@@ -426,5 +455,13 @@ public class PipelineBuilder implements Serializable {
 
     public void setParentStageGroup(StageGroup parentStageGroup) {
         this.parentStageGroup = parentStageGroup;
+    }
+
+    public Properties getConfiguration() {
+        return configuration;
+    }
+
+    public void setConfiguration(Properties configuration) {
+        this.configuration = configuration;
     }
 }

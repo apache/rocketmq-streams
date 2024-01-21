@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.common.configurable;
 
 import java.io.Serializable;
-import java.util.Map;
+import java.util.Properties;
 import org.apache.rocketmq.streams.common.datatype.IJsonable;
 
 /**
@@ -25,6 +25,9 @@ import org.apache.rocketmq.streams.common.datatype.IJsonable;
  */
 public interface IConfigurable extends IJsonable, IConfigurableIdentification, Serializable {
 
+    String CLASS_NAME = "className";
+
+    String HTTP_SERVICE_ENDPOINT = "dipper.configurable.service.type.http.endpoint";
     /**
      * 把toJson的结果当作一个特殊属性
      */
@@ -38,46 +41,52 @@ public interface IConfigurable extends IJsonable, IConfigurableIdentification, S
     /**
      * 每个配置有一个独立的名字
      *
-     * @param configureName
+     * @param name configureName
      */
-    void setConfigureName(String configureName);
+    void setName(String name);
 
     /**
      * 每个配置有独立的命名空间
      *
-     * @param nameSpace
+     * @param nameSpace namespace
      */
     void setNameSpace(String nameSpace);
 
     /**
      * 区分配置类型
      *
-     * @param type
+     * @param type type
      */
     void setType(String type);
 
+    /**
+     * 获取归属的任务名
+     *
+     * @return 任务名称
+     */
+    String getJobName();
+
+    /**
+     * 每个配置有独立的命名空间
+     *
+     * @param jobName namespace
+     */
+    void setJobName(String jobName);
+
+    /**
+     * 初始化
+     *
+     * @return 是否成功
+     */
     boolean init();
 
+    /**
+     * 销毁
+     */
     void destroy();
 
-    /**
-     * 设置私有数据
-     *
-     * @param key
-     * @param value
-     * @param <T>
-     */
-    <T> void putPrivateData(String key, T value);
+    Properties getConfiguration();
 
-    /**
-     * 获取私有数据
-     *
-     * @param key
-     * @param <T>
-     * @return
-     */
-    <T> T getPrivateData(String key);
-
-    Map<String, Object> getPrivateData();
+    void setConfiguration(Properties configuration);
 
 }

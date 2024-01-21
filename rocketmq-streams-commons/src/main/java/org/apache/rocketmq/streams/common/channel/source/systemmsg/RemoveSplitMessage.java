@@ -17,10 +17,18 @@
 package org.apache.rocketmq.streams.common.channel.source.systemmsg;
 
 import java.util.Set;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 
+/**
+ * 系统消息，当数据源分片减少时发送消息，主要应用在窗口计算，窗口清理这个分片的状态，加载新分片状态，不会跨shuffle
+ */
 public class RemoveSplitMessage extends SplitChangedMessage {
 
     public RemoveSplitMessage(Set<String> splitIds, Set<String> currentSplitIds) {
         super(splitIds, currentSplitIds, true);
+    }
+
+    @Override public int getSystemMessageType() {
+        return ISystemMessage.SPLIT_REMOVE;
     }
 }

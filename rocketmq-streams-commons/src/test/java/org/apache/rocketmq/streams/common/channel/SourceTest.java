@@ -52,7 +52,7 @@ public class SourceTest {
                 return null;
             }
             // 处理消息,消息存储在messageBody中， 如果消息不是json，在channel设置JsonData=false，系统会把原始消息放到data字段中
-            Object oriMsg = ((UserDefinedMessage)message.getMessageBody()).getMessageValue();
+            Object oriMsg = ((UserDefinedMessage) message.getMessageBody()).getMessageValue();
             System.out.println(oriMsg);
             return null;
         });

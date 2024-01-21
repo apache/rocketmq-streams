@@ -17,19 +17,18 @@
 package org.apache.rocketmq.streams.common.channel.sink;
 
 import java.util.List;
+
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 
 public abstract class AbstractSupportShuffleSink extends AbstractSink {
 
-    protected transient int splitNum;//分片个数
+    protected transient int splitNum = 10;//分片个数
 
     //sls对应的project和logstore初始化是否完成标志
     protected volatile transient boolean hasCreated = false;
 
     /**
      * 获取sink的主题，在sls中是logStore，RocketMQ是topic
-     *
-     * @return
      */
     public abstract String getShuffleTopicFieldName();
 
@@ -40,25 +39,18 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
 
     /**
      * 获取所有的分片
-     *
-     * @return
      */
     public abstract List<ISplit<?, ?>> getSplitList();
 
     @Override
     protected boolean initConfigurable() {
-        boolean success = super.initConfigurable();
-        hasCreated = false;
-        if (this.splitNum > 0) {
-            checkAndCreateTopic();
-        }
-        return success;
+        return super.initConfigurable() && checkAndCreateTopic();
     }
 
     /**
      * 创建主题，只创建一次
      */
-    protected void checkAndCreateTopic() {
+    protected boolean checkAndCreateTopic() {
         if (!hasCreated) {
             synchronized (this) {
                 if (!hasCreated) {
@@ -67,18 +59,16 @@ public abstract class AbstractSupportShuffleSink extends AbstractSink {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-
                     hasCreated = true;
                 }
-
             }
         }
-
+        return hasCreated;
     }
+
+    public abstract int getSplitNum();
 
     public void setSplitNum(int splitNum) {
         this.splitNum = splitNum;
     }
-
-    public abstract int getSplitNum();
 }

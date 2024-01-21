@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.DataJsonable;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.ListDataType;
@@ -34,19 +34,15 @@ import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 public abstract class AbstractMetaData<T> extends BasedConfigurable implements DataJsonable<Map<String, Object>> {
 
     public static final String TYPE = "metaData";
-    private String nameSpace;
-    private String type = TYPE;
-    private String configureName;
     protected List<MetaDataField<T>> metaDataFields = new ArrayList<MetaDataField<T>>();
     protected String dataSourceName;
+    protected transient Map<String, MetaDataField<T>> metaDataFieldMap = new HashMap<String, MetaDataField<T>>();
     private String tableName;
     private String tableNameAlias;
 
     public AbstractMetaData() {
         setType(TYPE);
     }
-
-    protected transient Map<String, MetaDataField<T>> metaDataFieldMap = new HashMap<String, MetaDataField<T>>();
 
     public List<MetaDataField<T>> getMetaDataFields() {
         return metaDataFields;
@@ -125,36 +121,6 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable implements D
         return dataset;
     }
 
-    @Override
-    public void setNameSpace(String nameSpace) {
-        this.nameSpace = nameSpace;
-    }
-
-    @Override
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    @Override
-    public void setConfigureName(String configureName) {
-        this.configureName = configureName;
-    }
-
-    @Override
-    public String getNameSpace() {
-        return nameSpace;
-    }
-
-    @Override
-    public String getType() {
-        return type;
-    }
-
-    @Override
-    public String getConfigureName() {
-        return configureName;
-    }
-
     public String getDataSourceName() {
         return dataSourceName;
     }
@@ -187,10 +153,9 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable implements D
         this.tableNameAlias = tableNameAlias;
     }
 
-    @Override
-    public String toJson() {
+    @Override public String toJson() {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put(IConfigurableService.CLASS_NAME, this.getClass().getName());
+        jsonObject.put(IConfigurable.CLASS_NAME, this.getClass().getName());
         JSONArray jsonArray = new JSONArray();
         Iterator i$ = this.metaDataFields.iterator();
 
@@ -212,39 +177,4 @@ public abstract class AbstractMetaData<T> extends BasedConfigurable implements D
 
     protected abstract void getJsonValue(JSONObject var1);
 
-    @Override
-    public void toObject(String jsonString) {
-        JSONObject jsonObject = JSONObject.parseObject(jsonString);
-        String jsonArrayString = jsonObject.getString("metaDataFields");
-        JSONArray jsonArray = JSON.parseArray(jsonArrayString);
-        List<MetaDataField<T>> resourceFields = new ArrayList();
-        Map<String, MetaDataField<T>> resourceFieldMap = new HashMap();
-        for (int i = 0; i < jsonArray.size(); ++i) {
-            String fieldJson = jsonArray.getString(i);
-            MetaDataField<T> metaDataField = new MetaDataField();
-            metaDataField.toObject(fieldJson);
-            String dataTypestr = "";
-
-            try {
-                if (metaDataField.getDataType() != null) {
-                    dataTypestr = MetaDataField.getDataTypeStrByType(metaDataField.getDataType());
-                }
-            } catch (Exception var12) {
-                dataTypestr = "String";
-            }
-
-            metaDataField.setDataTypeStr(dataTypestr);
-            resourceFields.add(metaDataField);
-            resourceFieldMap.put(metaDataField.getFieldName(), metaDataField);
-        }
-
-        this.dataSourceName = jsonObject.getString("dataSourceName");
-        this.tableName = jsonObject.getString("tableName");
-        this.tableNameAlias = jsonObject.getString("tableNameAlias");
-        this.metaDataFields = resourceFields;
-        this.metaDataFieldMap = resourceFieldMap;
-//        this.getJsonValue(jsonObject);
-        this.setJsonValue(jsonObject);
-
-    }
 }

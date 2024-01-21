@@ -28,22 +28,22 @@ import static junit.framework.TestCase.assertTrue;
 
 public class FilterTest {
     @Test
-    public void testFilter(){
-        JSONObject msg=new JSONObject();
-        msg.put("name","chris");
-        msg.put("age",18);
-        Rule rule= ExpressionBuilder.createRule("tmp","tmp","(name,==,chris)&(age,>=,18)");
-        FilterComponent filterComponent=FilterComponent.getInstance();
-        List<Rule> fireRules=filterComponent.excuteRule(msg,rule);
-        assertTrue(fireRules.size()==1);
+    public void testFilter() {
+        JSONObject msg = new JSONObject();
+        msg.put("name", "chris");
+        msg.put("age", 18);
+        Rule rule = ExpressionBuilder.createRule("tmp", "tmp", "(name,==,chris)&(age,>=,18)");
+        FilterComponent filterComponent = FilterComponent.getInstance();
+        List<Rule> fireRules = filterComponent.excuteRule(msg, rule);
+        assertTrue(fireRules.size() == 1);
     }
 
     @Test
-    public void testFilter2(){
-        JSONObject msg=new JSONObject();
-        msg.put("name","chris");
-        msg.put("age",18);
-        boolean result= ExpressionBuilder.executeExecute("tmp","(name,==,chris)&(age,>,int,18)",msg);
+    public void testFilter2() {
+        JSONObject msg = new JSONObject();
+        msg.put("name", "chris");
+        msg.put("age", 18);
+        boolean result = ExpressionBuilder.executeExecute("tmp", "(name,==,chris)&(age,>,int,18)", msg);
         assertTrue(!result);
     }
 }

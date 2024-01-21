@@ -30,7 +30,7 @@ public class AnnotationServiceNameGetter implements IServiceNameGetter {
 
     @Override
     public String getServiceName(Class clazz) {
-        ServiceName annotation = (ServiceName)clazz.getAnnotation(ServiceName.class);
+        ServiceName annotation = (ServiceName) clazz.getAnnotation(ServiceName.class);
         if (annotation == null) {
             return null;
         }

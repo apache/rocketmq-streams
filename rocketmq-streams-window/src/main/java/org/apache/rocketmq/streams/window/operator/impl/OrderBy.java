@@ -20,12 +20,12 @@ import org.apache.rocketmq.streams.common.datatype.DataType;
 
 public class OrderBy {
     protected String fieldName;
-    protected boolean isAsc=true;
+    protected boolean isAsc = true;
     protected DataType dataType;
 
-    public OrderBy(String fieldName,boolean isAsc){
-        this.fieldName=fieldName;
-        this.isAsc=isAsc;
+    public OrderBy(String fieldName, boolean isAsc) {
+        this.fieldName = fieldName;
+        this.isAsc = isAsc;
     }
 
     public DataType getDataType() {

@@ -37,7 +37,7 @@ public class SpaceFunction {
      */
     @FunctionMethod(value = "space", comment = "空格字符串函数，返回长度为n的字符串")
     public String space(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "空格数量") String countStr) throws Exception {
+        @FunctionParamter(value = "string", comment = "空格数量") String countStr) throws Exception {
         StringBuilder sb = new StringBuilder();
         if (StringUtil.isEmpty(countStr.toString())) {
             return null;

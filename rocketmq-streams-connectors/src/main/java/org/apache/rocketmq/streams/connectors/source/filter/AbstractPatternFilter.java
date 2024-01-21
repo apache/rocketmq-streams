@@ -29,7 +29,6 @@ public abstract class AbstractPatternFilter implements PatternFilter, Serializab
 
     public abstract boolean filter(String sourceName, String logicTableName, String tableName);
 
-
     @Override
     public PatternFilter setNext(PatternFilter filter) {
         this.next = filter;

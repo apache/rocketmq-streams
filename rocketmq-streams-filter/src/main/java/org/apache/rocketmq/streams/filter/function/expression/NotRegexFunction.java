@@ -31,6 +31,6 @@ public class NotRegexFunction extends RegexFunction {
     @FunctionMethod(value = "notRegex", alias = "!regex")
     @FunctionMethodAilas("正则不匹配")
     public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
-        return !super.doExpressionFunction(message,context,expression);
+        return !super.doExpressionFunction(message, context, expression);
     }
 }

@@ -44,6 +44,17 @@ public class FunctionParser {
         return functionParser;
     }
 
+    public static void main(String[] args) {
+        String script =
+            "if(min_day_prediction>=prediction_day){prediction_day=min_day_prediction;}else{echo();};"
+                + "until_day=datefirst(now,'dd');";
+
+        FunctionParser functionParser = new FunctionParser();
+        Map map = new HashMap<String, String>();
+        String result = functionParser.doConditionParser(script, map, 1);
+        System.out.println(result);
+    }
+
     public List<IScriptExpression> parse(String value) {
         if (StringUtil.isEmpty(value)) {
             return new ArrayList<>();
@@ -150,16 +161,5 @@ public class FunctionParser {
             return i - 1;
         }
         return -1;
-    }
-
-    public static void main(String[] args) {
-        String script =
-            "if(min_day_prediction>=prediction_day){prediction_day=min_day_prediction;}else{echo();};"
-                + "until_day=datefirst(now,'dd');";
-
-        FunctionParser functionParser = new FunctionParser();
-        Map map = new HashMap<String, String>();
-        String result = functionParser.doConditionParser(script, map, 1);
-        System.out.println(result);
     }
 }

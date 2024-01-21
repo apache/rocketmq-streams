@@ -30,6 +30,6 @@ public class NotInFunction extends InFunction {
     @FunctionMethod(value = "!in", alias = "~!in")
     @FunctionMethodAilas("包含")
     public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
-        return !super.doExpressionFunction(message,context,expression);
+        return !super.doExpressionFunction(message, context, expression);
     }
 }

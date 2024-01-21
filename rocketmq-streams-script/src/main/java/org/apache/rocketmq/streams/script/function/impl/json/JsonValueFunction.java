@@ -13,7 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package org.apache.rocketmq.streams.script.function.impl.json;
+ */
+package org.apache.rocketmq.streams.script.function.impl.json;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -33,9 +34,21 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class JsonValueFunction {
 
-    @FunctionMethod(value = "json",comment = "获取msg中的json数据")
+    public static void main(String[] args) {
+        JSONObject msg = new JSONObject();
+        JSONObject metaConf = new JSONObject();
+        metaConf.put("asset.type", "ECS");
+        msg.put("_input", metaConf);
+        ScriptComponent scriptComponent = ScriptComponent.getInstance();
+        List<IMessage> msgs = scriptComponent.getService().executeScript(msg, "a=EQUALS(json_field(_input, 'asset.type'),'ECS');");
+        for (IMessage message : msgs) {
+            System.out.println(message.getMessageBody());
+        }
+    }
+
+    @FunctionMethod(value = "json", comment = "获取msg中的json数据")
     public JSONObject getJson(IMessage message, FunctionContext context,
-        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String fieldName){
+        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String fieldName) {
         fieldName = FunctionUtils.getValueString(message, context, fieldName);
         return message.getMessageBody().getJSONObject(fieldName);
     }
@@ -44,14 +57,14 @@ public class JsonValueFunction {
     public Object extra(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName,
         @FunctionParamter(value = "string", comment = "获取json的模式，支持name.name的方式，支持数组$.name[index].name的方式")
-            String path) {
+        String path) {
         if (StringUtil.isEmpty(jsonValueOrFieldName) || StringUtil.isEmpty(path)) {
             return null;
         }
         String value = FunctionUtils.getValueString(message, context, jsonValueOrFieldName);
         String pattern = FunctionUtils.getValueString(message, context, path);
-        if(pattern==null){
-            pattern=path;
+        if (pattern == null) {
+            pattern = path;
         }
         if (StringUtil.isEmpty(value) || StringUtil.isEmpty(pattern)) {
             return null;
@@ -65,39 +78,26 @@ public class JsonValueFunction {
         } else {
             bean = JSON.parseObject(value);
         }
-        if(bean==null){
+        if (bean == null) {
             return null;
         }
         return ReflectUtil.getBeanFieldOrJsonValue(bean, pattern);
     }
 
-
-    public static void main(String[] args) {
-        JSONObject msg=new JSONObject();
-        JSONObject metaConf=new JSONObject();
-        metaConf.put("asset.type","ECS");
-        msg.put("_input",metaConf);
-        ScriptComponent scriptComponent=ScriptComponent.getInstance();
-        List<IMessage> msgs=scriptComponent.getService().executeScript(msg,"a=EQUALS(json_field(_input, 'asset.type'),'ECS');");
-        for(IMessage message:msgs){
-            System.out.println(message.getMessageBody());
-        }
-    }
-
     @FunctionMethod(value = "for_field", alias = "forField", comment = "循环所有的msg字段")
     public Object extra(IMessage message, FunctionContext context,
-        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String scriptValue){
-        scriptValue=FunctionUtils.getValueString(message,context,scriptValue);
+        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String scriptValue) {
+        scriptValue = FunctionUtils.getValueString(message, context, scriptValue);
         Iterator<Map.Entry<String, Object>> it = message.getMessageBody().entrySet().iterator();
-        JSONObject msg=new JSONObject();
+        JSONObject msg = new JSONObject();
         msg.putAll(message.getMessageBody());
-        while (it.hasNext()){
-            Map.Entry<String, Object> entry=it.next();
-            String key=entry.getKey();
-            Object value=entry.getValue();
-            msg.put("iterator.key",key);
-            msg.put("iterator.value",value);
-            ScriptComponent.getInstance().getService().executeScript(msg,scriptValue);
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            msg.put("iterator.key", key);
+            msg.put("iterator.value", value);
+            ScriptComponent.getInstance().getService().executeScript(msg, scriptValue);
         }
         msg.remove("iterator.key");
         msg.remove("iterator.value");

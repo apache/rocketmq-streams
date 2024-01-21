@@ -22,7 +22,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 /**
  * 处理一条消息
  */
-public interface IStreamOperator<T extends IMessage, R> extends IBaseStreamOperator<T, R, AbstractContext> {
+public interface IStreamOperator<T extends IMessage, R> extends IBaseStreamOperator<T, R, AbstractContext<T>> {
 
     String TYPE = "receiver";
 

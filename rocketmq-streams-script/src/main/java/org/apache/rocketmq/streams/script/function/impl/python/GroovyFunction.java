@@ -34,7 +34,7 @@ public class GroovyFunction {
 
     @FunctionMethod(value = "groovy", alias = "groovy", comment = "执行一个指定名称的python脚本")
     public JSONObject doPython(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "python名称") String scriptValue) {
+        @FunctionParamter(value = "string", comment = "python名称") String scriptValue) {
         scriptValue = FunctionUtils.getValueString(message, context, scriptValue);
         GroovyScriptOperator operator = cache.get(scriptValue);
         if (operator == null) {

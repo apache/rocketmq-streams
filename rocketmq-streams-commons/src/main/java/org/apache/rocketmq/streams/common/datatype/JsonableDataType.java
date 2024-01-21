@@ -18,7 +18,8 @@ package org.apache.rocketmq.streams.common.datatype;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
@@ -34,12 +35,16 @@ public class JsonableDataType extends BaseDataType {
 
     }
 
+    public static String getTypeName() {
+        return "jsonable";
+    }
+
     @Override
     public String toDataJson(Object value) {
-        IJsonable jsonable = (IJsonable)value;
+        IJsonable jsonable = (IJsonable) value;
         String msg = jsonable.toJson();
         JSONObject jsonObject = JSON.parseObject(msg);
-        jsonObject.put(IConfigurableService.CLASS_NAME, value.getClass().getName());
+        jsonObject.put(BasedConfigurable.CLASS_NAME, value.getClass().getName());
         return jsonObject.toJSONString();
     }
 
@@ -51,8 +56,8 @@ public class JsonableDataType extends BaseDataType {
         IJsonable jsonable = null;
         try {
             JSONObject jsonObject = JSON.parseObject(jsonValue);
-            String className = jsonObject.getString(IConfigurableService.CLASS_NAME);
-            jsonable = (IJsonable)ReflectUtil.forInstance(className);
+            String className = jsonObject.getString(IConfigurable.CLASS_NAME);
+            jsonable = (IJsonable) ReflectUtil.forInstance(className);
             jsonable.toObject(jsonValue);
             return jsonable;
         } catch (Exception e) {
@@ -80,10 +85,6 @@ public class JsonableDataType extends BaseDataType {
 
     @Override
     public String getName() {
-        return "jsonable";
-    }
-
-    public static String getTypeName() {
         return "jsonable";
     }
 

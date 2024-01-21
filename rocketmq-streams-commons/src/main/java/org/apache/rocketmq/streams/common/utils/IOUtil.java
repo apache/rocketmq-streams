@@ -38,7 +38,7 @@ public class IOUtil extends FileUtils {
             int tmp = -1;
             char temp;
             while ((tmp = reader.read()) != -1) {
-                temp = (char)tmp;
+                temp = (char) tmp;
                 sb.append(temp);
             }
         } catch (Exception e) {

@@ -45,11 +45,34 @@ public class Equals extends CompareFunction {
         return false;
     }
 
+    public static void main(String args[]) {
+        Equals equals = new Equals();
+
+        String a = "/usr/sbin/sshd";
+        String b = "/usr/sbin/zabbix_agentd";
+
+        long startTime1 = System.currentTimeMillis();
+        for (int i = 0; i < 10000; i++) {
+            a.equals(b);
+        }
+
+        long endTime1 = System.currentTimeMillis() - startTime1;
+        System.out.println("time is:" + endTime1);
+
+        long startTime2 = System.currentTimeMillis();
+        for (int i = 0; i < 10000; i++) {
+            a.trim().equals(b.trim());
+        }
+        long endTime2 = System.currentTimeMillis() - startTime2;
+        System.out.println("time is:" + endTime2);
+
+    }
+
     @FunctionMethod(value = "=", alias = "==")
     @FunctionMethodAilas("等于")
     @Override
     public Boolean doFunction(IMessage message, AbstractContext context, Expression expression) {
-        return super.doFunction(message,context,expression);
+        return super.doFunction(message, context, expression);
     }
 
     public boolean compare(int a, int b) {
@@ -138,28 +161,5 @@ public class Equals extends CompareFunction {
         String ad = dateDataType.toDataJson(a);
         String bd = dateDataType.toDataJson(b);
         return compare(ad, bd);
-    }
-
-    public static void main(String args[]) {
-        Equals equals = new Equals();
-
-        String a = "/usr/sbin/sshd";
-        String b = "/usr/sbin/zabbix_agentd";
-
-        long startTime1 = System.currentTimeMillis();
-        for (int i = 0; i < 10000; i++) {
-            a.equals(b);
-        }
-
-        long endTime1 = System.currentTimeMillis() - startTime1;
-        System.out.println("time is:" + endTime1);
-
-        long startTime2 = System.currentTimeMillis();
-        for (int i = 0; i < 10000; i++) {
-            a.trim().equals(b.trim());
-        }
-        long endTime2 = System.currentTimeMillis() - startTime2;
-        System.out.println("time is:" + endTime2);
-
     }
 }

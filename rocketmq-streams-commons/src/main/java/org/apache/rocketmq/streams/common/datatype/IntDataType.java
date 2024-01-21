@@ -31,6 +31,10 @@ public class IntDataType extends BaseDataType<Integer> {
         setDataClazz(Integer.class);
     }
 
+    public static String getTypeName() {
+        return "int";
+    }
+
     @Override
     public Integer getData(String jsonValue) {
         if (jsonValue == null || "N/A".equals(jsonValue)) {
@@ -43,10 +47,6 @@ public class IntDataType extends BaseDataType<Integer> {
     @Override
     public String getName() {
         return int.class.getSimpleName();
-    }
-
-    public static String getTypeName() {
-        return "int";
     }
 
     @Override
@@ -97,7 +97,7 @@ public class IntDataType extends BaseDataType<Integer> {
     @Override
     public byte[] toBytes(Integer value, boolean isCompress) {
         if (isCompress) {
-            return numberToBytes((long)value);
+            return numberToBytes((long) value);
         } else {
             return createByteArrayFromNumber(value, 4);
         }

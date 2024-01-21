@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.common.functions;
 
-public interface ReduceFunction<R, O> extends Function{
+public interface ReduceFunction<R, O> extends Function {
 
     R reduce(R acccumulator, O msg);
 }

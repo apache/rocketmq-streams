@@ -37,7 +37,7 @@ public class ReverseFunction {
      */
     @FunctionMethod(value = "reverse", comment = "字符串倒序输出")
     public String reverse(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "string", comment = "要处理的字段代表列名称或常量值") String fieldName) {
+        @FunctionParamter(value = "string", comment = "要处理的字段代表列名称或常量值") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

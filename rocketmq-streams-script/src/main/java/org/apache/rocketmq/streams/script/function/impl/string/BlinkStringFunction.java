@@ -29,9 +29,9 @@ public class BlinkStringFunction {
 
     @FunctionMethod(value = "substring", alias = "substr", comment = "截取从index开始len长度的字符串,－1代表截取从index后的全部")
     public String doStrig(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "string", comment = "字段名或常量") String filedName,
-                          @FunctionParamter(value = "string", comment = "字段名，常量或数字") String startIndex,
-                          @FunctionParamter(value = "string", comment = "字段名，常量或数字") String length) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String filedName,
+        @FunctionParamter(value = "string", comment = "字段名，常量或数字") String startIndex,
+        @FunctionParamter(value = "string", comment = "字段名，常量或数字") String length) {
         String value = FunctionUtils.getValueString(message, context, filedName);
         int index = FunctionUtils.getValueInteger(message, context, startIndex);
         if (StringUtil.isEmpty(length)) {

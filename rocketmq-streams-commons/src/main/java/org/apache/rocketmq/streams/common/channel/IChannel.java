@@ -23,11 +23,10 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 /**
  * source和sink的结合，dipper框架中，不单独区分source和sink，统一用channel 接口表示
  */
-public interface IChannel<T extends IChannel>
-    extends ISink<T>, ISource<T>, Serializable {
+public interface IChannel<T> extends ISink<T>, ISource<T>, Serializable {
     String TYPE = "channel";
 
-    ISink getSink();
+    ISink<T> getSink();
 
-    ISource getSource();
+    ISource<T> getSource();
 }

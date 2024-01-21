@@ -25,25 +25,26 @@ import org.apache.rocketmq.streams.common.model.ServiceName;
 
 public class ServiceLoadUtil {
 
-    private static ICache<String,Object> serviceCache=new SoftReferenceCache<>();
-    public static  <T> T loadService(Class interfaceClass,String serviceName){
-        List<T> allService = (List<T>)serviceCache.get(interfaceClass.getName());
-        if(allService==null){
-            allService=new ArrayList<>();
+    private static ICache<String, Object> serviceCache = new SoftReferenceCache<>();
+
+    public static <T> T loadService(Class interfaceClass, String serviceName) {
+        List<T> allService = (List<T>) serviceCache.get(interfaceClass.getName());
+        if (allService == null) {
+            allService = new ArrayList<>();
             Iterable<T> iterable = ServiceLoader.load(interfaceClass);
             for (T t : iterable) {
                 allService.add(t);
             }
             serviceCache.put(interfaceClass.getName(), allService);
         }
-        if(CollectionUtil.isEmpty(allService)){
+        if (CollectionUtil.isEmpty(allService)) {
             return null;
         }
-        if(StringUtil.isEmpty(serviceName)){
+        if (StringUtil.isEmpty(serviceName)) {
             return allService.get(0);
         }
-        for(T t:allService){
-            ServiceName annotation = (ServiceName)t.getClass().getAnnotation(ServiceName.class);
+        for (T t : allService) {
+            ServiceName annotation = (ServiceName) t.getClass().getAnnotation(ServiceName.class);
             if (annotation == null) {
                 return null;
             }

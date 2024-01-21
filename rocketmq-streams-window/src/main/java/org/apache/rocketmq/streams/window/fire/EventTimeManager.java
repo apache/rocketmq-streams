@@ -22,13 +22,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.model.IWindow;
+import org.apache.rocketmq.streams.common.topology.IWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
+/**
+ * 数据源事件时间的时间线
+ * shuffle 分片的当前时间=min(max(每个数据源分片数据的事件时间))
+ * 触发的前提条件：对齐等待，等数据源所有分片的数据都有收到才能允许触发，否则会因为事件时间线不准确，导致计算不准确
+ */
 public class EventTimeManager {
-    private Map<String, SplitEventTimeManager> eventTimeManagerMap = new HashMap<>();
     protected ISource source;
-
+    /**
+     * key：shuffle 数据源的分片id
+     * value：管理数据源分片的时间
+     */
+    private Map<String, SplitEventTimeManager> eventTimeManagerMap = new HashMap<>();
     private Map<String, Pair<Long, Long>> eventTimeIncreasementMap = new ConcurrentHashMap<>();
 
     public void updateEventTime(IMessage message, AbstractWindow window) {

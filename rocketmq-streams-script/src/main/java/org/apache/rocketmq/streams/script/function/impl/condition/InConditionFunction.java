@@ -40,9 +40,9 @@ public class InConditionFunction {
 
     @FunctionMethod(value = "in", alias = "contain", comment = "判断某个字符串是否在一个列表中")
     public boolean nin(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "string", comment = "代表待比较字符串的字段名或常量") String fieldName,
-                       @FunctionParamter(value = "boolean", comment = "是否支持正则匹配") Boolean isRegexMatch,
-                       @FunctionParamter(value = "array", comment = "代表字符串的字段名或常量列表") String... conditions) {
+        @FunctionParamter(value = "string", comment = "代表待比较字符串的字段名或常量") String fieldName,
+        @FunctionParamter(value = "boolean", comment = "是否支持正则匹配") Boolean isRegexMatch,
+        @FunctionParamter(value = "array", comment = "代表字符串的字段名或常量列表") String... conditions) {
 
         fieldName = FunctionUtils.getConstant(fieldName);
         String ori = FunctionUtils.getValueString(message, context, fieldName);
@@ -66,8 +66,8 @@ public class InConditionFunction {
 
     @FunctionMethod(value = "in", comment = "判断某个字符串是否在一个列表中")
     public boolean match(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "字段名称，不加引号") String fieldName,
-                         @FunctionParamter(value = "array", comment = "常量列表，不加引号") String... conditions) {
+        @FunctionParamter(value = "string", comment = "字段名称，不加引号") String fieldName,
+        @FunctionParamter(value = "array", comment = "常量列表，不加引号") String... conditions) {
         String ori = ReflectUtil.getBeanFieldOrJsonValue(message.getMessageBody(), fieldName);
         if (StringUtil.isEmpty(ori) || conditions == null) {
             return false;
@@ -82,8 +82,8 @@ public class InConditionFunction {
 
     @FunctionMethod(value = "inByRegex", comment = "判断某个字符串是否在一个列表中")
     public boolean matchByRegex(IMessage message, FunctionContext context,
-                                @FunctionParamter(value = "string", comment = "字段名称，不加引号") String fieldName,
-                                @FunctionParamter(value = "array", comment = "正则列表，不加引号") String... conditions) {
+        @FunctionParamter(value = "string", comment = "字段名称，不加引号") String fieldName,
+        @FunctionParamter(value = "array", comment = "正则列表，不加引号") String... conditions) {
         String ori = ReflectUtil.getBeanFieldOrJsonValue(message.getMessageBody(), fieldName);
         if (StringUtil.isEmpty(ori) || conditions == null) {
             return false;

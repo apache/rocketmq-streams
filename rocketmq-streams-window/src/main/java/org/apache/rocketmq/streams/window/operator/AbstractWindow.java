@@ -26,61 +26,50 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import javafx.util.Pair;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
-import org.apache.rocketmq.streams.common.topology.SectionPipeline;
-import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
-import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.common.topology.model.IWindow;
-import org.apache.rocketmq.streams.common.topology.stages.WindowChainStage;
-import org.apache.rocketmq.streams.common.topology.stages.udf.IReducer;
-import org.apache.rocketmq.streams.common.utils.Base64Utils;
+import org.apache.rocketmq.streams.common.model.Pair;
+import org.apache.rocketmq.streams.common.topology.IStageBuilder;
+import org.apache.rocketmq.streams.common.topology.IWindow;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
-import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.common.utils.TraceUtil;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
-import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.script.operator.expression.ScriptExpression;
+import org.apache.rocketmq.streams.script.operator.expression.ScriptParameter;
 import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
-import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.fire.EventTimeManager;
 import org.apache.rocketmq.streams.window.model.FunctionExecutor;
-import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.offset.IWindowMaxValueManager;
 import org.apache.rocketmq.streams.window.offset.WindowMaxValueManager;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
-import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage;
 import org.apache.rocketmq.streams.window.trigger.WindowTrigger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * window definition in the pipeline, created by user's configure in WindowChainStage
  */
-public abstract class AbstractWindow extends BasedConfigurable implements IAfterConfigurableRefreshListener, IWindow, IStageBuilder<ChainStage> {
-
-    protected static final Log LOG = LogFactory.getLog(AbstractWindow.class);
+public abstract class AbstractWindow extends BasedConfigurable implements IWindow, IStageBuilder<AbstractChainStage<?>> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractWindow.class);
+    public static String WINDOW_START = "window_start";
+    public static String WINDOW_END = "window_end";
+    public static String WINDOW_TIME = "window_time";
 
     /**
      * tumble or hop window 目前不再使用了
@@ -91,27 +80,16 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
      * 用消息中的哪个字段做时间字段
      */
     protected String timeFieldName;
-
-    /**
-     * having column in having clause eg: key:'having_sum_0001' value:'having_sum_0001=SUM(OrderPrice)<2000' note: here ignore the logical relation value may be multi expression which split by ${SCRIPT_SPLIT_CHAR} update: change sql(move the function into select clause) to escape function in having clause
-     */
-    private Map<String, String> havingMap = new HashMap<>(16);
-
-    /**
-     * computed column in select clause eg: key:'max_valid_user_fail_host_cnt' value:'max_valid_user_fail_host_cnt=max(base_line_invalid_user_fail_host_cnt)' note: 1) value may be multi expression which split by ${SCRIPT_SPLIT_CHAR} 2) computed column can't be same
-     */
-    private Map<String, String> selectMap = new HashMap<>(16);
-
     /**
      * SQL中group by的字段，使用;拼接，如"name;age"
      */
     protected String groupByFieldName;
-
+    protected boolean supportRollup;//Support rollup group calculation
+    protected List<String> rollupGroupByFieldNames;
     /**
      * 意义同blink中，允许最晚的消息到达时间，单位是分钟
      */
     protected int waterMarkMinute = 0;
-
     /**
      * size or step of window, unit: minute
      */
@@ -128,69 +106,50 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
      * the variable name of window size which can be got from message
      */
     protected String sizeVariable;
-
     /**
      * the coefficient to adjust window size for use minute as unit
      */
     protected Integer sizeAdjust;
-
     /**
      * the coefficient to adjust window slide for use minute as unit
      */
     protected Integer slideAdjust;
-
     /**
      * the variable name of window slide which it's value can be got from message
      */
     protected String slideVariable;
-
     /**
      * 默认为空，窗口的触发类似flink，在测试模式下，因为消息有界，期望当消息发送完成后能触发，可以设置两条消息的最大间隔，超过这个间隔，将直接触发消息
      */
     protected Long msgMaxGapSecond = 60 * 3L;
-
     protected String havingExpression;
-
     protected Long emitBeforeValue;//output frequency before window fire
     protected Long emitAfterValue;// output frequency after window fire
     protected Long maxDelay = 60 * 60L;//when emitAfterValue>0, window last delay time after window fired
-
-    protected String contextMsgSinkName;//上下文消息保存sink
     /**
      * 是否支持过期数据的计算 过期：当前时间大于数据所在窗口的触发时间
      */
     protected int fireMode = 0;//0:普通触发,firetime后收到数据丢弃；1:多实例多次独立触发，在watermark时间内，同starttime，endtime创建多个实例，多次触发；2.单实例，多次独立触发，每次触发是最新值
-
     protected boolean isLocalStorageOnly = true;//是否只用本地存储，可以提高性能，但不保证可靠性
-    protected String reduceSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
-    protected transient IReducer reducer;
-    protected String mapFunctionSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
+    protected boolean isOutputWindowInstanceInfo = false;//output default value :window_start,window_end time
     protected transient MapFunction<JSONObject, Pair<WindowInstance, JSONObject>> mapFunction;
     /**
      * the computed column and it's process of computing
      */
     protected transient Map<String, List<FunctionExecutor>> columnExecuteMap = new HashMap<>(16);
-
     /**
      * used in last part to filter and transfer field in case data lost during firing
      */
     protected transient Map<String, String> columnProjectMap = new HashMap<>();
-
     /**
      * 当前计算节点的PipeLine里的Window实例对象
      */
     protected transient ConcurrentHashMap<String, WindowInstance> windowInstanceMap = new ConcurrentHashMap<>();
-
-    /**
-     * 触发窗口后需要执行的逻辑
-     */
-    protected transient SectionPipeline fireReceiver;
-
     /**
      * 全局名称
      */
     protected transient String WINDOW_NAME;
-
+    protected transient boolean isEmptyGroupBy = false;//忽略window_start,window_end
     /**
      * 内部使用,定期检查窗口有没有触发
      */
@@ -198,95 +157,84 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
 
     // protected transient ExecutorService deleteService = Executors.newSingleThreadExecutor();
 
-    protected volatile transient WindowCache windowCache;
     protected transient WindowStorage storage;
-    protected transient WindowTrigger windowFireSource;
     protected transient SQLCache sqlCache;
     protected transient EventTimeManager eventTimeManager;
-    protected transient ISink contextMsgSink;
-
+    @ConfigurableReference protected ISink<?> contextMsgSink;
+    protected transient WindowTrigger windowTrigger;
     //create and save window instacne max partitionNum and window max eventTime
     protected transient IWindowMaxValueManager windowMaxValueManager;
+    protected Map<String, String> nonStatisticalFieldNames;// Non statistical calculation field, using in rollup
+    protected long updateFlag = 0;
+    protected AtomicBoolean hasStart = new AtomicBoolean(false);
+    /**
+     * having column in having clause eg: key:'having_sum_0001' value:'having_sum_0001=SUM(OrderPrice)<2000' note: here ignore the logical relation value may be multi expression which split by ${SCRIPT_SPLIT_CHAR} update: change sql(move the function into select clause) to escape function in having clause
+     */
+    private Map<String, String> havingMap = new HashMap<>(16);
+    /**
+     * computed column in select clause eg: key:'max_valid_user_fail_host_cnt' value:'max_valid_user_fail_host_cnt=max(base_line_invalid_user_fail_host_cnt)' note: 1) value may be multi expression which split by ${SCRIPT_SPLIT_CHAR} 2) computed column can't be same
+     */
+    private Map<String, String> selectMap = new HashMap<>(16);
 
     public AbstractWindow() {
         setType(IWindow.TYPE);
     }
 
     @Override
-    protected boolean initConfigurable() {
-        boolean success = super.initConfigurable();
+    public void start() {
+        if (hasStart.compareAndSet(false, true)) {
+            startWindow();
+        }
+    }
+
+    @Override protected boolean initConfigurable() {
+        initFunctionExecutor();
+        if (StringUtil.isEmpty(groupByFieldName) && CollectionUtil.isEmpty(this.rollupGroupByFieldNames)) {
+            this.isEmptyGroupBy = true;
+        }
         /**
          * 如果没有db配置，不开启远程存储服务
          */
         if (!ORMUtil.hasConfigueDB()) {
             isLocalStorageOnly = true;
         }
-        sqlCache = new SQLCache(isLocalStorageOnly);
-        AbstractWindow window = this;
-        windowCache = new WindowCache() {
 
-            @Override
-            protected String generateShuffleKey(IMessage message) {
-                return window.generateShuffleKey(message);
+        WINDOW_NAME = MapKeyUtil.createKey(getNameSpace(), getName());
+        if (StringUtil.isNotEmpty(this.groupByFieldName)) {
+            String[] fieldNames = groupByFieldName.split(";");
+            boolean isEmpty = true;
+            for (String filedName : fieldNames) {
+                if (WINDOW_START.equals(filedName)) {
+                    this.isOutputWindowInstanceInfo = true;
+                    continue;
+                }
+                if (WINDOW_END.equals(filedName)) {
+                    this.isOutputWindowInstanceInfo = true;
+                    continue;
+                }
+                if (WINDOW_TIME.equals(filedName)) {
+                    this.isOutputWindowInstanceInfo = true;
+                    continue;
+                }
+                isEmpty = false;
+                break;
             }
-        };
-        windowCache.init();
-
-        WINDOW_NAME = MapKeyUtil.createKey(getNameSpace(), getConfigureName());
-        //fireDelaySecond时间检查一次是否有窗口需要触发
-        //fireWindowInstanceChecker.scheduleWithFixedDelay(this, 0, 5, TimeUnit.SECONDS);
-        initFunctionExecutor();
-        //启动shuffle channel 实现消息shuffle以及接收shuffle消息并处理
-        // FireManager.getInstance().startFireCheck();
-        if (StringUtil.isNotEmpty(this.reduceSerializeValue)) {
-            byte[] bytes = Base64Utils.decode(this.reduceSerializeValue);
-            reducer = InstantiationUtil.deserializeObject(bytes);
+            if (isEmpty && CollectionUtil.isEmpty(this.rollupGroupByFieldNames)) {
+                isEmptyGroupBy = true;
+            }
         }
-        if (StringUtil.isNotEmpty(this.mapFunctionSerializeValue)) {
-            byte[] bytes = Base64Utils.decode(this.mapFunctionSerializeValue);
-            this.mapFunction = InstantiationUtil.deserializeObject(bytes);
-        }
-        eventTimeManager = new EventTimeManager();
-        windowMaxValueManager = new WindowMaxValueManager(this, sqlCache);
 
-        return success;
+        if (CollectionUtil.isNotEmpty(this.rollupGroupByFieldNames)) {
+            this.supportRollup = true;
+        }
+        return super.initConfigurable();
     }
 
-    /**
-     * 对于一条消息来说，window 首先需要检查是否有窗口实例，如果没有则创建。如果窗口实例已经超过最大的water mark，数据丢弃，否则进行消息积累 消息会先经历batchAdd 然后flush
-     *
-     * @param message
-     * @param context
-     * @return
-     */
-    @Override
-    public AbstractContext<IMessage> doMessage(IMessage message, AbstractContext context) {
-        if (StringUtils.isNotEmpty(sizeVariable)) {
-            if (message.getMessageBody().containsKey(sizeVariable)) {
-                try {
-                    this.sizeInterval = sizeAdjust * message.getMessageBody().getInteger(sizeVariable);
-                } catch (Exception e) {
-                    LOG.error("failed in getting the size value, message = " + message.toString(), e);
-                }
-            }
-        }
-        if (StringUtils.isNotEmpty(slideVariable)) {
-            if (message.getMessageBody().containsKey(slideVariable)) {
-                try {
-                    this.slideInterval = slideAdjust * message.getMessageBody().getInteger(slideVariable);
-                } catch (Exception e) {
-                    LOG.error("failed in getting the slide value, message = " + message.toString(), e);
-                }
-            }
-        }
-        JSONObject msg = message.getMessageBody();
-        msg.put(MessageHeader.class.getSimpleName(), message.getHeader());
-        msg.put(AbstractWindow.class.getSimpleName(), this);
-        eventTimeManager.setSource(message.getHeader().getSource());
-        windowCache.batchAdd(message);
-        TraceUtil.debug(message.getHeader().getTraceId(), "origin message in");
-        return context;
-
+    protected void startWindow() {
+        windowInstanceMap = new ConcurrentHashMap();
+        sqlCache = new SQLCache(isLocalStorageOnly);
+        eventTimeManager = new EventTimeManager();
+        windowMaxValueManager = new WindowMaxValueManager(this, sqlCache);
     }
 
     public WindowInstance createWindowInstance(String startTime, String endTime, String fireTime, String splitId) {
@@ -298,7 +246,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         windowInstance.setGmtCreate(new Date());
         windowInstance.setGmtModified(new Date());
         windowInstance.setWindowInstanceName(createWindowInstanceName(startTime, endTime, fireTime));
-        windowInstance.setWindowName(getConfigureName());
+        windowInstance.setWindowName(getName());
         windowInstance.setWindowNameSpace(getNameSpace());
         String windowInstanceId = windowInstance.createWindowInstanceId();
         String dbWindowInstanceId = StringUtil.createMD5Str(windowInstanceId);
@@ -308,9 +256,14 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         } else {
             windowInstance.setCanClearResource(true);
         }
-        windowInstance.setWindowInstanceSplitName(StringUtil.createMD5Str(MapKeyUtil.createKey(getNameSpace(), getConfigureName(), splitId)));
+        windowInstance.setWindowInstanceSplitName(StringUtil.createMD5Str(MapKeyUtil.createKey(getNameSpace(), getName(), splitId)));
         windowInstance.setNewWindowInstance(true);
         return windowInstance;
+    }
+
+    public AbstractWindow copy() {
+        byte[] bytes = ReflectUtil.serialize(this);
+        return (AbstractWindow) ReflectUtil.deserialize(bytes);
     }
 
     /**
@@ -322,7 +275,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
      * @return
      */
     public String createWindowInstanceName(String startTime, String endTime, String fireTime) {
-        return (fireMode == 0 || fireMode == 2) ? getConfigureName() : fireTime;
+        return (fireMode == 0 || fireMode == 2) ? getName() : fireTime;
     }
 
     /**
@@ -339,7 +292,15 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
 
     public abstract Class getWindowBaseValueClass();
 
-    public abstract int fireWindowInstance(WindowInstance windowInstance, Map<String, String> queueId2Offset);
+    /**
+     * 计算每条记录的group by值，对于groupby分组，里面任何字段不能为null值，如果为null值，这条记录会被忽略
+     *
+     * @param message
+     * @return
+     */
+    @Override public String generateShuffleKey(IMessage message) {
+        return generateGroupByValue(message).get(0).getValue();
+    }
 
     /**
      * 计算每条记录的group by值，对于groupby分组，里面任何字段不能为null值，如果为null值，这条记录会被忽略
@@ -347,9 +308,36 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
      * @param message
      * @return
      */
-    @Override
-    public String generateShuffleKey(IMessage message) {
-        if (StringUtil.isEmpty(groupByFieldName)) {
+    public List<Pair<String, String>> generateGroupByValue(IMessage message) {
+        if (isEmptyGroupBy) {
+            List<Pair<String, String>> list = new ArrayList<>();
+            list.add(new Pair("globle_window", "globle_window"));
+            return list;
+        }
+        List<Pair<String, String>> groupValus = new ArrayList<>();
+        List<String> groupFieldNames = new ArrayList<>();
+        if (supportRollup && this.rollupGroupByFieldNames != null) {
+            if (StringUtil.isEmpty(this.groupByFieldName)) {
+                groupFieldNames = this.rollupGroupByFieldNames;
+            } else {
+                for (String rollupGroupByFieldName : this.rollupGroupByFieldNames) {
+                    groupFieldNames.add(this.groupByFieldName + ";" + rollupGroupByFieldName);
+                }
+            }
+
+        } else {
+            groupFieldNames.add(this.groupByFieldName);
+        }
+        for (String groupFieldName : groupFieldNames) {
+            String groupValue = generateGroupByValue(message, groupFieldName);
+            groupValus.add(new Pair<>(groupFieldName, groupValue));
+        }
+        return groupValus;
+
+    }
+
+    public String generateGroupByValue(IMessage message, String groupByFieldName) {
+        if (isEmptyGroupBy) {
             return "globle_window";
         }
         JSONObject msg = message.getMessageBody();
@@ -358,6 +346,15 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         boolean isFirst = true;
         int i = 0;
         for (String filedName : fieldNames) {
+            if (WINDOW_START.equals(filedName)) {
+                continue;
+            }
+            if (WINDOW_END.equals(filedName)) {
+                continue;
+            }
+            if (WINDOW_TIME.equals(filedName)) {
+                continue;
+            }
             if (isFirst) {
                 isFirst = false;
             }
@@ -368,15 +365,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         return MapKeyUtil.createKey(values);
     }
 
-    public abstract void clearFireWindowInstance(WindowInstance windowInstance);
-
-    public void clearFire(WindowInstance windowInstance) {
-        if (windowInstance == null) {
-            return;
-        }
-        clearFireWindowInstance(windowInstance);
-    }
-
     /**
      * init the function executor TODO: 1) function executor may be parsed in parser module;
      */
@@ -385,15 +373,17 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         columnExecuteMap.clear();
         columnProjectMap.clear();
         //
+        Map<String, String> nonStatisticalFieldNames = new HashMap<>();
         for (Entry<String, String> entry : selectMap.entrySet()) {
             String computedColumn = entry.getKey();
             columnProjectMap.put(computedColumn, computedColumn);
             String scriptString = entry.getValue();
             if (StringUtil.isEmpty(computedColumn) || StringUtil.isEmpty(scriptString)) {
-                LOG.warn("computed column or it's expression can not be empty! column = " + computedColumn + " expression = " + scriptString);
+                LOGGER.warn("computed column or it's expression can not be empty! column = " + computedColumn + " expression = " + scriptString);
                 continue;
             }
             if (computedColumn.equals(scriptString)) {
+                nonStatisticalFieldNames.put(computedColumn, computedColumn);
                 continue;
             }
             //
@@ -402,10 +392,11 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
             try {
                 functionList = FunctionParser.getInstance().parse(scriptString);
             } catch (Exception e) {
-                LOG.error("failed in parsing script expression = " + scriptString + " window = " + WINDOW_NAME);
+                LOGGER.error("failed in parsing script expression = " + scriptString + " window = " + WINDOW_NAME);
                 throw new RuntimeException("failed in parsing operator expression = " + scriptString);
             }
             if (CollectionUtil.isNotEmpty(functionList)) {
+                boolean hasAggregationScript = false;
                 StringBuilder scriptBuilder = new StringBuilder();
                 for (IScriptExpression expression : functionList) {
                     String functionName = expression.getFunctionName();
@@ -413,6 +404,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
                     String theScript = expression.getExpressionDescription();
                     IAccumulator director = AggregationScript.getAggregationFunction(functionName);
                     if (director != null) {
+                        hasAggregationScript = true;
                         if (scriptBuilder.length() != 0) {
                             FunctionScript scalarEngine = new FunctionScript(scriptBuilder.toString());
                             scalarEngine.init();
@@ -432,15 +424,32 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
                     scalarEngine.init();
                     scriptExecutorList.add(new FunctionExecutor(computedColumn + "_" + scriptExecutorList.size(), scalarEngine));
                 }
+                if (hasAggregationScript == false) {
+                    FunctionScript functionScript = new FunctionScript(scriptString);
+                    functionScript.init();
+                    if (functionScript.getScriptExpressions() != null && functionScript.getScriptExpressions().size() == 1) {
+                        IScriptExpression scriptExpression = functionScript.getScriptExpressions().get(0);
+                        if (StringUtil.isEmpty(scriptExpression.getFunctionName()) && scriptExpression.getScriptParamters() != null && scriptExpression.getScriptParamters().size() == 1) {
+                            if (IScriptParamter.class.isInstance(scriptExpression.getScriptParamters().get(0))) {
+                                IScriptParamter scriptParamter = (IScriptParamter) scriptExpression.getScriptParamters().get(0);
+                                if (isAssignmentExpression(scriptParamter)) {
+                                    nonStatisticalFieldNames.put(scriptParamter.getScriptParameterStr(), computedColumn);
+                                }
+                            }
+
+                        }
+                    }
+                }
+                this.nonStatisticalFieldNames = nonStatisticalFieldNames;
                 columnExecuteMap.put(computedColumn, scriptExecutorList);
             } else {
-                LOG.error("parser's result is empty, script expression = " + scriptString + " window = " + WINDOW_NAME);
+                LOGGER.error("parser's result is empty, script expression = " + scriptString + " window = " + WINDOW_NAME);
                 throw new RuntimeException("parser's result is empty, operator expression = " + scriptString);
             }
         }
-        if (LOG.isDebugEnabled()) {
+        if (LOGGER.isDebugEnabled()) {
             Iterator<Entry<String, List<FunctionExecutor>>> iterator = columnExecuteMap.entrySet().iterator();
-            LOG.debug("window function execute split as follows:\t");
+            LOGGER.debug("window function execute split as follows:\t");
             while (iterator.hasNext()) {
                 Entry<String, List<FunctionExecutor>> entry = iterator.next();
                 StringBuilder builder = new StringBuilder();
@@ -451,9 +460,22 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
                         builder.append(((FunctionScript) executor.getExecutor()).getScript()).append("\t");
                     }
                 }
-                LOG.debug(entry.getKey() + " -> " + builder.toString());
+                LOGGER.debug(entry.getKey() + " -> " + builder.toString());
             }
         }
+    }
+
+    protected boolean isAssignmentExpression(IScriptParamter paramter) {
+        if (!ScriptParameter.class.isInstance(paramter)) {
+            return false;
+        }
+        ScriptParameter scriptParameter = (ScriptParameter) paramter;
+        String fieldName = null;
+        if (StringUtil.isEmpty(scriptParameter.getFunctionName()) && StringUtil.isEmpty(scriptParameter.getRigthVarName()) && StringUtil.isNotEmpty(scriptParameter.getLeftVarName())) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -467,7 +489,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
     }
 
     public List<WindowInstance> queryOrCreateWindowInstanceOnly(IMessage message, String queueId) {
-        return WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust, queueId,true);
+        return WindowInstance.getOrCreateWindowInstance(this, WindowInstance.getOccurTime(this, message), timeUnitAdjust, queueId, true);
     }
 
     public WindowInstance registerWindowInstance(WindowInstance windowInstance) {
@@ -515,87 +537,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
 
     public Long getMaxEventTime(String queueId) {
         return this.eventTimeManager.getMaxEventTime(queueId);
-    }
-
-    /**
-     * 聚合后的数据，继续走规则引擎的规则
-     *
-     * @param windowValueList
-     */
-    public void sendFireMessage(List<WindowValue> windowValueList, String queueId) {
-        int count = 0;
-        List<IMessage> msgs = new ArrayList<>();
-        for (WindowValue windowValue : windowValueList) {
-            JSONObject message = new JSONObject();
-
-            if (JSONObject.class.isInstance(windowValue.getcomputedResult())) {
-                message = (JSONObject) windowValue.getcomputedResult();
-            } else {
-                Iterator<Entry<String, Object>> it = windowValue.iteratorComputedColumnResult();
-                while (it.hasNext()) {
-                    Entry<String, Object> entry = it.next();
-                    message.put(entry.getKey(), entry.getValue());
-                }
-            }
-
-            if (StringUtil.isNotEmpty(havingExpression)) {
-                boolean isMatch = ExpressionBuilder.executeExecute("tmp", havingExpression, message);
-                if (!isMatch) {
-                    continue;
-                }
-            }
-            Long fireTime = DateUtil.parseTime(windowValue.getFireTime()).getTime();
-            long baseTime = 1577808000000L;//set base time from 2021-01-01 00:00:00
-            int sameFireCount = 0;
-            if (fireMode != 0) {
-                Long endTime = DateUtil.parseTime(windowValue.getEndTime()).getTime();
-                sameFireCount = (int) ((fireTime - endTime) / 1000) / sizeInterval * timeUnitAdjust;
-                if (sameFireCount >= 1) {
-                    sameFireCount = 1;
-                }
-            }
-            //can keep offset in order
-            Long offset = ((fireTime - baseTime) / 1000 * 10 + sameFireCount) * 100000000 + windowValue.getPartitionNum();
-            message.put("start_time", windowValue.getStartTime());
-            message.put("end_time", windowValue.getEndTime());
-            message.put("fire_time", windowValue.getFireTime());
-            Message newMessage = windowFireSource.createMessage(message, queueId, offset + "", false);
-            newMessage.getHeader().setOffsetIsLong(true);
-            if (count == windowValueList.size() - 1) {
-                newMessage.getHeader().setNeedFlush(true);
-            }
-
-            msgs.add(newMessage);
-            windowFireSource.executeMessage(newMessage);
-
-            count++;
-        }
-
-        if (DebugWriter.getDebugWriter(this.getConfigureName()).isOpenDebug()) {
-            DebugWriter.getDebugWriter(this.getConfigureName()).writeWindowFire(this, msgs, queueId);
-        }
-    }
-
-    @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        this.contextMsgSink=configurableService.queryConfigurable(ISink.TYPE,contextMsgSinkName);
-    }
-
-    @Override
-    public ChainStage createStageChain(PipelineBuilder pipelineBuilder) {
-        pipelineBuilder.addConfigurables(this);
-        WindowChainStage windowChainStage = new WindowChainStage();
-        windowChainStage.setWindow(this);
-        windowChainStage.setNameSpace(getNameSpace());
-        return windowChainStage;
-    }
-
-    @Override
-    public void addConfigurables(PipelineBuilder pipelineBuilder) {
-
-    }
-
-    public void setSizeVariable(String variableName) {
-        sizeVariable = variableName;
     }
 
     public String getWindowType() {
@@ -662,19 +603,7 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         this.windowInstanceMap = windowInstanceMap;
     }
 
-    public SectionPipeline getFireReceiver() {
-        return fireReceiver;
-    }
-
-    @Override
-    public void setFireReceiver(SectionPipeline fireReceiver) {
-        if (this.fireReceiver == null) {
-            this.fireReceiver = fireReceiver;
-        }
-    }
-
-    @Override
-    public boolean isSynchronous() {
+    @Override public boolean isSynchronous() {
         return false;
     }
 
@@ -696,6 +625,10 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
 
     public String getSizeVariable() {
         return sizeVariable;
+    }
+
+    public void setSizeVariable(String variableName) {
+        sizeVariable = variableName;
     }
 
     public Integer getSizeAdjust() {
@@ -720,24 +653,6 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
 
     public void setSlideVariable(String slideVariable) {
         this.slideVariable = slideVariable;
-    }
-
-    public String getReduceSerializeValue() {
-        return reduceSerializeValue;
-    }
-
-    public void setReduceSerializeValue(String reduceSerializeValue) {
-        this.reduceSerializeValue = reduceSerializeValue;
-    }
-
-    public IReducer getReducer() {
-        return reducer;
-    }
-
-    public void setReducer(IReducer reducer) {
-        this.reducer = reducer;
-        byte[] bytes = InstantiationUtil.serializeObject(reducer);
-        this.reduceSerializeValue = Base64Utils.encode(bytes);
     }
 
     public int getTimeUnitAdjust() {
@@ -769,22 +684,8 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
 
     }
 
-    @Override
-    public void windowInit() {
-
-    }
-
-    @Override
-    public WindowCache getWindowCache() {
-        return windowCache;
-    }
-
     public WindowStorage getStorage() {
         return storage;
-    }
-
-    public WindowTrigger getWindowFireSource() {
-        return windowFireSource;
     }
 
     public IWindowMaxValueManager getWindowMaxValueManager() {
@@ -851,39 +752,89 @@ public abstract class AbstractWindow extends BasedConfigurable implements IAfter
         return contextMsgSink;
     }
 
-    public String getContextMsgSinkName() {
-        return contextMsgSinkName;
+    public void setContextMsgSink(ISink<?> contextMsgSink) {
+        this.contextMsgSink = contextMsgSink;
     }
 
-    public void setContextMsgSinkName(String contextMsgSinkName) {
-        this.contextMsgSinkName = contextMsgSinkName;
-    }
-
-    public String getMapFunctionSerializeValue() {
-        return mapFunctionSerializeValue;
-    }
-
-    public void setMapFunctionSerializeValue(String mapFunctionSerializeValue) {
-        this.mapFunctionSerializeValue = mapFunctionSerializeValue;
-    }
-
-    public void saveMsgContext(String queueId,WindowInstance windowInstance, List<IMessage> messages) {
-        if(this.mapFunction!=null&&this.contextMsgSink!=null){
-            if(messages!=null){
-                for(IMessage message:messages){
-                    JSONObject msg=message.getMessageBody();
+    public void saveMsgContext(String queueId, WindowInstance windowInstance, List<IMessage> messages) {
+        if (this.mapFunction != null && this.contextMsgSink != null) {
+            if (messages != null) {
+                for (IMessage message : messages) {
+                    JSONObject msg = message.getMessageBody();
                     try {
-                        msg=this.mapFunction.map(new Pair(windowInstance,msg));
-                        Message copyMsg=new Message(msg);
+                        msg = this.mapFunction.map(new Pair(windowInstance, msg));
+                        Message copyMsg = new Message(msg);
                         copyMsg.getHeader().setQueueId(queueId);
                         copyMsg.getHeader().setOffset(message.getHeader().getOffset());
                         this.contextMsgSink.batchAdd(copyMsg);
                     } catch (Exception e) {
-                        throw new RuntimeException("save window context msg error ",e);
+                        throw new RuntimeException("save window context msg error ", e);
                     }
                 }
                 this.contextMsgSink.flush();
             }
         }
+    }
+
+    @Override public void destroy() {
+        super.destroy();
+        hasStart.set(false);
+    }
+
+    public MapFunction<JSONObject, Pair<WindowInstance, JSONObject>> getMapFunction() {
+        return mapFunction;
+    }
+
+    public void setMapFunction(
+        MapFunction<JSONObject, Pair<WindowInstance, JSONObject>> mapFunction) {
+        this.mapFunction = mapFunction;
+    }
+
+    public boolean isOutputWindowInstanceInfo() {
+        return isOutputWindowInstanceInfo;
+    }
+
+    public void setOutputWindowInstanceInfo(boolean outputWindowInstanceInfo) {
+        isOutputWindowInstanceInfo = outputWindowInstanceInfo;
+    }
+
+    public boolean isEmptyGroupBy() {
+        return isEmptyGroupBy;
+    }
+
+    public boolean isSupportRollup() {
+        return supportRollup;
+    }
+
+    public void setSupportRollup(boolean supportRollup) {
+        this.supportRollup = supportRollup;
+    }
+
+    public List<String> getRollupGroupByFieldNames() {
+        return rollupGroupByFieldNames;
+    }
+
+    public void setRollupGroupByFieldNames(List<String> rollupGroupByFieldNames) {
+        this.rollupGroupByFieldNames = rollupGroupByFieldNames;
+    }
+
+    public Map<String, String> getNonStatisticalFieldNames() {
+        return nonStatisticalFieldNames;
+    }
+
+    public void setNonStatisticalFieldNames(Map<String, String> nonStatisticalFieldNames) {
+        this.nonStatisticalFieldNames = nonStatisticalFieldNames;
+    }
+
+    public WindowTrigger getWindowTrigger() {
+        return windowTrigger;
+    }
+
+    public void setWindowTrigger(WindowTrigger windowTrigger) {
+        this.windowTrigger = windowTrigger;
+    }
+
+    public long getUpdateFlag() {
+        return updateFlag;
     }
 }

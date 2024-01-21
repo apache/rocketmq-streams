@@ -29,8 +29,8 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 public class LessEqualsFunction {
     @FunctionMethod(value = "lesseq", alias = "<=", comment = "<=")
     public Boolean match(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName,
-                         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String value) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName,
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String value) {
         String leftValue = FunctionUtils.getValueString(message, context, fieldName);
         if (FunctionUtils.isConstant(value)) {
             return leftValue.equals(FunctionUtils.getConstant(value));
@@ -59,8 +59,8 @@ public class LessEqualsFunction {
     @Deprecated
     @FunctionMethod(alias = "leByField", comment = "lesseq或<=")
     public boolean leByField(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName,
-                             @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String otherFieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName,
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String otherFieldName) {
         String ori = ReflectUtil.getBeanFieldOrJsonValue(message.getMessageBody(), fieldName);
         String dest = ReflectUtil.getBeanFieldOrJsonValue(message.getMessageBody(), otherFieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(dest)) {

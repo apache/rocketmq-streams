@@ -21,11 +21,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
-public class MemorySink extends AbstractSupportShuffleSink implements IAfterConfigurableRefreshListener {
+public class MemorySink extends AbstractSupportShuffleSink {
     /**
      * 是否启动qps的统计
      */
@@ -38,8 +37,7 @@ public class MemorySink extends AbstractSupportShuffleSink implements IAfterConf
      * 最早的处理时间
      */
     protected transient long firstReceiveTime = System.currentTimeMillis();
-    protected String cacheName;
-    protected transient MemoryCache memoryCache;
+    @ConfigurableReference protected MemoryCache memoryCache;
 
     public MemorySink() {
     }
@@ -74,8 +72,8 @@ public class MemorySink extends AbstractSupportShuffleSink implements IAfterConf
     }
 
     @Override
-    public List<ISplit<?,?>> getSplitList() {
-        List<ISplit<?,?>> splits = new ArrayList<>();
+    public List<ISplit<?, ?>> getSplitList() {
+        List<ISplit<?, ?>> splits = new ArrayList<>();
         splits.add(new MemorySplit());
         return splits;
     }
@@ -85,22 +83,8 @@ public class MemorySink extends AbstractSupportShuffleSink implements IAfterConf
         return 1;
     }
 
-    @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        memoryCache = configurableService.queryConfigurable(MemoryCache.TYPE, cacheName);
-    }
-
-    public String getCacheName() {
-        return cacheName;
-    }
-
-    public void setCacheName(String cacheName) {
-        this.cacheName = cacheName;
-    }
-
     public void setMemoryCache(MemoryCache memoryCache) {
         this.memoryCache = memoryCache;
-        setCacheName(memoryCache.getConfigureName());
 
     }
 }

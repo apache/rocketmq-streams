@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.state.IEntryProcessor;
 
-public interface IStateBackend<K,V> {
+public interface IStateBackend<K, V> {
 
     /**
      * Returns the number of key-value mappings in this map.  If the
@@ -34,8 +34,7 @@ public interface IStateBackend<K,V> {
      */
     int size(String namespace);
 
-
-    Map<K,V> get(String namespace, List<K> key);
+    Map<K, V> get(String namespace, List<K> key);
 
     /**
      * Removes the mapping for a key from this map if it is present
@@ -57,37 +56,36 @@ public interface IStateBackend<K,V> {
      *
      * @param key key whose mapping is to be removed from the map
      * @return the previous value associated with <tt>key</tt>, or
-     *         <tt>null</tt> if there was no mapping for <tt>key</tt>.
+     * <tt>null</tt> if there was no mapping for <tt>key</tt>.
      * @throws UnsupportedOperationException if the <tt>remove</tt> operation
-     *         is not supported by this map
-     * @throws ClassCastException if the key is of an inappropriate type for
-     *         this map
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
-     * @throws NullPointerException if the specified key is null and this
-     *         map does not permit null keys
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     *                                       is not supported by this map
+     * @throws ClassCastException            if the key is of an inappropriate type for
+     *                                       this map
+     *                                       (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     * @throws NullPointerException          if the specified key is null and this
+     *                                       map does not permit null keys
+     *                                       (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      */
     V remove(String namespace, K key);
-
 
     /**
      * Copies all of the mappings from the specified map to this map
      * (optional operation).  The effect of this call is equivalent to that
-     * of calling {@link #put(Object,Object) put(k, v)} on this map once
+     * of calling {@link #put(Object, Object) put(k, v)} on this map once
      * for each mapping from key <tt>k</tt> to value <tt>v</tt> in the
      * specified map.  The behavior of this operation is undefined if the
      * specified map is modified while the operation is in progress.
      *
      * @param m mappings to be stored in this map
      * @throws UnsupportedOperationException if the <tt>putAll</tt> operation
-     *         is not supported by this map
-     * @throws ClassCastException if the class of a key or value in the
-     *         specified map prevents it from being stored in this map
-     * @throws NullPointerException if the specified map is null, or if
-     *         this map does not permit null keys or values, and the
-     *         specified map contains null keys or values
-     * @throws IllegalArgumentException if some property of a key or value in
-     *         the specified map prevents it from being stored in this map
+     *                                       is not supported by this map
+     * @throws ClassCastException            if the class of a key or value in the
+     *                                       specified map prevents it from being stored in this map
+     * @throws NullPointerException          if the specified map is null, or if
+     *                                       this map does not permit null keys or values, and the
+     *                                       specified map contains null keys or values
+     * @throws IllegalArgumentException      if some property of a key or value in
+     *                                       the specified map prevents it from being stored in this map
      */
     void putAll(String namespace, Map<? extends K, ? extends V> m);
 
@@ -96,10 +94,9 @@ public interface IStateBackend<K,V> {
      * The map will be empty after this call returns.
      *
      * @throws UnsupportedOperationException if the <tt>clear</tt> operation
-     *         is not supported by this map
+     *                                       is not supported by this map
      */
     void clear(String namespace);
-
 
     /**
      * Returns a {@link Set} view of the keys contained in this map.
@@ -117,7 +114,6 @@ public interface IStateBackend<K,V> {
      * @return a set view of the keys contained in this map
      */
     Iterator<K> keyIterator(String namespace);
-
 
     /**
      * Returns a {@link Set} view of the mappings contained in this map.
@@ -137,14 +133,9 @@ public interface IStateBackend<K,V> {
      */
     Iterator<Map.Entry<K, V>> entryIterator(String namespace);
 
-
-
     void removeKeys(String namespace, Collection<String> keys);
 
-
-
     void scanEntity(String namespace, IEntryProcessor<K, V> processor);
-
 
     V putIfAbsent(String namespace, K key, V value);
 

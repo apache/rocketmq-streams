@@ -25,12 +25,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.model.Entity;
+import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.topology.IWindow;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -38,36 +39,35 @@ import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SQLElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 具体的窗口实例
  */
 public class WindowInstance extends Entity implements Serializable {
 
-    protected static final Log LOG = LogFactory.getLog(WindowInstance.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WindowInstance.class);
 
     private static final long serialVersionUID = 6893491128670330569L;
-
+    private static final String SEPARATOR = "_";
+    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     /**
      * 窗口实例的开始时间
      */
     protected String startTime;
-
     /**
      * 窗口实例的结束时间
      */
     protected String endTime;
-
     /**
      * fire!
      */
     protected String fireTime;
-
     /**
      * 使用configName
      */
     protected String windowName;
-
     protected String splitId;
     protected boolean canClearResource = true;
     /**
@@ -75,7 +75,6 @@ public class WindowInstance extends Entity implements Serializable {
      */
     protected String windowNameSpace;
     protected String windowInstanceName;//默认等于窗口名，需要区分不同窗口时使用
-
     /**
      * splitId,windowNameSpace,windowName,windowInstanceName,windowInstanceName 数据库中存储的是MD5值
      */
@@ -84,60 +83,14 @@ public class WindowInstance extends Entity implements Serializable {
      * windowInstanceId, splitId,windowNameSpace,windowName,windowInstanceName,windowInstanceName,startTime,endTime" 数据库中存储的是MD5值
      */
     protected String windowInstanceKey;
-
     protected transient Boolean isNewWindowInstance = false;//当第一次创建时设置为true，否则设置为false
-
     /**
      * 0：待计算；1：已经计算结束；-1：已经取消;
      */
     protected int status = 0;
-
     //todo 建议之后改个名字，为了测试方便，暂时用这个字段
     protected Integer version = 1;//用于标识channel的状态，如果值是1，表示第一次消费，否则是第二次消费
-
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-    private static final String SEPARATOR = "_";
-
     protected transient Long lastMaxUpdateTime;//last max update time for session window
-
-    public WindowInstance copy() {
-        WindowInstance windowInstance = new WindowInstance();
-        windowInstance.setCanClearResource(this.canClearResource);
-        windowInstance.setFireTime(this.fireTime);
-        windowInstance.setNewWindowInstance(isNewWindowInstance);
-        windowInstance.setLastMaxUpdateTime(this.lastMaxUpdateTime);
-        windowInstance.setEndTime(this.endTime);
-        windowInstance.setStartTime(this.startTime);
-        windowInstance.setSplitId(this.splitId);
-        windowInstance.setWindowInstanceSplitName(this.windowInstanceSplitName);
-        windowInstance.setGmtModified(new Date());
-        windowInstance.setGmtCreate(new Date());
-        windowInstance.setWindowInstanceName(this.windowInstanceName);
-        windowInstance.setWindowInstanceKey(this.windowInstanceKey);
-        windowInstance.setWindowName(this.windowName);
-        windowInstance.setWindowNameSpace(this.windowNameSpace);
-        windowInstance.setStatus(this.status);
-        windowInstance.setVersion(this.version);
-        return windowInstance;
-    }
-
-    /**
-     * 创建window instance的唯一ID
-     *
-     * @return
-     */
-    public String createWindowInstanceId() {
-        return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime);
-    }
-
-    public String createWindowInstanceIdWithoutSplitid() {
-        return MapKeyUtil.createKey(windowNameSpace, windowName, windowInstanceName, startTime, endTime);
-    }
-
-    public String createWindowInstanceTriggerId() {
-        return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime, fireTime);
-    }
 
     /**
      * 创建window instance对象列表
@@ -158,10 +111,6 @@ public class WindowInstance extends Entity implements Serializable {
         return lostInstanceList;
     }
 
-    public String createWindowInstancePartitionId() {
-        return StringUtil.createMD5Str(MapKeyUtil.createKey(windowNameSpace, windowName, windowInstanceName, startTime, endTime, splitId));
-    }
-
     /**
      * 触发时间比lastTime小的所有的有效的instance
      *
@@ -177,7 +126,7 @@ public class WindowInstance extends Entity implements Serializable {
         splitIdList.addAll(splitIds);
         String[] splitNames = new String[splitIds.size()];
         for (int i = 0; i < splitNames.length; i++) {
-            splitNames[i] = MapKeyUtil.createKey(window.getNameSpace(), window.getConfigureName(), splitIdList.get(i));
+            splitNames[i] = MapKeyUtil.createKey(window.getNameSpace(), window.getName(), splitIdList.get(i));
             splitNames[i] = StringUtil.createMD5Str(splitNames[i]);
         }
         String sql = "select * from window_instance where "
@@ -187,7 +136,7 @@ public class WindowInstance extends Entity implements Serializable {
         try {
             dbWindowInstanceList = ORMUtil.queryForList(sql, null, WindowInstance.class);
         } catch (Exception e) {
-            LOG.error("failed in getting unfired window instances", e);
+            LOGGER.error("failed in getting unfired window instances", e);
         }
         return dbWindowInstanceList;
     }
@@ -246,6 +195,7 @@ public class WindowInstance extends Entity implements Serializable {
         }
         return occurTime;
     }
+
     /**
      * 查询或者创建Window的实例，滑动窗口有可能返回多个，滚动窗口返回一个
      *
@@ -256,8 +206,9 @@ public class WindowInstance extends Entity implements Serializable {
      */
     public static List<WindowInstance> getOrCreateWindowInstance(AbstractWindow window, Long occurTime,
         int timeUnitAdjust, String queueId) {
-        return getOrCreateWindowInstance(window,occurTime,timeUnitAdjust,queueId,false);
+        return getOrCreateWindowInstance(window, occurTime, timeUnitAdjust, queueId, false);
     }
+
     /**
      * 查询或者创建Window的实例，滑动窗口有可能返回多个，滚动窗口返回一个
      *
@@ -316,8 +267,8 @@ public class WindowInstance extends Entity implements Serializable {
                     WindowInstance lastWindowInstance = window.createWindowInstance(DateUtil.format(begin), DateUtil.format(end), DateUtil.format(clearWindowInstanceFireTime), queueId);
                     lastWindowInstance.setCanClearResource(true);
                     window.registerWindowInstance(lastWindowInstance);
-                    window.getSqlCache().addCache(new SQLElement(queueId, lastWindowInstance.createWindowInstanceId(), ORMUtil.createBatchReplacetSQL(lastWindowInstance)));
-                    window.getWindowFireSource().registFireWindowInstanceIfNotExist(lastWindowInstance, window);
+                    window.getSqlCache().addCache(new SQLElement(queueId, lastWindowInstance.createWindowInstanceId(), ORMUtil.createBatchReplaceSQL(lastWindowInstance)));
+                    window.getWindowTrigger().registFireWindowInstanceIfNotExist(lastWindowInstance, window);
                 }
 
             } else {
@@ -325,8 +276,8 @@ public class WindowInstance extends Entity implements Serializable {
                 if (window.getEmitAfterValue() != null && window.getEmitAfterValue() > 0 && window.getMaxDelay() != null && window.getMaxDelay() > 0) {
                     fire = DateUtil.addDate(TimeUnit.SECONDS, fire, window.getMaxDelay().intValue());
                 }
-                if (maxEventTime != null && maxEventTime - fire.getTime() > 0) {
-                    LOG.warn("*********************the message is discard, because the fire time is exceed****************** " + DateUtil.format(begin) + "-" + DateUtil.format(end) + "---" + DateUtil.format(fire));
+                if (maxEventTime != null && maxEventTime - fire.getTime() >= 3000) {
+                    LOGGER.warn("[{}][{}] Window_Instance_Exceed_On(startTime:{}-endTime:{}-fireTime:{}-maxEventTime:{})--MsgTime:{}", IdUtil.instanceId(), NameCreator.getFirstPrefix(window.getName(), IWindow.TYPE), DateUtil.format(begin), DateUtil.format(end), DateUtil.format(fire), DateUtil.longToString(maxEventTime), DateUtil.longToString(occurTime));
                     break;
                 }
             }
@@ -347,14 +298,17 @@ public class WindowInstance extends Entity implements Serializable {
         List<WindowInstance> lostInstanceList = null;
         lostInstanceList = WindowInstance.createWindowInstances(window, lostWindowTimeList, lostFireList, queueId);
         instanceList.addAll(lostInstanceList);
-        if (CollectionUtil.isNotEmpty(lostInstanceList)&&!isCreateOnly) {
+        if (CollectionUtil.isNotEmpty(lostInstanceList) && !isCreateOnly) {
             for (WindowInstance windowInstance : instanceList) {
                 List<WindowInstance> emitInstances = createEmitWindowInstance(window, windowInstance);
                 if (emitInstances != null && emitInstances.size() > 0) {
                     for (WindowInstance emitBeforeInstance : emitInstances) {
+                        if (StringUtil.isEmpty(window.getTimeFieldName()) && System.currentTimeMillis() - DateUtil.parse(emitBeforeInstance.getFireTime()).getTime() >= 0) {
+                            continue;
+                        }
                         window.registerWindowInstance(emitBeforeInstance);
-                        window.getSqlCache().addCache(new SQLElement(queueId, emitBeforeInstance.createWindowInstanceId(), ORMUtil.createBatchReplacetSQL(emitBeforeInstance)));
-                        window.getWindowFireSource().registFireWindowInstanceIfNotExist(emitBeforeInstance, window);
+                        window.getSqlCache().addCache(new SQLElement(queueId, emitBeforeInstance.createWindowInstanceId(), ORMUtil.createBatchReplaceSQL(emitBeforeInstance)));
+                        window.getWindowTrigger().registFireWindowInstanceIfNotExist(emitBeforeInstance, window);
                     }
                 }
                 window.registerWindowInstance(windowInstance);
@@ -421,6 +375,48 @@ public class WindowInstance extends Entity implements Serializable {
         return windowInstances;
     }
 
+    public WindowInstance copy() {
+        WindowInstance windowInstance = new WindowInstance();
+        windowInstance.setCanClearResource(this.canClearResource);
+        windowInstance.setFireTime(this.fireTime);
+        windowInstance.setNewWindowInstance(isNewWindowInstance);
+        windowInstance.setLastMaxUpdateTime(this.lastMaxUpdateTime);
+        windowInstance.setEndTime(this.endTime);
+        windowInstance.setStartTime(this.startTime);
+        windowInstance.setSplitId(this.splitId);
+        windowInstance.setWindowInstanceSplitName(this.windowInstanceSplitName);
+        windowInstance.setGmtModified(new Date());
+        windowInstance.setGmtCreate(new Date());
+        windowInstance.setWindowInstanceName(this.windowInstanceName);
+        windowInstance.setWindowInstanceKey(this.windowInstanceKey);
+        windowInstance.setWindowName(this.windowName);
+        windowInstance.setWindowNameSpace(this.windowNameSpace);
+        windowInstance.setStatus(this.status);
+        windowInstance.setVersion(this.version);
+        return windowInstance;
+    }
+
+    /**
+     * 创建window instance的唯一ID
+     *
+     * @return
+     */
+    public String createWindowInstanceId() {
+        return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime);
+    }
+
+    public String createWindowInstanceIdWithoutSplitid() {
+        return MapKeyUtil.createKey(windowNameSpace, windowName, windowInstanceName, startTime, endTime);
+    }
+
+    public String createWindowInstanceTriggerId() {
+        return MapKeyUtil.createKey(splitId, windowNameSpace, windowName, windowInstanceName, startTime, endTime, fireTime);
+    }
+
+    public String createWindowInstancePartitionId() {
+        return StringUtil.createMD5Str(MapKeyUtil.createKey(windowNameSpace, windowName, windowInstanceName, startTime, endTime, splitId));
+    }
+
     public String getStartTime() {
         return startTime;
     }
@@ -481,16 +477,16 @@ public class WindowInstance extends Entity implements Serializable {
         return windowInstanceKey;
     }
 
+    public void setWindowInstanceKey(String windowInstanceKey) {
+        this.windowInstanceKey = windowInstanceKey;
+    }
+
     public String getWindowInstanceName() {
         return windowInstanceName;
     }
 
     public void setWindowInstanceName(String windowInstanceName) {
         this.windowInstanceName = windowInstanceName;
-    }
-
-    public void setWindowInstanceKey(String windowInstanceKey) {
-        this.windowInstanceKey = windowInstanceKey;
     }
 
     public Boolean isNewWindowInstance() {

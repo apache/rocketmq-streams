@@ -38,8 +38,8 @@ public class WeekOfYearFunction {
      */
     @FunctionMethod(value = "weekofyear", alias = "week", comment = "获取日期dateTime是那一年的第几周")
     public Integer weekofyear(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
-                              @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
+        @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
         Integer day = null;
         datetime = FunctionUtils.getValueString(message, context, datetime);
         format = FunctionUtils.getValueString(message, context, format);
@@ -52,7 +52,7 @@ public class WeekOfYearFunction {
 
     @FunctionMethod(value = "weekofyear", alias = "week", comment = "获取当前日期dateTime是那一年的第几周")
     public Integer weekofyear(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime) {
         return weekofyear(message, context, datetime, "'" + DateUtil.DEFAULT_FORMAT + "'");
     }
 }

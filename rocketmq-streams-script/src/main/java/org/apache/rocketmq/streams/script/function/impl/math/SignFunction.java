@@ -36,7 +36,7 @@ public class SignFunction {
      */
     @FunctionMethod(value = "sign", comment = "取输入数据的符号")
     public Double sign(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String base) {
+        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String base) {
         Double result = null;
         if (base == null) {
             return result;

@@ -23,89 +23,79 @@ import java.util.Date;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.AbstractMultiSplitMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
+import org.apache.rocketmq.streams.common.threadpool.ScheduleFactory;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
+import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.SessionOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class WindowTrigger extends AbstractSupportShuffleSource implements IStreamOperator {
-    protected static final Log LOG = LogFactory.getLog(WindowTrigger.class);
-    private AbstractWindow window;
+public class WindowTrigger {
+    private static final Logger LOGGER = LoggerFactory.getLogger(WindowTrigger.class);
     //这个时间是在于数据很离散，无法触发窗口的时候做的补位
     protected transient Long eventTimeLastUpdateTime;
-    protected transient ScheduledExecutorService fireCheckScheduler;//检查窗口实例是否可以触发
     protected transient ConcurrentHashMap<String, WindowInstance> windowInstances = new ConcurrentHashMap();//保存所有注册的窗口实例，多个相同实例注册，只保留一个
+    protected Object locker = new Object();
     //所有注册的窗口实例，按触发顺序排序，如果触发时间相同，按开始时间排序
     protected transient PriorityQueue<WindowInstance> orderWindowInstancs = new PriorityQueue(new Comparator<WindowInstance>() {
-        @Override
-        public int compare(WindowInstance o1, WindowInstance o2) {
-            int value = o1.getFireTime().compareTo(o2.getFireTime());
-            if (value != 0) {
-                return value;
+        @Override public int compare(WindowInstance o1, WindowInstance o2) {
+            synchronized (locker) {
+                int value = o1.getFireTime().compareTo(o2.getFireTime());
+                if (value != 0) {
+                    return value;
+                }
+                return o2.getStartTime().compareTo(o1.getStartTime());
             }
-            return o2.getStartTime().compareTo(o1.getStartTime());
+
         }
     });
-
     //所有可以触发的窗口实例，放到缓存中，有缓存线程调度执行触发逻辑，同一个分片的窗口实例按顺序串行触发，各个分片可以并行
     protected transient MessageCache<WindowInstance> fireInstanceCache = new WindowInstanceCache();
     //正在触发中的windowintance
     protected transient ConcurrentHashMap<String, WindowInstance> firingWindowInstances = new ConcurrentHashMap<>();
+    private AbstractShuffleWindow window;
 
-    public WindowTrigger(AbstractWindow window) {
+    public WindowTrigger(AbstractShuffleWindow window) {
         this.window = window;
     }
 
-    @Override
-    protected boolean initConfigurable() {
-        fireCheckScheduler = new ScheduledThreadPoolExecutor(2);
-        setReceiver(window.getFireReceiver());
-        fireInstanceCache.openAutoFlush();
-        return super.initConfigurable();
-    }
-
-    @Override
-    protected boolean startSource() {
+    public boolean start() {
         //检查window instance，如果已经到了触发时间，且符合触发条件，直接触发，如果到了触发时间，还未符合触发条件。则放入触发列表。下次调度时间是下一个最近触发的时间
-
-        fireCheckScheduler.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
+        fireInstanceCache.openAutoFlush();
+        ScheduleFactory.getInstance().execute(window.getNameSpace() + "-" + window.getName() + "-win_trigger_schedule", new Runnable() {
+            @Override public void run() {
                 try {
                     if (orderWindowInstancs.size() == 0) {
                         return;
 
                     }
-                    WindowInstance windowInstance = orderWindowInstancs.peek();
-                    while (windowInstance != null) {
-                        boolean isStartNow = false;
-                        if (SessionOperator.SESSION_WINDOW_BEGIN_TIME.equalsIgnoreCase(windowInstance.getStartTime())) {
-                            isStartNow = true;
-                        }
-                        boolean success = executeFireTask(windowInstance, isStartNow);
-                        if (success) {
-                            windowInstances.remove(windowInstance.createWindowInstanceTriggerId());
-                            orderWindowInstancs.remove(windowInstance);
-                            windowInstance = orderWindowInstancs.peek();
-                        } else {
-                            break;
-                        }
+                    synchronized (locker) {
+                        WindowInstance windowInstance = orderWindowInstancs.peek();
+                        while (windowInstance != null) {
+                            boolean isStartNow = false;
+                            if (SessionOperator.SESSION_WINDOW_BEGIN_TIME.equalsIgnoreCase(windowInstance.getStartTime())) {
+                                isStartNow = true;
+                            }
+                            boolean success = executeFireTask(windowInstance, isStartNow);
+                            if (success) {
+                                windowInstances.remove(windowInstance.createWindowInstanceTriggerId());
+                                orderWindowInstancs.remove(windowInstance);
+                                windowInstance = orderWindowInstancs.peek();
+                            } else {
+                                break;
+                            }
 
+                        }
                     }
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -127,7 +117,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             window.registerWindowInstance(windowInstance);
             offerWindowInstance(windowInstance);
         }
-        LOG.debug("register window instance into manager, instance key: " + windowInstanceTriggerId);
+        LOGGER.debug("register window instance into manager, instance key: " + windowInstanceTriggerId);
     }
 
     /**
@@ -149,7 +139,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         if (this.firingWindowInstances.containsKey(triggerId)) {
             return;
         }
-        synchronized (this) {
+        synchronized (locker) {
             if (this.firingWindowInstances.containsKey(windowInstance.createWindowInstanceTriggerId())) {
                 return;
             }
@@ -174,7 +164,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
                 return true;
             }
             //start firing
-            DebugWriter.getDebugWriter(window.getConfigureName()).writeFireWindowInstance(windowInstance, eventTimeLastUpdateTime, this.window.getMaxEventTime(windowInstance.getSplitId()), fireResult.getReason());
+            DebugWriter.getDebugWriter(window.getName()).writeFireWindowInstance(windowInstance, eventTimeLastUpdateTime, this.window.getMaxEventTime(windowInstance.getSplitId()), fireResult.getReason());
             firingWindowInstances.put(windowInstanceTriggerId, windowInstance);
             if (startNow) {
                 fireWindowInstance(windowInstance);
@@ -194,20 +184,20 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
     protected void fireWindowInstance(WindowInstance windowInstance) {
         try {
             if (windowInstance == null) {
-                LOG.error("window instance is null!");
+                LOGGER.error("window instance is null!");
                 return;
             }
             String windowInstanceTriggerId = windowInstance.createWindowInstanceTriggerId();
             if (window == null) {
-                LOG.error(windowInstanceTriggerId + "'s window object have been removed!");
+                LOGGER.error(windowInstanceTriggerId + "'s window object have been removed!");
                 return;
             }
 
             if (windowInstance.getLastMaxUpdateTime() == null) {
                 windowInstance.setLastMaxUpdateTime(window.getMaxEventTime(windowInstance.getSplitId()));
             }
-            int fireCount = window.fireWindowInstance(windowInstance, null);
-            LOG.debug("fire instance(" + windowInstanceTriggerId + " fire count is " + fireCount);
+            int fireCount = window.fire(windowInstance);
+            LOGGER.debug("fire instance(" + windowInstanceTriggerId + " fire count is " + fireCount);
             firingWindowInstances.remove(windowInstanceTriggerId);
         } catch (Exception e) {
             e.printStackTrace();
@@ -223,7 +213,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
     protected FireResult canFire(WindowInstance windowInstance) {
         String windowInstanceTriggerId = windowInstance.createWindowInstanceTriggerId();
         if (window == null) {
-            LOG.warn(windowInstanceTriggerId + " can't find window!");
+            LOGGER.warn(windowInstanceTriggerId + " can't find window!");
             return new FireResult();
         }
         Date fireTime = DateUtil.parseTime(windowInstance.getFireTime());
@@ -251,16 +241,11 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         if (isTest) {
             int gap = (int) (System.currentTimeMillis() - eventTimeLastUpdateTime);
             if (window.getMsgMaxGapSecond() != null && gap > window.getMsgMaxGapSecond() * 1000) {
-                LOG.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
+                LOGGER.warn("the fire reason is exceed the gap " + gap + " window instance id is " + windowInstanceTriggerId);
                 return new FireResult(true, 1);
             }
         }
         return new FireResult();
-    }
-
-    @Override
-    public Object doMessage(IMessage message, AbstractContext context) {
-        return null;
     }
 
     public synchronized void fireWindowInstance(String queueId) {
@@ -277,8 +262,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         }
         windowInstances = newWindowInstanceMap;
         Collections.sort(windowInstanceList, new Comparator<WindowInstance>() {
-            @Override
-            public int compare(WindowInstance o1, WindowInstance o2) {
+            @Override public int compare(WindowInstance o1, WindowInstance o2) {
                 int value = o1.getFireTime().compareTo(o2.getFireTime());
                 if (value != 0) {
                     return value;
@@ -287,21 +271,23 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             }
         });
         for (WindowInstance windowInstance : windowInstanceList) {
-          //  System.out.println("fire by finish flag");
+            //  System.out.println("fire by finish flag");
             fireWindowInstance(windowInstance);
         }
+    }
+
+    public void destroy() {
+        ScheduleFactory.getInstance().cancel(window.getNameSpace() + "-" + window.getName() + "-win_trigger_schedule");
     }
 
     protected class WindowInstanceCache extends AbstractMultiSplitMessageCache<WindowInstance> {
 
         public WindowInstanceCache() {
             super(new IMessageFlushCallBack<WindowInstance>() {
-                @Override
-                public boolean flushMessage(List<WindowInstance> windowInstances) {
+                @Override public boolean flushMessage(List<WindowInstance> windowInstances) {
 
                     Collections.sort(windowInstances, new Comparator<WindowInstance>() {
-                        @Override
-                        public int compare(WindowInstance o1, WindowInstance o2) {
+                        @Override public int compare(WindowInstance o1, WindowInstance o2) {
                             int value = o1.getFireTime().compareTo(o2.getFireTime());
                             if (value != 0) {
                                 return value;
@@ -318,8 +304,7 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
             });
         }
 
-        @Override
-        protected String createSplitId(WindowInstance windowInstance) {
+        @Override protected String createSplitId(WindowInstance windowInstance) {
             return windowInstance.getSplitId();
         }
     }
@@ -347,23 +332,4 @@ public class WindowTrigger extends AbstractSupportShuffleSource implements IStre
         }
     }
 
-    @Override
-    public boolean supportNewSplitFind() {
-        return true;
-    }
-
-    @Override
-    public boolean supportRemoveSplitFind() {
-        return false;
-    }
-
-    @Override
-    public boolean supportOffsetRest() {
-        return false;
-    }
-
-    @Override
-    protected boolean isNotDataSplit(String queueId) {
-        return false;
-    }
 }

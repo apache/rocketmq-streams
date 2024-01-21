@@ -26,12 +26,6 @@ public class ScheduleComponent extends AbstractComponent<IScheduleService> {
     private static ScheduleComponent scheduleComponent;
     protected ScheduleServiceImpl scheduleService = new ScheduleServiceImpl();
 
-    @Override
-    public boolean stop() {
-        scheduleService.stop();
-        return true;
-    }
-
     public static ScheduleComponent getInstance() {
         if (scheduleComponent != null) {
             return scheduleComponent;
@@ -47,12 +41,16 @@ public class ScheduleComponent extends AbstractComponent<IScheduleService> {
     }
 
     @Override
-    public IScheduleService getService() {
+    public boolean stop() {
+        scheduleService.stop();
+        return true;
+    }
+
+    @Override public IScheduleService getService() {
         return scheduleService;
     }
 
-    @Override
-    protected boolean startComponent(String name) {
+    @Override protected boolean startComponent(String namespace) {
         scheduleService.start();
         return true;
     }

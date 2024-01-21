@@ -21,7 +21,8 @@ package org.apache.rocketmq.streams.script.operator.impl;
  */
 public class ScriptOperator extends FunctionScript {
 
-    public ScriptOperator() {}
+    public ScriptOperator() {
+    }
 
     public ScriptOperator(String value) {
         super(value);

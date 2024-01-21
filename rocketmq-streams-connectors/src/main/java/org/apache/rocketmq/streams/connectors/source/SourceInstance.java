@@ -22,9 +22,8 @@ package org.apache.rocketmq.streams.connectors.source;
 public class SourceInstance {
     protected String sourceInstanceId;
 
-
-    public SourceInstance(String sourceInstanceId){
-        this.sourceInstanceId=sourceInstanceId;
+    public SourceInstance(String sourceInstanceId) {
+        this.sourceInstanceId = sourceInstanceId;
     }
 
     public String getSourceInstanceId() {

@@ -29,6 +29,12 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class FromUnixTimeFunction {
 
+    public static void main(String[] args) {
+        Date date = new Date(1608624595 * 1000);
+        String value = DateUtil.format(date, DateUtil.DEFAULT_FORMAT);
+        System.out.println(value);
+    }
+
     /**
      * @param message
      * @param context
@@ -37,8 +43,8 @@ public class FromUnixTimeFunction {
      */
     @FunctionMethod(value = "fromunixtime", comment = "把unixtime转换成自定义日期格式")
     public String formUnixTime(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "代表unixtime的字段名或常量") String unixtime,
-                               @FunctionParamter(value = "string", comment = "代表日期格式的字段名或常量") String format) {
+        @FunctionParamter(value = "string", comment = "代表unixtime的字段名或常量") String unixtime,
+        @FunctionParamter(value = "string", comment = "代表日期格式的字段名或常量") String format) {
         Timestamp timestamp = null;
         if (unixtime == null) {
             return null;
@@ -56,14 +62,8 @@ public class FromUnixTimeFunction {
 
     @FunctionMethod(value = "fromunixtime", comment = "把unixtime转换成标准格式")
     public String formUnixTime(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "代表unixtime的字段名或常量") String unixtim) {
+        @FunctionParamter(value = "string", comment = "代表unixtime的字段名或常量") String unixtim) {
 
         return formUnixTime(message, context, unixtim, "'" + DateUtil.DEFAULT_FORMAT + "'");
-    }
-
-    public static void main(String[] args) {
-        Date date = new Date(1608624595 * 1000);
-        String value = DateUtil.format(date, DateUtil.DEFAULT_FORMAT);
-        System.out.println(value);
     }
 }

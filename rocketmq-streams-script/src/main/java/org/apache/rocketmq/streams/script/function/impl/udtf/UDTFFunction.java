@@ -37,7 +37,7 @@ public class UDTFFunction {
      */
     @FunctionMethod(value = "renameudtf", alias = "udtfrename", comment = "把udtf拆分的列加上列名，生成新的message")
     public void udtf(IMessage message, FunctionContext context,
-                     @FunctionParamter(value = "array", comment = "对应的字段名") String... fieldNames) {
+        @FunctionParamter(value = "array", comment = "对应的字段名") String... fieldNames) {
         JSONObject jsonObject = message.getMessageBody();
         final JSONObject temp = new JSONObject();
         temp.putAll(jsonObject);

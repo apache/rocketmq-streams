@@ -16,180 +16,41 @@
  */
 package org.apache.rocketmq.streams.common.configurable;
 
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.annotation.Changeable;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.model.Entity;
-import org.apache.rocketmq.streams.common.utils.AESUtil;
+import java.util.Properties;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class AbstractConfigurable extends Entity implements IConfigurable {
+public abstract class AbstractConfigurable implements IConfigurable {
 
-    private transient Log LOG = LogFactory.getLog(AbstractConfigurable.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractConfigurable.class);
 
-    /**
-     * 升级中心表
-     */
-    public static final String TABLE_NAME = "dipper_configure";
+    protected String jobName;
+    protected transient Properties configuration = new Properties();
+    private String nameSpace;
+    private String name;
+    private String type;
+    private transient boolean hasInit = false;
 
-    @Changeable
-    protected transient Map<String, Object> privateDatas = new HashMap<>();
-
-    protected transient IConfigurableService configurableService;
-
-    /**
-     * 是否完成初始化
-     */
-    private transient volatile boolean hasInit = false;
-
-    /**
-     * 是否初始化成功
-     */
-    protected transient boolean initSuccess = true;
-
-    /**
-     * 是否已经被销毁
-     */
-    protected transient boolean isDestroy = false;
-
-    /**
-     * 数据库的状态字段
-     */
-    private static final String STATUS = "status";
-
-    @Override
-    public boolean init() {
+    @Override public boolean init() {
         boolean initConfigurable = true;
         if (!hasInit) {
             try {
-                privateDatas = new HashMap<>();
-                hasInit = false;
-                initSuccess = true;
-                isDestroy = false;
                 initConfigurable = initConfigurable();
-                initSuccess = initConfigurable;
             } catch (Exception e) {
-                initSuccess = false;
-                e.printStackTrace();
-                throw new RuntimeException("init configurable error " + this.toJson(), e);
+                LOGGER.error("[{}][{}] init configurable error", IdUtil.instanceId(), getName(), e);
+                throw new RuntimeException("init configurable error ", e);
             }
             hasInit = true;
         }
         return initConfigurable;
     }
 
-    @Override
-    public void destroy() {
-        isDestroy = true;
-    }
-
-    /**
-     * 启用configurable 对象，可以被看到和应用
-     */
-    public void open() {
-        putPrivateData(STATUS, "1");
-    }
-
-    /**
-     * 关闭configuable 对象，对象失效
-     */
-    public void close() {
-        putPrivateData(STATUS, "0");
+    @Override public void destroy() {
     }
 
     protected boolean initConfigurable() {
         return true;
-    }
-
-    public String createSQL() {
-        return createSQL(this, TABLE_NAME);
-    }
-
-    public static String createSQL(IConfigurable configurable) {
-        return createSQL(configurable, "dipper_configure");
-    }
-
-    public static String createSQL(IConfigurable configurable, String tableName) {
-        String json = configurable.toJson();
-        Entity entity = null;
-        if (configurable instanceof Entity) {
-            entity = (Entity) configurable;
-        } else {
-            entity = new Entity();
-        }
-        int status = 1;
-        if (configurable.getPrivateData("status") != null) {
-            status = Integer.parseInt(configurable.getPrivateData("status"));
-        }
-        String theSecretValue;
-        try {
-            theSecretValue = AESUtil.aesEncrypt(json, ComponentCreator.getProperties().getProperty(ConfigureFileKey.SECRECY, ConfigureFileKey.SECRECY_DEFAULT));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        String sql = "insert into " + tableName
-            + "(gmt_create,gmt_modified,namespace,type,name,json_value,status)" + "values(" + "now(),now(),'" + configurable.getNameSpace() + "','"
-            + configurable.getType() + "','" + configurable.getConfigureName() + "','" + theSecretValue + "'," + status + ")"
-            + "ON DUPLICATE KEY UPDATE status=" + status + ", gmt_modified = now()" + ",json_value='" + theSecretValue + "'";
-        return sql;
-    }
-
-    public void update() {
-        if (configurableService != null) {
-            configurableService.update(this);
-        } else {
-            LOG.warn("can not support configurable update configurable service is null");
-        }
-    }
-
-    protected String getDipperConfigureTableName() {
-        return TABLE_NAME;
-    }
-
-    public <T extends IConfigurableService> T getConfigurableService() {
-        return (T) configurableService;
-    }
-
-    public void setConfigurableService(IConfigurableService configurableService) {
-        this.configurableService = configurableService;
-    }
-
-    @Override
-    public <T> void putPrivateData(String key, T value) {
-        this.privateDatas.put(key, value);
-    }
-
-    @Override
-    public <T> T getPrivateData(String key) {
-        return (T) this.privateDatas.get(key);
-    }
-
-    public <T> T removePrivateData(String key) {
-        return (T) this.privateDatas.remove(key);
-    }
-
-    @Override
-    public Map<String, Object> getPrivateData() {
-        return this.privateDatas;
-    }
-
-    public void setPrivateDatas(Map<String, Object> privateDatas) {
-        this.privateDatas = privateDatas;
-    }
-
-    public boolean isInitSuccess() {
-        return initSuccess;
-    }
-
-    public void setInitSuccess(boolean initSuccess) {
-        this.initSuccess = initSuccess;
-    }
-
-    public boolean isDestroy() {
-        return isDestroy;
     }
 
     public boolean isHasInit() {
@@ -200,4 +61,44 @@ public abstract class AbstractConfigurable extends Entity implements IConfigurab
         this.hasInit = hasInit;
     }
 
+    @Override public String getJobName() {
+        return jobName;
+    }
+
+    @Override public void setJobName(String jobName) {
+        this.jobName = jobName;
+    }
+
+    @Override public String getNameSpace() {
+        return nameSpace;
+    }
+
+    @Override public void setNameSpace(String nameSpace) {
+        this.nameSpace = nameSpace;
+    }
+
+    @Override public String getName() {
+        return name;
+    }
+
+    @Override public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override public String getType() {
+        return type;
+    }
+
+    @Override public void setType(String type) {
+        this.type = type;
+    }
+
+    @Override public Properties getConfiguration() {
+        return configuration;
+    }
+
+    @Override
+    public void setConfiguration(Properties configuration) {
+        this.configuration = configuration;
+    }
 }

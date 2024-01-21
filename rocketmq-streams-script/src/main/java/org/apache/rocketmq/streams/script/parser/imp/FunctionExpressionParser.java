@@ -95,7 +95,7 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
     }
 
     protected void parseExpression(ScriptExpression scriptExpression, String expressionStr,
-                                   Map<String, String> flag2ExpressionStr) {
+        Map<String, String> flag2ExpressionStr) {
         if (expressionStr == null) {
             return;
         }
@@ -200,7 +200,7 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
 
                 });
             } else {
-                parameters = parseParameter(parameterStr, flag2ExpressionStr,0);
+                parameters = parseParameter(parameterStr, flag2ExpressionStr, 0);
             }
             scriptExpression.setFunctionName(functionName.trim());
             scriptExpression.setParameters(parameters);
@@ -251,7 +251,7 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
      *
      * @param parameterStr
      */
-    protected List<IScriptParamter> parseParameter(String parameterStr, Map<String, String> flag2ExpressionStr,int flag) {
+    protected List<IScriptParamter> parseParameter(String parameterStr, Map<String, String> flag2ExpressionStr, int flag) {
         if (StringUtil.isEmpty(parameterStr)) {
             return new ArrayList();
         }
@@ -275,7 +275,7 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
         parameterMap.put(ScriptParserUtil.createConsKey(flag), scriptParameter);
         parameterStr = parameterStr.replace(expressionStr, ScriptParserUtil.createConsKey(flag));
         flag++;
-        parameters = parseParameter(parameterStr, flag2ExpressionStr,flag);
+        parameters = parseParameter(parameterStr, flag2ExpressionStr, flag);
         rebackExpressionParameters(parameterMap, parameters);
         return parameters;
     }
@@ -319,11 +319,11 @@ public class FunctionExpressionParser implements IScriptExpressionParser {
     }
 
     private void rebackExpressionParameters(Map<String, IScriptParamter> parameterMap,
-                                            List<IScriptParamter> parameters) {
+        List<IScriptParamter> parameters) {
         for (int i = 0; i < parameters.size(); i++) {
             IScriptParamter scriptParameter = parameters.get(i);
             if (IScriptExpression.class.isInstance(scriptParameter)) {
-                IScriptExpression expression = (IScriptExpression)scriptParameter;
+                IScriptExpression expression = (IScriptExpression) scriptParameter;
                 List<IScriptParamter> parameterList = expression.getScriptParamters();
                 rebackExpressionParameters(parameterMap, parameterList);
 

@@ -27,15 +27,15 @@ import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBac
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
-import org.apache.rocketmq.streams.common.topology.shuffle.IShuffleKeyGenerator;
+import org.apache.rocketmq.streams.common.topology.IShuffleKeyGenerator;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.operator.impl.AggregationScript;
-import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.apache.rocketmq.streams.window.WindowConstants;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
@@ -43,81 +43,47 @@ import org.apache.rocketmq.streams.window.operator.impl.WindowOperator;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.util.ShuffleUtil;
 
-public class ShuffleMessageCache extends MessageCache<Pair<ISplit,IMessage>> {
+public class ShuffleMessageCache extends MessageCache<Pair<ISplit<?, ?>, IMessage>> {
 
-    protected Map<String, MiniBatch> groupBy2WindowValue=new HashMap<>();
-
+    protected Map<String, MiniBatch> groupBy2WindowValue = new HashMap<>();
 
     protected transient IShuffleKeyGenerator shuffleKeyGenerator;
     protected transient AbstractShuffleWindow window;
+    protected transient AtomicLong SUM = new AtomicLong(0);
+
     public ShuffleMessageCache(
-        IMessageFlushCallBack<Pair<ISplit,IMessage>> flushCallBack) {
+        IMessageFlushCallBack<Pair<ISplit<?, ?>, IMessage>> flushCallBack) {
         super(flushCallBack);
     }
-    protected class MiniBatch{
-        protected WindowValue windowValue;
-        protected IMessage message;
 
-        public MiniBatch(){
-            windowValue=new WindowValue();
-        }
-        public IMessage calculate(AbstractWindow window, IMessage msg,String groupByValue) {
-            windowValue.calculate(window,msg);
-            JSONObject mergeMsg=createMsg(groupByValue,windowValue,msg.getHeader(),msg.getMessageBody().getJSONObject(WindowCache.ORIGIN_MESSAGE_HEADER));
-            if(window.getTimeFieldName()!=null){
-                mergeMsg.put(window.getTimeFieldName(),msg.getMessageBody().getString(window.getTimeFieldName()));
-            }
-            if(msg.getMessageBody().get(WindowInstance.class.getSimpleName())!=null){
-                mergeMsg.put(WindowInstance.class.getSimpleName(),msg.getMessageBody().get(WindowInstance.class.getSimpleName()));
-            }
-            if(msg.getMessageBody().get(AbstractWindow.class.getSimpleName())!=null){
-                mergeMsg.put(AbstractWindow.class.getSimpleName(),msg.getMessageBody().get(AbstractWindow.class.getSimpleName()));
-            }
-
-
-
-            if(this.message==null){
-                this.message=new Message(mergeMsg);
-                return message;
-            }else {
-                this.message.getMessageBody().putAll(mergeMsg);
-            }
-
-
-            return null;
-        }
-
-    }
-
-
-    @Override public synchronized int addCache(Pair<ISplit,IMessage> pair) {
-        boolean openMiniBatch=isOpenMiniBatch();
-        ISplit split=pair.getLeft();
-        IMessage message=pair.getRight();
-        if(openMiniBatch){
+    @Override public synchronized int addCache(Pair<ISplit<?, ?>, IMessage> pair) {
+        boolean openMiniBatch = isOpenMiniBatch();
+        ISplit<?, ?> split = pair.getLeft();
+        IMessage message = pair.getRight();
+        if (openMiniBatch) {
             String groupByValue = shuffleKeyGenerator.generateShuffleKey(message);
             if (StringUtil.isEmpty(groupByValue)) {
                 groupByValue = "<null>";
             }
             List<WindowInstance> windowInstances = (List<WindowInstance>) message.getMessageBody().get(WindowInstance.class.getSimpleName());
-            if(windowInstances==null){
-                windowInstances=this.window.queryOrCreateWindowInstanceOnly(message,split.getQueueId());
+            if (windowInstances == null) {
+                windowInstances = this.window.queryOrCreateWindowInstanceOnly(message, split.getQueueId());
             }
-            for(WindowInstance windowInstance:windowInstances){
-                String key= MapKeyUtil.createKey(windowInstance.createWindowInstanceId(),groupByValue);
+            for (WindowInstance windowInstance : windowInstances) {
+                String key = MapKeyUtil.createKey(windowInstance.createWindowInstanceId(), groupByValue);
                 MiniBatch miniBatch = groupBy2WindowValue.get(key);
-                if(miniBatch==null) {
+                if (miniBatch == null) {
                     miniBatch = new MiniBatch();
                     groupBy2WindowValue.put(key, miniBatch);
 
                 }
-                IMessage newMergeMessage=miniBatch.calculate(this.window,message,groupByValue);
-                if(newMergeMessage!=null){
+                IMessage newMergeMessage = miniBatch.calculate(this.window, message, groupByValue);
+                if (newMergeMessage != null) {
                     pair.setValue(newMergeMessage);
                     return super.addCache(pair);
                 }
             }
-        }else {
+        } else {
             return super.addCache(pair);
         }
 
@@ -125,30 +91,25 @@ public class ShuffleMessageCache extends MessageCache<Pair<ISplit,IMessage>> {
     }
 
     protected boolean isOpenMiniBatch() {
-        if(!WindowOperator.class.isInstance(window)){
+        if (!(window instanceof WindowOperator)) {
             return false;
         }
-        if(window.getGroupByFieldName()==null&&WindowOperator.class.getSimpleName().equals(window.getClass().getSimpleName())){
-            return true;
+        if (window.isEmptyGroupBy() && WindowOperator.class.getSimpleName().equals(window.getClass().getSimpleName())) {
+            return false;
         }
-        boolean isOpenMiniBatch= ComponentCreator.getPropertyBooleanValue(ConfigureFileKey.WINDOW_MINIBATCH_SWITCH);
-        return isOpenMiniBatch;
+        return ComponentCreator.getPropertyBooleanValue(ConfigurationKey.WINDOW_MINI_BATCH_SWITCH);
     }
 
-    protected transient AtomicLong SUM=new AtomicLong(0);
-    protected JSONObject createMsg(String shuffleKey,WindowValue windowValue, MessageHeader messageHeader,JSONObject msgHeader) {
+    protected JSONObject createMsg(String shuffleKey, WindowValue windowValue, MessageHeader messageHeader, JSONObject msgHeader) {
 
         JSONObject message = new JSONObject();
-        long start=System.currentTimeMillis();
         message.put(WindowValue.class.getName(), windowValue);
-       // long sum=SUM.addAndGet(System.currentTimeMillis()-start);
-     //   System.out.println("create msg "+sum);
-        message.put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY,AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI);
-        IMessage windowValueMsg=new Message(message);
+        message.put(AggregationScript.INNER_AGGREGATION_COMPUTE_KEY, AggregationScript.INNER_AGGREGATION_COMPUTE_MULTI);
+        IMessage windowValueMsg = new Message(message);
         windowValueMsg.setHeader(messageHeader);
-        ShuffleUtil.createShuffleMsg(windowValueMsg,shuffleKey,msgHeader);
+        ShuffleUtil.createShuffleMsg(windowValueMsg, shuffleKey, msgHeader);
 
-        if (JSONObject.class.isInstance(windowValue.getcomputedResult())) {
+        if (windowValue.getcomputedResult() instanceof JSONObject) {
             message.putAll(windowValue.getcomputedResult());
         } else {
             Iterator<Map.Entry<String, Object>> it = windowValue.iteratorComputedColumnResult();
@@ -162,9 +123,8 @@ public class ShuffleMessageCache extends MessageCache<Pair<ISplit,IMessage>> {
 
     }
 
-
     @Override public synchronized int flush() {
-        this.groupBy2WindowValue=new HashMap<>();
+        this.groupBy2WindowValue = new HashMap<>();
         return super.flush();
     }
 
@@ -183,5 +143,38 @@ public class ShuffleMessageCache extends MessageCache<Pair<ISplit,IMessage>> {
 
     public void setWindow(AbstractShuffleWindow window) {
         this.window = window;
+    }
+
+    protected class MiniBatch {
+        protected WindowValue windowValue;
+        protected IMessage message;
+
+        public MiniBatch() {
+            windowValue = new WindowValue();
+        }
+
+        public IMessage calculate(AbstractWindow window, IMessage msg, String groupByValue) {
+            windowValue.calculate(window, msg);
+            JSONObject mergeMsg = createMsg(groupByValue, windowValue, msg.getHeader(), msg.getMessageBody().getJSONObject(WindowConstants.ORIGIN_MESSAGE_HEADER));
+            if (window.getTimeFieldName() != null) {
+                mergeMsg.put(window.getTimeFieldName(), msg.getMessageBody().getString(window.getTimeFieldName()));
+            }
+            if (msg.getMessageBody().get(WindowInstance.class.getSimpleName()) != null) {
+                mergeMsg.put(WindowInstance.class.getSimpleName(), msg.getMessageBody().get(WindowInstance.class.getSimpleName()));
+            }
+            if (msg.getMessageBody().get(AbstractWindow.class.getSimpleName()) != null) {
+                mergeMsg.put(AbstractWindow.class.getSimpleName(), msg.getMessageBody().get(AbstractWindow.class.getSimpleName()));
+            }
+
+            if (this.message == null) {
+                this.message = new Message(mergeMsg);
+                return message;
+            } else {
+                this.message.getMessageBody().putAll(mergeMsg);
+            }
+
+            return null;
+        }
+
     }
 }

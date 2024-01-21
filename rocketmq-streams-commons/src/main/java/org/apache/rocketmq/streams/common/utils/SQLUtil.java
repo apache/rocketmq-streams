@@ -40,15 +40,14 @@ public class SQLUtil {
 
     /**
      * 创建 insert into duplicate 格式的语句
+     *
      * @param metaData
      * @param rows
-     * @return
-     *     eg :
-     *     insert into table_20210710000000(ds, `value`, data_time) values('1', '2', '2021-09-05 00:00:01') on duplicate key update
-     *          ds = values(ds), `value` = values(`value`), data_time = values(data_time);
-     *
+     * @return eg :
+     * insert into table_20210710000000(ds, `value`, data_time) values('1', '2', '2021-09-05 00:00:01') on duplicate key update
+     * ds = values(ds), `value` = values(`value`), data_time = values(data_time);
      */
-    public static String createInsertWithDuplicateKeyUpdateSql(MetaData metaData, List<? extends Map<String, Object>> rows){
+    public static String createInsertWithDuplicateKeyUpdateSql(MetaData metaData, List<? extends Map<String, Object>> rows) {
 
         StringBuilder sb = new StringBuilder();
         sb.append(createInsertSegment(metaData, false));
@@ -66,30 +65,29 @@ public class SQLUtil {
      *
      * @param metaData
      * @param isDuplicateKey
-     * @return
-     *          eg: `field1`, `field2`, `field3`
-     *               or
-     *               `field1` = values(`field1`), `field2` = values(`field2`), `field3` = values(`field3`)
+     * @return eg: `field1`, `field2`, `field3`
+     * or
+     * `field1` = values(`field1`), `field2` = values(`field2`), `field3` = values(`field3`)
      */
-    private static String createMetaDataFieldSegment(MetaData metaData, boolean containsIdField, boolean isDuplicateKey){
+    private static String createMetaDataFieldSegment(MetaData metaData, boolean containsIdField, boolean isDuplicateKey) {
 
         List<MetaDataField> fields = metaData.getMetaDataFields();
         StringBuilder sb = new StringBuilder();
         boolean isFirst = true;
         String idName = metaData.getIdFieldName();
-        for(MetaDataField field : fields){
-            if(!containsIdField && field.getFieldName().equals(idName)){
+        for (MetaDataField field : fields) {
+            if (!containsIdField && field.getFieldName().equals(idName)) {
                 continue;
             }
-            if(isFirst){
+            if (isFirst) {
                 isFirst = false;
-            }else{
+            } else {
                 sb.append(",");
             }
             sb.append("`");
             sb.append(field.getFieldName());
             sb.append("`");
-            if(isDuplicateKey){
+            if (isDuplicateKey) {
                 sb.append("=");
                 sb.append("values");
                 sb.append("(");
@@ -104,28 +102,27 @@ public class SQLUtil {
 
     /**
      * 创建 " insert into table() " 片段, 不包括后面的values;
+     *
      * @param metaData
      * @param isContainsId 是否包含id字段
-     * @return
-     *   insert into table_20210710000000(ds, `value`, data_time)
+     * @return insert into table_20210710000000(ds, `value`, data_time)
      */
-    public static String createInsertSegment(MetaData metaData, boolean isContainsId){
+    public static String createInsertSegment(MetaData metaData, boolean isContainsId) {
         return createPrefixSegment(INSERT, metaData, isContainsId);
     }
 
     /**
      * 创建 " insert into table() " 片段, 不包括后面的values;
+     *
      * @param metaData
      * @param isContainsId 是否包含id字段
-     * @return
-     *   insert into table_20210710000000(ds, `value`, data_time)
+     * @return insert into table_20210710000000(ds, `value`, data_time)
      */
-    public static String createInsertIgnoreSegment(MetaData metaData, boolean isContainsId){
+    public static String createInsertIgnoreSegment(MetaData metaData, boolean isContainsId) {
         return createPrefixSegment(INSERT_IGNORE, metaData, isContainsId);
     }
 
-
-    private static String createPrefixSegment(String prefix, MetaData metaData, boolean isContainsId){
+    private static String createPrefixSegment(String prefix, MetaData metaData, boolean isContainsId) {
         StringBuilder sb = new StringBuilder();
         sb.append(prefix);
         sb.append(" ");
@@ -138,28 +135,29 @@ public class SQLUtil {
 
     /**
      * 返回values('a', b, c)
+     *
      * @param metaData
      * @param rows
      * @param containsIdField 是否包含id字段
      * @return
      */
-    public static String createValuesSegment(MetaData metaData, List<? extends Map<String, Object>> rows, boolean containsIdField){
+    public static String createValuesSegment(MetaData metaData, List<? extends Map<String, Object>> rows, boolean containsIdField) {
 
-        if(rows == null || rows.size() == 0){
+        if (rows == null || rows.size() == 0) {
             return null;
         }
         MetaData tmpMetaData = metaData;
         //如果不包含主键id, 则过滤id字段
-        if(!containsIdField){
+        if (!containsIdField) {
             tmpMetaData = MetaDataUtils.getMetaDataWithOutId(metaData);
         }
         StringBuilder sb = new StringBuilder();
         sb.append("values");
         boolean isFirstValue = true;
         for (Map<String, Object> row : rows) {
-            if(isFirstValue){
+            if (isFirstValue) {
                 isFirstValue = false;
-            }else{
+            } else {
                 sb.append(",");
             }
             String value = createValuesSegment(tmpMetaData, row);
@@ -168,7 +166,7 @@ public class SQLUtil {
         return sb.toString();
     }
 
-    private static String createValuesSegment(MetaData metaData, Map<String, Object> fieldName2Value){
+    private static String createValuesSegment(MetaData metaData, Map<String, Object> fieldName2Value) {
         StringBuilder valueSql = new StringBuilder();
         boolean isFirst = true;
         valueSql.append("(");
@@ -191,14 +189,12 @@ public class SQLUtil {
     }
 
     /**
-     *
      * @param metaData
      * @param containsIdField
-     * @return
-     * eg :
-     *      on duplicate key update ds = values(ds), `value` = values(`value`), data_time = values(data_time)
+     * @return eg :
+     * on duplicate key update ds = values(ds), `value` = values(`value`), data_time = values(data_time)
      */
-    public static String createDuplicateKeyUpdateSegment(MetaData metaData, boolean containsIdField){
+    public static String createDuplicateKeyUpdateSegment(MetaData metaData, boolean containsIdField) {
         StringBuilder sb = new StringBuilder();
         sb.append(DUPLICATE_KEY);
         sb.append(" ");
@@ -566,6 +562,7 @@ public class SQLUtil {
 
     /**
      * create multi like sentences
+     *
      * @param keywordList
      * @return
      */

@@ -18,8 +18,8 @@ package org.apache.rocketmq.streams.client.transform;
 
 import java.util.ArrayList;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.window.operator.impl.ShuffleOverWindow;
 
@@ -31,10 +31,10 @@ public class OverWindowStream {
      */
     protected PipelineBuilder pipelineBuilder;
     protected Set<PipelineBuilder> otherPipelineBuilders;
-    protected ChainStage<?> currentChainStage;
+    protected AbstractChainStage<?> currentChainStage;
 
     public OverWindowStream(ShuffleOverWindow window, PipelineBuilder pipelineBuilder,
-        Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
+        Set<PipelineBuilder> pipelineBuilders, AbstractChainStage<?> currentChainStage) {
         this.pipelineBuilder = pipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;

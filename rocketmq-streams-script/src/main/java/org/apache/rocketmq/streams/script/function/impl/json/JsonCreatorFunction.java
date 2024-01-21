@@ -17,8 +17,8 @@
 package org.apache.rocketmq.streams.script.function.impl.json;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.google.gson.JsonArray;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -31,8 +31,8 @@ public class JsonCreatorFunction {
 
     @FunctionMethod(value = "json_merge", alias = "jsonMerge", comment = "根据字段来组合json")
     public String extraJsonByField(IMessage message, FunctionContext context,
-                                   @FunctionParamter(value = "json", comment = "字段名列表") String jsonFieldName) {
-        jsonFieldName = FunctionUtils.getConstant( jsonFieldName);
+        @FunctionParamter(value = "json", comment = "字段名列表") String jsonFieldName) {
+        jsonFieldName = FunctionUtils.getConstant(jsonFieldName);
         JSONObject msg = message.getMessageBody().getJSONObject(jsonFieldName);
         message.getMessageBody().putAll(msg);
         return null;
@@ -40,14 +40,14 @@ public class JsonCreatorFunction {
 
     @FunctionMethod(value = "json", alias = "toJson", comment = "根据字段来组合json")
     public Object convertJson(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "array", comment = "字段名列表") String fieldName) {
+        @FunctionParamter(value = "array", comment = "字段名列表") String fieldName) {
         Object value = FunctionUtils.getValue(message, context, fieldName);
         if (JSONObject.class.isInstance(value)) {
-            return (JSONObject)value;
-        } else if (JsonArray.class.isInstance(value)) {
-            return (JsonArray)value;
+            return (JSONObject) value;
+        } else if (JSONArray.class.isInstance(value)) {
+            return (JSONArray) value;
         } else {
-            String temp = (String)value;
+            String temp = (String) value;
             if (temp.startsWith("[") && temp.endsWith("]")) {
                 return JSONObject.parseArray(temp);
             } else if (temp.startsWith("{") && temp.endsWith("}")) {
@@ -61,7 +61,7 @@ public class JsonCreatorFunction {
 
     @FunctionMethod(value = "json_generate_field", alias = "json_create_field", comment = "根据字段来组合json")
     public String extraJsonByField(IMessage message, FunctionContext context,
-                                   @FunctionParamter(value = "array", comment = "字段名列表") String... fieldNames) {
+        @FunctionParamter(value = "array", comment = "字段名列表") String... fieldNames) {
         if (fieldNames == null) {
             return null;
         }
@@ -81,7 +81,7 @@ public class JsonCreatorFunction {
     @FunctionMethod(value = "json_create", alias = "json_generate", comment = "根据两个字段定义一个<key，value>,"
         + "如name:yuanxiaodong,age:18对应的json为{name:yuanxiaodong,age:18}")
     public String extraJson(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "array", comment = "格式如下，加引号代表常量否则代表字段名name:yuanxiaodong,age:18") String... kvs) {
+        @FunctionParamter(value = "array", comment = "格式如下，加引号代表常量否则代表字段名name:yuanxiaodong,age:18") String... kvs) {
         if (kvs == null) {
             return null;
         }
@@ -111,8 +111,8 @@ public class JsonCreatorFunction {
      */
     @FunctionMethod(value = "jsonAdd", alias = "json_add", comment = "给已有的json增加元素")
     public String addElement(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "现有json对应的字段名或常量") String jsonFiledName,
-                             @FunctionParamter(value = "array", comment = "格式如下，加引号代表常量否则代表字段名name:yuanxiaodong,age:18") String... kvs) {
+        @FunctionParamter(value = "string", comment = "现有json对应的字段名或常量") String jsonFiledName,
+        @FunctionParamter(value = "array", comment = "格式如下，加引号代表常量否则代表字段名name:yuanxiaodong,age:18") String... kvs) {
         if (kvs == null) {
             return null;
         }
@@ -146,8 +146,8 @@ public class JsonCreatorFunction {
      */
     @FunctionMethod(value = "jsonRemove", alias = "json_remove", comment = "移除现有json的元素")
     public String removeElement(IMessage message, FunctionContext context,
-                                @FunctionParamter(value = "string", comment = "现有json对应的字段名或常量") String jsonFiledName,
-                                @FunctionParamter(value = "array", comment = "代表要移除key的字段名或常量列表") String... keyNames) {
+        @FunctionParamter(value = "string", comment = "现有json对应的字段名或常量") String jsonFiledName,
+        @FunctionParamter(value = "array", comment = "代表要移除key的字段名或常量列表") String... keyNames) {
         if (keyNames == null) {
             return null;
         }
@@ -176,7 +176,7 @@ public class JsonCreatorFunction {
      */
     @FunctionMethod(value = "jsonExpand", alias = "json_expand", comment = "展开一个json中的json")
     public void expandElement(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "array", comment = "代表要移除key的字段名或常量列表") String jsonSubFieldName) {
+        @FunctionParamter(value = "array", comment = "代表要移除key的字段名或常量列表") String jsonSubFieldName) {
         jsonSubFieldName = FunctionUtils.getConstant(jsonSubFieldName);
         String jsonValue = message.getMessageBody().getString(jsonSubFieldName);
         if (jsonValue == null) {
@@ -198,8 +198,8 @@ public class JsonCreatorFunction {
      */
     @FunctionMethod(value = "jsonExpand", alias = "json_expand", comment = "展开一个json中的json")
     public String expandElement(IMessage message, FunctionContext context,
-                                @FunctionParamter(value = "string", comment = "现有json对应的字段名或常量") String jsonFiledName,
-                                @FunctionParamter(value = "array", comment = "代表要移除key的字段名或常量列表") String jsonSubFieldName) {
+        @FunctionParamter(value = "string", comment = "现有json对应的字段名或常量") String jsonFiledName,
+        @FunctionParamter(value = "array", comment = "代表要移除key的字段名或常量列表") String jsonSubFieldName) {
         jsonFiledName = FunctionUtils.getValueString(message, context, jsonSubFieldName);
         jsonSubFieldName = FunctionUtils.getValueString(message, context, jsonSubFieldName);
         String jsonValue = message.getMessageBody().getString(jsonFiledName);

@@ -35,10 +35,10 @@ import org.junit.Assert;
 import static junit.framework.TestCase.assertTrue;
 
 public class DebugAnalysis {
-    private String dir;
     protected String sumFieldName;
     protected int expectValue;
     protected String timeFieldName;
+    private String dir;
 
     public DebugAnalysis(String dir, String sumFieldName, int expectValue, String timeFieldName) {
         this.dir = dir;

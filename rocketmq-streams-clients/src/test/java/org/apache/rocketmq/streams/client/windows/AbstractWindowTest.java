@@ -98,9 +98,9 @@ public abstract class AbstractWindowTest implements Serializable {
     /**
      * execute window data stream , need set parameters before execute
      *
-     * @param isLocalOnly true: hign performace model ,not support exactly once
+     * @param isLocalOnly true: hign performace types ,not support exactly once
      * @param windowSize  Tumbling window size
-     * @param fireMode    fire mode ,support three model
+     * @param fireMode    fire mode ,support three types
      * @param waterMark
      * @param maxMsgGap
      * @throws InterruptedException

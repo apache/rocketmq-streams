@@ -35,6 +35,16 @@ import org.apache.rocketmq.streams.script.service.IScriptService;
 
 public class ScriptServiceImpl implements IScriptService {
     /**
+     * 创建软引用缓存，尽量缓存script，减少解析成本，当内存不足时自动回收
+     */
+    private static ICache<String, FunctionScript> cache =
+        new SoftReferenceCache<>(script -> {
+            FunctionScript functionScript = new FunctionScript();
+            functionScript.setScript(script);
+            functionScript.init();
+            return functionScript;
+        });
+    /**
      * 所有实现IScriptInit接口的对象和method
      */
     protected ScanFunctionService functionService = ScanFunctionService.getInstance();
@@ -46,24 +56,13 @@ public class ScriptServiceImpl implements IScriptService {
     @Override
     public List<IMessage> executeScript(IMessage message, FunctionContext context, AbstractScript<List<IMessage>, FunctionContext> script) {
         script.doMessage(message, context);
-        if(context.isSplitModel()){
+        if (context.isSplitModel()) {
             return context.getSplitMessages();
         }
         List<IMessage> messages = new ArrayList<>();
         messages.add(message);
         return messages;
     }
-
-    /**
-     * 创建软引用缓存，尽量缓存script，减少解析成本，当内存不足时自动回收
-     */
-    private static ICache<String, FunctionScript> cache =
-        new SoftReferenceCache<>(script -> {
-            FunctionScript functionScript = new FunctionScript();
-            functionScript.setScript(script);
-            functionScript.init();
-            return functionScript;
-        });
 
     @Override
     public List<IMessage> executeScript(final JSONObject jsonObject, String script) {
@@ -95,7 +94,7 @@ public class ScriptServiceImpl implements IScriptService {
 
     @Override
     public void scanPackages(String... packageNames) {
-        functionService.scanePackages(packageNames);
+        functionService.scanPackages(packageNames);
     }
 
     @Override

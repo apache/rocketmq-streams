@@ -25,11 +25,11 @@ public class ChangeTableNameMessage implements ISystemMessage {
 
     String scheduleCycle;
 
-    public ChangeTableNameMessage(){
+    public ChangeTableNameMessage() {
 
     }
 
-    public ChangeTableNameMessage(String scheduleCycle){
+    public ChangeTableNameMessage(String scheduleCycle) {
         this.scheduleCycle = scheduleCycle;
     }
 
@@ -39,5 +39,9 @@ public class ChangeTableNameMessage implements ISystemMessage {
 
     public void setScheduleCycle(String scheduleCycle) {
         this.scheduleCycle = scheduleCycle;
+    }
+
+    @Override public int getSystemMessageType() {
+        return ISystemMessage.CHANGE_TABLE_NAME;
     }
 }

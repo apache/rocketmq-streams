@@ -28,11 +28,11 @@ public class DataTypeTest {
         DataType datatype = DataTypeUtil.getDataTypeFromClass(Integer.class);
         assertTrue(datatype.matchClass(Integer.class) == true);
         String jsonStr = datatype.toDataJson(num);//把int序列化成字符串
-        Integer value = (Integer)datatype.getData(jsonStr);//反序列化成int
+        Integer value = (Integer) datatype.getData(jsonStr);//反序列化成int
         assertTrue(value == num);
         byte[] bytes = datatype.toBytes(num, true);//对数字压缩,序列化成字节数组
         assertTrue(bytes.length == 3);
-        value = (Integer)datatype.byteToValue(bytes);//还原数据
+        value = (Integer) datatype.byteToValue(bytes);//还原数据
         assertTrue(value == num);
     }
 }

@@ -36,7 +36,7 @@ public class BinFunction {
      */
     @FunctionMethod(value = "bin", alias = "bin", comment = "返回number的二进制代码表示")
     public String bin(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String number) {
         String result = null;
         Integer numberTem = Integer.parseInt(FunctionUtils.getValueString(message, context, number));
         if (numberTem == null) {

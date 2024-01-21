@@ -26,6 +26,7 @@ import org.apache.rocketmq.streams.common.channel.impl.memory.MemoryCache;
 import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 
@@ -41,7 +42,7 @@ public class WindowChannellUtil {
      * @return
      */
     protected static IChannelBuilder createBuilder(String connector) {
-        String type = ComponentCreator.getProperties().getProperty(connector);
+        String type = SystemContext.getProperty(connector);
         if (StringUtil.isEmpty(type)) {
             return null;
         }

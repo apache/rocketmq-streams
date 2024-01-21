@@ -17,22 +17,15 @@
 package org.apache.rocketmq.streams.db.sink;
 
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.functions.MultiTableSplitFunction;
-import org.apache.rocketmq.streams.common.utils.Base64Utils;
-import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 
-public class SelfMultiTableSink extends AbstractMultiTableSink implements IAfterConfigurableRefreshListener {
-    protected String multiTableSplitFunctionSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
+public class SelfMultiTableSink extends AbstractMultiTableSink {
     protected transient MultiTableSplitFunction<IMessage> multiTableSplitFunction;
 
     public SelfMultiTableSink(String url, String userName, String password, MultiTableSplitFunction<IMessage> multiTableSplitFunction) {
         super(url, userName, password);
         this.multiTableSplitFunction = multiTableSplitFunction;
-        byte[] bytes = InstantiationUtil.serializeObject(multiTableSplitFunction);
-        multiTableSplitFunctionSerializeValue = Base64Utils.encode(bytes);
     }
 
     @Override
@@ -45,9 +38,4 @@ public class SelfMultiTableSink extends AbstractMultiTableSink implements IAfter
         return multiTableSplitFunction.createSplit(message);
     }
 
-    @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        byte[] bytes = Base64Utils.decode(multiTableSplitFunctionSerializeValue);
-        this.multiTableSplitFunction = InstantiationUtil.deserializeObject(bytes);
-    }
 }

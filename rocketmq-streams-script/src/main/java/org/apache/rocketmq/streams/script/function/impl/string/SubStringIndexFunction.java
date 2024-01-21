@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.string;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -28,7 +26,6 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class SubStringIndexFunction {
-    private static final Log LOG = LogFactory.getLog(SubStringIndexFunction.class);
 
     /**
      * 截取字符串a第count分隔符之前的字符串，如count为正则从左边开始截取，如果为负则从右边开始截取
@@ -42,9 +39,9 @@ public class SubStringIndexFunction {
      */
     @FunctionMethod(value = "substringindex", alias = "substr_index", comment = "截取字符串a第count分隔符之前的字符串，如count为正则从左边开始截取，如果为负则从右边开始截取")
     public String substringindex(IMessage message, FunctionContext context,
-                                 @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String a,
-                                 @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String SEP,
-                                 @FunctionParamter(comment = "用于表示开始拆分的位置，正数表示从左边拆分，负数表示从右边拆分", value = "string") String countStr) {
+        @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String a,
+        @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String SEP,
+        @FunctionParamter(comment = "用于表示开始拆分的位置，正数表示从左边拆分，负数表示从右边拆分", value = "string") String countStr) {
         String result = null;
         a = FunctionUtils.getValueString(message, context, a);
         SEP = FunctionUtils.getValueString(message, context, SEP);
@@ -79,12 +76,11 @@ public class SubStringIndexFunction {
         return result;
     }
 
-
     @FunctionMethod(value = "substr", alias = "substring", comment = "截取从指定的索引startIndex开始扩展到索引endIndex处的字符")
     public String substringindex(IMessage message, FunctionContext context,
-                                 @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
-                                 @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer startIndex,
-                                 @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer endIndex) {
+        @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
+        @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer startIndex,
+        @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer endIndex) {
         oriMsg = FunctionUtils.getValueString(message, context, oriMsg);
         int msgLength = oriMsg.length();
         if (startIndex >= msgLength) {
@@ -97,17 +93,17 @@ public class SubStringIndexFunction {
 
     @FunctionMethod(value = "substr", alias = "blink_substring", comment = "截取从指定的索引startIndex处开始扩展到此字符串的结尾")
     public String substringindex(IMessage message, FunctionContext context,
-                                 @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
-                                 @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer startIndex) {
+        @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsg,
+        @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") Integer startIndex) {
         oriMsg = FunctionUtils.getValueString(message, context, oriMsg);
         return oriMsg == null ? null : startIndex >= oriMsg.length() ? "" : oriMsg.substring(startIndex);
     }
 
     @FunctionMethod(value = "blink_substr", alias = "blink_substring", comment = "截取从指定的索引startIndex开始,长度为len的字符，index从1开始，需要做下处理")
     public String substringindexForBlink(IMessage message, FunctionContext context,
-                                         @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsgField,
-                                         @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String startIndex,
-                                         @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String len) {
+        @FunctionParamter(comment = "带拆分的字符串代表字列名称或常量值", value = "string") String oriMsgField,
+        @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String startIndex,
+        @FunctionParamter(comment = "指定用于拆分原始字段的字符代表列名称或常量值", value = "string") String len) {
         String oriMsg = FunctionUtils.getValueString(message, context, oriMsgField);
         String index = FunctionUtils.getValueString(message, context, startIndex);
         String lengthStr = FunctionUtils.getValueString(message, context, len);
@@ -124,10 +120,10 @@ public class SubStringIndexFunction {
             fromIndex = oriMsg.length() + fromIndex - length + 1;
             endIndex = fromIndex + length;
         }
-        if (oriMsg!=null&&endIndex >= oriMsg.length()) {
+        if (oriMsg != null && endIndex >= oriMsg.length()) {
             endIndex = oriMsg.length();
         }
-        if(oriMsg==null){
+        if (oriMsg == null) {
             return null;
         }
         return oriMsg.substring(fromIndex, endIndex);

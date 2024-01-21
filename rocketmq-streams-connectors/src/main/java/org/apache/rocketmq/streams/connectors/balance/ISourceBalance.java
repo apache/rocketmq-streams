@@ -23,18 +23,17 @@ public interface ISourceBalance {
 
     /**
      * 做负载均衡
-
+     *
      * @return
      */
     SplitChanged doBalance(List<ISplit> allSplits, List<ISplit> ownerSplits);
 
     /**
      * 从启动开始，做了多少次均衡
+     *
      * @return
      */
     int getBalanceCount();
-
-
 
     boolean getRemoveSplitLock();
 
@@ -42,6 +41,7 @@ public interface ISourceBalance {
 
     /**
      * lock the split and hold it util the instance is shutdown or remove split
+     *
      * @param split
      * @return
      */
@@ -49,12 +49,11 @@ public interface ISourceBalance {
 
     /**
      * unlock split lock
+     *
      * @param split
      */
     void unlockSplit(ISplit split);
 
-
     void setSourceIdentification(String sourceIdentification);
-
 
 }

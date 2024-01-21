@@ -24,14 +24,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DateDataType extends BaseDataType<Date> {
 
     private static final long serialVersionUID = 3745784172508184101L;
-    private static final Log LOG = LogFactory.getLog(DateDataType.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DateDataType.class);
 
     public DateDataType(Class clazz) {
         setDataClazz(clazz);
@@ -41,15 +41,20 @@ public class DateDataType extends BaseDataType<Date> {
         setDataClazz(Date.class);
     }
 
-    @Override
-    public String toDataJson(Date value) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String dateString = sdf.format(value);
-        return dateString;
+    public static void main(String[] args) {
+        new DateDataType().getData("2017-03-16 16:53:13");
     }
 
-    @Override
-    public Date getData(String jsonValue) {
+    public static String getTypeName() {
+        return "date";
+    }
+
+    @Override public String toDataJson(Date value) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(value);
+    }
+
+    @Override public Date getData(String jsonValue) {
         if (jsonValue == null || "N/A".equals(jsonValue)) {
             return null;
         }
@@ -71,33 +76,22 @@ public class DateDataType extends BaseDataType<Date> {
         }
     }
 
-    public static void main(String[] args) {
-        new DateDataType().getData("2017-03-16 16:53:13");
-    }
-
-    @Override
-    public Class getDataClazz() {
+    @Override public Class getDataClazz() {
         return Date.class;
     }
 
-    @Override
-    public Date convert(Object object) {
+    @Override public Date convert(Object object) {
         if (object == null) {
             return null;
         }
-        if (Timestamp.class.isInstance(object)) {
+        if (object instanceof Timestamp) {
             return new Date(((Timestamp) object).getTime());
         }
         if (object instanceof LocalDateTime) {
             LocalDateTime tempTime = (LocalDateTime) object;
             return Date.from(tempTime.atZone(ZoneId.systemDefault()).toInstant());
         }
-        Date convert = (Date) super.convert(object);
-        return convert;
-    }
-
-    public static String getTypeName() {
-        return "date";
+        return super.convert(object);
     }
 
     public String toDataJson(Timestamp timestamp) {
@@ -105,49 +99,44 @@ public class DateDataType extends BaseDataType<Date> {
         return toDataJson(value);
     }
 
-    @Override
-    public boolean matchClass(Class clazz) {
+    @Override public boolean matchClass(Class clazz) {
         if (Timestamp.class.isAssignableFrom(clazz)) {
+            return true;
+        }
+        if (LocalDateTime.class.isAssignableFrom(clazz)) {
             return true;
         }
         return Date.class.isAssignableFrom(clazz);
     }
 
-    @Override
-    protected Class[] getSupportClass() {
+    @Override protected Class[] getSupportClass() {
         return new Class[] {Timestamp.class, Date.class};
     }
 
-    @Override
-    public DataType create() {
+    @Override public DataType create() {
         return this;
     }
 
-    @Override
-    public String getDataTypeName() {
+    @Override public String getDataTypeName() {
         return getTypeName();
     }
 
-    @Override
-    protected void setFieldValueToJson(JSONObject jsonObject) {
+    @Override protected void setFieldValueToJson(JSONObject jsonObject) {
 
     }
 
-    @Override
-    protected void setFieldValueFromJson(JSONObject jsonObject) {
+    @Override protected void setFieldValueFromJson(JSONObject jsonObject) {
 
     }
 
-    @Override
-    public byte[] toBytes(Date value, boolean isCompress) {
+    @Override public byte[] toBytes(Date value, boolean isCompress) {
         if (value == null) {
             return null;
         }
         return createByteArrayFromNumber(value.getTime(), 8);
     }
 
-    @Override
-    public Date byteToValue(byte[] bytes) {
+    @Override public Date byteToValue(byte[] bytes) {
         Long value = createNumberValue(bytes);
         if (value == null) {
             return null;
@@ -155,8 +144,7 @@ public class DateDataType extends BaseDataType<Date> {
         return new Date(value);
     }
 
-    @Override
-    public Date byteToValue(byte[] bytes, int offset) {
+    @Override public Date byteToValue(byte[] bytes, int offset) {
         byte[] bytesArray = NumberUtils.getSubByteFromIndex(bytes, offset, 8);
         return byteToValue(bytesArray);
     }

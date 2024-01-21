@@ -21,17 +21,15 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class BaseDataType<T> implements DataType<T>, Serializable {
 
-    private static final long serialVersionUID = 987223978957770805L;
-
     protected final static String CODE = "UTF-8";
-
-    private static final Log LOG = LogFactory.getLog(BaseDataType.class);
+    private static final long serialVersionUID = 987223978957770805L;
+    private static final Logger LOG = LoggerFactory.getLogger(BaseDataType.class);
 
     /**
      * 数据类型
@@ -96,7 +94,7 @@ public abstract class BaseDataType<T> implements DataType<T>, Serializable {
 
     @Override
     public T convert(Object object) {
-        return (T)object;
+        return (T) object;
     }
 
     @Override
@@ -184,7 +182,7 @@ public abstract class BaseDataType<T> implements DataType<T>, Serializable {
     protected byte[] createByteArrayFromNumber(long value, int byteCount) {
         byte[] byteRet = new byte[byteCount];
         for (int i = 0; i < byteCount; i++) {
-            byteRet[i] = (byte)((value >> 8 * i) & 0xff);
+            byteRet[i] = (byte) ((value >> 8 * i) & 0xff);
         }
         return byteRet;
     }
@@ -199,17 +197,17 @@ public abstract class BaseDataType<T> implements DataType<T>, Serializable {
         }
         long value = 0;
         for (int i = offset; i < offset + size; i++) {
-            value |= ((long)(arr[i] & 0xff)) << (8 * (i - offset));
+            value |= ((long) (arr[i] & 0xff)) << (8 * (i - offset));
         }
         return value;
     }
 
     protected long getMinValue(int byteLength) {
-        return (long)Math.pow(2, byteLength);
+        return (long) Math.pow(2, byteLength);
     }
 
     protected long getMaxValue(int byteLength) {
-        long value = (long)Math.pow(2, byteLength);
+        long value = (long) Math.pow(2, byteLength);
         return (value - 1);
     }
 

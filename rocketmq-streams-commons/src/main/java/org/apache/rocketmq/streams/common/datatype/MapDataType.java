@@ -54,12 +54,23 @@ public class MapDataType extends GenericParameterDataType<Map> {
         this.setGenericParameterStr(createGenericParameterStr());
     }
 
+    public MapDataType() {
+    }
+
+    public static String getTypeName() {
+        return "map";
+    }
+
+    public static void main(String[] args) {
+        MapDataType mapDataType = new MapDataType(new StringDataType(), new StringDataType());
+        Map<String, Object> values = mapDataType.getData("'d,f':d,'fd:f':'d',e:f");
+        PrintUtil.print(values);
+
+    }
+
     @Override
     public void setDataClazz(Class dataClazz) {
         this.dataClazz = Map.class;
-    }
-
-    public MapDataType() {
     }
 
     @Override
@@ -222,10 +233,6 @@ public class MapDataType extends GenericParameterDataType<Map> {
         return Map.class.getSimpleName();
     }
 
-    public static String getTypeName() {
-        return "kv";
-    }
-
     @Override
     public void parseGenericParameter(String genericParameterString) {
         if (StringUtil.isEmpty(genericParameterString)) {
@@ -345,15 +352,16 @@ public class MapDataType extends GenericParameterDataType<Map> {
         return getTypeName();
     }
 
-    public static void main(String[] args) {
-        MapDataType mapDataType = new MapDataType(new StringDataType(), new StringDataType());
-        Map<String, Object> values = mapDataType.getData("'d,f':d,'fd:f':'d',e:f");
-        PrintUtil.print(values);
-
+    public DataType getKeyParadigmType() {
+        return keyParadigmType;
     }
 
     public void setKeyParadigmType(DataType keyParadigmType) {
         this.keyParadigmType = keyParadigmType;
+    }
+
+    public DataType getValueParadigmType() {
+        return valueParadigmType;
     }
 
     public void setValueParadigmType(DataType valueParadigmType) {

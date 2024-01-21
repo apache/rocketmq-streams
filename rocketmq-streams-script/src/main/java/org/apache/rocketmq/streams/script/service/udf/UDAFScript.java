@@ -94,7 +94,7 @@ public abstract class UDAFScript<T, ACC> extends UDFScript implements IAccumulat
     public ACC createAccumulator() {
         FunctionConfigure functionConfigure = getCreateAccumulatorFunctionConfigure();
         if (functionConfigure != null) {
-            return (ACC)functionConfigure.execute(new Object[0]);
+            return (ACC) functionConfigure.execute(new Object[0]);
         }
         return null;
     }
@@ -103,7 +103,7 @@ public abstract class UDAFScript<T, ACC> extends UDFScript implements IAccumulat
     public T getValue(ACC accumulator) {
         FunctionConfigure functionConfigure = getGetValueFunctionConfigure();
         if (functionConfigure != null) {
-            return (T)functionConfigure.execute(new Object[] {accumulator});
+            return (T) functionConfigure.execute(new Object[] {accumulator});
         }
         return null;
     }

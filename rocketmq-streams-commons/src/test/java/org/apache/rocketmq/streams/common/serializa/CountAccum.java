@@ -31,16 +31,16 @@ public class CountAccum implements IJsonable {
     }
 
     @Override public String toJson() {
-        JSONObject msg=new JSONObject();
-        msg.put("count",count);
+        JSONObject msg = new JSONObject();
+        msg.put("count", count);
         return msg.toJSONString();
     }
 
     @Override public void toObject(String jsonString) {
-        if(jsonString==null){
+        if (jsonString == null) {
             return;
         }
-        JSONObject msg=JSONObject.parseObject(jsonString);
-        count=msg.getInteger("count");
+        JSONObject msg = JSONObject.parseObject(jsonString);
+        count = msg.getInteger("count");
     }
 }

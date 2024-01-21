@@ -26,13 +26,13 @@ public class SqlTemplateFactory {
 
     public static ISqlTemplate newSqlTemplate(String type, MetaData metaData, boolean isContainsId) throws Exception {
 
-        if(ISqlTemplate.SQL_MODE_DEFAULT.equalsIgnoreCase(type)){
+        if (ISqlTemplate.SQL_MODE_DEFAULT.equalsIgnoreCase(type)) {
             return new MysqlInsertIntoSqlTemplate(metaData, isContainsId);
-        }else if(ISqlTemplate.SQL_MODE_DUPLICATE.equalsIgnoreCase(type)){
+        } else if (ISqlTemplate.SQL_MODE_DUPLICATE.equalsIgnoreCase(type)) {
             return new MysqlInsertIntoWithDuplicateKeySqlTemplate(metaData, isContainsId);
-        }else if(ISqlTemplate.SQL_MODE_IGNORE.equalsIgnoreCase(type)){
+        } else if (ISqlTemplate.SQL_MODE_IGNORE.equalsIgnoreCase(type)) {
             return new MysqlInsertIgnoreIntoSqlTemplate(metaData, isContainsId);
-        }else{
+        } else {
             throw new Exception(String.format("unsupported type %s, only support %s. ", type, Arrays.toString(ISqlTemplate.SUPPORTS)));
         }
     }

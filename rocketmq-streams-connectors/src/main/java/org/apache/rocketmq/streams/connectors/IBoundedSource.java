@@ -21,10 +21,11 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 /**
  * @description
  */
-public interface IBoundedSource{
+public interface IBoundedSource {
 
     /**
      * reader完成时调用
+     *
      * @param iSplit
      */
     void boundedFinishedCallBack(ISplit iSplit);

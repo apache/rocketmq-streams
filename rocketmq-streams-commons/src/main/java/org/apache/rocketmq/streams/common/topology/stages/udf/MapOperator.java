@@ -25,13 +25,11 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 public abstract class MapOperator extends StageBuilder {
 
     @Override
-    protected IMessage operate(IMessage message, AbstractContext context) {
-        map(message,context);
+    protected IMessage handleMessage(IMessage message, AbstractContext context) {
+        map(message, context);
         return message;
     }
 
-    protected abstract void map(IMessage message, AbstractContext context) ;
-
-
+    protected abstract void map(IMessage message, AbstractContext context);
 
 }

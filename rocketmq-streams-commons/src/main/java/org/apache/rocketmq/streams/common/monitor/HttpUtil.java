@@ -51,55 +51,16 @@ public class HttpUtil {
     public static final String CHARSET = "UTF-8";
     public static final int TIMOUT = 10000;
     public static final int CONNECT_TIMOUT = 10000;
-
+    private static CloseableHttpClient httpclient;
     protected String accessId;
     protected String accessIdSecret;
     protected String endPoint;
-
-    private static CloseableHttpClient httpclient;
 
     public HttpUtil(String accessId, String accessIdSecret, String endPoint) {
         this.accessId = accessId;
         this.accessIdSecret = accessIdSecret;
         this.endPoint = endPoint;
         init();
-    }
-
-    private void init() {
-        RequestConfig.Builder configBuilder = RequestConfig.custom();
-        configBuilder.setConnectionRequestTimeout(CONNECT_TIMOUT);
-        configBuilder.setConnectTimeout(CONNECT_TIMOUT);
-        configBuilder.setSocketTimeout(TIMOUT);
-        SSLConnectionSocketFactory sslsf = null;
-        try {
-            SSLContext sslcontext = SSLContexts.custom().loadTrustMaterial(new TrustStrategy() {
-                @Override
-                public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                    return true;
-                }
-            }).build();
-            sslsf = new SSLConnectionSocketFactory(sslcontext, new HostnameVerifier() {
-                @Override
-                public boolean verify(String s, SSLSession sslSession) {
-                    return true;
-                }
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        ConnectionConfig connectionConfig = ConnectionConfig.custom().setCharset(Consts.UTF_8).build();
-        Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).register("http", new PlainConnectionSocketFactory()).build();
-        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
-        connManager.setDefaultConnectionConfig(connectionConfig);
-        connManager.setMaxTotal(500);
-        connManager.setDefaultMaxPerRoute(50);
-        HttpClientBuilder clientBuilder = HttpClients.custom();
-
-        clientBuilder.setDefaultRequestConfig(configBuilder.build());
-        clientBuilder.setSSLSocketFactory(sslsf);
-        clientBuilder.setConnectionManager(connManager);
-
-        httpclient = clientBuilder.build();
     }
 
     public static String getContent(String url) {
@@ -243,6 +204,43 @@ public class HttpUtil {
             return str.replace(" ", "").replace("\r", "").replace("\n", "").replace("\r\n", "");
         }
         return str;
+    }
+
+    private void init() {
+        RequestConfig.Builder configBuilder = RequestConfig.custom();
+        configBuilder.setConnectionRequestTimeout(CONNECT_TIMOUT);
+        configBuilder.setConnectTimeout(CONNECT_TIMOUT);
+        configBuilder.setSocketTimeout(TIMOUT);
+        SSLConnectionSocketFactory sslsf = null;
+        try {
+            SSLContext sslcontext = SSLContexts.custom().loadTrustMaterial(new TrustStrategy() {
+                @Override
+                public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                    return true;
+                }
+            }).build();
+            sslsf = new SSLConnectionSocketFactory(sslcontext, new HostnameVerifier() {
+                @Override
+                public boolean verify(String s, SSLSession sslSession) {
+                    return true;
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        ConnectionConfig connectionConfig = ConnectionConfig.custom().setCharset(Consts.UTF_8).build();
+        Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).register("http", new PlainConnectionSocketFactory()).build();
+        PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+        connManager.setDefaultConnectionConfig(connectionConfig);
+        connManager.setMaxTotal(500);
+        connManager.setDefaultMaxPerRoute(50);
+        HttpClientBuilder clientBuilder = HttpClients.custom();
+
+        clientBuilder.setDefaultRequestConfig(configBuilder.build());
+        clientBuilder.setSSLSocketFactory(sslsf);
+        clientBuilder.setConnectionManager(connManager);
+
+        httpclient = clientBuilder.build();
     }
 }
 

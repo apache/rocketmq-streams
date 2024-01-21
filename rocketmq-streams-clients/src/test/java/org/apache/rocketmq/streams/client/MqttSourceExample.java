@@ -18,27 +18,19 @@ package org.apache.rocketmq.streams.client;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Sets;
 import java.io.Serializable;
-import java.util.Iterator;
-import java.util.Set;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
-import org.apache.rocketmq.streams.client.strategy.ShuffleStrategy;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.client.transform.SplitStream;
-import org.apache.rocketmq.streams.client.transform.window.Time;
-import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.JobConfiguration;
 import org.apache.rocketmq.streams.common.functions.SplitFunction;
-import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
 import org.junit.Test;
 
 public class MqttSourceExample implements Serializable {
 
     public static void main(String[] args) throws InterruptedException {
-        DataStreamSource dataStream = DataStreamSource.create("namespace", "name");
-        SplitStream ds = StreamBuilder.dataStream("tmp", "tmp")
+        DataStreamSource dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name", new JobConfiguration());
+        SplitStream ds = StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromFile("window_msg_10.txt", true)
             .split(new SplitFunction<JSONObject>() {
                 @Override public String split(JSONObject o) {
@@ -52,9 +44,8 @@ public class MqttSourceExample implements Serializable {
         ds.select("project-1").toPrint().start();
     }
 
-
     @Test public void test1() {
-        DataStreamSource dataStreamSource = StreamBuilder.dataStream("", "");
+        DataStreamSource dataStreamSource = StreamExecutionEnvironment.getExecutionEnvironment().create("", "");
         DataStream ds = dataStreamSource.fromMqtt("tcp://host:port", "", "", "", "")
             .flatMap(message -> {
                 JSONObject obj = ((JSONObject) message);

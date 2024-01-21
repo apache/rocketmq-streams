@@ -22,13 +22,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -57,20 +53,45 @@ import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class Expression<T> extends BasedConfigurable
-    implements IConfigurable, IConfigurableAction<Boolean>, Serializable, IStreamOperator<IMessage, Boolean> {
+public class Expression<T> extends BasedConfigurable implements IConfigurable, IConfigurableAction<Boolean>, Serializable, IStreamOperator<IMessage, Boolean> {
     public static final String TYPE = "express";
     private static final long serialVersionUID = 4610495074511059465L;
-    private static final Log LOG = LogFactory.getLog(Expression.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Expression.class);
     private static final String FIELD_COMPARE = "field";
     private static final String AES_KEY = "baicheng.cbc";
+    protected static RegexFunction regexFunction = new RegexFunction();
+    protected static LikeFunction likeFunction = new LikeFunction();
+    protected static InFunction inFunction = new InFunction();
+    protected static IsNotNull isNotNull = new IsNotNull();
+    protected static IsNull isNull = new IsNull();
+    protected static transient Map<String, ExpressionFunction> cache = new HashMap<>();
+    protected transient HomologousVar homologousVar;
+    protected T value;
+    protected transient ExpressionFunction expressionFunction;
+    protected transient Var var;
     private String varName;
     private String functionName;
-    protected transient HomologousVar homologousVar;
     @SuppressWarnings("rawtypes")
     private DataType dataType = new StringDataType(String.class);
-    protected T value;
+    // 前端处理使用
+    private String dataTypestr;
+    // 表达式中的关键词 正则之前进行字符串判断
+    private String keyword;
+    // 表达式的值是否加密 0未加密 1加密
+    private int aesFlag = 0;
+    /**
+     * 表达式是否是字段之间的比较，dataTypestr为field时为true
+     */
+    private boolean fieldFlag = false;
+    private volatile boolean initFlag = false;
+    private transient LikeRegex likeRegex;
+
+    public Expression() {
+        setType(TYPE);
+    }
 
     public Expression copy() {
         Expression expression = new Expression();
@@ -81,43 +102,13 @@ public class Expression<T> extends BasedConfigurable
     public void copy(Expression expression) {
         expression.setNameSpace(getNameSpace());
         expression.setType(getType());
-        expression.setConfigureName(getConfigureName());
+        expression.setName(getName());
         expression.setVarName(varName);
         expression.setFunctionName(functionName);
         expression.setDataType(dataType);
         expression.setValue(value);
-        expression.setPrivateDatas(privateDatas);
         expression.setAesFlag(aesFlag);
     }
-
-    // 前端处理使用
-    private String dataTypestr;
-
-    // 表达式中的关键词 正则之前进行字符串判断
-    private String keyword;
-
-    // 表达式的值是否加密 0未加密 1加密
-    private int aesFlag = 0;
-
-    /**
-     * 表达式是否是字段之间的比较，dataTypestr为field时为true
-     */
-    private boolean fieldFlag = false;
-    private volatile boolean initFlag = false;
-
-    protected transient ExpressionFunction expressionFunction;
-    protected transient Var var;
-
-    public Expression() {
-        setType(TYPE);
-    }
-
-    protected static RegexFunction regexFunction = new RegexFunction();
-    protected static LikeFunction likeFunction = new LikeFunction();
-    protected static InFunction inFunction = new InFunction();
-    protected static IsNotNull isNotNull = new IsNotNull();
-    protected static IsNull isNull = new IsNull();
-    protected static transient Map<String, ExpressionFunction> cache = new HashMap<>();
 
     @Override
     public Boolean doMessage(IMessage message, AbstractContext context) {
@@ -138,20 +129,18 @@ public class Expression<T> extends BasedConfigurable
             isMatch = executeFunctionDirectly(message, context);
             long cost = System.currentTimeMillis() - startTime;
             long timeout = 10;
-            if (ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT) != null) {
-                timeout = Long.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT));
+            if (getConfiguration() != null && getConfiguration().getProperty(ConfigurationKey.MONITOR_SLOW_TIMEOUT) != null) {
+                timeout = Long.parseLong(getConfiguration().getProperty(ConfigurationKey.MONITOR_SLOW_TIMEOUT));
             }
             if (cost > timeout) {
-                LOG.warn("SLOW-" + cost + "----" + this.toString() + PrintUtil.LINE + "the var value is " + message.getMessageBody().getString(varName));
+                LOGGER.debug("SLOW-" + cost + "----" + this.toString() + PrintUtil.LINE + "the var value is " + message.getMessageBody().getString(varName));
             }
             return isMatch;
         } catch (Exception e) {
-            LOG.error("SLOW-" + this.toString() + PrintUtil.LINE + "the var value is " + message.getMessageBody().getString(varName), e);
+            LOGGER.error("SLOW-" + this.toString() + PrintUtil.LINE + "the var value is " + message.getMessageBody().getString(varName), e);
             throw e;
         }
     }
-
-    private transient LikeRegex likeRegex;
 
     @SuppressWarnings("unchecked")
     protected Boolean executeFunctionDirectly(IMessage message, AbstractContext context) {
@@ -194,9 +183,9 @@ public class Expression<T> extends BasedConfigurable
             }
             result = function.doFunction(message, context, this);
         } catch (Exception e) {
-            LOG.error(
-                "Expression doAction function.doFunction error,rule is: " + getConfigureName() + " ,express is:"
-                    + getConfigureName(), e);
+            LOGGER.error(
+                "Expression doAction function.doFunction error,rule is: " + getName() + " ,express is:"
+                    + getName(), e);
             throw e;
         }
         return result;
@@ -208,12 +197,12 @@ public class Expression<T> extends BasedConfigurable
         String valueStr = String.valueOf(value);
         try {
             // 适配fastjson的bug，parseArray时会对"-"进行分割
-            if (ListDataType.class.isInstance(dataType) && valueStr.contains("-") && valueStr.contains(",")) {
+            if (dataType instanceof ListDataType && valueStr.contains("-") && valueStr.contains(",")) {
                 this.value = (T) value;
             } else {
                 // value很多时候会是String类型，这样dataType.toDataJson会报错，所以先转为dataType类型,
                 // list类型JsonArray.tojson会报错，不做处理（[pfile_path_rule,proc_vul_exploit_rce_rule]）
-                if (!ListDataType.class.isInstance(dataType)) {
+                if (!(dataType instanceof ListDataType)) {
                     this.value = (T) dataType.getData(valueStr);
                 }
             }
@@ -221,7 +210,7 @@ public class Expression<T> extends BasedConfigurable
             e.printStackTrace();
         }
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put(IConfigurableService.CLASS_NAME, this.getClass().getName());
+        jsonObject.put(IConfigurable.CLASS_NAME, this.getClass().getName());
         jsonObject.put("varName", varName);
         jsonObject.put("functionName", functionName);
 
@@ -231,7 +220,7 @@ public class Expression<T> extends BasedConfigurable
 
         // 如果是String，且不是字段比较，则加密
         if (!fieldFlag) {
-            if (StringDataType.class.isInstance(dataType)) {
+            if (dataType instanceof StringDataType) {
                 try {
                     jsonObject.put("value", AESUtil.aesEncrypt(valueStr, AES_KEY));
                     jsonObject.put("aesFlag", 1);
@@ -275,7 +264,7 @@ public class Expression<T> extends BasedConfigurable
         }
 
         if (!fieldFlag) {
-            if (StringDataType.class.isInstance(dataType)) {
+            if (dataType instanceof StringDataType) {
                 // value经过加密 需要解密
                 if (aesFlag == 1) {
                     try {
@@ -361,7 +350,7 @@ public class Expression<T> extends BasedConfigurable
      */
     public boolean supportQuickMatch(Expression expression, RuleContext context, Rule rule) {
         String varName = expression.getVarName();
-        Var var = context.getVar(rule.getConfigureName(), varName);
+        Var var = context.getVar(rule.getName(), varName);
         if (var == null || var.canLazyLoad()) {
             return false;
         }
@@ -374,10 +363,7 @@ public class Expression<T> extends BasedConfigurable
      * @return
      */
     public boolean volidate() {
-        if (StringUtil.isEmpty(varName) || StringUtil.isEmpty(functionName) || dataType == null) {
-            return false;
-        }
-        return true;
+        return !StringUtil.isEmpty(varName) && !StringUtil.isEmpty(functionName) && dataType != null;
     }
 
     public String getDataTypestr() {
@@ -390,8 +376,7 @@ public class Expression<T> extends BasedConfigurable
             fieldFlag = true;
         }
 
-        DataType dt = MetaDataField.getDataTypeByStr(dataTypestr);
-        this.dataType = dt;
+        this.dataType = MetaDataField.getDataTypeByStr(dataTypestr);
     }
 
     public String getKeyword() {
@@ -413,19 +398,19 @@ public class Expression<T> extends BasedConfigurable
         this.aesFlag = aesFlag;
     }
 
+    public String toExpressionString(Map<String, Expression> name2Expression,
+        String... expressionNamePrefixs) {
+        return toExpressionString(name2Expression, 0, expressionNamePrefixs);
+    }
+
     /**
      * 返回expressCode
      *
      * @return
      */
     @SuppressWarnings("rawtypes")
-    public String toExpressionString(Map<String, Expression> name2Expression,
+    public String toExpressionString(Map<String, Expression> name2Expression, int blackCount,
         String... expressionNamePrefixs) {
-        return toString();
-    }
-
-    @Override
-    public String toString() {
         String dataType = null;
         String result = "(" + varName + "," + getFunctionName() + ",";
         if (!getDataType().matchClass(String.class)) {
@@ -433,19 +418,36 @@ public class Expression<T> extends BasedConfigurable
             result += dataType + ",";
         }
         String value = getDataType().toDataJson(getValue());
-        if (getDataType().matchClass(String.class) && needContants(value)) {
+        if (getDataType().matchClass(String.class) && needContains(value)) {
             value = "'" + value + "'";
         }
         result += value + ")";
+//        for(int i=0;i<blackCount;i++){
+//            result="&nbsp;&nbsp;&nbsp;"+result;
+//        }
 
         return result;
     }
 
-    private boolean needContants(String value) {
-        if (value.indexOf("(") != -1 || value.indexOf(",") != -1) {
-            return true;
+    @Override
+    public String toString() {
+        String dataType = null;
+        String result = varName + " " + getFunctionName() + " ";
+//        if (!getDataType().matchClass(String.class)) {
+//            dataType = getDataType().getDataTypeName();
+//            result += dataType + ",";
+//        }
+        String value = getDataType().toDataJson(getValue());
+        if (getDataType().matchClass(String.class) && needContains(value)) {
+            value = "'" + value + "'";
         }
-        return false;
+        result += value;
+
+        return result;
+    }
+
+    private boolean needContains(String value) {
+        return value.contains("(") || value.contains(",");
     }
 
     public HomologousVar getHomologousVar() {
@@ -464,7 +466,7 @@ public class Expression<T> extends BasedConfigurable
             }
             return (ExpressionFunction) fc.getBean();
         } catch (Exception e) {
-            LOG.error("RuleContext getExpressionFunction error,name is: " + functionName, e);
+            LOGGER.error("RuleContext getExpressionFunction error,name is: " + functionName, e);
             return null;
         }
 

@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.datatype.DataType;
@@ -36,38 +37,15 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 public class MetaData extends AbstractMetaData {
 
     private static final String PRI_KEY = "id";
-
+    /**
+     * primaryFieldNames,
+     * List<String> uniqueIndexFieldNames, List<List<String>> indexFieldNamesList
+     */
+    protected String primaryFieldNames;//主键字段，多个逗号分隔
+    protected String uniqueIndexFieldNames;//唯一索引字段，多个逗号分隔
+    protected List<String> indexFieldNamesList;//多个索引字段，每个索引以逗号分隔
     private Long id;
-
     private String idFieldName;
-
-    @Override
-    public Long getId() {
-        return id;
-    }
-
-    @Override
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getIdFieldName() {
-        return idFieldName;
-    }
-
-    public void setIdFieldName(String idFieldName) {
-        this.idFieldName = idFieldName;
-    }
-
-    @Override
-    protected void setJsonValue(JSONObject jsonObject) {
-        this.idFieldName = jsonObject.getString("idFieldName");
-    }
-
-    @Override
-    protected void getJsonValue(JSONObject jsonObject) {
-        jsonObject.put("idFieldName", this.idFieldName);
-    }
 
     public static MetaData createMetaData(ResultSet metaResult) throws SQLException {
         MetaData metaData = new MetaData();
@@ -154,7 +132,9 @@ public class MetaData extends AbstractMetaData {
             metaDataField.setDataType(datatype);
             //TODO
             if (datatype instanceof MapDataType) {
-                paras.put(columnName, value.toString());
+                if (value != null) {
+                    paras.put(columnName, value.toString());
+                }
             } else {
                 paras.put(columnName, value);
             }
@@ -208,6 +188,56 @@ public class MetaData extends AbstractMetaData {
         return sb.toString();
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getIdFieldName() {
+        return idFieldName;
+    }
+
+    public void setIdFieldName(String idFieldName) {
+        this.idFieldName = idFieldName;
+    }
+
+    @Override
+    protected void setJsonValue(JSONObject jsonObject) {
+        this.idFieldName = jsonObject.getString("idFieldName");
+    }
+
+    @Override
+    protected void getJsonValue(JSONObject jsonObject) {
+        jsonObject.put("idFieldName", this.idFieldName);
+    }
+
+    public String getPrimaryFieldNames() {
+        return primaryFieldNames;
+    }
+
+    public void setPrimaryFieldNames(String primaryFieldNames) {
+        this.primaryFieldNames = primaryFieldNames;
+    }
+
+    public String getUniqueIndexFieldNames() {
+        return uniqueIndexFieldNames;
+    }
+
+    public void setUniqueIndexFieldNames(String uniqueIndexFieldNames) {
+        this.uniqueIndexFieldNames = uniqueIndexFieldNames;
+    }
+
+    public List<String> getIndexFieldNamesList() {
+        return indexFieldNamesList;
+    }
+
+    public void setIndexFieldNamesList(List<String> indexFieldNamesList) {
+        this.indexFieldNamesList = indexFieldNamesList;
+    }
+
     /**
      * 如果某个类，不想自己的类名转化成表名，可以指定类名
      */
@@ -222,5 +252,4 @@ public class MetaData extends AbstractMetaData {
         String value() default "";
 
     }
-
 }

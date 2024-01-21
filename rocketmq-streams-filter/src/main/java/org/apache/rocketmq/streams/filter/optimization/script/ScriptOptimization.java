@@ -27,8 +27,8 @@ import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
+import org.apache.rocketmq.streams.filter.optimization.casewhen.IFExpressionOptimization;
 import org.apache.rocketmq.streams.filter.optimization.dependency.BlinkRuleV2Expression;
-import org.apache.rocketmq.streams.filter.optimization.executor.GroupByVarExecutor;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.impl.FunctionScript;
 import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
@@ -38,17 +38,14 @@ import org.apache.rocketmq.streams.script.service.IScriptParamter;
 @AutoService(IScriptOptimization.class)
 public class ScriptOptimization implements IScriptOptimization {
 
-    public static interface IExpressionExecutor<T> {
-        boolean execute(IMessage message, AbstractContext context);
-    }
-
     @Override public IOptimizationCompiler compile(List<IScriptExpression> expressions,
         IConfigurableIdentification configurableIdentification) {
         if (expressions != null) {
-            GroupByVarExecutor groupByVarExecutor = new GroupByVarExecutor(configurableIdentification.getNameSpace(), configurableIdentification.getConfigureName(), expressions);
-            expressions = blinkRuleV2ExpressionOptimizate(expressions, configurableIdentification);
-            groupByVarExecutor.setScriptExpressions(expressions);
-            return groupByVarExecutor;
+//            GroupByVarExecutor groupByVarExecutor = new GroupByVarExecutor(configurableIdentification.getNameSpace(), configurableIdentification.getConfigureName(), expressions);
+//            expressions = blinkRuleV2ExpressionOptimizate(expressions, configurableIdentification);
+//            groupByVarExecutor.setScriptExpressions(expressions);
+//            return groupByVarExecutor;
+            return new IFExpressionOptimization(configurableIdentification.getNameSpace(), configurableIdentification.getName(), expressions);
         }
         return null;
     }
@@ -62,7 +59,7 @@ public class ScriptOptimization implements IScriptOptimization {
                 continue;
             }
             FunctionScript functionScript = (FunctionScript) configurableIdentification;
-            boolean isSupport = BlinkRuleV2Expression.isBlinkRuleV2Parser(scriptExpression, functionScript.getConfigurableService());
+            boolean isSupport = BlinkRuleV2Expression.isBlinkRuleV2Parser(scriptExpression);
             if (!isSupport) {
                 expressionList.add(scriptExpression);
                 continue;
@@ -83,6 +80,10 @@ public class ScriptOptimization implements IScriptOptimization {
         return expressionList;
     }
 
+    public static interface IExpressionExecutor<T> {
+        boolean execute(IMessage message, AbstractContext context);
+    }
+
     public static class BlinkRuleV2Exprssion implements IScriptExpression<Integer> {
         protected IScriptExpression ori;
         protected BlinkRuleV2Expression.RuleSetGroup group;
@@ -93,7 +94,7 @@ public class ScriptOptimization implements IScriptOptimization {
             this.ori = ori;
             this.group = group;
             ruleSetByCoreVarNames = group.optimizate();
-            fingerprintCache = new FingerprintCache(1000000);
+            fingerprintCache = FingerprintCache.getInstance();
         }
 
         @Override public Integer executeExpression(IMessage message, FunctionContext context) {

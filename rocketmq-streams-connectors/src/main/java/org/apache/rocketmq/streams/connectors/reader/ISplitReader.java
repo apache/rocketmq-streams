@@ -16,28 +16,20 @@
  */
 package org.apache.rocketmq.streams.connectors.reader;
 
-import java.io.IOException;
 import java.io.Serializable;
-import java.util.List;
+import java.util.Iterator;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.connectors.model.PullMessage;
 
 public interface ISplitReader extends Serializable {
 
     /**
-     * Open.
-     *
-     * @param split the split
-     * @throws IOException the io exception
+     * init
      */
-    void open(ISplit split);
+    void open();
 
     /**
      * Next boolean.
-     *
-     * @return the boolean
-     * @throws IOException          the io exception
-     * @throws InterruptedException the interrupted exception
      */
     boolean next();
 
@@ -46,12 +38,10 @@ public interface ISplitReader extends Serializable {
      *
      * @return the message
      */
-    List<PullMessage> getMessage();
+    Iterator<PullMessage<?>> getMessage();
 
     /**
      * Close.
-     *
-     * @throws IOException the io exception
      */
     SplitCloseFuture close();
 
@@ -59,7 +49,6 @@ public interface ISplitReader extends Serializable {
      * Seek.
      *
      * @param cursor the cursor
-     * @throws IOException the io exception
      */
     void seek(String cursor);
 
@@ -67,19 +56,18 @@ public interface ISplitReader extends Serializable {
      * Gets progress.
      *
      * @return the progress
-     * @throws IOException the io exception
      */
     String getProgress();
 
     /**
-     * Get message delay (millseconds)
+     * Get message delay (milliseconds)
      *
      * @return delay
      */
     long getDelay();
 
     /**
-     * Get message delay (millseconds) from being fetched
+     * Get message delay (milliseconds) from being fetched
      *
      * @return delay
      */
@@ -87,10 +75,12 @@ public interface ISplitReader extends Serializable {
 
     boolean isClose();
 
-    ISplit getSplit();
+    ISplit<?, ?> getSplit();
 
     boolean isInterrupt();
 
-    boolean interrupt();
+    void interrupt();
+
+    void finish();
 
 }

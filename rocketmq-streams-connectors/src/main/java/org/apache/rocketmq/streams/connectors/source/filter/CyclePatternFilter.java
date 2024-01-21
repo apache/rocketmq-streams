@@ -28,26 +28,17 @@ import java.util.List;
  */
 public class CyclePatternFilter extends AbstractPatternFilter implements Serializable {
 
-    private static final long serialVersionUID = -5151597286296228754L;
-
     public static final int INIT_CYCLE_VERSION = 0;
-
-    CyclePeriod cyclePeriod;
-
-    Date curCycleDateTime; //当前调度周期时间
-
-    long cycleId;
-
-    String firstStartTime; //当前最小时间
-
-    List<String> allPatterns;
-
-    String expression;
-
-    boolean isInit;
-
+    private static final long serialVersionUID = -5151597286296228754L;
     //历史数据读取时使用,表示比起当前相差多少个调度周期
     final long cycleDiff;
+    CyclePeriod cyclePeriod;
+    Date curCycleDateTime; //当前调度周期时间
+    long cycleId;
+    String firstStartTime; //当前最小时间
+    List<String> allPatterns;
+    String expression;
+    boolean isInit;
 
     //todo expr解析
     public CyclePatternFilter(String expr, Date date) throws ParseException {
@@ -57,96 +48,13 @@ public class CyclePatternFilter extends AbstractPatternFilter implements Seriali
         curCycleDateTime = calCycleDateTime(date);
         allPatterns = new ArrayList<>();
         isInit = true;
-        if(cyclePeriod.isHistory){
+        if (cyclePeriod.isHistory) {
             Date tmp = cyclePeriod.getHisDate();
-            cycleDiff = curCycleDateTime.getTime()/1000 * 1000 - tmp.getTime()/1000*1000;
-        }else{
+            cycleDiff = curCycleDateTime.getTime() / 1000 * 1000 - tmp.getTime() / 1000 * 1000;
+        } else {
             cycleDiff = 0;
         }
     }
-
-
-    /**
-     *
-     * @return 返回date格式的调度周期时间
-     */
-    private Date calCycleDateTime(Date date){
-        return cyclePeriod.format(date);
-    }
-
-    private long calCycle(Date date){
-        Date tmp = calCycleDateTime(date);
-        if(tmp.getTime()/1000 == curCycleDateTime.getTime()/1000){
-            return cycleId;
-        }
-        return nextCycle(tmp);
-    }
-
-    private long nextCycle(Date date){
-        curCycleDateTime = date;
-        cycleId++;
-        calAllPattern();
-        return cycleId;
-    }
-
-    private void calAllPattern(){
-        allPatterns.clear();
-        for(int i = 1; i <= cyclePeriod.getCycle(); i++){
-            long d = (curCycleDateTime.getTime()/1000)*1000 - i * cyclePeriod.getInterval() - cycleDiff;
-            String s = cyclePeriod.getDateFormat().format(new Date(d));
-            allPatterns.add(s);
-        }
-        firstStartTime = allPatterns.get(allPatterns.size() - 1);
-    }
-
-    public boolean isNextCycle(Date date){
-        if(isInit){
-            isInit = false;
-            calAllPattern();
-            return true;
-        }
-        long tmp = cycleId;
-        return calCycle(date) > tmp;
-    }
-
-    public List<String> getAllPatterns() {
-        return allPatterns;
-    }
-
-    public long getCycleId() {
-        return cycleId;
-    }
-
-    public Date getCurCycleDateTime(){
-        return curCycleDateTime;
-    }
-
-    public String getCurCycleDateTimeStr(){
-        return cyclePeriod.getDateFormat().format(curCycleDateTime);
-    }
-
-    public long getCycleDiff() {
-        return cycleDiff;
-    }
-
-    public long getCyclePeriodDiff(){
-        return cycleDiff/cyclePeriod.getInterval();
-    }
-
-    public int getCycle(){
-        return cyclePeriod.getCycle();
-    }
-
-    public String getFirstStartTime() {
-        return firstStartTime;
-    }
-
-    @Override
-    public boolean filter(String sourceName, String logicTableName, String tableName) {
-        return allPatterns.contains(tableName);
-    }
-
-
 
     public static void main(String[] args) throws ParseException {
 
@@ -164,10 +72,85 @@ public class CyclePatternFilter extends AbstractPatternFilter implements Seriali
         System.out.println(new SimpleDateFormat("yyyyMMddHHmmss").parse("20210909100000"));
         System.out.println(new SimpleDateFormat("yyyyMMddhhmmss").parse("20210909100000"));
 
-
-
-
     }
 
+    /**
+     * @return 返回date格式的调度周期时间
+     */
+    private Date calCycleDateTime(Date date) {
+        return cyclePeriod.format(date);
+    }
+
+    private long calCycle(Date date) {
+        Date tmp = calCycleDateTime(date);
+        if (tmp.getTime() / 1000 == curCycleDateTime.getTime() / 1000) {
+            return cycleId;
+        }
+        return nextCycle(tmp);
+    }
+
+    private long nextCycle(Date date) {
+        curCycleDateTime = date;
+        cycleId++;
+        calAllPattern();
+        return cycleId;
+    }
+
+    private void calAllPattern() {
+        allPatterns.clear();
+        for (int i = 1; i <= cyclePeriod.getCycle(); i++) {
+            long d = (curCycleDateTime.getTime() / 1000) * 1000 - i * cyclePeriod.getInterval() - cycleDiff;
+            String s = cyclePeriod.getDateFormat().format(new Date(d));
+            allPatterns.add(s);
+        }
+        firstStartTime = allPatterns.get(allPatterns.size() - 1);
+    }
+
+    public boolean isNextCycle(Date date) {
+        if (isInit) {
+            isInit = false;
+            calAllPattern();
+            return true;
+        }
+        long tmp = cycleId;
+        return calCycle(date) > tmp;
+    }
+
+    public List<String> getAllPatterns() {
+        return allPatterns;
+    }
+
+    public long getCycleId() {
+        return cycleId;
+    }
+
+    public Date getCurCycleDateTime() {
+        return curCycleDateTime;
+    }
+
+    public String getCurCycleDateTimeStr() {
+        return cyclePeriod.getDateFormat().format(curCycleDateTime);
+    }
+
+    public long getCycleDiff() {
+        return cycleDiff;
+    }
+
+    public long getCyclePeriodDiff() {
+        return cycleDiff / cyclePeriod.getInterval();
+    }
+
+    public int getCycle() {
+        return cyclePeriod.getCycle();
+    }
+
+    public String getFirstStartTime() {
+        return firstStartTime;
+    }
+
+    @Override
+    public boolean filter(String sourceName, String logicTableName, String tableName) {
+        return allPatterns.contains(tableName);
+    }
 
 }

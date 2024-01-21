@@ -16,11 +16,9 @@
  */
 package org.apache.rocketmq.streams.script.service.udf;
 
-import java.io.Serializable;
-
 public class SimpleUDAFScript extends UDAFScript {
 
-    public SimpleUDAFScript(){
+    public SimpleUDAFScript() {
         this.accumulateMethodName = "accumulate";
         this.createAccumulatorMethodName = "createAccumulator";
         this.getValueMethodName = "getValue";

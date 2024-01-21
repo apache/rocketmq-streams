@@ -34,6 +34,10 @@ public class ShortDataType extends BaseDataType<Short> {
         setDataClazz(Short.class);
     }
 
+    public static String getTypeName() {
+        return "short";
+    }
+
     @Override
     public String toDataJson(Short value) {
         if (value == null) {
@@ -85,14 +89,10 @@ public class ShortDataType extends BaseDataType<Short> {
         return Short.class.getSimpleName();
     }
 
-    public static String getTypeName() {
-        return "short";
-    }
-
     @Override
     public byte[] toBytes(Short value, boolean isCompress) {
         if (isCompress) {
-            return numberToBytes((long)value);
+            return numberToBytes((long) value);
         } else {
             return createByteArrayFromNumber(value, 2);
         }

@@ -41,10 +41,10 @@ public class KeyValueFunction {
     @FunctionMethod(value = "keyvalue", alias = "kv", comment =
         "将srcStr（源字符串）按split1分成“key-value”对，按split2将key-value对分开，返回“key”所对应的value")
     public String keyvalue(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "字段名或常量") String str,
-                           @FunctionParamter(value = "string", comment = "第一分隔符，字段名或常量") String split1,
-                           @FunctionParamter(value = "string", comment = "第二分隔符，字段名或常量") String split2,
-                           @FunctionParamter(value = "string", comment = "待返回value对应的key，字段名或常量") String key) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str,
+        @FunctionParamter(value = "string", comment = "第一分隔符，字段名或常量") String split1,
+        @FunctionParamter(value = "string", comment = "第二分隔符，字段名或常量") String split2,
+        @FunctionParamter(value = "string", comment = "待返回value对应的key，字段名或常量") String key) {
         JSONObject jsonObject = strtomap(message, context, str, split1, split2);
         return jsonObject.getString(key);
     }
@@ -61,8 +61,8 @@ public class KeyValueFunction {
     @FunctionMethod(value = "keyvalue", alias = "kv", comment = "将srcStr（源字符串）按;"
         + "分成“key-value”对，按:将key-value对分开，返回“key”所对应的value")
     public String keyvalue(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "字段名或常量") String str,
-                           @FunctionParamter(value = "string", comment = "待返回value对应的key，字段名或常量") String key) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str,
+        @FunctionParamter(value = "string", comment = "待返回value对应的key，字段名或常量") String key) {
         return keyvalue(message, context, str, ";", ":", key);
     }
 
@@ -76,7 +76,7 @@ public class KeyValueFunction {
      */
     @FunctionMethod(value = "jsoncreate", alias = "str2json", comment = "解析'name'='yuanxiaodong','age'=18的字符串为json")
     public JSONObject strtomap(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "格式为'name'='yuanxiaodong','age'=18的字符串，支持字段名和常量") String str) {
+        @FunctionParamter(value = "string", comment = "格式为'name'='yuanxiaodong','age'=18的字符串，支持字段名和常量") String str) {
         return strtomap(message, context, str, ",", "=");
     }
 
@@ -92,9 +92,9 @@ public class KeyValueFunction {
      */
     @FunctionMethod(value = "strtomap", alias = "str2json", comment = "解析'name'='yuanxiaodong','age'=18的字符串为json")
     public JSONObject strtomap(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "格式为'name'='yuanxiaodong','age'=18的字符串，支持字段名和常量") String str,
-                               @FunctionParamter(value = "string", comment = "第一分隔符，字段名或常量") String split1,
-                               @FunctionParamter(value = "string", comment = "第二分隔符，字段名或常量") String split2) {
+        @FunctionParamter(value = "string", comment = "格式为'name'='yuanxiaodong','age'=18的字符串，支持字段名和常量") String str,
+        @FunctionParamter(value = "string", comment = "第一分隔符，字段名或常量") String split1,
+        @FunctionParamter(value = "string", comment = "第二分隔符，字段名或常量") String split2) {
         JSONObject result = null;
         str = FunctionUtils.getValueString(message, context, str);
         split1 = FunctionUtils.getValueString(message, context, split1);

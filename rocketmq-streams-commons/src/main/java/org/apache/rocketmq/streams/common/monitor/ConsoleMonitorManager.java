@@ -16,49 +16,39 @@
  */
 package org.apache.rocketmq.streams.common.monitor;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.monitor.model.JobStage;
 import org.apache.rocketmq.streams.common.monitor.model.TraceIdsDO;
 import org.apache.rocketmq.streams.common.monitor.model.TraceMonitorDO;
 import org.apache.rocketmq.streams.common.monitor.service.MonitorDataSyncService;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.threadpool.ScheduleFactory;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConsoleMonitorManager {
-
-    private static final Log LOG = LogFactory.getLog(ConsoleMonitorManager.class);
 
     public static final int MSG_FILTERED = -1;
     public static final int MSG_NOT_FLOWED = 0;
     public static final int MSG_FLOWED = 1;
-
+    private static final Logger LOG = LoggerFactory.getLogger(ConsoleMonitorManager.class);
     private static ConsoleMonitorManager monitorManager = new ConsoleMonitorManager();
     private Map<String, JobStage> cache = new ConcurrentHashMap();
     private Map<String, TraceMonitorDO> traceCache = new ConcurrentHashMap();
     private Set<String> validTraceIds = new HashSet<String>();
     private MonitorDataSyncService monitorDataSyncService = MonitorDataSyncServiceFactory.create();
-
-    public static ConsoleMonitorManager getInstance() {
-        return monitorManager;
-    }
 
     /**
      * 上面使用 static 定义并初始化了一个 ConsoleMonitorManager 实例，所以当这类被加载时，就会执行构造方法
@@ -71,15 +61,14 @@ public class ConsoleMonitorManager {
         if (!isConsoleOpen()) {
             return;
         }
-
-        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-        executorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
+        ScheduleFactory.getInstance().execute(ConsoleMonitorManager.class.getName() + "-console_monitor", new Runnable() {
+            @Override public void run() {
                 try {
                     queryValidTraceIds();
                     Map<String, JobStage> jobStageMap = cache;
-                    cache = new ConcurrentHashMap();
+                    synchronized (this) {
+                        cache = new ConcurrentHashMap();
+                    }
                     long current = System.currentTimeMillis();
                     for (JobStage jobStage : jobStageMap.values()) {
                         jobStage.setMachineName("");
@@ -126,6 +115,18 @@ public class ConsoleMonitorManager {
         }, 20, 30, TimeUnit.SECONDS);
     }
 
+    public static ConsoleMonitorManager getInstance() {
+        return monitorManager;
+    }
+
+    public static void main(String[] args) {
+        long a = 6l;
+        System.out.println((float) (a / ((10000 - 79) / 1000)));
+        System.out.println((float) (a / 16));
+        System.out.println((10000 - 79) * 1.0 / 1000);
+//        Math.
+    }
+
     public Set<String> getValidTraceIds() {
         return validTraceIds;
     }
@@ -141,7 +142,7 @@ public class ConsoleMonitorManager {
         long clientTime = message.getHeader().getSendTime();
         JSONObject msg = message.getMessageBody();
         //目前pipeline只支持一个channel 暂时写死channel name
-        JobStage jobStage = getJobStage(source.getConfigureName() + "_source_0");
+        JobStage jobStage = getJobStage(source.getName() + "_source_0");
 
 //        // 必须是开启了 traceId，才能对 dipper_trace_monitor 表中的数据进行修改
 //        // 只是消息中带有 traceId 不行
@@ -168,7 +169,7 @@ public class ConsoleMonitorManager {
 //        }
 
         jobStage.getSafeInput().incrementAndGet();
-        jobStage.setLastInputMsgObj(msg);
+//        jobStage.setLastInputMsgObj(msg);
         if (clientTime != 0) {
             jobStage.setLastInputMsgTime(new Date(clientTime));
         } else {
@@ -182,7 +183,7 @@ public class ConsoleMonitorManager {
             if (!message.getHeader().isSystemMessage()) {
                 // 记录 traceId
                 // getTraceMonitor() 会从 traceCache 中取 traceMonitor，没有会新建一个并添加到 traceCache 中
-                TraceMonitorDO traceMonitor = getTraceMonitor(source.getConfigureName() + "_source_0", traceId);
+                TraceMonitorDO traceMonitor = getTraceMonitor(source.getName() + "_source_0", traceId);
                 // 表示消息正常流转过了此 stage
                 traceMonitor.setStatus(1);
                 traceMonitor.getSafeInput().incrementAndGet();
@@ -191,7 +192,7 @@ public class ConsoleMonitorManager {
                 traceMonitor.setLastOutputMsgTime(new Date());
                 traceMonitor.setInputLastMsg(msg.toJSONString());
                 traceMonitor.setOutputLastMsg(msg.toJSONString());
-                traceMonitor.setJobName(pipeline.getConfigureName());
+                traceMonitor.setJobName(pipeline.getName());
             }
         }
 
@@ -208,8 +209,8 @@ public class ConsoleMonitorManager {
         JSONObject msg = message.getMessageBody();
         JobStage jobStage = getJobStage(stage.getLabel());
         jobStage.getSafeInput().incrementAndGet();
-        jobStage.setLastInputMsgObj(msg);
-        jobStage.setLastInputMsg(msg.toJSONString());
+//        jobStage.setLastInputMsgObj(msg);
+//        jobStage.setLastInputMsg(msg.toJSONString());
         jobStage.setLastInputMsgTime(new Date());
 
         String traceId = message.getHeader().getTraceId();
@@ -220,7 +221,7 @@ public class ConsoleMonitorManager {
             traceMonitor.getSafeInput().incrementAndGet();
             traceMonitor.setInputLastMsg(msg.toJSONString());
             traceMonitor.setLastInputMsgTime(new Date());
-            traceMonitor.setJobName(stage.getPipeline().getConfigureName());
+            traceMonitor.setJobName(stage.getPipeline().getName());
         }
     }
 
@@ -259,11 +260,11 @@ public class ConsoleMonitorManager {
                 traceMonitor.setOutputLastMsg(msg.toJSONString());
                 traceMonitor.setLastOutputMsgTime(new Date());
             }
-            traceMonitor.setJobName(stage.getPipeline().getConfigureName());
+            traceMonitor.setJobName(stage.getPipeline().getName());
         }
     }
 
-    public JobStage getJobStage(String uniqKey) {
+    public synchronized JobStage getJobStage(String uniqKey) {
 //        String key = createKey(uniqKey);
         JobStage jobStage = cache.get(uniqKey);
         if (jobStage == null) {
@@ -312,16 +313,6 @@ public class ConsoleMonitorManager {
             }
         }
 
-    }
-
-    private boolean isConsoleOpen() {
-        String configurableServiceType = ComponentCreator.getProperties().getProperty(DataSyncConstants.UPDATE_TYPE);
-        if (DataSyncConstants.UPDATE_TYPE_ROCKETMQ.equalsIgnoreCase(configurableServiceType) ||
-            DataSyncConstants.UPDATE_TYPE_HTTP.equalsIgnoreCase(configurableServiceType) ||
-            DataSyncConstants.UPDATE_TYPE_DB.equalsIgnoreCase(configurableServiceType)) {
-            return true;
-        }
-        return false;
     }
 
 //    public void saveJobName(List<TraceMonitorDO> traceMonitorDOS){
@@ -383,6 +374,14 @@ public class ConsoleMonitorManager {
 //        head.next = tail;
 //    }
 
+    private boolean isConsoleOpen() {
+        String configurableServiceType = SystemContext.getProperty(ConfigurationKey.UPDATE_TYPE);
+        if (DataSyncConstants.UPDATE_TYPE_ROCKETMQ.equalsIgnoreCase(configurableServiceType) || DataSyncConstants.UPDATE_TYPE_HTTP.equalsIgnoreCase(configurableServiceType) || DataSyncConstants.UPDATE_TYPE_DB.equalsIgnoreCase(configurableServiceType)) {
+            return true;
+        }
+        return false;
+    }
+
     class ListNode {
         public String key;
         public String value;
@@ -397,14 +396,6 @@ public class ConsoleMonitorManager {
         public ListNode() {
 
         }
-    }
-
-    public static void main(String[] args) {
-        long a = 6l;
-        System.out.println((float) (a / ((10000 - 79) / 1000)));
-        System.out.println((float) (a / 16));
-        System.out.println((10000 - 79) * 1.0 / 1000);
-//        Math.
     }
 
 }

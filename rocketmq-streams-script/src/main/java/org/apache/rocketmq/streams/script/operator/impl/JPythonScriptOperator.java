@@ -21,21 +21,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.AbstractScriptOperator;
 import org.python.util.PythonInterpreter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 实现思路，通过INNER_MESSAG 把message的jsonobject传给python，python中直接操作jsonobject
  */
 public class JPythonScriptOperator extends AbstractScriptOperator {
-    protected static final Log LOG = LogFactory.getLog(JPythonScriptOperator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JPythonScriptOperator.class);
     protected transient PythonInterpreter interpreter;
+
+    public static void main(String[] args) {
+        JPythonScriptOperator pythonScript = new JPythonScriptOperator();
+        pythonScript.setValue("_msg.put('age',18);");
+        pythonScript.init();
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("name", "chris");
+        Message message = new Message(jsonObject);
+
+        pythonScript.doMessage(message, new FunctionContext(message));
+        System.out.println(jsonObject);
+    }
 
     @Override
     protected boolean initConfigurable() {
@@ -54,7 +66,7 @@ public class JPythonScriptOperator extends AbstractScriptOperator {
             interpreter.exec("import sys");
             registFunction();
         } catch (Exception e) {
-            LOG.error("jython init error " + getValue(), e);
+            LOGGER.error("jython init error " + getValue(), e);
             return false;
         }
         return true;
@@ -67,18 +79,6 @@ public class JPythonScriptOperator extends AbstractScriptOperator {
         List<IMessage> messages = new ArrayList<>();
         messages.add(message);
         return messages;
-    }
-
-    public static void main(String[] args) {
-        JPythonScriptOperator pythonScript = new JPythonScriptOperator();
-        pythonScript.setValue("_msg.put('age',18);");
-        pythonScript.init();
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("name", "chris");
-        Message message = new Message(jsonObject);
-
-        pythonScript.doMessage(message, new FunctionContext(message));
-        System.out.println(jsonObject);
     }
 
     @Override

@@ -18,16 +18,11 @@ package org.apache.rocketmq.streams.window.state;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicLong;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.model.Entity;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 
 public class WindowBaseValue extends Entity implements Serializable {
-
-    private static final Log LOG = LogFactory.getLog(WindowBaseValue.class);
 
     private static final long serialVersionUID = -4985883726971532986L;
 
@@ -71,15 +66,17 @@ public class WindowBaseValue extends Entity implements Serializable {
      */
     protected String fireTime;
 
-    protected AtomicLong updateVersion = new AtomicLong(0);
+    protected Long updateVersion = new Long(0);
 
     public WindowBaseValue() {
         setGmtCreate(DateUtil.getCurrentTime());
         setGmtModified(DateUtil.getCurrentTime());
     }
 
-    public long incrementUpdateVersion() {
-        return updateVersion.incrementAndGet();
+    public synchronized long incrementUpdateVersion() {
+
+        updateVersion = updateVersion + 1;
+        return updateVersion;
     }
 
     @Override
@@ -159,11 +156,11 @@ public class WindowBaseValue extends Entity implements Serializable {
     }
 
     public long getUpdateVersion() {
-        return updateVersion.get();
+        return updateVersion;
     }
 
     public void setUpdateVersion(long updateVersion) {
-        this.updateVersion.set(updateVersion);
+        this.updateVersion = (updateVersion);
     }
 
     public String getWindowInstancePartitionId() {

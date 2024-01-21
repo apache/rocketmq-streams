@@ -20,12 +20,10 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
@@ -41,63 +39,70 @@ import org.apache.rocketmq.streams.common.monitor.MonitorFactory;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DipperMonitor implements IMonitor {
 
-    private static final Log LOG = LogFactory.getLog(DipperMonitor.class);
-
+    public static final String SLOW_NAME = "slow";//对于执行慢的stage进行记录
+    public static final String ERROR_NAME = "error";//对于跑错误的stage进行记录
+    private static final Logger LOG = LoggerFactory.getLogger(DipperMonitor.class);
     private static final String MONITO_SLOW = "SLOW";
     private static final String MONITO_INFO = "INFO";
     private static final String MONITO_ERROR = "ERROR";
     private static final int MONITOR_SLOW_TIMEOUT = 30;//默认慢查询的输出是30s
-    public static final String SLOW_NAME = "slow";//对于执行慢的stage进行记录
-    public static final String ERROR_NAME = "error";//对于跑错误的stage进行记录
+    protected static String LEVEL = null;
+    protected static Integer SLOW_TIMEOUT;
+    protected static String monitorOutputLevel = null;
+    /**
+     * 输出时会用到，比如输出到数据库，则每个字段名，需要和metadata一致
+     */
+    private static MetaData metaData = new MetaData();
+
+    static {
+        //根据配置文件，把默认的监控配置读出来，主要是level和slow_timeout
+
+        String timeoutStr = SystemContext.getStringParameter(ConfigurationKey.MONITOR_SLOW_TIMEOUT);
+        if (StringUtil.isNotEmpty(timeoutStr)) {
+            SLOW_TIMEOUT = Integer.valueOf(timeoutStr);
+        }
+    }
+
+    static {
+        metaData.setTableName("monitor_data");
+        metaData.setIdFieldName("id");
+        metaData.getMetaDataFields().add(createMetaDataField("id", new LongDataType()));
+        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_CHILDREN));
+        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_CONTEXT_MSG));
+        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_COST, new IntDataType()));
+        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_ERROR_MSG));
+        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_SAMPLE_DATA));
+        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_SUCCESS, new BooleanDataType()));
+        metaData.getMetaDataFields().add(createMetaDataField(MONTIOR_SLOW, new BooleanDataType()));
+        metaData.getMetaDataFields().add(createMetaDataField(MONTIOR_NAME));
+
+    }
+
     protected String info = MONITO_INFO;
     protected String debug = MONITO_ERROR;
     protected String warn = MONITO_SLOW + MONITO_ERROR;
     protected String level = debug;
-
     protected Integer timeoutSecond = MONITOR_SLOW_TIMEOUT;
-
     protected long startTime = System.currentTimeMillis();
     protected long endTime;
     protected volatile boolean success = true;//本次监控是否有发生错误的逻辑
     protected Exception e;//如果发生了错误，具体的错误是什么
     protected String[] errorMsgs;//如果发生了错误，具体的错误信息是什么
     protected String name;//监控名，业务方确定，不重复即可
-
     protected Object value;//执行结果
-
     protected volatile long cost;//花费时长
-
     protected volatile JSONObject sampleData;//一些上下文的采样数据，便于出错，或慢的时候做分析
-
     protected List<Object> contextMsgs = new ArrayList<>();//上下文信息，必要的时候，可以设置上下文信息
-
     protected List<IMonitor> children = new ArrayList<>();//监控小项，一个监控，可以有多个项目
-
-    protected static String LEVEL = null;
-    protected static Integer SLOW_TIMEOUT;
-    protected static String monitorOutputLevel = null;
-
     private String type;
 
-    static {
-        /**
-         * 根据配置文件，把默认的监控配置读出来，主要是level和slow_timeout
-         */
-        monitorOutputLevel = ConfigureFileKey.MONITOR_OUTPUT_LEVEL;
-        LEVEL = ComponentCreator.getProperties().getProperty(monitorOutputLevel);
-        String timeoutStr = ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT);
-        if (StringUtil.isNotEmpty(timeoutStr)) {
-            SLOW_TIMEOUT = Integer.valueOf(timeoutStr);
-        }
-    }
-
     public DipperMonitor() {
-        /**
-         * 可以在配置文件通过默认配置加.name的方式覆盖默认配置。这里是读取自定义配置，如果没有则用通用配置，通用配置也没有，用默认配置
-         */
+        //可以在配置文件通过默认配置加.name的方式覆盖默认配置。这里是读取自定义配置，如果没有则用通用配置，通用配置也没有，用默认配置
         if (StringUtil.isNotEmpty(LEVEL)) {
             this.level = LEVEL;
         }
@@ -112,14 +117,36 @@ public class DipperMonitor implements IMonitor {
         this.timeoutSecond = parent.timeoutSecond;
     }
 
+    private static MetaDataField createMetaDataField(String name) {
+        return createMetaDataField(name, new StringDataType());
+    }
+
+    /**
+     * 因为所有字段都是字符类型，
+     *
+     * @param name
+     * @return
+     */
+    private static MetaDataField createMetaDataField(String name, DataType dataType) {
+        MetaDataField metaDataField = new MetaDataField();
+        metaDataField.setFieldName(name);
+        metaDataField.setIsRequired(false);
+        metaDataField.setDataType(dataType);
+        return metaDataField;
+    }
+
+    public static String getMonitorOutputLevel() {
+        return monitorOutputLevel;
+    }
+
     protected void initProperty() {
         String selfMonitorOutputLevel = monitorOutputLevel + "." + name;
-        String level = ComponentCreator.getProperties().getProperty(selfMonitorOutputLevel);
+        String level = SystemContext.getStringParameter(selfMonitorOutputLevel);
         if (StringUtil.isNotEmpty(level)) {
             this.level = level;
         }
 
-        String timeoutStr = ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT + "." + name);
+        String timeoutStr = SystemContext.getStringParameter(ConfigurationKey.MONITOR_SLOW_TIMEOUT + "." + name);
         if (StringUtil.isNotEmpty(timeoutStr)) {
             this.timeoutSecond = Integer.valueOf(timeoutStr);
         }
@@ -137,7 +164,7 @@ public class DipperMonitor implements IMonitor {
 
     @Override
     public IMonitor createChildren(IConfigurable configurable) {
-        String name = MapKeyUtil.createKeyBySign(".", configurable.getType(), configurable.getNameSpace(), configurable.getConfigureName());
+        String name = MapKeyUtil.createKeyBySign(".", configurable.getType(), configurable.getNameSpace(), configurable.getName());
         return createChildren(name);
     }
 
@@ -180,6 +207,20 @@ public class DipperMonitor implements IMonitor {
         return type;
     }
 
+    //    protected JSONObject createChildren(){
+    //        JSONObject result=null;
+    //        if(this.children!=null&&this.children.size()>0){
+    //            //如果有子记录，则把子记录记录下来
+    //            result=new JSONObject();
+    //            JSONArray jsonArray=new JSONArray();
+    //            for(int i=0;i<this.children.size();i++){
+    //                jsonArray.add(this.children.get(i).report());
+    //            }
+    //            result.put(IMonitor.MONITOR_CHILDREN,jsonArray);
+    //        }
+    //        return result;
+    //    }
+
     @Override
     public void setType(String type) {
         this.type = type;
@@ -205,9 +246,9 @@ public class DipperMonitor implements IMonitor {
         if (value == null) {
             return this;
         }
-        if (IMessage.class.isInstance(value)) {
+        if (value instanceof IMessage) {
             JSONObject msgContext = new JSONObject();
-            IMessage message = (IMessage)value;
+            IMessage message = (IMessage) value;
             msgContext.put("orig_msg", message.getMessageBody());
             msgContext.put("orig_header", message.getHeader().toJsonObject());
             this.contextMsgs.add(msgContext);
@@ -224,7 +265,7 @@ public class DipperMonitor implements IMonitor {
 
     protected JSONObject createErrorJson() {
         JSONObject result = null;
-        if (this.success == false) {
+        if (!this.success) {
             result = new JSONObject();
             //如果有错误，把错误信息记录下来
             JSONArray errorMsgtmp = new JSONArray();
@@ -245,29 +286,13 @@ public class DipperMonitor implements IMonitor {
         return result;
     }
 
-    //    protected JSONObject createChildren(){
-    //        JSONObject result=null;
-    //        if(this.children!=null&&this.children.size()>0){
-    //            //如果有子记录，则把子记录记录下来
-    //            result=new JSONObject();
-    //            JSONArray jsonArray=new JSONArray();
-    //            for(int i=0;i<this.children.size();i++){
-    //                jsonArray.add(this.children.get(i).report());
-    //            }
-    //            result.put(IMonitor.MONITOR_CHILDREN,jsonArray);
-    //        }
-    //        return result;
-    //    }
-
     protected JSONObject createContext() {
         JSONObject result = null;
         if (this.contextMsgs != null && this.contextMsgs.size() > 0) {
             //如果有上下文信息，则把上下文放进去
             result = new JSONObject();
             JSONArray jsonArray = new JSONArray();
-            for (int i = 0; i < contextMsgs.size(); i++) {
-                jsonArray.add(contextMsgs.get(i));
-            }
+            jsonArray.addAll(contextMsgs);
             result.put(MONITOR_CONTEXT_MSG, jsonArray);
         }
         return result;
@@ -281,11 +306,11 @@ public class DipperMonitor implements IMonitor {
         result.put(MONITOR_COST, cost);
 
         //只输出到慢日志文件
-        if (level.indexOf(MONITO_SLOW) != -1) {
+        if (level.contains(MONITO_SLOW)) {
             result.put(MONTIOR_SLOW, isSlow());
             Object object = this.getValue();
             if (object != null) {
-                if (JSONObject.class.isInstance(object)) {
+                if (object instanceof JSONObject) {
                     result.put(MONITOR_RESULT, object);
                 } else {
                     DataType dataType = DataTypeUtil.getDataTypeFromClass(object.getClass());
@@ -294,14 +319,14 @@ public class DipperMonitor implements IMonitor {
             }
         }
         //只输出到错误日志文件
-        if (level.indexOf(MONITO_ERROR) != -1) {
+        if (level.contains(MONITO_ERROR)) {
             JSONObject error = createErrorJson();
             if (error != null) {
                 result.put(MONITOR_ERROR_MSG, error);
             }
         }
         //只输出到info日志目录
-        if (level.indexOf(MONITO_INFO) != -1) {
+        if (level.contains(MONITO_INFO)) {
             JSONObject context = createContext();
             if (context != null) {
                 result.put(MONITOR_CONTEXT_MSG, context);
@@ -312,7 +337,7 @@ public class DipperMonitor implements IMonitor {
             result.put(MONTIOR_SLOW, isSlow());
             Object object = this.getValue();
             if (object != null) {
-                if (JSONObject.class.isInstance(object)) {
+                if (object instanceof JSONObject) {
                     result.put(MONITOR_RESULT, object);
                 } else {
                     DataType dataType = DataTypeUtil.getDataTypeFromClass(object.getClass());
@@ -328,57 +353,19 @@ public class DipperMonitor implements IMonitor {
         return result;
     }
 
-    /**
-     * 输出时会用到，比如输出到数据库，则每个字段名，需要和metadata一致
-     */
-    private static MetaData metaData = new MetaData();
-
-    static {
-        metaData.setTableName("monitor_data");
-        metaData.setIdFieldName("id");
-        metaData.getMetaDataFields().add(createMetaDataField("id", new LongDataType()));
-        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_CHILDREN));
-        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_CONTEXT_MSG));
-        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_COST, new IntDataType()));
-        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_ERROR_MSG));
-        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_SAMPLE_DATA));
-        metaData.getMetaDataFields().add(createMetaDataField(MONITOR_SUCCESS, new BooleanDataType()));
-        metaData.getMetaDataFields().add(createMetaDataField(MONTIOR_SLOW, new BooleanDataType()));
-        metaData.getMetaDataFields().add(createMetaDataField(MONTIOR_NAME));
-
-    }
-
-    private static MetaDataField createMetaDataField(String name) {
-        return createMetaDataField(name, new StringDataType());
-    }
-
-    /**
-     * 因为所有字段都是字符类型，
-     *
-     * @param name
-     * @return
-     */
-    private static MetaDataField createMetaDataField(String name, DataType dataType) {
-        MetaDataField metaDataField = new MetaDataField();
-        metaDataField.setFieldName(name);
-        metaDataField.setIsRequired(false);
-        metaDataField.setDataType(dataType);
-        return metaDataField;
-    }
-
     @Override
     public void output() {
         String level = this.level.toUpperCase();
 
-        if (level.indexOf(MONITO_INFO) != -1) {
+        if (level.contains(MONITO_INFO)) {
             output2Channel(MONITO_INFO);
         }
         //慢日志文件
-        if (level.indexOf(MONITO_SLOW) != -1 && timeoutSecond != null && isSlow()) {
+        if (level.contains(MONITO_SLOW) && timeoutSecond != null && isSlow()) {
             output2Channel(MONITO_SLOW);
         }
         //错误日志文件
-        if (level.indexOf(MONITO_ERROR) != -1 && success == false) {
+        if (level.contains(MONITO_ERROR) && !success) {
             output2Channel(MONITO_ERROR);
         }
 
@@ -391,19 +378,19 @@ public class DipperMonitor implements IMonitor {
      */
     protected void output2Channel(String level) {
         JSONObject result = report(level);
-        List<ISink> outputDataSourceList = MonitorFactory.getOutputDataSource(name, level);
+        List<ISink<?>> outputDataSourceList = MonitorFactory.getOutputDataSource(name, level);
 
         if (outputDataSourceList == null) {
             outputDataSourceList = new ArrayList<>();
         }
-        ISink loggerOutputDataSource = MonitorFactory.createOrGetLogOutputDatasource(
+        ISink<?> loggerOutputDataSource = MonitorFactory.createOrGetLogOutputDatasource(
             this.name + "_" + level.toLowerCase());
         if (loggerOutputDataSource != null) {
             outputDataSourceList.add(loggerOutputDataSource);
         } else {
             LOG.error("loggerOutputDataSource is null name=" + name + " level=" + level.toLowerCase());
         }
-        for (ISink channel : outputDataSourceList) {
+        for (ISink<?> channel : outputDataSourceList) {
             if (channel == null) {
                 LOG.error("channel is null name=" + name + " level=" + level.toLowerCase() + " size" + outputDataSourceList.size());
                 continue;
@@ -414,15 +401,15 @@ public class DipperMonitor implements IMonitor {
                 }
 
             } catch (Exception e) {
-                LOG.error("openAutoFlush error" + e.getMessage() + channel.getConfigureName() + "" + channel.getClass(), e);
+                LOG.error("openAutoFlush error" + e.getMessage() + channel.getName() + "" + channel.getClass(), e);
             }
             try {
                 if (channel != null) {
-                    channel.batchAdd(new Message(result),null);
+                    channel.batchAdd(new Message(result), null);
                 }
 
             } catch (Exception e) {
-                LOG.error("batchAdd error" + e.getMessage() + channel.getConfigureName() + "" + channel.getClass(), e);
+                LOG.error("batchAdd error" + e.getMessage() + channel.getName() + "" + channel.getClass(), e);
             }
 
         }
@@ -456,9 +443,7 @@ public class DipperMonitor implements IMonitor {
 
     @Override
     public JSONObject setSampleData(AbstractContext context) {
-        JSONObject sampleData = getSampleData(context);
-
-        this.sampleData = sampleData;
+        this.sampleData = getSampleData(context);
         return this.sampleData;
     }
 
@@ -504,9 +489,5 @@ public class DipperMonitor implements IMonitor {
 
     public List<Object> getContextMsgs() {
         return contextMsgs;
-    }
-
-    public static String getMonitorOutputLevel() {
-        return monitorOutputLevel;
     }
 }

@@ -40,8 +40,8 @@ public class RegexSubStrFunction {
      */
     @FunctionMethod(value = "regexsubstr", comment = "从start_position位置开始，source中第nth_occurrence次匹配指定模式pattern的子串")
     public String regexsubstr(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表要处理的列名称或常量值") String fieldName,
-                              @FunctionParamter(value = "string", comment = "代表正则字段信息") String pattern) {
+        @FunctionParamter(value = "string", comment = "代表要处理的列名称或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "代表正则字段信息") String pattern) {
         String index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         pattern = FunctionUtils.getValueString(message, context, pattern);
@@ -68,9 +68,9 @@ public class RegexSubStrFunction {
      */
     @FunctionMethod(value = "regexsubstr", comment = "获取正则匹配的位置信息")
     public String regexsubstr(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表要处理的列名称或常量值") String fieldName,
-                              @FunctionParamter(value = "string", comment = "代表正则字段信息") String pattern,
-                              @FunctionParamter(value = "string", comment = "代表开始匹配的位置") Long position) {
+        @FunctionParamter(value = "string", comment = "代表要处理的列名称或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "代表正则字段信息") String pattern,
+        @FunctionParamter(value = "string", comment = "代表开始匹配的位置") Long position) {
         String index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
@@ -96,10 +96,10 @@ public class RegexSubStrFunction {
      */
     @FunctionMethod(value = "regexsubstr", comment = "获取正则匹配的位置信息")
     public String regexsubstr(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表要处理的列名称或常量值") String fieldName,
-                              @FunctionParamter(value = "string", comment = "代表正则字段信息") String pattern,
-                              @FunctionParamter(value = "string", comment = "代表开始匹配的位置") Long position,
-                              @FunctionParamter(value = "long", comment = "代表指定第几次出现") Long occurrence) {
+        @FunctionParamter(value = "string", comment = "代表要处理的列名称或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "代表正则字段信息") String pattern,
+        @FunctionParamter(value = "string", comment = "代表开始匹配的位置") Long position,
+        @FunctionParamter(value = "long", comment = "代表指定第几次出现") Long occurrence) {
         Long index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
@@ -114,7 +114,7 @@ public class RegexSubStrFunction {
             if (m.find()) {
                 strTem = m.group(1);
             }
-            index = (long)ori.indexOf(strTem, position.intValue() + 1);
+            index = (long) ori.indexOf(strTem, position.intValue() + 1);
             position = index;
             i++;
         }

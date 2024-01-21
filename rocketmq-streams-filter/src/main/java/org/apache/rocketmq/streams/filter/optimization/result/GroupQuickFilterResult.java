@@ -30,41 +30,41 @@ import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimi
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 
-public class GroupQuickFilterResult  extends FilterResultCache {
-    Map<String,Integer> expression2QuickFilterResultIndexMap=new HashMap<>();
-    List<FilterResultCache> results=new ArrayList<>();
-    public GroupQuickFilterResult(Map<String,Integer> expression2QuickFilterResultIndexMap, List<FilterResultCache> results){
-        super(null,null);
-        this.expression2QuickFilterResultIndexMap=expression2QuickFilterResultIndexMap;
-        this.results=results;
+public class GroupQuickFilterResult extends FilterResultCache {
+    Map<String, Integer> expression2QuickFilterResultIndexMap = new HashMap<>();
+    List<FilterResultCache> results = new ArrayList<>();
+
+    public GroupQuickFilterResult(Map<String, Integer> expression2QuickFilterResultIndexMap, List<FilterResultCache> results) {
+        super(null, null);
+        this.expression2QuickFilterResultIndexMap = expression2QuickFilterResultIndexMap;
+        this.results = results;
     }
 
     @Override public Boolean isMatch(IMessage msg, Object expression) {
-        String key=null;
-        if(expression instanceof IScriptExpression){
-            if(RegexFunction.isRegexFunction(((IScriptExpression) expression).getFunctionName())){
-                IScriptExpression scriptExpression=(IScriptExpression)expression;
-                String varName= IScriptOptimization.getParameterValue((IScriptParamter)scriptExpression.getScriptParamters().get(0));
-                String regex=IScriptOptimization.getParameterValue((IScriptParamter)scriptExpression.getScriptParamters().get(1));
-                key= MapKeyUtil.createKey(varName,scriptExpression.getFunctionName(),regex);
+        String key = null;
+        if (expression instanceof IScriptExpression) {
+            if (RegexFunction.isRegexFunction(((IScriptExpression) expression).getFunctionName())) {
+                IScriptExpression scriptExpression = (IScriptExpression) expression;
+                String varName = IScriptOptimization.getParameterValue((IScriptParamter) scriptExpression.getScriptParamters().get(0));
+                String regex = IScriptOptimization.getParameterValue((IScriptParamter) scriptExpression.getScriptParamters().get(1));
+                key = MapKeyUtil.createKey(varName, scriptExpression.getFunctionName(), regex);
             }
-        }else if(expression instanceof Expression){
-            Expression filterExpression=(Expression)expression;
-            if(LikeFunction.isLikeFunciton(filterExpression.getFunctionName())|| org.apache.rocketmq.streams.filter.function.expression.RegexFunction.isRegex(filterExpression.getFunctionName())){
-                key= MapKeyUtil.createKey(filterExpression.getVarName(),filterExpression.getFunctionName(),(String)filterExpression.getValue());
+        } else if (expression instanceof Expression) {
+            Expression filterExpression = (Expression) expression;
+            if (LikeFunction.isLikeFunciton(filterExpression.getFunctionName()) || org.apache.rocketmq.streams.filter.function.expression.RegexFunction.isRegex(filterExpression.getFunctionName())) {
+                key = MapKeyUtil.createKey(filterExpression.getVarName(), filterExpression.getFunctionName(), (String) filterExpression.getValue());
             }
 
         }
-        if(key!=null){
-            Integer index= expression2QuickFilterResultIndexMap.get(key);
-            if(index==null){
+        if (key != null) {
+            Integer index = expression2QuickFilterResultIndexMap.get(key);
+            if (index == null) {
                 return null;
             }
-            FilterResultCache quickFilterResult=results.get(index);
-            return quickFilterResult.isMatch(msg,expression);
+            FilterResultCache quickFilterResult = results.get(index);
+            return quickFilterResult.isMatch(msg, expression);
         }
         return null;
     }
-
 
 }

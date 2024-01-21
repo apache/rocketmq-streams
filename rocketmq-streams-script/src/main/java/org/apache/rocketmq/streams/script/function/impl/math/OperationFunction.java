@@ -37,8 +37,8 @@ public class OperationFunction {
      */
     @FunctionMethod(value = "add", alias = "add", comment = "返回A + B的结果")
     public Integer add(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "第一个操作数") String a,
-                       @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
+        @FunctionParamter(value = "String", comment = "第一个操作数") String a,
+        @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         Integer bTem = Integer.parseInt(FunctionUtils.getValueString(message, context, b));
@@ -60,8 +60,8 @@ public class OperationFunction {
      */
     @FunctionMethod(value = "minus ", alias = "minus", comment = "返回A – B的结果")
     public Integer minus(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "String", comment = "第一个操作数") String a,
-                         @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
+        @FunctionParamter(value = "String", comment = "第一个操作数") String a,
+        @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         Integer bTem = Integer.parseInt(FunctionUtils.getValueString(message, context, b));
@@ -83,8 +83,8 @@ public class OperationFunction {
      */
     @FunctionMethod(value = "multiply", alias = "multiply", comment = "返回A * B的结果")
     public Integer multiply(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "String", comment = "第一个操作数") String a,
-                            @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
+        @FunctionParamter(value = "String", comment = "第一个操作数") String a,
+        @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         Integer bTem = Integer.parseInt(FunctionUtils.getValueString(message, context, b));
@@ -106,8 +106,8 @@ public class OperationFunction {
      */
     @FunctionMethod(value = "divide", alias = "divide", comment = "返回A / B的结果")
     public Integer divide(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "String", comment = "第一个操作数") String a,
-                          @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
+        @FunctionParamter(value = "String", comment = "第一个操作数") String a,
+        @FunctionParamter(value = "String", comment = "第二个操作数") String b) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         Integer bTem = Integer.parseInt(FunctionUtils.getValueString(message, context, b));

@@ -40,9 +40,9 @@ public class RegexReplaceFunction {
      */
     @FunctionMethod(value = "regexreplace", comment = "根据正则匹配替换字段信息")
     public String regexreplace(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "被替换的字段代表列字段或常量值") String fieldName,
-                               @FunctionParamter(value = "string", comment = "要替换的字段代表列字段或常量值") String replaceStr,
-                               @FunctionParamter(value = "string", comment = "正则表达式") String pattern) {
+        @FunctionParamter(value = "string", comment = "被替换的字段代表列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "要替换的字段代表列字段或常量值") String replaceStr,
+        @FunctionParamter(value = "string", comment = "正则表达式") String pattern) {
         String index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern) || StringUtil.isEmpty(replaceStr)) {
@@ -65,10 +65,10 @@ public class RegexReplaceFunction {
      */
     @FunctionMethod(value = "regexreplace", comment = "根据正则匹配替换字段信息")
     public String regexreplace(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "被替换的字段代表列字段或常量值") String fieldName,
-                               @FunctionParamter(value = "string", comment = "要替换的字段代表列字段或常量值") String replaceStr,
-                               @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
-                               @FunctionParamter(value = "long", comment = "正则匹配第几次数") Long occurrence) {
+        @FunctionParamter(value = "string", comment = "被替换的字段代表列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "要替换的字段代表列字段或常量值") String replaceStr,
+        @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
+        @FunctionParamter(value = "long", comment = "正则匹配第几次数") Long occurrence) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
             return NULL;

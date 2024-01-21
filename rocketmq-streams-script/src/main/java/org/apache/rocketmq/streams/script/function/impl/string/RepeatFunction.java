@@ -38,8 +38,8 @@ public class RepeatFunction {
      */
     @FunctionMethod(value = "repeat", comment = "重复输出指定次数的字符串")
     public String repeat(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表要重复输出代表列字段或常量值") String str,
-                         @FunctionParamter(value = "long", comment = "指定输出的次数") String countStr) throws Exception {
+        @FunctionParamter(value = "string", comment = "代表要重复输出代表列字段或常量值") String str,
+        @FunctionParamter(value = "long", comment = "指定输出的次数") String countStr) throws Exception {
         StringBuilder sb = new StringBuilder();
         str = FunctionUtils.getValueString(message, context, str);
         Integer count = FunctionUtils.getValueInteger(message, context, countStr);

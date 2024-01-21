@@ -35,7 +35,7 @@ public class FactorialFunction {
      */
     @FunctionMethod(value = "factorial", alias = "factorial", comment = "返回值的阶乘")
     public Long factorial(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
         Long result = null;
         if (number == null || number < 0 || number > 20) {
             return result;
@@ -59,7 +59,7 @@ public class FactorialFunction {
      */
     @FunctionMethod(value = "factorial", alias = "factorial", comment = "返回值的阶乘")
     public Long factorial(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
         Long result = null;
         Integer numberTem = Integer.parseInt(FunctionUtils.getValueString(message, context, number));
         if (number == null || numberTem < 0 || numberTem > 20) {

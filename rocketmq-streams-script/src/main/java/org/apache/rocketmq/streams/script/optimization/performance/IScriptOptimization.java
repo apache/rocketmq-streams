@@ -31,37 +31,6 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
  */
 public interface IScriptOptimization {
 
-    /**
-     * compile expression list to improve performance
-     * @param expressions IScriptExpression list of FunctionScript
-     * @param functionScript functionScript object
-     * @return the executor to to improve performance
-     */
-    IOptimizationCompiler compile(List<IScriptExpression> expressions, IConfigurableIdentification functionScript);
-
-
-
-
-    /**
-     * the executor can execute expression and return result
-     */
-    interface IOptimizationExecutor {
-        FilterResultCache execute(IMessage message, AbstractContext context);
-    }
-
-
-    /**
-     * the executor can execute expression and return result
-     */
-    interface IOptimizationCompiler extends IOptimizationExecutor{
-
-        /**
-         * the IScriptExpression list after Optimization compile
-         * @return
-         */
-        List<IScriptExpression> getOptimizationExpressionList();
-    }
-
     static String getParameterValue(IScriptParamter scriptParamter) {
         if (!ScriptParameter.class.isInstance(scriptParamter)) {
             return null;
@@ -71,5 +40,34 @@ public interface IScriptOptimization {
             return null;
         }
         return FunctionUtils.getConstant(parameter.getLeftVarName());
+    }
+
+    /**
+     * compile expression list to improve performance
+     *
+     * @param expressions    IScriptExpression list of FunctionScript
+     * @param functionScript functionScript object
+     * @return the executor to to improve performance
+     */
+    IOptimizationCompiler compile(List<IScriptExpression> expressions, IConfigurableIdentification functionScript);
+
+    /**
+     * the executor can execute expression and return result
+     */
+    interface IOptimizationExecutor {
+        FilterResultCache execute(IMessage message, AbstractContext context);
+    }
+
+    /**
+     * the executor can execute expression and return result
+     */
+    interface IOptimizationCompiler extends IOptimizationExecutor {
+
+        /**
+         * the IScriptExpression list after Optimization compile
+         *
+         * @return
+         */
+        List<IScriptExpression> getOptimizationExpressionList();
     }
 }

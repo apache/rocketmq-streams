@@ -28,6 +28,7 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
  */
 public class FunctionContext<T extends IMessage>
     extends AbstractContext<T> {
+    protected Object returnValue;
 
     protected transient IFunctionService functionService = ScanFunctionService.getInstance();
 
@@ -41,7 +42,6 @@ public class FunctionContext<T extends IMessage>
         FunctionContext context = new FunctionContext(message);
         super.copyProperty(context);
         context.setFunctionService(this.functionService);
-        context.setConfigurableService(this.configurableService);
         return context;
     }
 
@@ -64,6 +64,14 @@ public class FunctionContext<T extends IMessage>
             return t;
         }
 
+    }
+
+    public Object getReturnValue() {
+        return returnValue;
+    }
+
+    public void setReturnValue(Object returnValue) {
+        this.returnValue = returnValue;
     }
 
     public IFunctionService getFunctionService() {

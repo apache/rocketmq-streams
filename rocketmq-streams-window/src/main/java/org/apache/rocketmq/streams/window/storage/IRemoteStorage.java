@@ -27,6 +27,7 @@ public interface IRemoteStorage<T> extends ICommonStorage<T> {
 
     /**
      * generate sql sentence for session window
+     *
      * @param infoMap
      * @return
      */

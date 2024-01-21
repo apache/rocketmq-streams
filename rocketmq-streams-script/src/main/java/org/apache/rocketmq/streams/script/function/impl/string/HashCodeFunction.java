@@ -37,7 +37,7 @@ public class HashCodeFunction {
      */
     @FunctionMethod(value = "hashcode", comment = "获取字符串的hashcode")
     public String hashcode(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "字段名或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

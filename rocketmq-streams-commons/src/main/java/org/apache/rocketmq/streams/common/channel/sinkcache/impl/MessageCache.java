@@ -20,30 +20,41 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.channel.sinkcache.DataSourceAutoFlushTask;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageFlushCallBack;
-import org.apache.rocketmq.streams.common.schedule.ScheduleManager;
-import org.apache.rocketmq.streams.common.schedule.ScheduleTask;
+import org.apache.rocketmq.streams.common.threadpool.ScheduleFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 消息缓存的实现，通过消息队列做本地缓存。目前多是用了这个实现
  */
 public class MessageCache<R> implements IMessageCache<R> {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessageCache.class);
     protected IMessageFlushCallBack<R> flushCallBack;
-    protected volatile AtomicInteger messageCount = new AtomicInteger(0);//缓存中的数据条数
-    protected int batchSize = 1000;//最大缓存条数，超过后需要，刷新出去，做内存保护
-    protected transient DataSourceAutoFlushTask autoFlushTask;//自动任务刷新，可以均衡实时性和吞吐率
-    protected volatile transient ConcurrentLinkedQueue<R> dataQueue = new ConcurrentLinkedQueue<>();//缓存数据的消息队列
+    /**
+     * 当前缓存的消息数量
+     */
+    protected volatile AtomicInteger messageCount = new AtomicInteger(0);
+    /**
+     * 最大缓存条数，超过后需要，刷新出去，做内存保护
+     */
+    protected int batchSize = 1000;
+    /**
+     * 自动任务刷新，可以均衡实时性和吞吐率
+     */
+    protected transient DataSourceAutoFlushTask autoFlushTask;
+    /**
+     * 缓存数据的消息队列
+     */
+    protected volatile transient ConcurrentLinkedQueue<R> dataQueue = new ConcurrentLinkedQueue<>();
     protected AtomicBoolean openAutoFlushLock = new AtomicBoolean(false);
     protected volatile int autoFlushSize = 300;
     protected volatile int autoFlushTimeGap = 1000;
-
-    protected ExecutorService autoFlushExecutorService;
 
     public MessageCache(IMessageFlushCallBack<R> flushCallBack) {
         this.flushCallBack = flushCallBack;
@@ -60,6 +71,7 @@ public class MessageCache<R> implements IMessageCache<R> {
         offerQueue(msg);
         int size = messageCount.incrementAndGet();
         if (batchSize > 0 && size >= batchSize) {
+            LOGGER.debug("MessageCache must sync process message, beacuse the queue is full");
             flush();
         }
         return size;
@@ -67,13 +79,11 @@ public class MessageCache<R> implements IMessageCache<R> {
 
     @Override
     public void openAutoFlush() {
-        if (openAutoFlushLock.compareAndSet(false, true)) {//可重入锁
+        if (openAutoFlushLock.compareAndSet(false, true)) {
             autoFlushTask = new DataSourceAutoFlushTask(true, this);
             autoFlushTask.setAutoFlushSize(this.autoFlushSize);
             autoFlushTask.setAutoFlushTimeGap(this.autoFlushTimeGap);
-            ScheduleTask scheduleTask = new ScheduleTask(autoFlushTask, autoFlushTask);
-            scheduleTask.setExecutorService(this.autoFlushExecutorService);
-            ScheduleManager.getInstance().regist(scheduleTask);
+            ScheduleFactory.getInstance().execute(MessageCache.class.getName() + "-message_cache_schedule", autoFlushTask, 0, 100, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -82,6 +92,7 @@ public class MessageCache<R> implements IMessageCache<R> {
         if (autoFlushTask != null) {
             autoFlushTask.setAutoFlush(false);
             openAutoFlushLock.set(false);
+            ScheduleFactory.getInstance().cancel(MessageCache.class.getName() + "-message_cache_schedule");
         }
     }
 
@@ -165,11 +176,4 @@ public class MessageCache<R> implements IMessageCache<R> {
         return flushCallBack;
     }
 
-    public ExecutorService getAutoFlushExecutorService() {
-        return autoFlushExecutorService;
-    }
-
-    public void setAutoFlushExecutorService(ExecutorService autoFlushExecutorService) {
-        this.autoFlushExecutorService = autoFlushExecutorService;
-    }
 }

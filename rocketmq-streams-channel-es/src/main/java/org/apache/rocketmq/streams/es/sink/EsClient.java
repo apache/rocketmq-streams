@@ -17,9 +17,6 @@
 package org.apache.rocketmq.streams.es.sink;
 
 import java.io.IOException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -29,6 +26,8 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author zhangliang
@@ -37,31 +36,20 @@ import org.elasticsearch.client.RestHighLevelClient;
  */
 public class EsClient {
 
-    private static final Log logger = LogFactory.getLog(EsClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(EsClient.class);
 
     //private static final Logger logger = LogManager.getLogger(EsClient.class);
-
-    private RestHighLevelClient esClient;
-
-    private Object object = new Object();
-
     private static final int socketTimeOut = 5 * 60 * 1000;
-
     private static final int connectTimeOut = 5 * 60 * 1000;
-
     private static final int connectionRequestTimeOut = 5 * 60 * 1000;
-
     private static final boolean needAuth = true;
-
-    private String host;
-
-    private String port;
-
-    private String username;
-
-    private String password;
-
     private static String SCHEME = "http";
+    private RestHighLevelClient esClient;
+    private Object object = new Object();
+    private String host;
+    private String port;
+    private String username;
+    private String password;
 
     public EsClient(String host, String port, String username, String password) {
         this.host = host;
@@ -86,7 +74,7 @@ public class EsClient {
     }
 
     private RestHighLevelClient createClient() {
-        logger.info("esClient createClient host=" + host + " port=" + port);
+        LOGGER.info("esClient createClient host=" + host + " port=" + port);
         try {
             //解决netty冲突问题
             System.setProperty("es.set.netty.runtime.available.processors", "false");
@@ -109,7 +97,7 @@ public class EsClient {
             }
             esClient = new RestHighLevelClient(builder);
         } catch (Exception e) {
-            logger.error("esClient createClient host=" + host + " port=" + port + " error=" + e.getMessage(), e);
+            LOGGER.error("esClient createClient host=" + host + " port=" + port + " error=" + e.getMessage(), e);
             throw e;
         }
         return esClient;
@@ -121,14 +109,14 @@ public class EsClient {
     }
 
     private void closeClient() {
-        logger.error("esClient closeClient host=" + host + " port=" + port);
+        LOGGER.error("esClient closeClient host=" + host + " port=" + port);
         if (esClient != null) {
             try {
                 esClient.close();
                 esClient = null;
-                logger.error("esClient closeClient success host=" + host + " port=" + port);
+                LOGGER.error("esClient closeClient success host=" + host + " port=" + port);
             } catch (IOException e) {
-                logger.error("esClient closeClient failed host=" + host + " port=" + port + " error=" + e.getMessage(), e);
+                LOGGER.error("esClient closeClient failed host=" + host + " port=" + port + " error=" + e.getMessage(), e);
             }
         }
     }

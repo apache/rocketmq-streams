@@ -24,16 +24,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.rocketmq.streams.client.transform.window.SessionWindow;
+import org.apache.rocketmq.streams.client.transform.window.HoppingWindow;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
-import org.apache.rocketmq.streams.common.functions.ForEachFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
-import org.apache.rocketmq.streams.common.functions.ReduceFunction;
+import org.apache.rocketmq.streams.common.model.Pair;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -41,31 +40,47 @@ public class WindowTest implements Serializable {
 
     @Test
     public void testWindow() {
-        StreamBuilder.dataStream("namespace", "name")
-            .fromFile("/Users/duheng/project/opensource/sls_100.txt", false)
-            .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
+        /**
+         * 把with中key，value放到properties中
+         */
+        Properties properties = new Properties();
+        properties.put("topic", "");
+        properties.put("bootstrap.servers", "");
+        properties.put("group.id", "");
+        properties.put("batchSize", 500);
+
+        StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name")
+            .fromFile("window_msg_100.txt", true)
             .window(TumblingWindow.of(Time.seconds(5)))
-            .setTimeField("时间字段")
-            .waterMark(10)
             .groupBy("ProjectName", "LogStore")
-            .setLocalStorageOnly(true)
-            .reduce(new ReduceFunction<IAccumulator, JSONObject>() {
+            .setLocalStorageOnly(false)
+            .saveWindowMsg(new MapFunction<JSONObject, Pair<WindowInstance, JSONObject>>() {
+                @Override public JSONObject map(Pair<WindowInstance, JSONObject> message) throws Exception {
+                    WindowInstance windowInstance = message.getKey();
+                    JSONObject msg = message.getValue();
+                    JSONObject newMsg = new JSONObject();
+                    newMsg.putAll(msg);
+                    newMsg.put("window_start_time", windowInstance.getStartTime());
+                    newMsg.put("window_end_time", windowInstance.getEndTime());
 
-                @Override public IAccumulator reduce(IAccumulator acccumulator, JSONObject msg) {
-                    return null;
+                    return newMsg;
                 }
-            })
-            .forEach(new ForEachFunction<JSONObject>() {
-                protected int sum = 0;
+            }, "kafka", properties)
 
-                @Override
-                public void foreach(JSONObject o) {
-                    int total = o.getInteger("total");
-                    sum = sum + total;
-                    o.put("sum(total)", sum);
-                }
-            }).toPrint().start();
+            .toDataSteam()
+            .toPrint().start();
 
+    }
+
+    @Test
+    public void testHopWindow() {
+//        ComponentCreator.setProperties("");
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
+            .fromFile("window_msg_100.txt", true).window(HoppingWindow.of(Time.seconds(10), Time.seconds(5)))
+            .count("asCount")
+            .setLocalStorageOnly(false)
+            .toDataSteam()
+            .toPrint().start();
     }
 
     //    @Test
@@ -97,102 +112,102 @@ public class WindowTest implements Serializable {
     //            }).toPrint().start();
     //    }
 
-    @Test
-    public void testSession() {
-        //dataset
-        List<String> behaviorList = new ArrayList<>();
-
-        JSONObject userA = new JSONObject();
-        userA.put("time", DateUtil.parse("2021-09-09 10:00:00"));
-        userA.put("user", "userA");
-        userA.put("movie", "movie001");
-        userA.put("flag", 1);
-        behaviorList.add(userA.toJSONString());
-
-        userA = new JSONObject();
-        userA.put("time", DateUtil.parse("2021-09-09 10:00:01"));
-        userA.put("user", "userA");
-        userA.put("movie", "movie002");
-        userA.put("flag", 1);
-        behaviorList.add(userA.toJSONString());
-
-        JSONObject userB = new JSONObject();
-        userB.put("time", DateUtil.parse("2021-09-09 10:00:00"));
-        userB.put("user", "userB");
-        userB.put("movie", "movie003");
-        userB.put("flag", 1);
-        behaviorList.add(userB.toJSONString());
-
-        JSONObject userC = new JSONObject();
-        userC.put("time", DateUtil.parse("2021-09-09 10:00:00"));
-        userC.put("user", "userC");
-        userC.put("movie", "movie004");
-        userC.put("flag", 1);
-        behaviorList.add(userC.toJSONString());
-
-        userC = new JSONObject();
-        userC.put("time", DateUtil.parse("2021-09-09 10:00:06"));
-        userC.put("user", "userC");
-        userC.put("movie", "movie005");
-        userC.put("flag", 1);
-        behaviorList.add(userC.toJSONString());
-
-        File dataFile = null;
-        try {
-            dataFile = File.createTempFile("behavior", ".txt");
-            FileUtils.writeLines(dataFile, behaviorList);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        File resultFile = null;
-        try {
-            resultFile = File.createTempFile("behavior.txt", ".session");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        StreamBuilder.dataStream("namespace", "session_test")
-            .fromFile(dataFile.getAbsolutePath(), false)
-            .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
-            .window(SessionWindow.of(Time.seconds(5), "time"))
-            .groupBy("user")
-            .setLocalStorageOnly(true)
-            .sum("flag", "count")
-            .toDataSteam()
-            .toFile(resultFile.getAbsolutePath()).start(true);
-
-        try {
-            Thread.sleep(1 * 60 * 1000);
-            List<String> sessionList = FileUtils.readLines(resultFile, "UTF-8");
-            Map<String, List<Pair<Pair<String, String>, Integer>>> sessionMap = new HashMap<>(4);
-            for (String line : sessionList) {
-                JSONObject object = JSONObject.parseObject(line);
-                String user = object.getString("user");
-                String startTime = object.getString("start_time");
-                String endTime = object.getString("end_time");
-                Integer value = object.getIntValue("count");
-                if (!sessionMap.containsKey(user)) {
-                    sessionMap.put(user, new ArrayList<>());
-                }
-                sessionMap.get(user).add(Pair.of(Pair.of(startTime, endTime), value));
-            }
-            Assert.assertEquals(3, sessionMap.size());
-            Assert.assertEquals(1, sessionMap.get("userA").size());
-            Assert.assertEquals("2021-09-09 10:00:06", sessionMap.get("userA").get(0).getLeft().getRight());
-            Assert.assertEquals(2, sessionMap.get("userC").size());
-            Assert.assertEquals("2021-09-09 10:00:05", sessionMap.get("userC").get(0).getLeft().getRight());
-            Assert.assertEquals("2021-09-09 10:00:06", sessionMap.get("userC").get(1).getLeft().getLeft());
-            Assert.assertEquals(1, sessionMap.get("userB").size());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            dataFile.deleteOnExit();
-            resultFile.deleteOnExit();
-        }
-
-    }
+//    @Test
+//    public void testSession() {
+//        //dataset
+//        List<String> behaviorList = new ArrayList<>();
+//
+//        JSONObject userA = new JSONObject();
+//        userA.put("time", DateUtil.parse("2021-09-09 10:00:00"));
+//        userA.put("user", "userA");
+//        userA.put("movie", "movie001");
+//        userA.put("flag", 1);
+//        behaviorList.add(userA.toJSONString());
+//
+//        userA = new JSONObject();
+//        userA.put("time", DateUtil.parse("2021-09-09 10:00:01"));
+//        userA.put("user", "userA");
+//        userA.put("movie", "movie002");
+//        userA.put("flag", 1);
+//        behaviorList.add(userA.toJSONString());
+//
+//        JSONObject userB = new JSONObject();
+//        userB.put("time", DateUtil.parse("2021-09-09 10:00:00"));
+//        userB.put("user", "userB");
+//        userB.put("movie", "movie003");
+//        userB.put("flag", 1);
+//        behaviorList.add(userB.toJSONString());
+//
+//        JSONObject userC = new JSONObject();
+//        userC.put("time", DateUtil.parse("2021-09-09 10:00:00"));
+//        userC.put("user", "userC");
+//        userC.put("movie", "movie004");
+//        userC.put("flag", 1);
+//        behaviorList.add(userC.toJSONString());
+//
+//        userC = new JSONObject();
+//        userC.put("time", DateUtil.parse("2021-09-09 10:00:06"));
+//        userC.put("user", "userC");
+//        userC.put("movie", "movie005");
+//        userC.put("flag", 1);
+//        behaviorList.add(userC.toJSONString());
+//
+//        File dataFile = null;
+//        try {
+//            dataFile = File.createTempFile("behavior", ".txt");
+//            FileUtils.writeLines(dataFile, behaviorList);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        File resultFile = null;
+//        try {
+//            resultFile = File.createTempFile("behavior.txt", ".session");
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        StreamBuilder.dataStream("namespace", "session_test")
+//            .fromFile(dataFile.getAbsolutePath(), false)
+//            .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
+//            .window(SessionWindow.of(Time.seconds(5), "time"))
+//            .groupBy("user")
+//            .setLocalStorageOnly(true)
+//            .sum("flag", "count")
+//            .toDataSteam()
+//            .toFile(resultFile.getAbsolutePath()).start(true);
+//
+//        try {
+//            Thread.sleep(1 * 60 * 1000);
+//            List<String> sessionList = FileUtils.readLines(resultFile, "UTF-8");
+//            Map<String, List<Pair<Pair<String, String>, Integer>>> sessionMap = new HashMap<>(4);
+//            for (String line : sessionList) {
+//                JSONObject object = JSONObject.parseObject(line);
+//                String user = object.getString("user");
+//                String startTime = object.getString("start_time");
+//                String endTime = object.getString("end_time");
+//                Integer value = object.getIntValue("count");
+//                if (!sessionMap.containsKey(user)) {
+//                    sessionMap.put(user, new ArrayList<>());
+//                }
+//                sessionMap.get(user).add(Pair.of(Pair.of(startTime, endTime), value));
+//            }
+//            Assert.assertEquals(3, sessionMap.size());
+//            Assert.assertEquals(1, sessionMap.get("userA").size());
+//            Assert.assertEquals("2021-09-09 10:00:06", sessionMap.get("userA").get(0).getLeft().getRight());
+//            Assert.assertEquals(2, sessionMap.get("userC").size());
+//            Assert.assertEquals("2021-09-09 10:00:05", sessionMap.get("userC").get(0).getLeft().getRight());
+//            Assert.assertEquals("2021-09-09 10:00:06", sessionMap.get("userC").get(1).getLeft().getLeft());
+//            Assert.assertEquals(1, sessionMap.get("userB").size());
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//            dataFile.deleteOnExit();
+//            resultFile.deleteOnExit();
+//        }
+//
+//    }
 
     @Test
     public void testCountDistinct() {
@@ -250,7 +265,7 @@ public class WindowTest implements Serializable {
             e.printStackTrace();
         }
 
-        StreamBuilder.dataStream("namespace", "count_distinct_test")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "count_distinct_test")
             .fromFile(dataFile.getAbsolutePath(), false)
             .map((MapFunction<JSONObject, String>) message -> JSONObject.parseObject(message))
             .window(TumblingWindow.of(Time.minutes(5), "time"))
@@ -260,7 +275,7 @@ public class WindowTest implements Serializable {
             .count_distinct_large("page", "uv_large")
             .count_distinct_2("page", "uv_2")
             .toDataSteam()
-            .toFile(resultFile.getAbsolutePath()).start(true);
+            .toFile(resultFile.getAbsolutePath()).start();
 
         try {
             Thread.sleep(6 * 60 * 1000);

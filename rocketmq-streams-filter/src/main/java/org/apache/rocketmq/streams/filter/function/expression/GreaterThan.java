@@ -32,6 +32,11 @@ public class GreaterThan extends CompareFunction {
 
     private static final DateDataType dateDataType = new DateDataType(Date.class);
 
+    public static void main(String args[]) {
+        GreaterThan gt = new GreaterThan();
+        System.out.println(gt.compare("1201", "1200"));
+    }
+
     @FunctionMethod(value = "&gt;", alias = ">")
     @FunctionMethodAilas("大于")
     @Override
@@ -122,10 +127,5 @@ public class GreaterThan extends CompareFunction {
         String ad = dateDataType.toDataJson(a);
         String bd = dateDataType.toDataJson(b);
         return compare(ad, bd);
-    }
-
-    public static void main(String args[]) {
-        GreaterThan gt = new GreaterThan();
-        System.out.println(gt.compare("1201", "1200"));
     }
 }

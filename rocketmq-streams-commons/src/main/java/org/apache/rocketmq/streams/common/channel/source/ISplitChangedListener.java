@@ -16,25 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.channel.source;
 
-import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
-import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-
+/**
+ * 监控数据源分片的变动
+ */
 public interface ISplitChangedListener {
-    /**
-     * 当channel保存commit offset时，发送系统消息，收到系统消息的stage需要完成state保存。
-     *
-     * @param message
-     * @param context
-     */
-    void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage);
 
-    /**
-     * 当channel保存commit offset时，发送系统消息，收到系统消息的stage需要完成state保存。
-     *
-     * @param message
-     * @param context
-     */
-    void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage);
 }

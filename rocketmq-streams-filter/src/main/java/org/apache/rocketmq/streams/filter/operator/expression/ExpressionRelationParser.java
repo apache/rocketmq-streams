@@ -48,7 +48,7 @@ public class ExpressionRelationParser {
         }
         String expression = str.substring(startIndex, endIndex);
         RelationExpression relationExpression = createMixRelation(namespace, ruleName, expression, groupList);
-        str = str.replace("(" + expression + ")", relationExpression.getConfigureName());
+        str = str.replace("(" + expression + ")", relationExpression.getName());
         return createRelations(namespace, ruleName, str, groupList);
     }
 
@@ -69,7 +69,7 @@ public class ExpressionRelationParser {
             String sign = AND;
             if (value.indexOf(sign) != -1) {
                 RelationExpression relationExpression = createSignleRelation(namespace, ruleName, value, sign, groupList);
-                str = str.replace(value, relationExpression.getConfigureName());
+                str = str.replace(value, relationExpression.getName());
             }
         }
         str = str.replace(" ", "");
@@ -91,7 +91,7 @@ public class ExpressionRelationParser {
         relationExpression.setNameSpace(namespace);
         relationExpression.setType(Expression.TYPE);
         relationExpression.setValue(new ArrayList<String>());
-        relationExpression.setConfigureName(expressionName);
+        relationExpression.setName(expressionName);
 
         relationExpression.setRelation(OR.equals(sign) ? "or" : "and");
         String[] values = str.split("\\" + sign);

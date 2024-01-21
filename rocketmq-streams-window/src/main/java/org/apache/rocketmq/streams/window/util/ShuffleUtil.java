@@ -16,25 +16,25 @@
  */
 package org.apache.rocketmq.streams.window.util;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.shuffle.IShuffleKeyGenerator;
+import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.apache.rocketmq.streams.window.WindowConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShuffleUtil {
-    private static final Log LOG = LogFactory.getLog(ShuffleUtil.class);
-    public static IMessage createShuffleMsg(IMessage msg, String shuffleKey,JSONObject msgHeader){
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShuffleUtil.class);
+
+    public static IMessage createShuffleMsg(IMessage msg, String shuffleKey, JSONObject msgHeader) {
         if (msg.getHeader().isSystemMessage()) {
             return null;
         }
 
         if (StringUtil.isEmpty(shuffleKey)) {
             shuffleKey = "<null>";
-            LOG.debug("there is no group by value in message! " + msg.getMessageBody().toString());
+            LOGGER.debug("there is no group by value in message! " + msg.getMessageBody().toString());
             //continue;
         }
 
@@ -42,21 +42,29 @@ public class ShuffleUtil {
         String offset = msg.getHeader().getOffset();
         String queueId = msg.getHeader().getQueueId();
 
-        body.put(WindowCache.ORIGIN_OFFSET, offset);
-        body.put(WindowCache.ORIGIN_QUEUE_ID,queueId);
-        body.put(WindowCache.ORIGIN_QUEUE_IS_LONG, msg.getHeader().getMessageOffset().isLongOfMainOffset());
-        if(msgHeader==null){
-            body.put(WindowCache.ORIGIN_MESSAGE_HEADER, JSONObject.toJSONString(msg.getHeader()));
-        }else {
-            body.put(WindowCache.ORIGIN_MESSAGE_HEADER, msgHeader);
+        body.put(WindowConstants.ORIGIN_OFFSET, offset);
+        body.put(WindowConstants.ORIGIN_QUEUE_ID, queueId);
+        body.put(WindowConstants.ORIGIN_QUEUE_IS_LONG, msg.getHeader().getMessageOffset().isLongOfMainOffset());
+        if (msgHeader == null) {
+            body.put(WindowConstants.ORIGIN_MESSAGE_HEADER, JSONObject.toJSONString(msg.getHeader()));
+        } else {
+            body.put(WindowConstants.ORIGIN_MESSAGE_HEADER, msgHeader);
         }
 
-        body.put(WindowCache.ORIGIN_MESSAGE_TRACE_ID, msg.getHeader().getTraceId());
-        body.put(WindowCache.SHUFFLE_KEY, shuffleKey);
+        body.put(WindowConstants.ORIGIN_MESSAGE_TRACE_ID, msg.getHeader().getTraceId());
+        body.put(WindowConstants.SHUFFLE_KEY, shuffleKey);
         return msg;
     }
 
-    public static IMessage createShuffleMsg(IMessage msg, String shuffleKey){
-        return createShuffleMsg(msg,shuffleKey,null);
+    public static MessageHeader getMessageHeader(JSONObject msg) {
+
+        String headerStr = msg.getString(WindowConstants.ORIGIN_MESSAGE_HEADER);
+        MessageHeader header = JSONObject.toJavaObject(JSONObject.parseObject(headerStr), MessageHeader.class);
+
+        return header;
+    }
+
+    public static IMessage createShuffleMsg(IMessage msg, String shuffleKey) {
+        return createShuffleMsg(msg, shuffleKey, null);
     }
 }

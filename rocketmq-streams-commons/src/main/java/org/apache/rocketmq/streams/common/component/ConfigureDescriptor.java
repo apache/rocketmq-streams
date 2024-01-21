@@ -31,7 +31,7 @@ public class ConfigureDescriptor {
     private String envPropertyKey;
 
     public ConfigureDescriptor(String groupName, String propertyKey, String defaultValue, boolean requiredSet,
-                               String envPropertyKey) {
+        String envPropertyKey) {
         this(groupName, propertyKey, defaultValue, requiredSet);
         this.envPropertyKey = envPropertyKey;
     }

@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.streams.common.channel.impl.memory;
 
-import org.apache.rocketmq.streams.common.channel.source.AbstractBatchSource;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSingleSplitSource;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 
-public class MemorySource extends AbstractBatchSource implements IAfterConfigurableRefreshListener {
+public class MemorySource extends AbstractSingleSplitSource {
 
-    protected String cacheName;
-    protected transient MemoryCache memoryCache;
+    @ConfigurableReference protected transient MemoryCache memoryCache;
+    protected transient volatile boolean isClosed = false;
 
     public MemorySource() {
 
@@ -36,23 +35,29 @@ public class MemorySource extends AbstractBatchSource implements IAfterConfigura
 
     @Override
     protected boolean startSource() {
-        boolean success = super.startSource();
+        isClosed = false;
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    while (true) {
-                        Object message = memoryCache.queue.poll();
-                        while (message != null) {
-                            doReceiveMessage(createJson(message));
-                            message = memoryCache.queue.poll();
+                Long startTime = System.currentTimeMillis();
+                while (!isClosed) {
+                    Object message = memoryCache.queue.poll();
+                    while (message != null) {
+                        doReceiveMessage(createJson(message));
+                        if (memoryCache.queue != null && memoryCache.queue.size() > 10) {
+                            System.out.println("memory source queues count is " + memoryCache.queue.size());
                         }
-                        sendCheckpoint(getQueueId());
-                        Thread.sleep(1000);
+                        message = memoryCache.queue.poll();
+                        if (System.currentTimeMillis() - startTime > getCheckpointTime()) {
+                            sendCheckpoint(getQueueId());
+                            startTime = System.currentTimeMillis();
+                        }
                     }
-
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    if (System.currentTimeMillis() - startTime > getCheckpointTime()) {
+                        sendCheckpoint(getQueueId());
+                        startTime = System.currentTimeMillis();
+                    }
+                    sleepThread(100);
                 }
 
             }
@@ -61,31 +66,29 @@ public class MemorySource extends AbstractBatchSource implements IAfterConfigura
         return true;
     }
 
+    private void sleepThread(int time) {
+        try {
+            Thread.sleep(time);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override protected void destroySource() {
+        this.isClosed = true;
+    }
+
     @Override
     public String getQueueId() {
         return "1";
     }
 
-    public String getCacheName() {
-        return cacheName;
-    }
-
-    public void setCacheName(String cacheName) {
-        this.cacheName = cacheName;
-    }
-
-    @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        memoryCache = configurableService.queryConfigurable(MemoryCache.TYPE, cacheName);
+    public MemoryCache getMemoryCache() {
+        return memoryCache;
     }
 
     public void setMemoryCache(MemoryCache memoryCache) {
         this.memoryCache = memoryCache;
-        setCacheName(memoryCache.getConfigureName());
 
-    }
-
-    public MemoryCache getMemoryCache() {
-        return memoryCache;
     }
 }

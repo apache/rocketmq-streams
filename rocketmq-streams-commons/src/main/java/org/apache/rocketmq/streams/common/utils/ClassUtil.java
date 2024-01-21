@@ -26,11 +26,11 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClassUtil {
-    private static final Log logger = LogFactory.getLog(ClassUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClassUtil.class);
     private static JavaCompiler compiler;
 
     static {
@@ -63,10 +63,12 @@ public class ClassUtil {
             JavaCompiler.CompilationTask task = compiler.getTask(null, manager, null, ops, null, it);
             task.call();
             if (logger.isDebugEnabled()) {
-                for (String file : files) { logger.debug("Compile Java File:" + file); }
+                for (String file : files) {
+                    logger.debug("Compile Java File:" + file);
+                }
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("异常", e);
         } finally {
             if (manager != null) {
                 try {
@@ -92,7 +94,9 @@ public class ClassUtil {
         BufferedWriter bw = null;
         try {
             File dir = new File(getFilePath(file));
-            if (!dir.exists()) { dir.mkdirs(); }
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
             bw = new BufferedWriter(new FileWriter(file));
             bw.write(source);
             bw.flush();
@@ -121,7 +125,7 @@ public class ClassUtil {
                 logger.debug("Load Class[" + name + "] by " + classLoader);
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("异常", e);
         }
         return cls;
     }
@@ -141,7 +145,7 @@ public class ClassUtil {
             javac(ops, filePath);
             return load(clsName);
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("异常", e);
         }
         return null;
     }

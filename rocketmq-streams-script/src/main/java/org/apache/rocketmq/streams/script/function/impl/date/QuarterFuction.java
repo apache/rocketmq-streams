@@ -35,7 +35,6 @@ public class QuarterFuction {
         return quarter(message, context, datetime, "'" + DateUtil.DEFAULT_FORMAT + "'");
     }
 
-
     /**
      * 获取当前日期所属季度
      *

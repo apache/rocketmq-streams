@@ -37,9 +37,9 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class JavaBeanDataType extends BaseDataType {
 
-    protected static ICache<String, AtomicBoolean> cache = new SoftReferenceCache<>();
-
     private static final long serialVersionUID = 8749848859175999778L;
+    protected static ICache<String, AtomicBoolean> cache = new SoftReferenceCache<>();
+    protected static ICache<String, ClassMeta> metaMap = new SoftReferenceCache<>();
 
     public JavaBeanDataType(Class clazz) {
         setDataClazz(clazz);
@@ -49,113 +49,9 @@ public class JavaBeanDataType extends BaseDataType {
 
     }
 
-    @Override
-    public String toDataJson(Object value) {
-        if (value == null) {
-            return null;
-        }
-        byte[] bytes = serializeJavabean(value);
-        return Base64Utils.encode(bytes);
-    }
-
-    @Override
-    public Object getData(String jsonValue) {
-        if (StringUtil.isEmpty(jsonValue)) {
-            return null;
-        }
-        byte[] bytes = Base64Utils.decode(jsonValue);
-        return deserializeJavaBean(bytes);
-    }
-
-    @Override
-    public String getName() {
-        return "javaBean";
-    }
-
     public static String getTypeName() {
         return "javaBean";
     }
-
-    @Override
-    public boolean matchClass(Class clazz) {
-
-        AtomicBoolean atomicBoolean = cache.get(clazz.getName());
-        if (atomicBoolean != null) {
-            return atomicBoolean.get();
-        }
-        atomicBoolean = new AtomicBoolean(true);
-
-        AtomicBoolean success = atomicBoolean;
-
-        ReflectUtil.scanFields(clazz, new IFieldProcessor() {
-            @Override
-            public void doProcess(Object o, Field field) {
-                field.setAccessible(true);
-                DataType dataType = DataTypeUtil.createDataTypeByField(o, field);
-
-                if (dataType == null) {
-                    success.set(false);
-                }
-                if (!success.get()) {
-                    return;
-                }
-            }
-        });
-        cache.put(clazz.getName(), success);
-        return success.get();
-    }
-
-    @Override
-    public DataType create() {
-        return new JavaBeanDataType();
-    }
-
-    @Override
-    public String getDataTypeName() {
-        return getTypeName();
-    }
-
-    @Override public byte[] toBytes(Object value, boolean isCompress) {
-        if (value == null) {
-            return null;
-        }
-
-        byte[] result = serializeJavabean(value);
-
-        byte[] bytes = new byte[result.length + 2];
-        byte[] lenBytes = createByteArrayFromNumber(result.length, 2);
-        bytes[0] = lenBytes[0];
-        bytes[1] = lenBytes[1];
-        for (int i = 2; i < bytes.length; i++) {
-            bytes[i] = result[i - 2];
-        }
-        return bytes;
-    }
-
-    @Override public Object byteToValue(byte[] bytes) {
-        byte[] valueBytes = new byte[bytes.length - 2];
-        for (int i = 0; i < valueBytes.length; i++) {
-            valueBytes[i] = bytes[i + 2];
-        }
-        return deserializeJavaBean(valueBytes);
-    }
-
-    @Override
-    protected void setFieldValueToJson(JSONObject jsonObject) {
-
-    }
-
-    @Override
-    protected void setFieldValueFromJson(JSONObject jsonObject) {
-
-    }
-
-    @Override
-    protected Class[] getSupportClass() {
-        return new Class[] {dataClazz};
-    }
-
-    protected static ICache<String, ClassMeta> metaMap = new SoftReferenceCache<>();
 
     /**
      * 把一个对象序列化成字节,对象中的字段是datatype支持的
@@ -340,6 +236,84 @@ public class JavaBeanDataType extends BaseDataType {
             }
         });
         return (T) object;
+    }
+
+    @Override
+    public String toDataJson(Object value) {
+        if (value == null) {
+            return null;
+        }
+        byte[] bytes = serializeJavabean(value);
+        return Base64Utils.encode(bytes);
+    }
+
+    @Override
+    public Object getData(String jsonValue) {
+        if (StringUtil.isEmpty(jsonValue)) {
+            return null;
+        }
+        byte[] bytes = Base64Utils.decode(jsonValue);
+        return deserializeJavaBean(bytes);
+    }
+
+    @Override
+    public String getName() {
+        return "javaBean";
+    }
+
+    @Override
+    public boolean matchClass(Class clazz) {
+        return true;
+    }
+
+    @Override
+    public DataType create() {
+        return new JavaBeanDataType();
+    }
+
+    @Override
+    public String getDataTypeName() {
+        return getTypeName();
+    }
+
+    @Override public byte[] toBytes(Object value, boolean isCompress) {
+        if (value == null) {
+            return null;
+        }
+
+        byte[] result = serializeJavabean(value);
+
+        byte[] bytes = new byte[result.length + 2];
+        byte[] lenBytes = createByteArrayFromNumber(result.length, 2);
+        bytes[0] = lenBytes[0];
+        bytes[1] = lenBytes[1];
+        for (int i = 2; i < bytes.length; i++) {
+            bytes[i] = result[i - 2];
+        }
+        return bytes;
+    }
+
+    @Override public Object byteToValue(byte[] bytes) {
+        byte[] valueBytes = new byte[bytes.length - 2];
+        for (int i = 0; i < valueBytes.length; i++) {
+            valueBytes[i] = bytes[i + 2];
+        }
+        return deserializeJavaBean(valueBytes);
+    }
+
+    @Override
+    protected void setFieldValueToJson(JSONObject jsonObject) {
+
+    }
+
+    @Override
+    protected void setFieldValueFromJson(JSONObject jsonObject) {
+
+    }
+
+    @Override
+    protected Class[] getSupportClass() {
+        return new Class[] {dataClazz};
     }
 
     protected static class ClassMeta {

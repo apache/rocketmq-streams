@@ -16,14 +16,15 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
 import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
 
-public abstract class AbstractStatelessChainStage<T extends IMessage> extends ChainStage<T> {
+public abstract class AbstractStatelessChainStage<T extends IMessage> extends AbstractChainStage<T> {
     @Override
     public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
         checkPointMessage.replyAnyone();
@@ -36,6 +37,19 @@ public abstract class AbstractStatelessChainStage<T extends IMessage> extends Ch
 
     @Override
     public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
+
+    }
+
+    @Override public void startJob() {
+
+    }
+
+    @Override public void stopJob() {
+
+    }
+
+    @Override
+    public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
 
     }
 }

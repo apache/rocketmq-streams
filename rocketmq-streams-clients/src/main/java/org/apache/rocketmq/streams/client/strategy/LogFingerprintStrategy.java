@@ -17,13 +17,12 @@
 package org.apache.rocketmq.streams.client.strategy;
 
 import java.util.Properties;
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 
 public class LogFingerprintStrategy implements Strategy {
 
-    protected String[] logFingerprintFields;
-
     private final Properties properties;
+    protected String[] logFingerprintFields;
 
     private LogFingerprintStrategy() {
         properties = new Properties();
@@ -37,11 +36,11 @@ public class LogFingerprintStrategy implements Strategy {
 
     private LogFingerprintStrategy(String url, String username, String password) {
         properties = new Properties();
-        properties.put(AbstractComponent.JDBC_DRIVER, AbstractComponent.DEFAULT_JDBC_DRIVER);
-        properties.put(AbstractComponent.JDBC_URL, url);
-        properties.put(AbstractComponent.JDBC_USERNAME, username);
-        properties.put(AbstractComponent.JDBC_PASSWORD, password);
-        properties.put(AbstractComponent.JDBC_TABLE_NAME, AbstractComponent.DEFAULT_JDBC_TABLE_NAME);
+        properties.put(ConfigurationKey.JDBC_DRIVER, ConfigurationKey.DEFAULT_JDBC_DRIVER);
+        properties.put(ConfigurationKey.JDBC_URL, url);
+        properties.put(ConfigurationKey.JDBC_USERNAME, username);
+        properties.put(ConfigurationKey.JDBC_PASSWORD, password);
+        // properties.put(AbstractComponent.JDBC_TABLE_NAME, AbstractComponent.DEFAULT_JDBC_TABLE_NAME);
     }
 
     public static Strategy configLogFingerprint(String... fieldNames) {

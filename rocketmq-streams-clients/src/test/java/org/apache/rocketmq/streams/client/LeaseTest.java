@@ -18,8 +18,6 @@
 package org.apache.rocketmq.streams.client;
 
 import java.util.Date;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.lease.LeaseComponent;
@@ -31,29 +29,28 @@ import static org.junit.Assert.assertTrue;
 
 public class LeaseTest {
 
-    private String URL="";
-    protected String USER_NAME="";
-    protected String PASSWORD="";
+    protected String USER_NAME = "";
+    protected String PASSWORD = "";
+    private String URL = "";
 
-    public LeaseTest(){
+    public LeaseTest() {
 
         //正式使用时，在配置文件配置
-        ComponentCreator.getProperties().put(ConfigureFileKey.CONNECT_TYPE,"DB");
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL,URL);//数据库连接url
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME,USER_NAME);//用户名
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD,PASSWORD);//password
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL, URL);//数据库连接url
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME, USER_NAME);//用户名
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD, PASSWORD);//password
 
         /**
          * 创建lease info表
          */
-        JDBCDriver driver= DriverBuilder.createDriver();
+        JDBCDriver driver = DriverBuilder.createDriver();
         driver.execute(LeaseInfo.createTableSQL());
     }
 
     @Test
     public void testLease() throws InterruptedException {
-        String leaseName="lease.test";
-        int leaseTime=5;
+        String leaseName = "lease.test";
+        int leaseTime = 5;
         LeaseComponent.getInstance().getService().startLeaseTask(leaseName, leaseTime, new ILeaseGetCallback() {
             @Override
             public void callback(Date nextLeaseDate) {
@@ -69,13 +66,13 @@ public class LeaseTest {
 
     @Test
     public void testLock() throws InterruptedException {
-        String name="dipper";
-        String lockName="lease.test";
-        int leaseTime=5;
-        boolean success=LeaseComponent.getInstance().getService().lock(name,lockName,leaseTime);//锁定5秒钟
+        String name = "dipper";
+        String lockName = "lease.test";
+        int leaseTime = 5;
+        boolean success = LeaseComponent.getInstance().getService().lock(name, lockName, leaseTime);//锁定5秒钟
         assertTrue(success);//获取锁
         Thread.sleep(6000);
-        assertTrue(!LeaseComponent.getInstance().getService().hasHoldLock(name,lockName));//超期释放
+        assertTrue(!LeaseComponent.getInstance().getService().hasHoldLock(name, lockName));//超期释放
     }
 
     /**
@@ -85,14 +82,14 @@ public class LeaseTest {
      */
     @Test
     public void testHoldLock() throws InterruptedException {
-        String name="dipper";
-        String lockName="lease.test";
-        int leaseTime=6;
-        boolean success=LeaseComponent.getInstance().getService().holdLock(name,lockName,leaseTime);//锁定5秒钟
+        String name = "dipper";
+        String lockName = "lease.test";
+        int leaseTime = 6;
+        boolean success = LeaseComponent.getInstance().getService().holdLock(name, lockName, leaseTime);//锁定5秒钟
         assertTrue(success);//获取锁
         Thread.sleep(8000);
-        assertTrue(LeaseComponent.getInstance().getService().hasHoldLock(name,lockName));//会自动续约，不会释放，可以手动释放
-        LeaseComponent.getInstance().getService().unlock(name,lockName);
-        assertTrue(!LeaseComponent.getInstance().getService().hasHoldLock(name,lockName));
+        assertTrue(LeaseComponent.getInstance().getService().hasHoldLock(name, lockName));//会自动续约，不会释放，可以手动释放
+        LeaseComponent.getInstance().getService().unlock(name, lockName);
+        assertTrue(!LeaseComponent.getInstance().getService().hasHoldLock(name, lockName));
     }
 }

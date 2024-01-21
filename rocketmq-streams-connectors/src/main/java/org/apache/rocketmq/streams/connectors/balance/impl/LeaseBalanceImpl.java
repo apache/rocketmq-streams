@@ -22,8 +22,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -34,14 +32,15 @@ import org.apache.rocketmq.streams.connectors.source.SourceInstance;
 import org.apache.rocketmq.streams.lease.LeaseComponent;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(ISourceBalance.class)
 @ServiceName(LeaseBalanceImpl.DB_BALANCE_NAME)
 public class LeaseBalanceImpl extends AbstractBalance {
 
-    private static final Log logger = LogFactory.getLog(LeaseBalanceImpl.class);
-
     public static final String DB_BALANCE_NAME = "db_balance";
+    private static final Logger LOGGER = LoggerFactory.getLogger(LeaseBalanceImpl.class);
     private static final String REMOVE_SPLIT_LOCK_NAME = "lock_remove_split";
     private static final String SOURCE_LOCK_PREFIX = "SOURCE_";
     private static final String SPLIT_LOCK_PREFIX = "SPLIT_";
@@ -62,7 +61,7 @@ public class LeaseBalanceImpl extends AbstractBalance {
     @Override
     protected List<ISplit> fetchWorkingSplits(List<ISplit> allSplits) {
         List<LeaseInfo> leaseInfos = leaseComponent.getService().queryLockedInstanceByNamePrefix(SPLIT_LOCK_PREFIX + this.sourceIdentification, null);
-        logger.info(String.format("lease SPLIT_LOCK_PREFIX is %s, sourceIdentification is %s. ", SPLIT_LOCK_PREFIX, sourceIdentification));
+        LOGGER.info(String.format("lease SPLIT_LOCK_PREFIX is %s, sourceIdentification is %s. ", SPLIT_LOCK_PREFIX, sourceIdentification));
         if (leaseInfos == null) {
             return new ArrayList<>();
         }
@@ -77,7 +76,7 @@ public class LeaseBalanceImpl extends AbstractBalance {
             String splitId = MapKeyUtil.getLast(leaseName);
             splits.add(allSplitMap.get(splitId));
         }
-        logger.info(String.format("working split is %s", Arrays.toString(splits.toArray())));
+        LOGGER.info(String.format("working split is %s", Arrays.toString(splits.toArray())));
         return splits;
     }
 

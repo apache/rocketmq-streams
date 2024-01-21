@@ -19,6 +19,7 @@ package org.apache.rocketmq.streams.script.function.impl.field;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -38,6 +39,28 @@ public class FieldFunction {
             name = fieldName;
         }
         return (T) message.getMessageBody().get(name);
+    }
+
+    @FunctionMethod(value = "map_field", alias = "get_map_field", comment = "获取字段值")
+    public Object getMapFieldValue(IMessage message, FunctionContext context,
+        @FunctionParamter(value = "string", comment = "字段的名称，不需要引号") String fieldName, String jsonField) {
+        Map<String, Object> fieldValue = (Map<String, Object>) message.getMessageBody().get(FunctionUtils.getConstant(fieldName));
+        if (fieldValue == null) {
+            return null;
+        }
+        jsonField = FunctionUtils.getValueString(message, context, jsonField);
+        return fieldValue.get(jsonField);
+    }
+
+    @FunctionMethod(value = "put_map_field", alias = "put_map_field", comment = "获取字段值")
+    public Object putMapFieldValue(IMessage message, FunctionContext context,
+        @FunctionParamter(value = "string", comment = "字段的名称，不需要引号") String mapFieldName, String fieldName, Object value) {
+        Map<String, Object> fieldValue = (Map<String, Object>) message.getMessageBody().get(mapFieldName);
+        if (fieldValue == null) {
+            return null;
+        }
+        fieldName = FunctionUtils.getValueString(message, context, fieldName);
+        return fieldValue.put(fieldName, value);
     }
 
     @FunctionMethod(value = "json_field", alias = "get_json_field", comment = "获取字段值")

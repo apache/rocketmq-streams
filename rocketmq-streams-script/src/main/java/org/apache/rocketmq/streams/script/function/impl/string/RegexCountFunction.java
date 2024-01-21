@@ -40,8 +40,8 @@ public class RegexCountFunction {
      */
     @FunctionMethod(value = "regexcount", comment = "计算source中从start_position开始，匹配指定模式pattern的子串的次数")
     public Long regexcount(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                           @FunctionParamter(value = "string", comment = "正则表达式代表类字段或常量值") String pattern) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表类字段或常量值") String pattern) {
         Long index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         pattern = FunctionUtils.getValueString(message, context, pattern);
@@ -79,9 +79,9 @@ public class RegexCountFunction {
      */
     @FunctionMethod(value = "regexcount", comment = "计算source中从start_position开始，匹配指定模式pattern的子串的次数")
     public Long regexcount(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                           @FunctionParamter(value = "string", comment = "正则表达式代表类字段或常量值") String pattern,
-                           @FunctionParamter(value = "string", comment = "匹配开始的位置") Long position) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表类字段或常量值") String pattern,
+        @FunctionParamter(value = "string", comment = "匹配开始的位置") Long position) {
         Long index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
@@ -104,7 +104,7 @@ public class RegexCountFunction {
                 break;
             }
         }
-        index = (long)startIndex;
+        index = (long) startIndex;
         return index;
     }
 }

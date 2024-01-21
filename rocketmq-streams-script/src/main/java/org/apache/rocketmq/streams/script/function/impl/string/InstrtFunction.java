@@ -27,14 +27,14 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class InstrtFunction {
 
-
     @FunctionMethod(value = "contains", comment = "返回字符串str2在str1中的位置")
     public boolean contains(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
-        @FunctionParamter(value = "string", comment = "字段名或常量") String str2){
-        Integer index=instr(message,context,str1,str2);
-        return index>-1;
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
+        Integer index = instr(message, context, str1, str2);
+        return index > -1;
     }
+
     /**
      * 返回字符串str2在str1中的位置
      *
@@ -60,6 +60,7 @@ public class InstrtFunction {
 
     /**
      * blink sql中的位置是从1开始的，所以在原有的位置上加1
+     *
      * @param message
      * @param context
      * @param str1
@@ -70,8 +71,8 @@ public class InstrtFunction {
     public Integer blinkInstr(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
         @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
-        int index=instr(message,context,str1,str2);
-        return index+1;
+        int index = instr(message, context, str1, str2);
+        return index + 1;
     }
 
     /**

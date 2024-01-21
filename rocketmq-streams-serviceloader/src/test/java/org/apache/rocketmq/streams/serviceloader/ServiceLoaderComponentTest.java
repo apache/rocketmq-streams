@@ -27,7 +27,7 @@ public class ServiceLoaderComponentTest {
     @Test
     public void testLoadService() {
         ServiceLoaderComponent serviceLoaderComponent = ServiceLoaderComponent.getInstance(IServiceNameGetter.class);
-        AnnotationServiceNameGetter getter = (AnnotationServiceNameGetter)serviceLoaderComponent.getService().loadService(AnnotationServiceNameGetter.SERVICE_NAME);
+        AnnotationServiceNameGetter getter = (AnnotationServiceNameGetter) serviceLoaderComponent.getService().loadService(AnnotationServiceNameGetter.SERVICE_NAME);
         assertTrue(getter != null && AnnotationServiceNameGetter.class.isInstance(getter));
     }
 }

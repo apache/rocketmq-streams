@@ -32,13 +32,13 @@ public class DateToCharFunction {
 
     @FunctionMethod(value = "tochar", alias = "timestamp2string", comment = "把timestamp格式的数字转换成标准格式的字符串")
     public String toChar(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表timestamp格式的字段名或数字") String datetime) {
+        @FunctionParamter(value = "string", comment = "代表timestamp格式的字段名或数字") String datetime) {
         return toChar(message, context, datetime, "yyyy-MM-dd HH:mm:ss");
     }
 
     @FunctionMethod(value = "linuxtochar", alias = "linuxtime2string", comment = "把linuxtime格式的数字转换成标准格式的字符串")
     public String linuxToChar(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表timestamp格式的字段名或数字") String datetime) {
+        @FunctionParamter(value = "string", comment = "代表timestamp格式的字段名或数字") String datetime) {
         String result = null;
         String timeString = FunctionUtils.getValueString(message, context, datetime);
         if (timeString == null || "".equals(timeString)) {
@@ -70,8 +70,8 @@ public class DateToCharFunction {
      */
     @FunctionMethod(value = "tochar", alias = "timestamp2string", comment = "把timestamp格式的数字转换成指定格式的字符串")
     public String toChar(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表timestamp格式的字段名或数字") String datetime,
-                         @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
+        @FunctionParamter(value = "string", comment = "代表timestamp格式的字段名或数字") String datetime,
+        @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
         String result = null;
         String timeString = FunctionUtils.getValueString(message, context, datetime);
         Long time = FunctionUtils.getLong(timeString);

@@ -27,7 +27,7 @@ public interface ILeaseService {
     /**
      * 默认锁定时间
      */
-    static final int DEFALUT_LOCK_TIME = 60 * 5;
+    static final int DEFAULT_LOCK_TIME = 60 * 5;
 
     /**
      * 检查某用户当前时间是否具有租约。这个方法是纯内存操作，无性能开销
@@ -61,11 +61,18 @@ public interface ILeaseService {
     void startLeaseTask(final String name, int leaseTermSecond, ILeaseGetCallback callback);
 
     /**
+     * 释放租约，并且停止底层的调度线程
+     *
+     * @param name 租约名称
+     */
+    void stopLeaseTask(final String name);
+
+    /**
      * 申请锁,无论成功与否，立刻返回。如果不释放，最大锁定时间是5分钟
      *
      * @param name       业务名称
      * @param lockerName 锁名称
-     * @return 是否枷锁成功
+     * @return 是否加锁成功
      */
     boolean lock(String name, String lockerName);
 
@@ -75,8 +82,7 @@ public interface ILeaseService {
      * @param name           业务名称
      * @param lockerName     锁名称
      * @param lockTimeSecond 如果不释放，锁定的最大时间，单位是秒
-     * @return 是否枷锁成功
-     * @return
+     * @return 是否加锁成功
      */
     boolean lock(String name, String lockerName, int lockTimeSecond);
 
@@ -86,7 +92,7 @@ public interface ILeaseService {
      * @param name       业务名称
      * @param lockerName 锁名称
      * @param waitTime   没获取锁时，最大等待多长时间，如果是－1 则无限等待
-     * @return 是否枷锁成功
+     * @return 是否加锁成功
      */
     boolean tryLocker(String name, String lockerName, long waitTime);
 
@@ -97,16 +103,16 @@ public interface ILeaseService {
      * @param lockerName     锁名称
      * @param waitTime       没获取锁时，最大等待多长时间，如果是－1 则无限等待
      * @param lockTimeSecond 如果不释放，锁定的最大时间，单位是秒
-     * @return 是否枷锁成功
+     * @return 是否加锁成功
      */
     boolean tryLocker(String name, String lockerName, long waitTime, int lockTimeSecond);
 
     /**
      * 释放锁
      *
-     * @param name
-     * @param lockerName
-     * @return
+     * @param name       业务名称
+     * @param lockerName 锁名称
+     * @return 是否释放成功
      */
     boolean unlock(String name, String lockerName);
 
@@ -125,10 +131,17 @@ public interface ILeaseService {
      *
      * @param name       业务名称
      * @param lockerName 锁名称
-     * @return
+     * @return 是否持有锁
      */
     boolean hasHoldLock(String name, String lockerName);
 
+    /**
+     * 获取该业务下的所有锁
+     *
+     * @param name             业务名称
+     * @param lockerNamePrefix 锁名前缀
+     * @return 所有的锁
+     */
     List<LeaseInfo> queryLockedInstanceByNamePrefix(String name, String lockerNamePrefix);
 
 }

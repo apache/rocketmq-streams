@@ -58,44 +58,44 @@ public class RegexFunction {
 
     @FunctionMethod(value = "dipperregex", alias = "reg", comment = "通过正则表达式匹配字符串")
     public boolean match(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                         @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
         pattern = FunctionUtils.getConstant(pattern);
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
             return false;
         }
 
-        boolean isMatch=StringUtil.matchRegex(ori, pattern);
+        boolean isMatch = StringUtil.matchRegex(ori, pattern);
         return isMatch;
     }
 
     @FunctionMethod(value = "regex", comment = "通过正则表达式匹配字符串")
     public boolean matchRegex(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                              @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
         return match(message, context, fieldName, pattern);
     }
 
     @FunctionMethod(value = "!regex", comment = "通过正则表达式匹配字符串")
     public boolean notMatchRegex(IMessage message, FunctionContext context,
-                                 @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                                 @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern) {
         return !match(message, context, fieldName, pattern);
     }
 
     @FunctionMethod(value = "regexGroup", alias = "regex_group", comment = "得到第一组匹配")
     public String regexGroup(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                             @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String regex) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String regex) {
         return regexGroupIndex(message, context, fieldName, regex, "1");
     }
 
     @FunctionMethod(value = "regexGroupIndex", alias = "regex_group_index,REGEXP_EXTRACT", comment = "得到指定组匹配")
     public String regexGroupIndex(IMessage message, FunctionContext context,
-                                  @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                                  @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern,
-                                  @FunctionParamter(value = "string", comment = "指定分组数") String group) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String pattern,
+        @FunctionParamter(value = "string", comment = "指定分组数") String group) {
 
         if (StringUtil.isEmpty(fieldName) || StringUtil.isEmpty(pattern)) {
             return null;
@@ -127,18 +127,18 @@ public class RegexFunction {
 
     @FunctionMethod(value = "extra", comment = "指定第一组匹作为配扩展字段值")
     public String extracteField(IMessage message, FunctionContext context,
-                                @FunctionParamter(value = "string", comment = "新的字段值") String newFieldName,
-                                @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                                @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String regex) {
+        @FunctionParamter(value = "string", comment = "新的字段值") String newFieldName,
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String regex) {
         return extraFieldByGroup(message, context, newFieldName, fieldName, regex, "1");
     }
 
     @FunctionMethod(value = "extraByGroup", comment = "指定第几组匹作为配扩展字段值")
     public String extraFieldByGroup(IMessage message, FunctionContext context,
-                                    @FunctionParamter(value = "string", comment = "新的字段值") String newFieldName,
-                                    @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
-                                    @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String regex,
-                                    @FunctionParamter(value = "string", comment = "指定分组数") String group) {
+        @FunctionParamter(value = "string", comment = "新的字段值") String newFieldName,
+        @FunctionParamter(value = "string", comment = "代表要匹配的列字段或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式代表列字段或常量值") String regex,
+        @FunctionParamter(value = "string", comment = "指定分组数") String group) {
 
         if (StringUtil.isEmpty(fieldName) || StringUtil.isEmpty(newFieldName) || StringUtil.isEmpty(regex)) {
             return null;

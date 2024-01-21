@@ -26,26 +26,21 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.model.NameCreatorContext;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
 import org.apache.rocketmq.streams.filter.operator.Rule;
 import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
-import org.apache.rocketmq.streams.script.service.udf.UDFScript;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 /**
@@ -56,6 +51,7 @@ public class BlinkRuleV2Expression {
     protected Map<String, List<BlinkRule>> tmpWhiteListOnline = new HashMap();
     protected Map<String, List<BlinkRule>> tmpWhiteListOb = new HashMap();
     protected String functionName;
+    private transient AtomicInteger COUNT = new AtomicInteger(0);
 
     public BlinkRuleV2Expression() {
     }
@@ -66,7 +62,23 @@ public class BlinkRuleV2Expression {
         parserExpressions();
     }
 
-    private transient AtomicInteger COUNT = new AtomicInteger(0);
+    public static boolean isBlinkRuleV2Parser(IScriptExpression expression) {
+        return false;
+
+//        String functionName = expression.getFunctionName();
+//        if (functionName == null) {
+//            return false;
+//        }
+//
+//        String name = MapKeyUtil.createKey("com.lyra.xs.udf.ext.sas_black_rule_v2", functionName).toLowerCase();
+//
+//        UDFScript udfScript = configurableService.queryConfigurable(UDFScript.TYPE, name);
+//
+//        if (udfScript != null && "com.lyra.xs.udf.ext.sas_black_rule_v2".equals(udfScript.getFullClassName())) {
+//            return true;
+//        }
+//        return false;
+    }
 
     public RuleSetGroup getDependentFields(String[] varNames) {
         RuleSetGroup ruleSetGroup = new RuleSetGroup();
@@ -93,6 +105,45 @@ public class BlinkRuleV2Expression {
 
         }
         return ruleSetGroup;
+    }
+
+    protected JSONObject createMsg(String[] kv) {
+        JSONObject msg = null;
+        if (kv.length % 2 == 0) {
+            msg = new JSONObject();
+            for (int i = 0; i < kv.length; i += 2) {
+                msg.put(FunctionUtils.getConstant(kv[i]), kv[i + 1]);
+            }
+        }
+        return msg;
+    }
+
+    public void parserExpressions() {
+        InputStream inputStream = ReflectUtil.forClass(className).getResourceAsStream("/data_4_sas_black_rule_v2.json");
+        List<String> rules = FileUtil.loadFileLine(inputStream);
+        String line = rules.get(0);
+        JSONArray allRules = JSON.parseArray(line);
+        for (Object object : allRules) {
+            JSONObject rule_json = JSON.parseObject(object.toString());
+            int status = rule_json.getInteger("status");
+            int ruleId = rule_json.getInteger("id");
+            String modelId = rule_json.getString("model_id");
+            String ruleValue = rule_json.getString("content");
+            JSONObject ruleJson = JSONObject.parseObject(ruleValue);
+            BlinkRule blinkRule = new BlinkRule(ruleJson, ruleId);
+            if (status == 0) {
+                if (!tmpWhiteListOnline.containsKey(modelId)) {
+                    tmpWhiteListOnline.put(modelId, new ArrayList());
+                }
+
+                ((List) tmpWhiteListOnline.get(modelId)).add(blinkRule);
+            }
+
+            if (!tmpWhiteListOb.containsKey(modelId)) {
+                tmpWhiteListOb.put(modelId, new ArrayList());
+            }
+            ((List) tmpWhiteListOb.get(modelId)).add(blinkRule);
+        }
     }
 
     public static class RuleSetGroup {
@@ -189,77 +240,16 @@ public class BlinkRuleV2Expression {
             RelationExpression relationExpression = new RelationExpression();
             relationExpression.setValue(new ArrayList<String>());
             relationExpression.setRelation("and");
-            relationExpression.setConfigureName(NameCreatorContext.get().createNewName("_blink_rule_v2", "relation"));
+            relationExpression.setName(NameCreatorContext.get().createName("_blink_rule_v2", "relation"));
             for (Expression expression : expressions) {
-                String name = NameCreatorContext.get().createNewName("_blink_rule_v2", expression.getVarName());
-                expression.setConfigureName(name);
+                String name = NameCreatorContext.get().createName("_blink_rule_v2", expression.getVarName());
+                expression.setName(name);
                 expression.setNameSpace("tmp");
-                relationExpression.getValue().add(expression.getConfigureName());
+                relationExpression.getValue().add(expression.getName());
             }
             Rule rule = ExpressionBuilder.createRule("tmp", "tmp", relationExpression, expressions);
             return rule;
         }
 
-    }
-
-    protected JSONObject createMsg(String[] kv) {
-        JSONObject msg = null;
-        if (kv.length % 2 == 0) {
-            msg = new JSONObject();
-            for (int i = 0; i < kv.length; i += 2) {
-                msg.put(FunctionUtils.getConstant(kv[i]), kv[i + 1]);
-            }
-        }
-        return msg;
-    }
-
-    public void parserExpressions() {
-        InputStream inputStream = ReflectUtil.forClass(className).getResourceAsStream("/data_4_sas_black_rule_v2.json");
-        List<String> rules = FileUtil.loadFileLine(inputStream);
-        String line = rules.get(0);
-        JSONArray allRules = JSON.parseArray(line);
-        Iterator iterator = allRules.iterator();
-        while (iterator.hasNext()) {
-            Object object = iterator.next();
-            JSONObject rule_json = JSON.parseObject(object.toString());
-            int status = rule_json.getInteger("status");
-            int ruleId = rule_json.getInteger("id");
-            String modelId = rule_json.getString("model_id");
-            String ruleValue = rule_json.getString("content");
-            JSONObject ruleJson = JSONObject.parseObject(ruleValue);
-            BlinkRule blinkRule = new BlinkRule(ruleJson, ruleId);
-            if (status == 0) {
-                if (!tmpWhiteListOnline.containsKey(modelId)) {
-                    tmpWhiteListOnline.put(modelId, new ArrayList());
-                }
-
-                ((List) tmpWhiteListOnline.get(modelId)).add(blinkRule);
-            }
-
-            if (!tmpWhiteListOb.containsKey(modelId)) {
-                tmpWhiteListOb.put(modelId, new ArrayList());
-            }
-            ((List) tmpWhiteListOb.get(modelId)).add(blinkRule);
-        }
-    }
-
-    public static boolean isBlinkRuleV2Parser(IScriptExpression expression, IConfigurableService configurableService) {
-        if (configurableService == null) {
-            return false;
-        }
-
-        String functionName = expression.getFunctionName();
-        if (functionName == null) {
-            return false;
-        }
-
-        String name = MapKeyUtil.createKey("com.lyra.xs.udf.ext.sas_black_rule_v2", functionName).toLowerCase();
-
-        UDFScript udfScript = configurableService.queryConfigurable(UDFScript.TYPE, name);
-
-        if (udfScript != null && "com.lyra.xs.udf.ext.sas_black_rule_v2".equals(udfScript.getFullClassName())) {
-            return true;
-        }
-        return false;
     }
 }

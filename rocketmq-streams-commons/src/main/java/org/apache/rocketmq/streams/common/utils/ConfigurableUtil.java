@@ -24,8 +24,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IFieldProcessor;
@@ -35,45 +33,8 @@ import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
 
 public class ConfigurableUtil {
-    protected static class FieldProcessorGetter implements IFieldProcessor {
-        private Map<String, String> fieldName2JsonValue = new HashMap<>();
-        private Map<String, String> changeableFieldName2JsonValue = new HashMap<>();
-        private JSONObject message;
-
-        public FieldProcessorGetter(String message) {
-            this.message = JSON.parseObject(message);
-        }
-
-        @Override
-        public void doProcess(Object o, Field field) {
-            String fieldJsonStr = message.getString(field.getName());
-            if (field.getAnnotation(Changeable.class) != null) {//对标记易变的字段不参与比较
-                changeableFieldName2JsonValue.put(field.getName(), fieldJsonStr);
-            }
-            fieldName2JsonValue.put(field.getName(), fieldJsonStr);
-        }
-    }
-
-    public static IConfigurable create(String className, String namespace, String name, JSONObject property,
-        JSONObject mock) {
-        IConfigurable configurable = ConfigurableUtil.create(namespace, name, property, className);
-        if (mock != null) {
-            addMockData(mock, property);
-        }
-        return configurable;
-    }
-
-    public static void addMockData(JSONObject mock, JSONObject property) {
-        Iterator<Map.Entry<String, Object>> it = mock.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Object> entry = it.next();
-            String fieldName = entry.getKey();
-            String value = (String) property.get(fieldName);
-            if (StringUtil.isNotEmpty(value)) {
-                String actualValue = (String) entry.getValue();
-                ComponentCreator.getProperties().put(value, actualValue);
-            }
-        }
+    public static IConfigurable create(String className, String namespace, String name, JSONObject property, JSONObject mock) {
+        return ConfigurableUtil.create(namespace, name, property, className);
     }
 
     public static boolean compare(IConfigurable configurable1, IConfigurable configurable2) {
@@ -83,13 +44,13 @@ public class ConfigurableUtil {
         if (!configurable1.getType().equals(configurable2.getType())) {
             return false;
         }
-        if (!configurable1.getConfigureName().equals(configurable2.getConfigureName())) {
+        if (!configurable1.getName().equals(configurable2.getName())) {
             return false;
         }
-        if (BasedConfigurable.class.isInstance(configurable1) && BasedConfigurable.class.isInstance(configurable2)) {
-            BasedConfigurable abstractConfigurable1 = (BasedConfigurable)configurable1;
-            BasedConfigurable abstractConfigurable2 = (BasedConfigurable)configurable2;
-            if (abstractConfigurable1.getUpdateFlag() == abstractConfigurable2.getUpdateFlag()) {
+        if (configurable1 instanceof BasedConfigurable && configurable2 instanceof BasedConfigurable) {
+            BasedConfigurable abstractConfigurable1 = (BasedConfigurable) configurable1;
+            BasedConfigurable abstractConfigurable2 = (BasedConfigurable) configurable2;
+            if (abstractConfigurable1 == abstractConfigurable2) {
                 return true;
             } else {
                 return false;
@@ -135,7 +96,7 @@ public class ConfigurableUtil {
     public static <T extends BasedConfigurable> T create(String namespace, String name, String className) {
         IConfigurable configurable = ReflectUtil.forInstance(className);
         configurable.setNameSpace(namespace);
-        configurable.setConfigureName(name);
+        configurable.setName(name);
         return (T) configurable;
     }
 
@@ -181,7 +142,7 @@ public class ConfigurableUtil {
     public static MetaData createMetaData(String namespace, String name, String... fields) {
         MetaData metaData = new MetaData();
         metaData.setNameSpace(namespace);
-        metaData.setConfigureName(name);
+        metaData.setName(name);
         if (fields == null || fields.length == 0) {
             metaData.toObject(metaData.toJson());
             return metaData;
@@ -210,6 +171,25 @@ public class ConfigurableUtil {
         metaData.setMetaDataFields(metaDataFieldList);
         metaData.toObject(metaData.toJson());
         return metaData;
+    }
+
+    protected static class FieldProcessorGetter implements IFieldProcessor {
+        private Map<String, String> fieldName2JsonValue = new HashMap<>();
+        private Map<String, String> changeableFieldName2JsonValue = new HashMap<>();
+        private JSONObject message;
+
+        public FieldProcessorGetter(String message) {
+            this.message = JSON.parseObject(message);
+        }
+
+        @Override
+        public void doProcess(Object o, Field field) {
+            String fieldJsonStr = message.getString(field.getName());
+            if (field.getAnnotation(Changeable.class) != null) {//对标记易变的字段不参与比较
+                changeableFieldName2JsonValue.put(field.getName(), fieldJsonStr);
+            }
+            fieldName2JsonValue.put(field.getName(), fieldJsonStr);
+        }
     }
 
 }

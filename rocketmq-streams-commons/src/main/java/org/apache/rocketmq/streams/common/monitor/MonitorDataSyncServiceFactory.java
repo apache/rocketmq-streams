@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.common.monitor;
 
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.monitor.service.MonitorDataSyncService;
 import org.apache.rocketmq.streams.common.monitor.service.impl.DBMonitorDataSyncImpl;
 import org.apache.rocketmq.streams.common.monitor.service.impl.HttpMonitorDataSyncImpl;
@@ -27,13 +26,13 @@ import org.apache.rocketmq.streams.common.monitor.service.impl.RocketMQMonitorDa
 public class MonitorDataSyncServiceFactory {
 
     public static MonitorDataSyncService create() {
-        String configureType = ComponentCreator.getProperties().getProperty(DataSyncConstants.UPDATE_TYPE);
+        String configureType = SystemContext.getStringParameter(ConfigurationKey.UPDATE_TYPE);
         if (DataSyncConstants.UPDATE_TYPE_DB.equalsIgnoreCase(configureType)) {
             return new DBMonitorDataSyncImpl();
         } else if (DataSyncConstants.UPDATE_TYPE_HTTP.equalsIgnoreCase(configureType)) {
-            String accessId = ComponentCreator.getProperties().getProperty(AbstractComponent.HTTP_AK);
-            String accessIdSecret = ComponentCreator.getProperties().getProperty(AbstractComponent.HTTP_SK);
-            String endPoint = ComponentCreator.getProperties().getProperty(IConfigurableService.HTTP_SERVICE_ENDPOINT);
+            String accessId = SystemContext.getStringParameter(ConfigurationKey.HTTP_AK);
+            String accessIdSecret = SystemContext.getStringParameter(ConfigurationKey.HTTP_SK);
+            String endPoint = SystemContext.getStringParameter(ConfigurationKey.HTTP_SERVICE_ENDPOINT);
             return new HttpMonitorDataSyncImpl(accessId, accessIdSecret, endPoint);
         } else if (DataSyncConstants.UPDATE_TYPE_ROCKETMQ.equalsIgnoreCase(configureType)) {
             return new RocketMQMonitorDataSyncImpl();

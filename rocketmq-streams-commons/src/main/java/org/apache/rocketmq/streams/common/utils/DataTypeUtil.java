@@ -30,8 +30,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
 import org.apache.rocketmq.streams.common.datatype.BaseDataType;
@@ -58,11 +56,13 @@ import org.apache.rocketmq.streams.common.datatype.SerializableDataType;
 import org.apache.rocketmq.streams.common.datatype.SetDataType;
 import org.apache.rocketmq.streams.common.datatype.ShortDataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("rawtypes")
 public class DataTypeUtil {
 
-    private static final Log LOG = LogFactory.getLog(DataTypeUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DataTypeUtil.class);
 
     private static final List<DataType> dataTypes = new ArrayList<>();
     /**
@@ -75,7 +75,6 @@ public class DataTypeUtil {
 
     static {
         register(new HllDataType());
-        register(new NumberDataType());
         register(new StringDataType());
         register(new IntDataType());
         register(new LongDataType());
@@ -85,15 +84,16 @@ public class DataTypeUtil {
         register(new FloatDataType());
         register(new ByteDataType());
         register(new ShortDataType());
+        register(new NumberDataType());
         register(new ListDataType());
         register(new SetDataType());
         register(new ArrayDataType());
         register(new MapDataType());
         register(new ConfigurableDataType());
         register(new JsonableDataType());
+        register(new DateTimeDataType());
         register(new JavaBeanDataType());
         register(new SerializableDataType());
-        register(new DateTimeDataType());
         register(new NotSupportDataType());
     }
 
@@ -365,21 +365,22 @@ public class DataTypeUtil {
     public static DataType createFieldDataType(Class clazz, String fieldName) {
 
         Method method = ReflectUtil.getGetMethod(clazz, fieldName);
-        Type type =null;
+        Type type = null;
+        String typeString = null;
         if (method == null) {
             try {
                 Field field = clazz.getDeclaredField(fieldName);
                 type = field.getType();
             } catch (NoSuchFieldException e) {
-                throw new RuntimeException(clazz.getName() + "." + fieldName+" not exist get method, please create get/set method for the field");
+                throw new RuntimeException(clazz.getName() + "." + fieldName + " not exist get method, please create get/set method for the field");
             }
 
-        }else {
+        } else {
             type = method.getGenericReturnType();
-        }
-        String typeString = type.toString();
-        if (typeString.startsWith("class ")) {
-            typeString = null;
+            typeString = type.toString();
+            if (typeString.startsWith("class ")) {
+                typeString = null;
+            }
         }
 
         return createDataType(ReflectUtil.getBeanFieldType(clazz, fieldName), typeString);
@@ -558,15 +559,24 @@ public class DataTypeUtil {
     /**
      * Gets the Datatype based on the fields of the class
      *
-     * @param o
      * @param field
      * @return
      */
-    public static DataType createDataTypeByField(Object o, Field field) {
+    public static DataType createDataTypeByField(Object object, Field field) {
+        return createDataTypeByFieldFromClass(object.getClass(), field);
+    }
+
+    /**
+     * Gets the Datatype based on the fields of the class
+     *
+     * @param field
+     * @return
+     */
+    public static DataType createDataTypeByFieldFromClass(Class cal, Field field) {
         Class clazz = field.getType();
         Method method = null;
         try {
-            method = ReflectUtil.getGetMethod(o.getClass(), field.getName());
+            method = ReflectUtil.getGetMethod(cal, field.getName());
         } catch (Exception e) {
             //todo nothing,if not has get/is method, use fieldDirectly
         }
@@ -580,17 +590,13 @@ public class DataTypeUtil {
             genericTypeStr = field.getGenericType().toString();
         }
         if (NotSupportDataType.class.isInstance(dataType)) {
-            Object object1 = ReflectUtil.getDeclaredField(o, field.getName());
-            if (object1 != null) {
-                //如果是接口类，则通过值获取类型
-                dataType = DataTypeUtil.getDataTypeFromClass(object1.getClass());
-                if (genericTypeStr != null) {
-                    int startIndex = genericTypeStr.indexOf("<");
-                    if (startIndex > -1) {
-                        genericTypeStr = dataType.getDataClass().getName() + genericTypeStr.substring(startIndex);
-                    }
+            Class fieldClass = ReflectUtil.getBeanFieldType(cal, field.getName());
+            dataType = DataTypeUtil.getDataTypeFromClass(fieldClass);
+            if (genericTypeStr != null) {
+                int startIndex = genericTypeStr.indexOf("<");
+                if (startIndex > -1) {
+                    genericTypeStr = dataType.getDataClass().getName() + genericTypeStr.substring(startIndex);
                 }
-
             }
         }
         if (NotSupportDataType.class.isInstance(dataType)) {

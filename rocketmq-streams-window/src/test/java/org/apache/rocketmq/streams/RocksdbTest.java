@@ -73,7 +73,7 @@ public class RocksdbTest {
     @Test
     public void testSer() throws UnsupportedEncodingException {
         long start = System.currentTimeMillis();
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000000; i++) {
             Person person = Person.createPerson("NAMESPACE" + i);
             byte[] bytes = SerializeUtil.serialize(person);
             person = SerializeUtil.deserialize(bytes);

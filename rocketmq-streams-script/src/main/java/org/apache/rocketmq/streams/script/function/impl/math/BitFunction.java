@@ -37,8 +37,8 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitor", alias = "bitor", comment = "位取或，输入和输出类型均为整型，且类型一致")
     public Integer or(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "Integer", comment = "取位或的第一个值") Integer a,
-                      @FunctionParamter(value = "Integer", comment = "取位或的第二个值") Integer b) {
+        @FunctionParamter(value = "Integer", comment = "取位或的第一个值") Integer a,
+        @FunctionParamter(value = "Integer", comment = "取位或的第二个值") Integer b) {
         Integer result = null;
         if (a == null || b == null) {
             return result;
@@ -58,8 +58,8 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitor", alias = "bitor", comment = "位取或，输入和输出类型均为整型，且类型一致")
     public Integer or(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String a,
-                      @FunctionParamter(value = "String", comment = "代表要求反余弦的字段名或常量") String b) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String a,
+        @FunctionParamter(value = "String", comment = "代表要求反余弦的字段名或常量") String b) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         Integer bTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
@@ -81,8 +81,8 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitxor", alias = "bitxor", comment = "按位取异或")
     public Integer xor(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment = "取位或的第一个值") Integer a,
-                       @FunctionParamter(value = "Integer", comment = "取位或的第一个值") Integer b) {
+        @FunctionParamter(value = "Integer", comment = "取位或的第一个值") Integer a,
+        @FunctionParamter(value = "Integer", comment = "取位或的第一个值") Integer b) {
         Integer result = null;
         if (a == null || b == null) {
             return result;
@@ -102,8 +102,8 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitxor", alias = "bitxor", comment = "按位取异或")
     public Integer xor(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String a,
-                       @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String b) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String a,
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String b) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         Integer bTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
@@ -124,7 +124,7 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitnot", comment = "按位取反", alias = "bitnot")
     public Integer not(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment = "取反的Integer常量") Integer a) {
+        @FunctionParamter(value = "Integer", comment = "取反的Integer常量") Integer a) {
         Integer result = null;
         if (a == null) {
             return result;
@@ -143,7 +143,7 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitnot", comment = "按位取反", alias = "bitnot")
     public Integer not(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "取反的字段或常量") String a) {
+        @FunctionParamter(value = "String", comment = "取反的字段或常量") String a) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         if (a == null) {
@@ -164,8 +164,8 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitand", alias = "bitand", comment = "运算符按位“与”操作")
     public Integer and(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment = "按位取反的第一个常量值") Integer a,
-                       @FunctionParamter(value = "Integer", comment = "按位取反的第二个常量值") Integer b) {
+        @FunctionParamter(value = "Integer", comment = "按位取反的第一个常量值") Integer a,
+        @FunctionParamter(value = "Integer", comment = "按位取反的第二个常量值") Integer b) {
         Integer result = null;
         if (a == null || b == null) {
             return result;
@@ -185,8 +185,8 @@ public class BitFunction {
      */
     @FunctionMethod(value = "bitAnd", alias = "bitAnd", comment = "运算符按位“与”操作")
     public Integer and(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "按位取反的第一个常量值") String a,
-                       @FunctionParamter(value = "String", comment = "按位取反的第二个常量值") String b) {
+        @FunctionParamter(value = "String", comment = "按位取反的第一个常量值") String a,
+        @FunctionParamter(value = "String", comment = "按位取反的第二个常量值") String b) {
         Integer result = null;
         Integer aTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));
         Integer bTem = Integer.parseInt(FunctionUtils.getValueString(message, context, a));

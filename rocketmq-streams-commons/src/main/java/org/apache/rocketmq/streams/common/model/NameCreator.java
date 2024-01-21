@@ -22,15 +22,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public class NameCreator {
-    private transient AtomicInteger nameCreator = new AtomicInteger(100000000);
+    private final transient AtomicInteger nameCreator = new AtomicInteger(100000000);
 
-    private Map<String, NameCreator> creatorMap = new HashMap<>();
+    private final Map<String, NameCreator> creatorMap = new HashMap<>();
+
+    public static String getFirstPrefix(String name, String... types) {
+        for (String type : types) {
+            int index = name.indexOf("_" + type);
+            if (index != -1) {
+                return name.substring(0, index);
+            }
+        }
+        return name;
+    }
 
     /**
      * 每个规则一个名字生成器，expression name
      *
-     * @param names
-     * @return
+     * @param names 名称
+     * @return NameCreator实例
      */
     public NameCreator createOrGet(String... names) {
         String ruleName = MapKeyUtil.createKeyBySign("_", names);
@@ -49,12 +59,7 @@ public class NameCreator {
         return nameCreator;
     }
 
-    public String createNewName(String... names) {
-        NameCreator nameCreator = createOrGet(names);
-        return nameCreator.createName(names);
-    }
-
     public String createName(String... namePrefix) {
-        return MapKeyUtil.createKeyBySign("_", MapKeyUtil.createKeyBySign("_", namePrefix), nameCreator.incrementAndGet() + "");
+        return MapKeyUtil.createKeyBySign("_", MapKeyUtil.createKeyBySign("_", namePrefix), String.valueOf(nameCreator.incrementAndGet()));
     }
 }

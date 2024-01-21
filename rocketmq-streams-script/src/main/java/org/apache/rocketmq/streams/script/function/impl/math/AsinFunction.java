@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -37,7 +36,7 @@ public class AsinFunction {
      */
     @FunctionMethod(value = "asin", alias = "asin", comment = "求反正弦函数")
     public Double asin(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "代表要求反正弦的字段名或常量") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求反正弦的字段名或常量") String number) {
         Double result = null;
         Double numberTem = Double.parseDouble(FunctionUtils.getValueString(message, context, number));
         if (numberTem == null || numberTem < -1.0 || numberTem > 1.0) {
@@ -57,7 +56,7 @@ public class AsinFunction {
      */
     @FunctionMethod(value = "asin", alias = "asin", comment = "求反正弦函数")
     public Double asin(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Double", comment = "Double常量") Double number) {
+        @FunctionParamter(value = "Double", comment = "Double常量") Double number) {
         Double result = null;
         if (number == null || number < -1.0 || number > 1.0) {
             return result;
@@ -75,27 +74,8 @@ public class AsinFunction {
      * @return
      */
     @FunctionMethod(value = "asin", alias = "asin", comment = "求反正弦函数")
-    public BigDecimal asin(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "BigDecimal常量") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null || number.intValue() < -1 || number.intValue() > 1) {
-            return result;
-        }
-        result = new BigDecimal(Math.asin(number.intValue()));
-        return result;
-    }
-
-    /**
-     * 求反正弦函数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "asin", alias = "asin", comment = "求反正弦函数")
     public Double asin(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment = "Integer常量") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "Integer常量") Integer number) {
         Double result = null;
         if (number == null || number < -1.0 || number > 1.0) {
             return result;

@@ -25,27 +25,27 @@ import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.StringDataType;
 import org.apache.rocketmq.streams.common.interfaces.ISerialize;
-import org.nustaq.serialization.FSTConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SerializeUtil {
-    private static final Log LOG = LogFactory.getLog(SerializeUtil.class);
-   /**
+    private static final Logger LOG = LoggerFactory.getLogger(SerializeUtil.class);
+
+    /**
      * 把一个对象序列化成字节,对象中的字段是datatype支持的
      *
      * @param object
      * @return
      */
     public static byte[] serialize(Object object) {
-        if(ISerialize.class.isInstance(object)){
+        if (ISerialize.class.isInstance(object)) {
 //        byte[] bytes = conf.asByteArray(object);
 //        return bytes;
-           return KryoUtil.writeObjectToByteArray(object);
+            return KryoUtil.writeObjectToByteArray(object);
         }
         DataType dataType = DataTypeUtil.getDataTypeFromClass(object.getClass());
         if (ArrayDataType.class.isInstance(dataType)) {
@@ -83,18 +83,20 @@ public class SerializeUtil {
         DataType dataType = DataTypeUtil.getDataType(dataTypeName);
         return (T) dataType.byteToValue(bytes, offset);
     }
+
     /**
      * 把一个对象的字段，通过字节填充,字段不能有null值
      *
      * @param bytes
      */
-    public static <T> T deserialize(byte[] bytes,Class clazz) {
-        if(ISerialize.class.isAssignableFrom(clazz)){
-            return (T)KryoUtil.readObjectFromByteArray(bytes,clazz);
+    public static <T> T deserialize(byte[] bytes, Class clazz) {
+        if (ISerialize.class.isAssignableFrom(clazz)) {
+            return (T) KryoUtil.readObjectFromByteArray(bytes, clazz);
             //return (T)conf.asObject(bytes);
         }
         return deserialize(bytes, new AtomicInteger(0));
     }
+
     /**
      * 把一个对象的字段，通过字节填充,字段不能有null值
      *

@@ -22,12 +22,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.streams.common.cache.HybridByteBufferTable;
 import org.junit.Test;
 
-/**
- * @author zengyu.cw
- * @program rocketmq-streams-apache
- * @create 2021-12-20 16:52:53
- * @description
- */
+
 public class HybridByteBufferTableTest {
 
     @Test

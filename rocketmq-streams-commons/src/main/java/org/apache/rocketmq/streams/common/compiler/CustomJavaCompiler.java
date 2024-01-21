@@ -43,6 +43,8 @@ import org.apache.rocketmq.streams.common.utils.FileUtil;
  * 编译java源码
  */
 public class CustomJavaCompiler {
+    private static Pattern pattern1 = Pattern.compile("package\\s+\\S+\\s*;");
+    private static Pattern pattern2 = Pattern.compile("class\\s+\\S+.*\\{");
     //类全名
     private String fullClassName;
     private String sourceCode;
@@ -59,10 +61,6 @@ public class CustomJavaCompiler {
     //运行耗时(单位ms)
     private long runTakeTime;
 
-    private static Pattern pattern1 = Pattern.compile("package\\s+\\S+\\s*;");
-
-    private static Pattern pattern2 = Pattern.compile("class\\s+\\S+.*\\{");
-
     /**
      * @param sourceFile java 文件
      */
@@ -78,10 +76,34 @@ public class CustomJavaCompiler {
         this.fullClassName = getFullClassName(sourceCode);
     }
 
+    /**
+     * 获取类的全名称
+     *
+     * @param sourceCode 源码
+     * @return 类的全名称
+     */
+    public static String getFullClassName(String sourceCode) {
+        String className = "";
+        Matcher matcher = pattern1.matcher(sourceCode);
+        if (matcher.find()) {
+            className = matcher.group().replaceFirst("package", "").replace(";", "").trim() + ".";
+        }
+        matcher = pattern2.matcher(sourceCode);
+        if (matcher.find()) {
+            className += matcher.group().replaceFirst("class", "").replace("{", "").trim();
+        }
+        int index = className.indexOf(" ");
+        if (index != -1) {
+            //如果类有实现接口或继承等，只取类名部分
+            className = className.substring(0, index);
+        }
+        return className;
+    }
+
     public <T> T compileAndNewInstance() {
         try {
             Class aClass = compileClass();
-            return (T)aClass.newInstance();
+            return (T) aClass.newInstance();
         } catch (Exception e) {
             throw new RuntimeException("compile class error, the class name is " + fullClassName, e);
         }
@@ -147,30 +169,6 @@ public class CustomJavaCompiler {
 
     public long getRunTakeTime() {
         return runTakeTime;
-    }
-
-    /**
-     * 获取类的全名称
-     *
-     * @param sourceCode 源码
-     * @return 类的全名称
-     */
-    public static String getFullClassName(String sourceCode) {
-        String className = "";
-        Matcher matcher = pattern1.matcher(sourceCode);
-        if (matcher.find()) {
-            className = matcher.group().replaceFirst("package", "").replace(";", "").trim() + ".";
-        }
-        matcher = pattern2.matcher(sourceCode);
-        if (matcher.find()) {
-            className += matcher.group().replaceFirst("class", "").replace("{", "").trim();
-        }
-        int index = className.indexOf(" ");
-        if (index != -1) {
-            //如果类有实现接口或继承等，只取类名部分
-            className = className.substring(0, index);
-        }
-        return className;
     }
 
     /**

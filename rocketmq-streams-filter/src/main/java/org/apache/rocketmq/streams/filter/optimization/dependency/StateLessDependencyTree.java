@@ -16,35 +16,25 @@
  */
 package org.apache.rocketmq.streams.filter.optimization.dependency;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
-import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
-import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
-import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 
 /**
  * raverse the pipeline to create a prefix filter fingerprint
  */
-public class StateLessDependencyTree  extends DependencyTree{
-    public static Map<ChainPipeline,List<CommonExpression>> cache=new HashMap<>();
-
+public class StateLessDependencyTree extends DependencyTree {
+    public static Map<ChainPipeline, List<CommonExpression>> cache = new HashMap<>();
 
     protected ChainPipeline chainPipeline;
-    protected     Map<String, Map<String, PreFingerprint>> preFingerprintExecutor=new HashMap<>();
+    protected Map<String, Map<String, PreFingerprint>> preFingerprintExecutor = new HashMap<>();
+
     public StateLessDependencyTree(ChainPipeline pipeline) {
-        super(pipeline,null);
+        super(pipeline);
         this.chainPipeline = pipeline;
     }
-
 
     /**
      * If the two pre filters are one branch, merge and replace the previous one with the latter one
@@ -79,6 +69,5 @@ public class StateLessDependencyTree  extends DependencyTree{
         preFingerprintMap.put(fingerprint.getNextStageLabel(), fingerprint);
         return true;
     }
-
 
 }

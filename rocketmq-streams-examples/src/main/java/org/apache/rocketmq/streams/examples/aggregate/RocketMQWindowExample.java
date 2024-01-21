@@ -18,7 +18,7 @@
 package org.apache.rocketmq.streams.examples.aggregate;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
@@ -35,7 +35,7 @@ public class RocketMQWindowExample {
      * 2、rocketmq allow create topic automatically.
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
 
         try {
             Thread.sleep(1000 * 3);
@@ -43,34 +43,34 @@ public class RocketMQWindowExample {
         }
         System.out.println("begin streams code.");
 
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "pipeline");
         source.fromRocketmq(
                 RMQ_TOPIC,
                 RMQ_CONSUMER_GROUP_NAME,
                 false,
                 NAMESRV_ADDRESS)
-                .filter((message) -> {
-                    try {
-                        JSONObject.parseObject((String) message);
-                    } catch (Throwable t) {
-                        // if can not convert to json, discard it.because all operator are base on json.
-                        return false;
-                    }
-                    return true;
-                })
-                //must convert message to json.
-                .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.seconds(10)))
-                .groupBy("ProjectName","LogStore")
-                .sum("OutFlow", "OutFlow")
-                .sum("InFlow", "InFlow")
-                .count("total")
-                .waterMark(5)
-                .setLocalStorageOnly(true)
-                .toDataSteam()
-                .toPrint(1)
-                .with(WindowStrategy.highPerformance())
-                .start();
+            .filter((message) -> {
+                try {
+                    JSONObject.parseObject((String) message);
+                } catch (Throwable t) {
+                    // if can not convert to json, discard it.because all operator are base on json.
+                    return false;
+                }
+                return true;
+            })
+            //must convert message to json.
+            .map(message -> JSONObject.parseObject((String) message))
+            .window(TumblingWindow.of(Time.seconds(10)))
+            .groupBy("ProjectName", "LogStore")
+            .sum("OutFlow", "OutFlow")
+            .sum("InFlow", "InFlow")
+            .count("total")
+            .waterMark(5)
+            .setLocalStorageOnly(true)
+            .toDataSteam()
+            .toPrint(1)
+            .with(WindowStrategy.highPerformance())
+            .start();
 
     }
 

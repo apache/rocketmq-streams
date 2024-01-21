@@ -19,7 +19,7 @@ package org.apache.rocketmq.streams.state.kv;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.state.LruState;
 import org.junit.Assert;
 import org.junit.Test;
@@ -63,7 +63,7 @@ public class TestLruState {
     public void testConcurrent() {
         String content = "lru";
         final LruState<String> lruState = new LruState<>(10, "");
-        ExecutorService poolService = Executors.newFixedThreadPool(10);
+        ExecutorService poolService = ThreadPoolFactory.createFixedThreadPool(10, TestLruState.class.getName() + "-test_concurrent");
         final Random random = new Random(System.currentTimeMillis());
         for (int i = 0; i < 1000; i++) {
             final int index = i;

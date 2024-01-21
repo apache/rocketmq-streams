@@ -17,51 +17,21 @@
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
 import java.io.Serializable;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
-import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
+import org.apache.rocketmq.streams.common.topology.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 
 /**
  * 给用户提供自定义的抽象类
  */
-public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage> implements IStageBuilder<ChainStage>, Serializable, IAfterConfigurableRefreshListener {
+public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage> implements IStageBuilder<AbstractChainStage<?>>, Serializable {
     private static final long serialVersionUID = 1L;
 
     @Override
     protected boolean initConfigurable() {
         return true;
-    }
-
-    /**
-     * 子类实现，实现具体的处理逻辑
-     *
-     * @param message message
-     * @param context context
-     * @param <T>
-     * @return
-     */
-    protected abstract <T> T operate(IMessage message, AbstractContext context);
-
-    @Override
-    protected IStageHandle selectHandle(IMessage message, AbstractContext context) {
-        return new IStageHandle() {
-            @Override
-            protected IMessage doProcess(IMessage message, AbstractContext context) {
-                operate(message, context);
-                return message;
-            }
-
-            @Override
-            public String getName() {
-                return StageBuilder.class.getName();
-            }
-        };
     }
 
     @Override
@@ -70,17 +40,12 @@ public abstract class StageBuilder extends AbstractStatelessChainStage<IMessage>
     }
 
     @Override
-    public ChainStage<?> createStageChain(PipelineBuilder pipelineBuilder) {
+    public AbstractChainStage<?> createStageChain(PipelineBuilder pipelineBuilder) {
         return new UDFChainStage(this);
     }
 
     @Override
     public void addConfigurables(PipelineBuilder pipelineBuilder) {
-
-    }
-
-    @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
 
     }
 

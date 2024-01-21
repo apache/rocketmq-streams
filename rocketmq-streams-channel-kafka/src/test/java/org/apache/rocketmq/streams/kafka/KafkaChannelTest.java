@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.kafka;
 
 import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.context.Message;
@@ -29,10 +28,11 @@ import org.junit.Test;
  * 本机搭建kafka服务端参考：https://www.cnblogs.com/BlueSkyyj/p/11425998.html
  **/
 public class KafkaChannelTest {
-    private static final String END_POINT = "47.94.238.133:31013";
-    private static final String TOPIC = "real_time_kafka_topic";
+    //private static final String END_POINT = "47.94.238.133:31013";
+    private static final String END_POINT = "ckafka-zarvdwxe.ap-guangzhou.ckafka.tencentcloudmq.com:6001";
+    private static final String TOPIC = "cfw_alert";
     //数据任务处理后topic:es_index_test,实时策略消息topic:real_time_kafka_topic
-    private static final String GROUP_NAME = "test-090";
+    private static final String GROUP_NAME = "cfw";
 
     @Test
     public void testKafkaReceive() throws InterruptedException {
@@ -84,7 +84,7 @@ public class KafkaChannelTest {
         kafkaChannel.setTopic(TOPIC);
         kafkaChannel.setBootstrapServers(END_POINT);
         kafkaChannel.setNameSpace("com.aliyun.dipper.test");
-        kafkaChannel.setConfigureName("kafka_channel");
+        kafkaChannel.setName("kafka_channel");
         kafkaChannel.init();
         return kafkaChannel;
     }
@@ -97,7 +97,7 @@ public class KafkaChannelTest {
         kafkaChannel.setGroupName(GROUP_NAME);
         kafkaChannel.setMaxThread(1);
         kafkaChannel.setNameSpace("com.aliyun.dipper.test");
-        kafkaChannel.setConfigureName("kafka_channel");
+        kafkaChannel.setName("kafka_channel");
         kafkaChannel.init();
         return kafkaChannel;
     }

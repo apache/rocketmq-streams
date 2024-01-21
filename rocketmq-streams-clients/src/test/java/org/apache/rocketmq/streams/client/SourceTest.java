@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.client;
 
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -46,7 +45,7 @@ public class SourceTest implements Serializable {
     public void testoutputdata() {
         AtomicLong count = new AtomicLong(0);
         AtomicLong startTime = new AtomicLong(System.currentTimeMillis());
-        DataStreamSource.create("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromFile("/tmp/aegis_proc_public.txt")
             .toRocketmq("dipper_test_1", "dipper_group", "localhost:9876")
             .forEachMessage(new ForEachMessageFunction() {
@@ -70,7 +69,7 @@ public class SourceTest implements Serializable {
     public void testImportMsgFromFile() {
         AtomicLong count = new AtomicLong(0);
         AtomicLong startTime = new AtomicLong(System.currentTimeMillis());
-        DataStreamSource.create("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromRocketmq("dipper_test_1", "dipper_group1", true, "localhost:9876")
 //           .window(TumblingWindow.of(Time.seconds(10)))
 //            .count("c")
@@ -96,7 +95,7 @@ public class SourceTest implements Serializable {
 
     @Test
     public void testImportMsgFromSource() {
-        DataStreamSource.create("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromRocketmq("TOPIC_AEGIS_DETECT_MSG", "chris_test", "T_MSG_PROC", true, null)
             .toFile("/tmp/aegis_proc.txt", true)
             .start();
@@ -104,7 +103,7 @@ public class SourceTest implements Serializable {
 
     @Test
     public void testImportMsgFromNet() {
-        DataStreamSource.create("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromRocketmq("TOPIC_AEGIS_DETECT_MSG", "chris_test", "T_MSG_NETSTAT", true, null)
             .toFile("/tmp/aegis_net.txt", true)
             .start();

@@ -33,11 +33,18 @@ public class NotEquals extends CompareFunction {
     private final static double MIN_VALUE = 0.000001;
     private static final DateDataType dateDataType = new DateDataType(Date.class);
 
+    public static void main(String[] args) {
+        Boolean a = true;
+        Boolean b = false;
+        NotEquals not = new NotEquals();
+        System.out.println(not.compare(a, b));
+    }
+
     @FunctionMethod(value = "!=", alias = "<>")
     @FunctionMethodAilas("不等于")
     @Override
     public Boolean doFunction(IMessage message, AbstractContext context, Expression expression) {
-        return super.doFunction(message,context,expression);
+        return super.doFunction(message, context, expression);
     }
 
     public boolean compare(int a, int b) {
@@ -157,12 +164,5 @@ public class NotEquals extends CompareFunction {
         String ad = dateDataType.toDataJson(a);
         String bd = dateDataType.toDataJson(b);
         return compare(ad, bd);
-    }
-
-    public static void main(String[] args) {
-        Boolean a = true;
-        Boolean b = false;
-        NotEquals not = new NotEquals();
-        System.out.println(not.compare(a, b));
     }
 }

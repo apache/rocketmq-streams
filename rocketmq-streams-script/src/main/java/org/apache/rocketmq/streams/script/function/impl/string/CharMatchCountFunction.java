@@ -30,8 +30,8 @@ public class CharMatchCountFunction {
 
     @FunctionMethod(value = "charmatchcount", alias = "char_matchcount", comment = "用于计算str1中有多少个字符出现在str2中")
     public Integer charmatchcount(IMessage message, FunctionContext context,
-                                  @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
-                                  @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str1,
+        @FunctionParamter(value = "string", comment = "字段名或常量") String str2) {
         Integer number = 0;
         String str1Tem = FunctionUtils.getValueString(message, context, str1);
         String str2Tem = FunctionUtils.getValueString(message, context, str2);

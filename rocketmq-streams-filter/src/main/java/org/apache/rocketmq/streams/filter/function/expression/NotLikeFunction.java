@@ -30,7 +30,7 @@ public class NotLikeFunction extends LikeFunction {
     @FunctionMethod(value = "notLike", alias = "!like")
     @FunctionMethodAilas("not like")
     public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
-        return !super.doExpressionFunction(message,context,expression);
+        return !super.doExpressionFunction(message, context, expression);
     }
 
 }

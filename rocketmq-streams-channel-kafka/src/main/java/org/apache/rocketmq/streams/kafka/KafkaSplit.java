@@ -26,11 +26,15 @@ public class KafkaSplit extends BasedConfigurable implements ISplit<KafkaSplit, 
     protected String topic;
     protected int partition;
 
+    public KafkaSplit(PartitionInfo partitionInfo) {
+        this.partitionInfo = partitionInfo;
+        this.partition = partitionInfo.partition();
+    }
+
     @Override
     public String getQueueId() {
         return partition + "";
     }
-
 
     @Override
     public PartitionInfo getQueue() {
@@ -46,10 +50,5 @@ public class KafkaSplit extends BasedConfigurable implements ISplit<KafkaSplit, 
     protected void getJsonObject(JSONObject jsonObject) {
         super.getJsonObject(jsonObject);
         this.partitionInfo = new PartitionInfo(topic, partition, null, null, null);
-    }
-
-    public KafkaSplit(PartitionInfo partitionInfo) {
-        this.partitionInfo = partitionInfo;
-        this.partition = partitionInfo.partition();
     }
 }

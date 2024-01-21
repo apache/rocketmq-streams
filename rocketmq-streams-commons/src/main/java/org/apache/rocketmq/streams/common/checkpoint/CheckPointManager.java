@@ -22,16 +22,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
+/**
+ * 管理分片和checkpoint
+ */
 public class CheckPointManager extends BasedConfigurable {
 
     protected transient Map<String, Long> currentSplitAndLastUpdateTime = new HashMap<>();//保存这个实例处理的分片数
@@ -39,87 +41,6 @@ public class CheckPointManager extends BasedConfigurable {
     protected transient ICheckPointStorage iCheckPointStorage;
 
     public CheckPointManager() {
-        String name = ComponentCreator.getProperties().getProperty(ConfigureFileKey.CHECKPOINT_STORAGE_NAME);
-        iCheckPointStorage = CheckPointStorageFactory.getInstance().getStorage(name);
-    }
-
-    public synchronized void addSplit(String splitId) {
-        this.currentSplitAndLastUpdateTime.put(splitId, System.currentTimeMillis());
-    }
-
-    public synchronized void removeSplit(String splitId) {
-        this.currentSplitAndLastUpdateTime.remove(splitId);
-    }
-
-    public boolean contains(String splitId) {
-        return this.currentSplitAndLastUpdateTime.containsKey(splitId);
-    }
-
-    private final List<CheckPoint> fromSourceState(Map<String, SourceState> sourceStateMap) {
-
-        List<CheckPoint> checkPoints = new ArrayList<>();
-        for (Map.Entry<String, SourceState> entry : sourceStateMap.entrySet()) {
-            String key = entry.getKey();
-            SourceState value = entry.getValue();
-            String[] ss = key.split("\\;");
-            assert ss.length == 3 : "key length must be three. format is namespace;pipelineName;sourceName" + key;
-            for (Map.Entry<String, MessageOffset> tmpEntry : value.getQueueId2Offsets().entrySet()) {
-                String queueId = tmpEntry.getKey();
-                String offset = tmpEntry.getValue().getMainOffset();
-                CheckPoint checkPoint = new CheckPoint();
-                checkPoint.setSourceNamespace(ss[0]);
-                checkPoint.setPipelineName(ss[1]);
-                checkPoint.setSourceName(ss[2]);
-                checkPoint.setQueueId(queueId);
-                checkPoint.setData(offset);
-                checkPoints.add(checkPoint);
-            }
-        }
-
-        return checkPoints;
-
-    }
-
-    public void addCheckPointMessage(CheckPointMessage message) {
-        if (this.iCheckPointStorage != null) {
-            this.iCheckPointStorage.addCheckPointMessage(message);
-        }
-
-    }
-
-    public CheckPoint recover(ISource iSource, ISplit iSplit) {
-        if (this.iCheckPointStorage == null) {
-            return null;
-        }
-        String isRecover = ComponentCreator.getProperties().getProperty(ConfigureFileKey.IS_RECOVER_MODE);
-        if (isRecover != null && Boolean.valueOf(isRecover)) {
-            String queueId = iSplit.getQueueId();
-            return iCheckPointStorage.recover(iSource, queueId);
-        }
-        return null;
-    }
-
-    public void updateLastUpdate(String queueId) {
-        addSplit(queueId);
-    }
-
-    public Set<String> getCurrentSplits() {
-
-        return this.currentSplitAndLastUpdateTime.keySet();
-    }
-
-    public void flush() {
-        if (iCheckPointStorage != null) {
-            iCheckPointStorage.flush();
-        }
-
-    }
-
-    public void finish() {
-        if (iCheckPointStorage != null) {
-            iCheckPointStorage.finish();
-        }
-
     }
 
     /**
@@ -128,7 +49,7 @@ public class CheckPointManager extends BasedConfigurable {
      * @param source
      * @return
      */
-    public static String createSourceName(ISource source, String pipelineName) {
+    public static String createSourceName(ISource<?> source, String pipelineName) {
 
         if (StringUtil.isNotEmpty(pipelineName)) {
             return MapKeyUtil.createKey(source.createCheckPointName(), pipelineName);
@@ -137,37 +58,6 @@ public class CheckPointManager extends BasedConfigurable {
             return null;
         }
         return source.createCheckPointName();
-    }
-
-    public Map<String, Long> getCurrentSplitAndLastUpdateTime() {
-        return currentSplitAndLastUpdateTime;
-    }
-
-    public synchronized void addRemovingSplit(Set<String> removingSplits) {
-        long removingTime = System.currentTimeMillis();
-        for (String split : removingSplits) {
-            this.removingSplits.put(split, removingTime);
-        }
-    }
-
-    public synchronized void deleteRemovingSplit(Set<String> removingSplits) {
-        for (String split : removingSplits) {
-            this.removingSplits.remove(split);
-        }
-
-    }
-
-    public synchronized boolean isRemovingSplit(String splitId) {
-        Long removingTime = this.removingSplits.get(splitId);
-        if (removingTime == null) {
-            return false;
-        }
-        //超过10秒才允许当作新分片进来
-        if (System.currentTimeMillis() - removingTime > 10 * 1000) {
-            this.removingSplits.remove(splitId);
-            return false;
-        }
-        return true;
     }
 
     public static final String createCheckPointKey(String key, String queueId) {
@@ -207,5 +97,122 @@ public class CheckPointManager extends BasedConfigurable {
         snapShot.setValue("value");
         System.out.println(ReflectUtil.serializeObject(snapShot));
 
+    }
+
+    public synchronized void addSplit(String splitId) {
+        this.currentSplitAndLastUpdateTime.put(splitId, System.currentTimeMillis());
+    }
+
+    public synchronized void removeSplit(String splitId) {
+        this.currentSplitAndLastUpdateTime.remove(splitId);
+    }
+
+    public boolean contains(String splitId) {
+        return this.currentSplitAndLastUpdateTime.containsKey(splitId);
+    }
+
+    private final List<CheckPoint<?>> fromSourceState(Map<String, SourceState> sourceStateMap) {
+
+        List<CheckPoint<?>> checkPoints = new ArrayList<>();
+        for (Map.Entry<String, SourceState> entry : sourceStateMap.entrySet()) {
+            String key = entry.getKey();
+            SourceState value = entry.getValue();
+            String[] ss = key.split("\\;");
+            assert ss.length == 3 : "key length must be three. format is namespace;pipelineName;sourceName" + key;
+            for (Map.Entry<String, MessageOffset> tmpEntry : value.getQueueId2Offsets().entrySet()) {
+                String queueId = tmpEntry.getKey();
+                String offset = tmpEntry.getValue().getMainOffset();
+                CheckPoint<String> checkPoint = new CheckPoint<>();
+                checkPoint.setSourceNamespace(ss[0]);
+                checkPoint.setPipelineName(ss[1]);
+                checkPoint.setSourceName(ss[2]);
+                checkPoint.setQueueId(queueId);
+                checkPoint.setData(offset);
+                checkPoints.add(checkPoint);
+            }
+        }
+
+        return checkPoints;
+
+    }
+
+    public void addCheckPointMessage(CheckPointMessage message) {
+        if (this.iCheckPointStorage != null) {
+            this.iCheckPointStorage.addCheckPointMessage(message);
+        }
+
+    }
+
+    public ISplitOffset recover(ISource<?> iSource, ISplit<?, ?> iSplit) {
+        if (this.iCheckPointStorage == null) {
+            return null;
+        }
+        if (iSource instanceof AbstractSource) {
+            String queueId = iSplit.getQueueId();
+            return iCheckPointStorage.recover(iSource, queueId);
+        }
+        return null;
+    }
+
+    public void updateLastUpdate(String queueId) {
+        addSplit(queueId);
+    }
+
+    public Set<String> getCurrentSplits() {
+
+        return this.currentSplitAndLastUpdateTime.keySet();
+    }
+
+    public void flush() {
+        if (iCheckPointStorage != null) {
+            iCheckPointStorage.flush();
+        }
+
+    }
+
+    public void finish() {
+        if (iCheckPointStorage != null) {
+            iCheckPointStorage.finish();
+        }
+
+    }
+
+    public Map<String, Long> getCurrentSplitAndLastUpdateTime() {
+        return currentSplitAndLastUpdateTime;
+    }
+
+    public synchronized void addRemovingSplit(Set<String> removingSplits) {
+        long removingTime = System.currentTimeMillis();
+        for (String split : removingSplits) {
+            this.removingSplits.put(split, removingTime);
+        }
+    }
+
+    public synchronized void deleteRemovingSplit(Set<String> removingSplits) {
+        for (String split : removingSplits) {
+            this.removingSplits.remove(split);
+        }
+
+    }
+
+    public synchronized boolean isRemovingSplit(String splitId) {
+        Long removingTime = this.removingSplits.get(splitId);
+        if (removingTime == null) {
+            return false;
+        }
+        //超过10秒才允许当作新分片进来
+        if (System.currentTimeMillis() - removingTime > 10 * 1000) {
+            this.removingSplits.remove(splitId);
+            return false;
+        }
+        return true;
+    }
+
+    public ICheckPointStorage getiCheckPointStorage() {
+        return iCheckPointStorage;
+    }
+
+    public void setiCheckPointStorage(ICheckPointStorage iCheckPointStorage) {
+        this.iCheckPointStorage = iCheckPointStorage;
     }
 }

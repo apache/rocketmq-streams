@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -27,12 +25,14 @@ import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Function
 
 public class RegexFunction extends AbstractExpressionFunction {
 
-    private static final Log LOG = LogFactory.getLog(RegexFunction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegexFunction.class);
     private static final int REGEX_TIME_OUT = -1;
 
     public static boolean isRegex(String functionName) {
@@ -53,8 +53,7 @@ public class RegexFunction extends AbstractExpressionFunction {
     @Override
     @FunctionMethod("regex")
     @FunctionMethodAilas("正则匹配")
-    public Boolean  doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
-
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
 
         Var var = expression.getVar();
         if (var == null) {
@@ -62,7 +61,7 @@ public class RegexFunction extends AbstractExpressionFunction {
         }
         Object varObject = null;
         Object valueObject = null;
-        varObject = var.doMessage(message,context);
+        varObject = var.doMessage(message, context);
 
         valueObject = expression.getValue();
 
@@ -74,7 +73,6 @@ public class RegexFunction extends AbstractExpressionFunction {
         String regex = "";
         varString = String.valueOf(varObject);
         regex = String.valueOf(valueObject);
-
 
         boolean value = false;
         if (caseInsensitive()) {
@@ -100,7 +98,7 @@ public class RegexFunction extends AbstractExpressionFunction {
 
             return result;
         } catch (Exception e) {
-            LOG.error("AbstractExpressionFunction doPreProcess error", e);
+            LOGGER.error("AbstractExpressionFunction doPreProcess error", e);
             return true;
         }
 

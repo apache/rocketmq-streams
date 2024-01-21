@@ -20,15 +20,12 @@ import com.alibaba.fastjson.JSONObject;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.filter.builder.RuleBuilder;
 import org.apache.rocketmq.streams.filter.context.ContextConfigure;
-import org.apache.rocketmq.streams.filter.context.RuleContext;
 import org.apache.rocketmq.streams.filter.engine.IRuleEngine;
 import org.apache.rocketmq.streams.filter.engine.impl.DefaultRuleEngine;
 import org.apache.rocketmq.streams.filter.operator.Rule;
@@ -40,7 +37,6 @@ import org.apache.rocketmq.streams.filter.service.IRuleEngineService;
 public class RuleEngineServiceImpl implements IRuleEngineService, Serializable {
 
     private static final long serialVersionUID = 5932020315482204865L;
-    private static final Log LOG = LogFactory.getLog(RuleEngineServiceImpl.class);
     protected IRuleEngine ruleEngine = new DefaultRuleEngine();
 
     private ContextConfigure contextConfigure = new ContextConfigure(null);
@@ -48,13 +44,17 @@ public class RuleEngineServiceImpl implements IRuleEngineService, Serializable {
     // @PostConstruct
     public void initRuleContext(ContextConfigure contextConfigure) {
         this.contextConfigure = contextConfigure;
-        RuleContext.initSuperRuleContext(contextConfigure);
     }
 
     @Override
     public List<Rule> excuteRule(JSONObject message, Rule... rules) {
         Message msg = new Message(message);
         return this.executeRule(msg, new Context(msg), rules);
+    }
+
+    @Override
+    public List<Rule> executeRule(IMessage message, AbstractContext context, Rule rule) {
+        return executeRule(message, context, new Rule[] {rule});
     }
 
     @Override
@@ -89,7 +89,7 @@ public class RuleEngineServiceImpl implements IRuleEngineService, Serializable {
     @Override
     public Rule createRule(String namespace, String ruleName, String expressionStr, String... msgMetaInfo) {
         RuleBuilder ruleCreator = new RuleBuilder(namespace, ruleName, expressionStr, msgMetaInfo);
-        Rule rule = ruleCreator.generateRule(null);
+        Rule rule = ruleCreator.generateRule();
         return rule;
     }
 

@@ -24,10 +24,6 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 
 public abstract class AbstractUDFSink extends AbstractSink {
-    @Override protected boolean batchInsert(List<IMessage> messages) {
-        return batchInsert(messages, this);
-    }
-
     public static boolean batchInsert(List<IMessage> messages, AbstractUDFSink sink) {
 
         if (messages == null) {
@@ -67,6 +63,10 @@ public abstract class AbstractUDFSink extends AbstractSink {
         }
 
         return true;
+    }
+
+    @Override protected boolean batchInsert(List<IMessage> messages) {
+        return batchInsert(messages, this);
     }
 
     protected abstract void sendMessage2Store(List<IMessage> messageList);

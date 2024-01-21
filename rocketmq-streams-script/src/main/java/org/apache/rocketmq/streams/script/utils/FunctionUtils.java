@@ -27,6 +27,11 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class FunctionUtils {
     private static final String FLAG_PREFIX = "constants_";//常量flag的前缀
+    private final static String LONG = "^[-\\+]?[\\d]*$";            // 整数
+    private final static String DOUBLE = "^[-\\+]?[\\d]*[\\.]?[\\d]*$";
+
+    private static final String CONTEXT = "'${context}'";
+    private static DateDataType dateDataType = new DateDataType();
 
     public static boolean isField(String fieldName) {
         return !isConstantOrNumber(fieldName);
@@ -50,23 +55,16 @@ public class FunctionUtils {
         if (fieldName.startsWith("'") && fieldName.endsWith("'")) {
             return true;
         }
-        if (fieldName.startsWith("\"") && fieldName.endsWith("\"")) {
-            return true;
-        }
-        return false;
+        return fieldName.startsWith("\"") && fieldName.endsWith("\"");
 
     }
 
-    private final static String LONG = "^[-\\+]?[\\d]*$";            // 整数
-    private final static String DOUBLE = "^[-\\+]?[\\d]*[\\.]?[\\d]*$";
-
     public static boolean isNumberObject(Object object) {
-        if (Long.class.isInstance(object)) {
+        if (object instanceof Long) {
             return true;
-        } else if (Double.class.isInstance(object)) {
-            return true;
+        } else {
+            return object instanceof Double;
         }
-        return false;
     }
 
     public static boolean isNumber(String fieldName) {
@@ -80,16 +78,14 @@ public class FunctionUtils {
         if (StringUtil.isEmpty(fieldName)) {
             return false;
         }
-        boolean match = StringUtil.matchRegex(fieldName, LONG);
-        return match;
+        return StringUtil.matchRegex(fieldName, LONG);
     }
 
     public static boolean isDouble(String fieldName) {
         if (StringUtil.isEmpty(fieldName)) {
             return false;
         }
-        boolean match = StringUtil.matchRegex(fieldName, DOUBLE);
-        return match;
+        return StringUtil.matchRegex(fieldName, DOUBLE);
     }
 
     public static boolean isBoolean(String fieldName) {
@@ -97,10 +93,7 @@ public class FunctionUtils {
             return false;
         }
         String value = fieldName.toLowerCase();
-        if ("true".equals(value) || "false".equals(value)) {
-            return true;
-        }
-        return false;
+        return "true".equals(value) || "false".equals(value);
     }
 
     public static Long getLong(String fieldName) {
@@ -130,7 +123,16 @@ public class FunctionUtils {
     }
 
     public static Object getValue(IMessage message, AbstractContext context, String fieldName) {
-        Object value = getFiledValue(message, context, fieldName);
+        if (CONTEXT.equalsIgnoreCase(fieldName)) {
+            return message.getMessageBody();
+        }
+        if ("'*'".equalsIgnoreCase(fieldName)) {
+            return message.getMessageBody();
+        }
+        if ("'\\*'".equalsIgnoreCase(fieldName)) {
+            fieldName = "'*'";
+        }
+        Object value = getFiledValue(message, fieldName);
         if (value != null) {
             return value;
         }
@@ -150,26 +152,23 @@ public class FunctionUtils {
         }
     }
 
-    public static Object getFiledValue(IMessage message, AbstractContext context, String fieldName) {
-        if (context == null || message == null) {
+    public static Object getFiledValue(IMessage message, String fieldName) {
+        if (message == null) {
             return fieldName;
         }
-        if (IgnoreMessage.class.isInstance(message)) {
+        if (message instanceof IgnoreMessage) {
             return fieldName;
         }
 
-        Object value = message.getMessageBody().get(fieldName);
-        return value;
+        return message.getMessageBody().get(fieldName);
     }
-
-    private static DateDataType dateDataType = new DateDataType();
 
     public static String getValueString(IMessage message, AbstractContext context, String fieldName) {
         Object value = getValue(message, context, fieldName);
         if (value == null) {
             return null;
         }
-        if (String.class.isInstance(value)) {
+        if (value instanceof String) {
             return (String) value;
         }
         if (dateDataType.matchClass(value.getClass())) {
@@ -244,7 +243,7 @@ public class FunctionUtils {
                 value = new StringBuilder();
             } else if (openConstant) {
                 value.append(word);
-            } else if (constantsSign.equals(word) && openConstant == false) {
+            } else if (constantsSign.equals(word) && !openConstant) {
                 openConstant = true;
             }
         }

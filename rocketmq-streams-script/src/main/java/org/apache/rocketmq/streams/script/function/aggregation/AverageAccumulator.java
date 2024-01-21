@@ -16,27 +16,20 @@
  */
 package org.apache.rocketmq.streams.script.function.aggregation;
 
-import java.util.Iterator;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.UDAFFunction;
 import org.apache.rocketmq.streams.script.function.aggregation.AverageAccumulator.AverageAccum;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Function
 @UDAFFunction("avg")
 public class AverageAccumulator implements IAccumulator<Number, AverageAccum> {
 
-    public static class AverageAccum {
-
-        public Number sum;
-
-        public Number value;
-
-        public int count;
-
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(AverageAccumulator.class);
 
     @Override
     public AverageAccum createAccumulator() {
@@ -70,16 +63,14 @@ public class AverageAccumulator implements IAccumulator<Number, AverageAccum> {
             accumulator.count += 1;
             accumulator.value = NumberUtils.stripTrailingZeros(accumulator.sum.doubleValue() / accumulator.count);
         } catch (Exception e) {
-            System.out.println("The value is [" + parameters[0] + "]");
+            LOGGER.error("The value is [{}}]", parameters[0]);
             throw e;
         }
     }
 
     @Override
     public void merge(AverageAccum accumulator, Iterable<AverageAccum> its) {
-        Iterator<AverageAccum> iterator = its.iterator();
-        while (iterator.hasNext()) {
-            AverageAccum next = iterator.next();
+        for (AverageAccum next : its) {
             if (next == null) {
                 continue;
             }
@@ -98,6 +89,16 @@ public class AverageAccumulator implements IAccumulator<Number, AverageAccum> {
     @Override
     public void retract(AverageAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class AverageAccum {
+
+        public Number sum;
+
+        public Number value;
+
+        public int count;
+
     }
 
 }

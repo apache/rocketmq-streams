@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.filter.exception.RegexTimeoutException;
@@ -25,17 +23,14 @@ import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 
 public abstract class AbstractExpressionFunction implements ExpressionFunction {
 
-    private static final Log LOG = LogFactory.getLog(AbstractExpressionFunction.class);
-    private static final Log RULEENGINE_MESSAGE_LOG = LogFactory.getLog("ruleengine_message");
-
     @Override
     public Boolean doFunction(IMessage message, AbstractContext context, Expression expression) {
         try {
-            Boolean result = doExpressionFunction(message, context,expression);
+            Boolean result = doExpressionFunction(message, context, expression);
             return result;
         } catch (RegexTimeoutException e) {
-          e.printStackTrace();
-          throw e;
+            e.printStackTrace();
+            throw e;
         }
 
     }

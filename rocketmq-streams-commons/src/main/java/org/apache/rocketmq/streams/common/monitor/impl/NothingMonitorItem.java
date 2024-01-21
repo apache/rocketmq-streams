@@ -21,6 +21,8 @@ import com.alibaba.fastjson.JSONObject;
 //请用imonitor和dippermonitor
 public class NothingMonitorItem extends MonitorItem {
 
+    public static JSONObject emptyJson = new JSONObject();
+
     public NothingMonitorItem(String name) {
         super(name);
     }
@@ -43,8 +45,6 @@ public class NothingMonitorItem extends MonitorItem {
     public void addMessage(String key, String value) {
 
     }
-
-    public static JSONObject emptyJson = new JSONObject();
 
     public JSONObject compare(JSONObject oriMessage, JSONObject destMessage) {
         return emptyJson;

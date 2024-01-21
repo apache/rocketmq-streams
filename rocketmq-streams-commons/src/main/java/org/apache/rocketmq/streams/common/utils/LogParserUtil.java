@@ -63,11 +63,6 @@ public class LogParserUtil {
         return log;
     }
 
-    private static class PreCal {
-        boolean needContansts = false;
-        boolean needBrackets = false;
-    }
-
     private static PreCal preCal(String log) {
         PreCal preCal = new PreCal();
         for (int i = 0; i < log.length() - 1; i++) {
@@ -85,10 +80,6 @@ public class LogParserUtil {
     public static String parseContantsBySign(String log, String sign, String prefix) {
         return parseContantsBySign(log, sign, prefix, new IntegerValue(), new HashMap<>());
     }
-
-    //    public static String parseExpression(String log){
-    //
-    //    }
 
     public static String parseContantsBySign(String log, String sign, String prefix, IntegerValue index, Map<String, String> flags) {
 
@@ -116,6 +107,10 @@ public class LogParserUtil {
         log = log.replace(word, key);
         return parseContantsBySign(log, sign, prefix, index, flags);
     }
+
+    //    public static String parseExpression(String log){
+    //
+    //    }
 
     public static String parseContants(String log) {
         return parseContants(log, new HashMap<>());
@@ -224,6 +219,11 @@ public class LogParserUtil {
         }
         result.put(key, values[values.length - 1].trim());
         return result;
+    }
+
+    private static class PreCal {
+        boolean needContansts = false;
+        boolean needBrackets = false;
     }
 
     protected static class IntegerValue {

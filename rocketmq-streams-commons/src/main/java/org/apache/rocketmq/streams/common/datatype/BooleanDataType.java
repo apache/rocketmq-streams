@@ -34,6 +34,10 @@ public class BooleanDataType extends BaseDataType<Boolean> {
         setDataClazz(Boolean.class);
     }
 
+    public static String getTypeName() {
+        return boolean.class.getSimpleName();
+    }
+
     @Override
     public String toDataJson(Boolean value) {
         if (value == null) {
@@ -54,10 +58,6 @@ public class BooleanDataType extends BaseDataType<Boolean> {
             return false;
         }
         return null;
-    }
-
-    public static String getTypeName() {
-        return boolean.class.getSimpleName();
     }
 
     public boolean convertValue(Boolean value) {
@@ -83,10 +83,10 @@ public class BooleanDataType extends BaseDataType<Boolean> {
             return false;
         }
         if (Boolean.class.isInstance(object)) {
-            return (Boolean)object;
+            return (Boolean) object;
         }
         if (String.class.isInstance(object)) {
-            return Boolean.valueOf((String)object);
+            return Boolean.valueOf((String) object);
         }
         Integer value = Integer.valueOf(object.toString());
         return value == 1 ? true : false;
@@ -117,7 +117,7 @@ public class BooleanDataType extends BaseDataType<Boolean> {
         if (value == null) {
             return null;
         }
-        byte bytes = value ? (byte)1 : (byte)0;
+        byte bytes = value ? (byte) 1 : (byte) 0;
         return createByteArrayFromNumber(bytes, 1);
     }
 

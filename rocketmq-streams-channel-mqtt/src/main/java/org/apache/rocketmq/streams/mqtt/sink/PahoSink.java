@@ -20,22 +20,28 @@ import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.mqtt.factory.MqttClientFactory;
+import org.apache.rocketmq.streams.mqtt.factory.MqttConnection;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PahoSink extends AbstractSink {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(PahoSink.class);
+    protected String clientKey;
     private String broker;
     private String clientId;
     private String topic;
     private int qos;
     private String username;
     private String password;
-
-    private transient MqttClient client;
+    private Boolean automaticReconnect;
+    //不需要序列化的属性
+    private transient volatile MqttClient client;
 
     public PahoSink() {
     }
@@ -45,36 +51,51 @@ public class PahoSink extends AbstractSink {
     }
 
     public PahoSink(String broker, String clientId, String topic, String username, String password) {
-        this(broker, clientId, topic, null, null, 2);
+        this(broker, clientId, topic, null, null, true, 2);
     }
 
-    public PahoSink(String broker, String clientId, String topic, String username, String password, int qos) {
+    public PahoSink(String broker, String clientId, String topic, String username, String password,
+        Boolean automaticReconnect) {
+        this(broker, clientId, topic, null, null, true, 2);
+    }
+
+    public PahoSink(String broker, String clientId, String topic, String username, String password,
+        Boolean automaticReconnect, int qos) {
         this.broker = broker;
         this.clientId = clientId;
         this.topic = topic;
         this.username = username;
         this.password = password;
+        this.automaticReconnect = automaticReconnect;
         this.qos = qos;
+    }
+
+    @Override
+    public boolean initConfigurable() {
+        super.initConfigurable();
+        //建立连接
+        MqttConnection connection = new MqttConnection(this.broker, this.topic, this.username, this.password, this.clientId, getOptions());
+        connection.setAutoConnect(true);
+        this.clientKey = connection.getClientKey();
+        MqttClient client = MqttClientFactory.getClient(connection);
+        if (null == client) {
+            return false;
+        }
+        this.client = client;
+        return true;
     }
 
     @Override
     protected boolean batchInsert(List<IMessage> messages) {
         try {
             if (this.client == null) {
-                this.client = new MqttClient(broker, clientId, new MemoryPersistence());
+                LOGGER.error("PahoSink batchInsert discard,MQTT Client IS Empty!");
+                return false;
             }
             if (!this.client.isConnected()) {
-                MqttConnectOptions connOpts = new MqttConnectOptions();
-                connOpts.setCleanSession(true);
-                if (this.username != null && this.password != null) {
-                    connOpts.setUserName(this.username);
-                    connOpts.setPassword(this.password.toCharArray());
-                }
-                System.out.println("Connecting to broker: " + broker);
-                this.client.connect(connOpts);
-                System.out.println("Connected");
+                LOGGER.error("PahoSink batchInsert discard,MQTT Client Not Connected!");
+                return false;
             }
-
             for (IMessage msg : messages) {
                 String messageString = "";
                 if (msg.isJsonMessage()) {
@@ -88,27 +109,42 @@ public class PahoSink extends AbstractSink {
             }
             return true;
         } catch (MqttException e) {
-            System.err.println("reason " + e.getReasonCode());
-            System.err.println("msg " + e.getMessage());
-            System.err.println("loc " + e.getLocalizedMessage());
-            System.err.println("cause " + e.getCause());
-            System.err.println("exception " + e);
-            e.printStackTrace();
+            LOGGER.error("PahoSink batchInsert error,reason:{},msg:{}", e.getReasonCode(), e.getMessage());
         }
         return false;
+    }
+
+    private MqttConnectOptions getOptions() {
+        MqttConnectOptions connOpts = new MqttConnectOptions();
+        connOpts.setCleanSession(true);
+        if (this.username != null && this.password != null) {
+            connOpts.setUserName(this.username);
+            connOpts.setPassword(this.password.toCharArray());
+        }
+        //默认自动重连
+        if (null == this.automaticReconnect) {
+            connOpts.setAutomaticReconnect(true);
+        } else {
+            connOpts.setAutomaticReconnect(this.automaticReconnect);
+        }
+        return connOpts;
     }
 
     @Override
     public void destroy() {
         super.destroy();
-        try {
-            if (this.client != null) {
-                this.client.disconnect();
-                this.client.close();
-            }
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
+        MqttClientFactory.removeClient(clientKey);
+        //sink 资源共享,客户端不能关闭
+//        try {
+//            if (this.client != null && this.client.isConnected()) {
+//                LOGGER.error("PahoSink destroy client:{}",this.client);
+//                this.client.disconnect();
+//                this.client.close();
+//            }
+//        } catch (Exception e) {
+//            throw new RuntimeException("Paho close error", e);
+//        }
+
     }
 
     public String getBroker() {

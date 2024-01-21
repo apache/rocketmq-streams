@@ -29,10 +29,6 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 @UDAFFunction("max")
 public class MaxAccumulator implements IAccumulator<String, MaxAccumulator.MaxAccum> {
 
-    public static class MaxAccum {
-        public String max;
-    }
-
     private transient static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Override
@@ -52,7 +48,7 @@ public class MaxAccumulator implements IAccumulator<String, MaxAccumulator.MaxAc
         }
         try {
             if (parameters[0] instanceof Number) {
-                Number input = (Number)parameters[0];
+                Number input = (Number) parameters[0];
                 if (accumulator.max == null) {
                     accumulator.max = input.toString();
                     return;
@@ -61,7 +57,7 @@ public class MaxAccumulator implements IAccumulator<String, MaxAccumulator.MaxAc
                 accumulator.max = max.doubleValue() >= input.doubleValue() ? accumulator.max : input.toString();
             } else if (parameters[0] instanceof Date) {
                 try {
-                    Date input = (Date)parameters[0];
+                    Date input = (Date) parameters[0];
                     if (accumulator.max == null) {
                         accumulator.max = dateFormat.format(input);
                         return;
@@ -72,7 +68,7 @@ public class MaxAccumulator implements IAccumulator<String, MaxAccumulator.MaxAc
                     throw new RuntimeException(e);
                 }
             } else if (parameters[0] instanceof String) {
-                String input = (String)parameters[0];
+                String input = (String) parameters[0];
                 if (accumulator.max == null) {
                     accumulator.max = input;
                     return;
@@ -105,6 +101,10 @@ public class MaxAccumulator implements IAccumulator<String, MaxAccumulator.MaxAc
     @Override
     public void retract(MaxAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class MaxAccum {
+        public String max;
     }
 
 }

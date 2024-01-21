@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.streams.common.channel.source;
 
+import java.util.List;
+import java.util.Map;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
+import org.apache.rocketmq.streams.common.topology.IStageBuilder;
 
-public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder<T> {
+public interface ISource<T> extends IConfigurable, IStageBuilder<T> {
     String TYPE = "source";
 
     /**
@@ -29,7 +32,7 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
      * @param receiver 处理流数据
      * @return 是否正常启动
      */
-    boolean start(IStreamOperator receiver);
+    boolean start(IStreamOperator<?, ?> receiver);
 
     /**
      * 同一个group name共同消费一份数据，主要针对消息队列，如果实现的子类用到这个字段，需要保持语义
@@ -67,28 +70,41 @@ public interface ISource<T extends ISource> extends IConfigurable, IStageBuilder
     void setMaxFetchLogGroupSize(int size);
 
     /**
-     * 消息超过多长时间，会被checkpoint一次，对于批量消息无效
+     * 消息超过多长时间，会被checkpoint一次，会强制刷新各个算子的状态
      *
      * @return checkpoint时间
      */
     long getCheckpointTime();
 
     /**
-     *
-     * @param topic
-     */
-    void setTopic(String topic);
-
-    /**
-     *
-     * @return
+     * @return topic
      */
     String getTopic();
 
     /**
-     * 创建checkpoint名字
+     * @param topic topic
+     */
+    void setTopic(String topic);
+
+    /**
+     * 创建checkpoint名字，主要用于保存状态
+     *
      * @return checkpoint key name
      */
     String createCheckPointName();
+
+    /**
+     * get all split for the source
+     *
+     * @return all splits
+     */
+    List<ISplit<?, ?>> fetchAllSplits();
+
+    /**
+     * 获取数据源的消费进度
+     *
+     * @return split progress
+     */
+    Map<String, SplitProgress> getSplitProgress();
 
 }

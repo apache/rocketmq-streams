@@ -31,83 +31,13 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class LikeFunction extends AbstractExpressionFunction {
+    protected static String[] regexSpecialWords = {"\\", "$", "(", ")", "*", "+", ".", "[", "]", "?", "^", "{", "}", "|"};
     private transient ICache<String, LikeRegex> likeCache = new SoftReferenceCache<>();
-
     private transient ICache<String, LikeCache> cache = new SoftReferenceCache<>();
 
     public static boolean isLikeFunciton(String functionName) {
         return "like".equals(functionName);
     }
-
-    private class LikeCache {
-        public LikeCache(String containStr, String regexStr, boolean isPrefix) {
-            this.containStr = containStr;
-            this.regexStr = regexStr;
-            this.isPrefix = isPrefix;
-
-        }
-
-        protected String containStr;//预处理like中一定包含的字符串
-        protected String regexStr;//把like转换成regex对应的字符串
-        protected boolean isPrefix = false;//是否是前缀匹配
-
-    }
-
-    @Override
-    @FunctionMethod("like")
-    @FunctionMethodAilas("包含")
-    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
-        Var var = expression.getVar();
-        if (var == null) {
-            return false;
-        }
-        Object varObject = null;
-        Object valueObject = null;
-        varObject = var.doMessage(message,context);
-        valueObject = expression.getValue();
-
-        if (varObject == null || valueObject == null) {
-            return false;
-        }
-
-        String varString = "";
-        String valueString = "";
-        varString = String.valueOf(varObject).trim();
-        valueString = String.valueOf(valueObject).trim();
-        if (StringUtil.isEmpty(valueString)) {
-            return false;
-        }
-        valueString = FunctionUtils.getConstant(valueString);
-
-        LikeRegex likeRegex = likeCache.get(valueString);
-        if (likeRegex == null) {
-            likeRegex = new LikeRegex(valueString);
-            likeCache.put(valueString, likeRegex);
-        }
-        boolean likeResult = likeRegex.match(varString);
-        // System.out.println(likeResult);
-        return likeResult;
-
-        //LikeCache likeCache=sinkcache.get(valueString);
-        //if(likeCache==null){
-        //    String containStr=parseContainStr(valueString);
-        //    String regexStr=convertRegex(valueString);
-        //    likeCache=new LikeCache(containStr,regexStr,!valueString.startsWith("%"));
-        //    sinkcache.put(valueString,likeCache);
-        //}
-        //if(likeCache.containStr!=null){
-        //    if(likeCache.isPrefix&&!varString.startsWith(likeCache.containStr)){
-        //        return false;
-        //    }
-        //    if(varString.indexOf(likeCache.containStr)==-1){
-        //        return false;
-        //    }
-        //}
-        //boolean result= StringUtil.matchRegex(varString,likeCache.regexStr);
-        //return result;
-    }
-
-    protected static String[] regexSpecialWords = {"\\", "$", "(", ")", "*", "+", ".", "[", "]", "?", "^", "{", "}", "|"};
 
     /**
      * 把like中一定包含的字符串抽取出来，再正则匹配前，先做预处理
@@ -160,5 +90,73 @@ public class LikeFunction extends AbstractExpressionFunction {
         String valueString = convertRegex("%/php%");
         System.out.println(valueString);
         System.out.println(StringUtil.matchRegex("/www/server/php/70/sbin/php-fpm", valueString));
+    }
+
+    @Override
+    @FunctionMethod("like")
+    @FunctionMethodAilas("包含")
+    public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
+        Var var = expression.getVar();
+        if (var == null) {
+            return false;
+        }
+        Object varObject = null;
+        Object valueObject = null;
+        varObject = var.doMessage(message, context);
+        valueObject = expression.getValue();
+
+        if (varObject == null || valueObject == null) {
+            return false;
+        }
+
+        String varString = "";
+        String valueString = "";
+        varString = String.valueOf(varObject).trim();
+        valueString = String.valueOf(valueObject).trim();
+        if (StringUtil.isEmpty(valueString)) {
+            return false;
+        }
+        valueString = FunctionUtils.getConstant(valueString);
+
+        LikeRegex likeRegex = likeCache.get(valueString);
+        if (likeRegex == null) {
+            likeRegex = new LikeRegex(valueString);
+            likeCache.put(valueString, likeRegex);
+        }
+        boolean likeResult = likeRegex.match(varString);
+        // System.out.println(likeResult);
+        return likeResult;
+
+        //LikeCache likeCache=sinkcache.get(valueString);
+        //if(likeCache==null){
+        //    String containStr=parseContainStr(valueString);
+        //    String regexStr=convertRegex(valueString);
+        //    likeCache=new LikeCache(containStr,regexStr,!valueString.startsWith("%"));
+        //    sinkcache.put(valueString,likeCache);
+        //}
+        //if(likeCache.containStr!=null){
+        //    if(likeCache.isPrefix&&!varString.startsWith(likeCache.containStr)){
+        //        return false;
+        //    }
+        //    if(varString.indexOf(likeCache.containStr)==-1){
+        //        return false;
+        //    }
+        //}
+        //boolean result= StringUtil.matchRegex(varString,likeCache.regexStr);
+        //return result;
+    }
+
+    private class LikeCache {
+        protected String containStr;//预处理like中一定包含的字符串
+        protected String regexStr;//把like转换成regex对应的字符串
+        protected boolean isPrefix = false;//是否是前缀匹配
+
+        public LikeCache(String containStr, String regexStr, boolean isPrefix) {
+            this.containStr = containStr;
+            this.regexStr = regexStr;
+            this.isPrefix = isPrefix;
+
+        }
+
     }
 }

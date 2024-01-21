@@ -36,7 +36,7 @@ public class AtanFunction {
      */
     @FunctionMethod(value = "atan", alias = "atan", comment = "求反正切函数")
     public Double atan(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "代表要求反余弦的字段名或常量") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求反余弦的字段名或常量") String number) {
         Double result = null;
         Double numberTem = Double.parseDouble(FunctionUtils.getValueString(message, context, number));
         if (numberTem == null || numberTem < -1.0 || numberTem > 1.0) {
@@ -56,7 +56,7 @@ public class AtanFunction {
      */
     @FunctionMethod(value = "atan", alias = "atan", comment = "求反正切函数")
     public Double atan(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Double", comment = "Double常量") Double number) {
+        @FunctionParamter(value = "Double", comment = "Double常量") Double number) {
         Double result = null;
         if (number == null || number < -1 || number > 1) {
             return result;
@@ -75,7 +75,7 @@ public class AtanFunction {
      */
     @FunctionMethod(value = "atan", alias = "atan", comment = "求反正切函数")
     public Double atan(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment = "Integer常量") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "Integer常量") Integer number) {
         Double result = null;
         if (number == null || number < -1 || number > 1) {
             return result;

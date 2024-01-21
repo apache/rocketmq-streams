@@ -39,7 +39,7 @@ public class RuleElementBuilder {
     public static MetaData createMetaData(String namespace, String name, String... fields) {
         MetaData metaData = new MetaData();
         metaData.setNameSpace(namespace);
-        metaData.setConfigureName(name);
+        metaData.setName(name);
         if (fields == null || fields.length == 0) {
             metaData.toObject(metaData.toJson());
             return metaData;
@@ -70,7 +70,6 @@ public class RuleElementBuilder {
             metaDataFieldList.add(metaDataField);
         }
         metaData.getMetaDataFields().addAll(metaDataFieldList);
-        metaData.toObject(metaData.toJson());
         return metaData;
     }
 
@@ -79,7 +78,7 @@ public class RuleElementBuilder {
         contextVar.setNameSpace(namespace);
         contextVar.setType(RuleElementType.VAR.getType());
         contextVar.setVarName(varName);
-        contextVar.setConfigureName(MapKeyUtil.createKeyBySign("_", ruleName, varName));
+        contextVar.setName(MapKeyUtil.createKeyBySign("_", ruleName, varName));
         contextVar.setMetaDataName(metaDataName);
         contextVar.setFieldName(fieldName);
         return contextVar;
@@ -90,18 +89,18 @@ public class RuleElementBuilder {
         constantVar.setNameSpace(ruleName);
         constantVar.setDataType(dataType);
         constantVar.setVarName(varName);
-        constantVar.setConfigureName(MapKeyUtil.createKeyBySign("_", ruleName, varName));
+        constantVar.setName(MapKeyUtil.createKeyBySign("_", ruleName, varName));
         constantVar.setValue(dataType.getData(value));
         constantVar.setType(RuleElementType.VAR.getType());
         return constantVar;
     }
 
     public static Expression createExpression(String ruleName, String expressionName, String varName,
-                                              String functionName, DataType dataType, String value) {
+        String functionName, DataType dataType, String value) {
         Expression expression = new Expression();
         expression.setNameSpace(ruleName);
         expression.setType(RuleElementType.EXPRESSION.getType());
-        expression.setConfigureName(expressionName);
+        expression.setName(expressionName);
         expression.setVarName(varName);
         expression.setValue(dataType.getData(value));
         expression.setDataType(dataType);
@@ -110,16 +109,14 @@ public class RuleElementBuilder {
     }
 
     public static RelationExpression createRelationExpression(String ruleName, String expressionName, String relation,
-                                                              List<String> expressionNames) {
+        List<String> expressionNames) {
         RelationExpression relationExpression = new RelationExpression();
         relationExpression.setNameSpace(ruleName);
         relationExpression.setType(RuleElementType.EXPRESSION.getType());
-        relationExpression.setConfigureName(expressionName);
+        relationExpression.setName(expressionName);
         relationExpression.setRelation(relation);
         relationExpression.setValue(expressionNames);
         return relationExpression;
     }
-
-
 
 }

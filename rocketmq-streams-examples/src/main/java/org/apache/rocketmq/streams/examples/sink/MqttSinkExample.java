@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.streams.examples.sink;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
 public class MqttSinkExample {
 
     public static void main(String[] args) {
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "pipeline");
         source.fromFile("/Users/junjie.cheng/jobs/access.log", false)
             .map(message -> message)
             .toMqtt("tpc://localhost:1883", "test", "test")

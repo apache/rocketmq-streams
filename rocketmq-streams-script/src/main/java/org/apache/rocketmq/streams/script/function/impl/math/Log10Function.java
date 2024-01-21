@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -36,7 +35,7 @@ public class Log10Function {
      */
     @FunctionMethod(value = "log10", alias = "log10", comment = "以10为底返回值的对数")
     public Double log10(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
         Double result = null;
         Double baseTem = Double.parseDouble(FunctionUtils.getValueString(message, context, number));
         if (baseTem == null) {
@@ -55,7 +54,7 @@ public class Log10Function {
      */
     @FunctionMethod(value = "log10", alias = "log10", comment = "以10为底返回值的对数")
     public Double log10(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "Double", comment = "代表要求值的常量值") Double number) {
+        @FunctionParamter(value = "Double", comment = "代表要求值的常量值") Double number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -73,7 +72,7 @@ public class Log10Function {
      */
     @FunctionMethod(value = "log10", alias = "log10", comment = "以10为底返回值的对数")
     public Double log10(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -82,21 +81,4 @@ public class Log10Function {
         return result;
     }
 
-    /**
-     * 以10为底返回number的对数
-     *
-     * @param message
-     * @param context
-     * @return
-     */
-    @FunctionMethod(value = "log10", alias = "log10", comment = "以10为底返回值的对数")
-    public BigDecimal log10(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.log10(number.doubleValue()));
-        return result;
-    }
 }

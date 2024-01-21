@@ -31,17 +31,16 @@ public abstract class AbstractMapState extends AbstractState {
     }
 
     public static void main(String[] args) {
-        TreeMap<String,Integer> treeMa=new TreeMap<>();
-        treeMa.put("2",2);
-        treeMa.put("3",3);
-        treeMa.put("1",1);
+        TreeMap<String, Integer> treeMa = new TreeMap<>();
+        treeMa.put("2", 2);
+        treeMa.put("3", 3);
+        treeMa.put("1", 1);
 
         Iterator<Map.Entry<String, Integer>> it = treeMa.entrySet().iterator();
-        while (it.hasNext()){
-            Map.Entry<String, Integer> entry=it.next();
+        while (it.hasNext()) {
+            Map.Entry<String, Integer> entry = it.next();
             System.out.println(entry.getKey());
         }
     }
-
 
 }

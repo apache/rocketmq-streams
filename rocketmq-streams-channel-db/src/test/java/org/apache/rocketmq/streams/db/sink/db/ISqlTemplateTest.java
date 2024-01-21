@@ -34,7 +34,7 @@ public class ISqlTemplateTest {
 
     static List<JSONObject> rows;
 
-    static{
+    static {
         JSONObject jsonObject1 = new JSONObject();
         jsonObject1.put("id", 1);
         jsonObject1.put("name", "chris");
@@ -59,7 +59,7 @@ public class ISqlTemplateTest {
     }
 
     @Test
-    public void testInsertInto(){
+    public void testInsertInto() {
         MysqlInsertIntoSqlTemplate templateWithId = new MysqlInsertIntoSqlTemplate(metaData, true);
         System.out.println(templateWithId.createSql(rows));
         MysqlInsertIntoSqlTemplate templateWithOutId = new MysqlInsertIntoSqlTemplate(metaData, false);
@@ -67,7 +67,7 @@ public class ISqlTemplateTest {
     }
 
     @Test
-    public void testInsertIgnoreInto(){
+    public void testInsertIgnoreInto() {
         MysqlInsertIgnoreIntoSqlTemplate templateWithId = new MysqlInsertIgnoreIntoSqlTemplate(metaData, true);
         System.out.println(templateWithId.createSql(rows));
         MysqlInsertIgnoreIntoSqlTemplate templateWithOutId = new MysqlInsertIgnoreIntoSqlTemplate(metaData, false);
@@ -75,7 +75,7 @@ public class ISqlTemplateTest {
     }
 
     @Test
-    public void testInsertDuplicate(){
+    public void testInsertDuplicate() {
         MysqlInsertIntoWithDuplicateKeySqlTemplate templateWithId = new MysqlInsertIntoWithDuplicateKeySqlTemplate(metaData, true);
         System.out.println(templateWithId.createSql(rows));
         MysqlInsertIntoWithDuplicateKeySqlTemplate templateWithOutId = new MysqlInsertIntoWithDuplicateKeySqlTemplate(metaData, false);

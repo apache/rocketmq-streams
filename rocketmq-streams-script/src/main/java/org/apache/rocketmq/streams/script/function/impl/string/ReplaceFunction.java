@@ -39,9 +39,9 @@ public class ReplaceFunction {
      */
     @FunctionMethod(value = "replace", comment = "使用新字符串替换原字符串中与指定的字符串完全匹配的字符串")
     public String trim(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "string", comment = "原字符串代表列字段或常量名") String a,
-                       @FunctionParamter(value = "string", comment = "指定被替换的字符串") String OLD,
-                       @FunctionParamter(value = "string", comment = "用于替换的字符串") String NEW) {
+        @FunctionParamter(value = "string", comment = "原字符串代表列字段或常量名") String a,
+        @FunctionParamter(value = "string", comment = "指定被替换的字符串") String OLD,
+        @FunctionParamter(value = "string", comment = "用于替换的字符串") String NEW) {
         a = FunctionUtils.getValueString(message, context, a);
         OLD = FunctionUtils.getValueString(message, context, OLD);
         NEW = FunctionUtils.getValueString(message, context, NEW);

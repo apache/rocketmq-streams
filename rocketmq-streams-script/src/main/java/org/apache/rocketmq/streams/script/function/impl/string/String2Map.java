@@ -28,21 +28,21 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class String2Map {
-    @FunctionMethod(value = "STR_TO_MAP",alias = "str_to_map", comment = "字符串解析成map")
-    public Map<String,String> string2Map(IMessage message, FunctionContext context,
+    @FunctionMethod(value = "STR_TO_MAP", alias = "str_to_map", comment = "字符串解析成map")
+    public Map<String, String> string2Map(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String str) {
         String ori = FunctionUtils.getValueString(message, context, str);
         if (StringUtil.isEmpty(ori)) {
             return null;
         }
-       String[] values= ori.split(",");
-        Map<String,String> result=new HashMap<>();
-        for(String value:values){
-            String[] kv=value.split("=");
-            if(kv.length!=2){
-                throw new RuntimeException("can not parse, "+ori);
+        String[] values = ori.split(",");
+        Map<String, String> result = new HashMap<>();
+        for (String value : values) {
+            String[] kv = value.split("=");
+            if (kv.length != 2) {
+                throw new RuntimeException("can not parse, " + ori);
             }
-            result.put(kv[0],kv[1]);
+            result.put(kv[0], kv[1]);
         }
         return result;
     }

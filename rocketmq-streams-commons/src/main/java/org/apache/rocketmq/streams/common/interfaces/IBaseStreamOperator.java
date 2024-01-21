@@ -24,8 +24,8 @@ public interface IBaseStreamOperator<T extends IMessage, R, C extends AbstractCo
     /**
      * 执行业务逻辑
      *
-     * @param t
-     * @param context
+     * @param t       消息
+     * @param context 上下文
      * @return R
      */
     R doMessage(T t, C context);

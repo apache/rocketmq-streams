@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -32,8 +30,6 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
 @Function
 public class Paser2JsonFunction {
-    private static final Log LOG = LogFactory.getLog(Paser2JsonFunction.class);
-
     /**
      * 如果原始数据是json，且希望能够自动展开成单层，可以调用这个方法，无论嵌套了几层json或jsonarray都会被展开
      *
@@ -41,8 +37,8 @@ public class Paser2JsonFunction {
      * @param context
      */
     @FunctionMethod(value = "spread_json", alias = "autoJson", comment = "原始数据是嵌套json或jsonArray调用此方法会自动展开成单层")
-    public void spread2Json(IMessage message, FunctionContext context,String fieldName) {
-        fieldName= FunctionUtils.getConstant(fieldName);
+    public void spread2Json(IMessage message, FunctionContext context, String fieldName) {
+        fieldName = FunctionUtils.getConstant(fieldName);
 
         JSONObject jsonObject = message.getMessageBody().getJSONObject(fieldName);
 //        if (message.isJsonMessage()) {
@@ -152,7 +148,7 @@ public class Paser2JsonFunction {
                     jsonArrayFieldNames.add(key);
                 }
             } else if (JSONObject.class.isInstance(object)) {
-                JSONObject value = (JSONObject)object;
+                JSONObject value = (JSONObject) object;
                 value = spreadJson(value, jsonArrayFieldNames);
                 hasJson = true;
                 result.putAll(value);

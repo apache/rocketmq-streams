@@ -31,6 +31,10 @@ public class ByteDataType extends BaseDataType<Byte> {
         setDataClazz(Byte.class);
     }
 
+    public static String getTypeName() {
+        return "byte";
+    }
+
     @Override
     public String toDataJson(Byte value) {
         if (value == null) {
@@ -45,10 +49,6 @@ public class ByteDataType extends BaseDataType<Byte> {
             return null;
         }
         return Byte.valueOf(jsonValue);
-    }
-
-    public static String getTypeName() {
-        return "byte";
     }
 
     @Override

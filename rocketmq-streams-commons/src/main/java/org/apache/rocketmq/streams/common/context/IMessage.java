@@ -80,5 +80,4 @@ public interface IMessage {
      */
     ISystemMessage getSystemMessage();
 
-
 }

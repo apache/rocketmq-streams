@@ -38,8 +38,8 @@ public class InFunction extends AbstractExpressionFunction {
      */
     private ICache<Object, Set<String>> cache = new SoftReferenceCache();
 
-    public static boolean matchFunction(String functionName){
-        return "in".equals(functionName)||"~in".equals(functionName);
+    public static boolean matchFunction(String functionName) {
+        return "in".equals(functionName) || "~in".equals(functionName);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class InFunction extends AbstractExpressionFunction {
         }
         Object varObject = null;
         Object valueObject = null;
-        varObject = var.doMessage(message,context);
+        varObject = var.doMessage(message, context);
         valueObject = expression.getValue();
 
         if (varObject == null || valueObject == null) {

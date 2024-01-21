@@ -48,7 +48,7 @@ public class CompileParameter {
             isSimpleParameter = false;
             return;
         }
-        ScriptParameter scriptParameter = (ScriptParameter)iscriptParamter;
+        ScriptParameter scriptParameter = (ScriptParameter) iscriptParamter;
         if (scriptParameter.getRigthVarName() != null || scriptParameter.getFunctionName() != null) {
             isSimpleParameter = false;
             return;
@@ -60,7 +60,7 @@ public class CompileParameter {
         if (!String.class.isInstance(this.leftValue)) {
             return;
         }
-        String varName = (String)this.leftValue;
+        String varName = (String) this.leftValue;
         if (FunctionUtils.isConstant(varName)) {
             this.leftValue = FunctionUtils.getConstant(varName);
         } else if (FunctionUtils.isLong(varName)) {
@@ -72,6 +72,11 @@ public class CompileParameter {
         } else {
             isField = true;
         }
+    }
+
+    public static void main(String[] args) {
+        String var = "abdf";
+        System.out.println(var.indexOf("."));
     }
 
     /**
@@ -88,7 +93,7 @@ public class CompileParameter {
             if (needContext || !String.class.isInstance(value)) {
                 return value;
             }
-            String str = (String)value;
+            String str = (String) value;
             Object object = FunctionUtils.getValue(message, context, str);
             return object;
         }
@@ -96,7 +101,7 @@ public class CompileParameter {
          * 如果是无前缀，且是字段名，则获取具体字段
          */
         if (needContext == false && isField) {
-            return FunctionUtils.getFiledValue(message, context, (String)this.leftValue);
+            return FunctionUtils.getFiledValue(message, (String) this.leftValue);
         }
         return this.leftValue;
     }
@@ -122,11 +127,6 @@ public class CompileParameter {
 
     public void setField(boolean field) {
         isField = field;
-    }
-
-    public static void main(String[] args) {
-        String var = "abdf";
-        System.out.println(var.indexOf("."));
     }
 
 }

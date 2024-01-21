@@ -19,16 +19,12 @@ package org.apache.rocketmq.streams.dim.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.configurable.ConfigurableComponent;
-import org.apache.rocketmq.streams.dim.model.AbstractDim;
+import org.apache.rocketmq.streams.common.interfaces.IDim;
 import org.apache.rocketmq.streams.dim.service.IDimService;
 
 public class DimServiceImpl implements IDimService {
-    protected ConfigurableComponent configurableComponent;
 
-    public DimServiceImpl(ConfigurableComponent configurableComponent) {
-        this.configurableComponent = configurableComponent;
-    }
+    private IDim nameList;
 
     /**
      * 传入要比对的字段，进行规则匹配。字段和名单的比对逻辑，写在规则中
@@ -55,10 +51,10 @@ public class DimServiceImpl implements IDimService {
         return matchSupportMultiRow(dimName, expressionStr, msgs, null);
     }
 
+    //ewewwew
     @Override
     public List<Map<String, Object>> matchSupportMultiRow(String dimName, String expressionStr, Map<String, Object> msgs, String script) {
         JSONObject jsonObject = createJsonable(msgs);
-        AbstractDim nameList = configurableComponent.queryConfigurable(AbstractDim.TYPE, dimName);
         if (nameList != null) {
             return nameList.matchExpression(expressionStr, jsonObject, true, script);
         } else {
@@ -66,10 +62,10 @@ public class DimServiceImpl implements IDimService {
         }
     }
 
+    ///sdsasdasds
     @Override
     public Map<String, Object> match(String nameListName, String expressionStr, Map<String, Object> parameters) {
         JSONObject jsonObject = createJsonable(parameters);
-        AbstractDim nameList = configurableComponent.queryConfigurable(AbstractDim.TYPE, nameListName);
         if (nameList != null) {
             return nameList.matchExpression(expressionStr, jsonObject);
         } else {
@@ -80,11 +76,18 @@ public class DimServiceImpl implements IDimService {
     private JSONObject createJsonable(Map<String, Object> parameters) {
         JSONObject jsonObject = null;
         if (parameters instanceof JSONObject) {
-            jsonObject = (JSONObject)parameters;
+            jsonObject = (JSONObject) parameters;
         } else {
             jsonObject.putAll(parameters);
         }
         return jsonObject;
     }
 
+    public IDim getNameList() {
+        return nameList;
+    }
+
+    public void setNameList(IDim nameList) {
+        this.nameList = nameList;
+    }
 }

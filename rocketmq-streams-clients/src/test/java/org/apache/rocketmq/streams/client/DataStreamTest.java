@@ -28,6 +28,7 @@ import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.junit.Before;
@@ -39,13 +40,13 @@ public class DataStreamTest implements Serializable {
 
     @Before
     public void init() {
-        dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
+        dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("test_namespace", "graph_pipeline");
     }
 
     @Test
     public void testFromFile() {
         dataStream
-            .fromFile("/Users/junjie.cheng/test.sql", false)
+            .fromFile("window_msg_10.txt", false)
             .map(message -> message + "--")
             .toPrint(1)
             .start();
@@ -53,7 +54,7 @@ public class DataStreamTest implements Serializable {
 
     @Test
     public void testRocketmq() {
-        DataStreamSource dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
+        DataStreamSource dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("test_namespace", "graph_pipeline");
         dataStream
             .fromRocketmq("topic_xxxx01", "consumer_xxxx01", "127.0.0.1:9876")
             .map(message -> message + "--")
@@ -83,7 +84,7 @@ public class DataStreamTest implements Serializable {
 
     @Test
     public void testWindow() {
-        DataStreamSource dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
+        DataStreamSource dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("test_namespace", "graph_pipeline");
         dataStream
             .fromRocketmq("topic_xxxx03", "consumer_xxxx03", "127.0.0.1:9876")
             .map(new MapFunction<JSONObject, String>() {
@@ -110,7 +111,7 @@ public class DataStreamTest implements Serializable {
             .fromFile("/Users/junjie.cheng/text.txt", false)
             .map(message -> message + "--")
             .toPrint(1)
-            .start(true);
+            .start();
 
     }
 
@@ -130,7 +131,7 @@ public class DataStreamTest implements Serializable {
     @Test
     public void testMeta() {
         try {
-            Class.forName("com.mysql.jdbc.Driver");
+            Class.forName(ConfigurationKey.DEFAULT_JDBC_DRIVER);
             Connection connection = DriverManager.getConnection("", "", "");
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet dataFilter = metaData.getColumns(connection.getCatalog(), "%", "XXX", null);

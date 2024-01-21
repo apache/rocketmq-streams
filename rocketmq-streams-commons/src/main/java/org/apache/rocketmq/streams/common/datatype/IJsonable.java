@@ -21,14 +21,14 @@ public interface IJsonable {
     /**
      * 实现接口的对象序列化为json
      *
-     * @return
+     * @return 返回json字符串
      */
     String toJson();
 
     /**
      * 根据json，填充对象的成员变量
      *
-     * @param jsonString
+     * @param jsonString json字符串
      */
     void toObject(String jsonString);
 }

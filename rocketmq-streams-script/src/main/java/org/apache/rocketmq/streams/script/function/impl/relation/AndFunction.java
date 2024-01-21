@@ -24,6 +24,16 @@ import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 @Function
 public class AndFunction {
 
+    public static void main(String[] args) {
+        ScriptComponent scriptComponent = ScriptComponent.getInstance();
+        JSONObject msg = new JSONObject();
+        msg.put("name", "chris");
+        msg.put("age", 18);
+
+        scriptComponent.getService().executeScript(msg, "x=or(equals(name,'chris'),>(age,19),!(equals(age,1))))");
+        System.out.println(msg);
+    }
+
     @FunctionMethod(value = "and", alias = "&", comment = "支持内嵌函数")
     public Boolean and(Boolean... values) {
         if (values == null) {
@@ -51,15 +61,5 @@ public class AndFunction {
         }
         return false;
 
-    }
-
-    public static void main(String[] args) {
-        ScriptComponent scriptComponent = ScriptComponent.getInstance();
-        JSONObject msg = new JSONObject();
-        msg.put("name", "chris");
-        msg.put("age", 18);
-
-        scriptComponent.getService().executeScript(msg, "x=or(equals(name,'chris'),>(age,19),!(equals(age,1))))");
-        System.out.println(msg);
     }
 }

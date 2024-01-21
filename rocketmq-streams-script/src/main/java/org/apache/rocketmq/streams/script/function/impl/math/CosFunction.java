@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -37,7 +36,7 @@ public class CosFunction {
      */
     @FunctionMethod(value = "cos", alias = "cos", comment = "余弦函数，输入为弧度值")
     public Double cos(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "String", comment = "代表要求值的字段名称或常量值") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名称或常量值") String number) {
         Double result = null;
         Double numberTem = Double.parseDouble(FunctionUtils.getValueString(message, context, number));
         if (numberTem == null) {
@@ -57,7 +56,7 @@ public class CosFunction {
      */
     @FunctionMethod(value = "cos", alias = "cos", comment = "余弦函数，输入为弧度值")
     public Double cos(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "Double", comment = "代表要求值的常量值") Double number) {
+        @FunctionParamter(value = "Double", comment = "代表要求值的常量值") Double number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -76,7 +75,7 @@ public class CosFunction {
      */
     @FunctionMethod(value = "cos", alias = "cos", comment = "余弦函数，输入为弧度值")
     public Double cos(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -85,22 +84,4 @@ public class CosFunction {
         return result;
     }
 
-    /**
-     * 余弦函数，输入为弧度值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "cos", alias = "cos", comment = "余弦函数，输入为弧度值")
-    public BigDecimal cos(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.cos(number.intValue()));
-        return result;
-    }
 }

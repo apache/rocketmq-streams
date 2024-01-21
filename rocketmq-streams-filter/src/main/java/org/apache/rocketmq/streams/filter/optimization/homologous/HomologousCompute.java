@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.streams.common.cache.compress.BitSetCache;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.optimization.IHomologousCalculate;
 import org.apache.rocketmq.streams.common.optimization.LikeRegex;
 import org.apache.rocketmq.streams.common.optimization.RegexEngine;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
@@ -40,7 +41,7 @@ import org.apache.rocketmq.streams.script.service.IScriptExpression;
 /**
  * Advance the regular and like expression of homologous rules and make global optimization
  */
-public class HomologousCompute {
+public class HomologousCompute implements IHomologousCalculate {
     protected transient static String MUTIL_BLINK = "\\s+";
     protected transient List<CommonExpression> commonExpressions;//all expression
     /**
@@ -62,27 +63,25 @@ public class HomologousCompute {
      * cache like regex key：sourceVarName
      */
     protected transient Map<String, LikeRegex> likeRegexMap = new HashMap<>();
-
-    private transient List<CommonExpression> notsupportExpressions = new ArrayList<>();
-
     /**
      * cache of finger cache
      */
     protected transient FingerprintCache fingerprintCache;
-
-    public HomologousCompute(List<CommonExpression> commonExpressions, int cacheSize) {
-        this.commonExpressions = commonExpressions;
-        Map<String, SameVarExpressionGroup> groupBySourceVarName = groupBySourceVarName(commonExpressions);
-        this.groupBySourceVarName = groupBySourceVarName;
-//        registHyperscan(groupBySourceVarName);
-        createExpressionIndexAndHomologousVar(groupBySourceVarName);
-        fingerprintCache = new FingerprintCache(cacheSize);
-    }
-
     protected transient Long firstReceiveTime = null;
     protected transient AtomicLong COUNT = new AtomicLong(0);
     protected transient RegexFunction replaceFunction = new RegexFunction();
+    private transient List<CommonExpression> notsupportExpressions = new ArrayList<>();
 
+    public HomologousCompute(List<CommonExpression> commonExpressions) {
+        this.commonExpressions = commonExpressions;
+        Map<String, SameVarExpressionGroup> groupBySourceVarName = groupBySourceVarName(commonExpressions);
+        this.groupBySourceVarName = groupBySourceVarName;
+        registHyperscan(groupBySourceVarName);
+        createExpressionIndexAndHomologousVar(groupBySourceVarName);
+        fingerprintCache = FingerprintCache.getInstance();
+    }
+
+    @Override
     public void calculate(IMessage message, AbstractContext context) {
         printQPS();
         FunctionContext functionContext = new FunctionContext(message);
@@ -282,6 +281,10 @@ public class HomologousCompute {
 
     }
 
+    public Map<String, SameVarExpressionGroup> getGroupBySourceVarName() {
+        return groupBySourceVarName;
+    }
+
     protected class SameVarExpressionGroup {
         protected List<CommonExpression> regexs = new ArrayList<>();
         protected List<CommonExpression> others = new ArrayList<>();
@@ -311,9 +314,5 @@ public class HomologousCompute {
         public int size() {
             return regexs.size() + others.size();
         }
-    }
-
-    public Map<String, SameVarExpressionGroup> getGroupBySourceVarName() {
-        return groupBySourceVarName;
     }
 }

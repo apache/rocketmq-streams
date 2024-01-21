@@ -46,6 +46,37 @@ import org.apache.rocketmq.streams.filter.optimization.ExpressionOptimization;
  * 必须先初始化组件后才可以使用
  */
 public class ExpressionBuilder {
+    protected static IRuleExpressionCreator ruleExpressionCreator = new IRuleExpressionCreator() {
+        @Override
+        public String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions, boolean containsConstant, Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr) {
+            String[] values = ExpressionBuilder.createElement(expresionStr, containsConstant, flag2ExpressionStr);
+            String expressionName = nameCreator.createName(ruleName);
+
+            SimpleExpression expression = null;
+            if (values.length == 3) {
+                String value = values[2];
+                expression = new SimpleExpression(values[0], values[1], value);
+
+            }
+            if (values.length == 4) {
+                String value = values[3];
+                expression =
+                    new SimpleExpression(values[0], values[1], DataTypeUtil.getDataType(values[2]), value);
+            }
+            if (expression != null) {
+                expression.setNameSpace(namespace);
+                expression.setName(expressionName);
+                if (!relationStr.contains("(")) {
+                    relationStr = relationStr.replace(expresionStr, expressionName);
+                } else {
+                    relationStr = relationStr.replace("(" + expresionStr + ")", expressionName);
+                }
+
+                expressions.add(expression);
+            }
+            return relationStr;
+        }
+    };
     private static ListDataType listDataType = new ListDataType(DataTypeUtil.getDataTypeFromClass(String.class));
     private static ICache<String, Rule> cache = new SoftReferenceCache<>();
 
@@ -107,8 +138,8 @@ public class ExpressionBuilder {
 
     public static boolean executeExecute(Expression expression, IMessage message, AbstractContext context) {
         Rule rule = null;
-        if (expression.getConfigureName() == null) {
-            expression.setConfigureName(expression.getVarName());
+        if (expression.getName() == null) {
+            expression.setName(expression.getVarName());
         }
         String key = MapKeyUtil.createKey(expression.getNameSpace(), expression.toString());
         rule = cache.get(key);
@@ -121,8 +152,8 @@ public class ExpressionBuilder {
 
     public static boolean executeExecute(Expression expression, JSONObject msg) {
         Rule rule = null;
-        if (expression.getConfigureName() == null) {
-            expression.setConfigureName(expression.getVarName());
+        if (expression.getName() == null) {
+            expression.setName(expression.getVarName());
         }
         String key = MapKeyUtil.createKey(expression.getNameSpace(), expression.toString());
         rule = cache.get(key);
@@ -144,7 +175,7 @@ public class ExpressionBuilder {
         List<RelationExpression> relationExpressions) {
         String relationStr = parseExpression(namespace, ruleName, expressionStr, expressions);
         if (expressions != null && expressions.size() == 1) {
-            if (expressions.get(0).getConfigureName().equals(relationStr)) {
+            if (expressions.get(0).getName().equals(relationStr)) {
                 Expression expression = expressions.get(0);
                 ContextVar contextVar = new ContextVar();
                 contextVar.setFieldName(expression.getVarName());
@@ -164,11 +195,11 @@ public class ExpressionBuilder {
             ContextVar contextVar = new ContextVar();
             contextVar.setFieldName(expression.getVarName());
             expression.setVar(contextVar);
-            map.put(expression.getConfigureName(), expression);
+            map.put(expression.getName(), expression);
         }
         for (RelationExpression relation : relationExpressions) {
             relation.setExpressionMap(map);
-            map.put(relation.getConfigureName(), relation);
+            map.put(relation.getName(), relation);
         }
         return relationExpression;
     }
@@ -228,7 +259,6 @@ public class ExpressionBuilder {
         ruleCreator.setRootExpression(expression);
         rule = ruleCreator.createRule();
         rule.initElements();
-        ruleCreator.getMetaData().toObject(ruleCreator.getMetaData().toJson());//metadata的一个bug，如果不做这步，map为空。后续版本修复后可以去掉
         return rule;
     }
 
@@ -271,7 +301,7 @@ public class ExpressionBuilder {
             if (Var.class.isInstance(t)) {
                 map.put(((Var) t).getVarName(), t);
             } else {
-                map.put(t.getConfigureName(), t);
+                map.put(t.getName(), t);
             }
 
         }
@@ -367,7 +397,7 @@ public class ExpressionBuilder {
                     return relationStr;
                 } else {
 
-                    String relationFlag = NameCreatorContext.get().createNewName("relation");
+                    String relationFlag = NameCreatorContext.get().createName("relation");
                     flag2ExpressionStr.put(relationFlag, oriStr);
                     relationStr = relationStr.replace(oriStr, relationFlag);
                     return parseExpression(namespace, ruleName, relationStr, expressions, flag2ExpressionStr, creator, containsContant, nameCreator, contantsFlags);
@@ -376,42 +406,6 @@ public class ExpressionBuilder {
         }
         return relationStr;
     }
-
-    interface IRuleExpressionCreator {
-        String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions, boolean containsConstant, Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr);
-    }
-
-    protected static IRuleExpressionCreator ruleExpressionCreator = new IRuleExpressionCreator() {
-        @Override
-        public String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions, boolean containsConstant, Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr) {
-            String[] values = ExpressionBuilder.createElement(expresionStr, containsConstant, flag2ExpressionStr);
-            String expressionName = nameCreator.createName(ruleName);
-
-            SimpleExpression expression = null;
-            if (values.length == 3) {
-                String value = values[2];
-                expression = new SimpleExpression(values[0], values[1], value);
-
-            }
-            if (values.length == 4) {
-                String value = values[3];
-                expression =
-                    new SimpleExpression(values[0], values[1], DataTypeUtil.getDataType(values[2]), value);
-            }
-            if (expression != null) {
-                expression.setNameSpace(namespace);
-                expression.setConfigureName(expressionName);
-                if (!relationStr.contains("(")) {
-                    relationStr = relationStr.replace(expresionStr, expressionName);
-                } else {
-                    relationStr = relationStr.replace("(" + expresionStr + ")", expressionName);
-                }
-
-                expressions.add(expression);
-            }
-            return relationStr;
-        }
-    };
 
     public static String[] createElement(String expresionStr, boolean containsContant,
         Map<String, String> flag2ExpressionStr) {
@@ -429,5 +423,9 @@ public class ExpressionBuilder {
             i++;
         }
         return values;
+    }
+
+    interface IRuleExpressionCreator {
+        String createExpression(String namespace, String ruleName, String expresionStr, List<Expression> expressions, boolean containsConstant, Map<String, String> flag2ExpressionStr, NameCreator nameCreator, String relationStr);
     }
 }

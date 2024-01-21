@@ -22,7 +22,7 @@ import org.apache.rocketmq.streams.common.utils.SQLUtil;
 /**
  * @description
  */
-public class MysqlInsertIgnoreIntoSqlTemplate extends MysqlInsertIntoSqlTemplate{
+public class MysqlInsertIgnoreIntoSqlTemplate extends MysqlInsertIntoSqlTemplate {
 
     public MysqlInsertIgnoreIntoSqlTemplate(MetaData metaData, boolean isContainsId) {
         super(metaData, isContainsId);
@@ -30,7 +30,7 @@ public class MysqlInsertIgnoreIntoSqlTemplate extends MysqlInsertIntoSqlTemplate
 
     @Override
     public void initSqlTemplate() {
-        if(sqlPrefix != null){
+        if (sqlPrefix != null) {
             return;
         }
         sqlPrefix = SQLUtil.createInsertIgnoreSegment(metaData, isContainsId);

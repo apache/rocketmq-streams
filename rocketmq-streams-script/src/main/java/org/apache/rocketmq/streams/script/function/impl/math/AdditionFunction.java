@@ -39,22 +39,42 @@ public class AdditionFunction {
      */
     @FunctionMethod(value = "addition", alias = "addition", comment = "两个数值的加法返回结果")
     public Object addition(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "String", comment = "代表要求乘法的第一个参数") String x,
-                           @FunctionParamter(value = "String", comment = "代表要求乘法的第二个参数") String y) {
+        @FunctionParamter(value = "String", comment = "代表要求乘法的第一个参数") String x,
+        @FunctionParamter(value = "String", comment = "代表要求乘法的第二个参数") String y) {
         Double result = null;
         String paramX = FunctionUtils.getValueString(message, context, x);
         String paramY = FunctionUtils.getValueString(message, context, y);
         if (paramX == null || paramY == null) {
             return result;
         }
-        Double baseTem = Double.parseDouble(paramX);
-        Double xTem = Double.parseDouble(paramY);
+        if (FunctionUtils.isLong(paramX) && FunctionUtils.isLong(paramY)) {
+            Long baseTem = Long.parseLong(paramX);
+            Long xTem = Long.parseLong(paramY);
 
-        BigDecimal b1 = new BigDecimal(String.valueOf(baseTem));
-        BigDecimal b2 = new BigDecimal(String.valueOf(xTem));
-        BigDecimal bb = b1.add(b2);
-        Double bbb = bb.doubleValue();
-        return bbb;
+            BigDecimal b1 = new BigDecimal(String.valueOf(baseTem));
+            BigDecimal b2 = new BigDecimal(String.valueOf(xTem));
+            BigDecimal bb = b1.add(b2);
+            long bbb = bb.longValue();
+            return bbb;
+        }
+
+        if (FunctionUtils.isDouble(paramX) && FunctionUtils.isDouble(paramY)) {
+            Double baseTem = Double.parseDouble(paramX);
+            Double xTem = Double.parseDouble(paramY);
+
+            BigDecimal b1 = new BigDecimal(String.valueOf(baseTem));
+            BigDecimal b2 = new BigDecimal(String.valueOf(xTem));
+            BigDecimal bb = b1.add(b2);
+            Double bbb = bb.doubleValue();
+            return bbb;
+        }
+        if (paramX == null) {
+            return paramY;
+        }
+        if (paramY == null) {
+            return paramX;
+        }
+        return paramX + paramY;
 
     }
 

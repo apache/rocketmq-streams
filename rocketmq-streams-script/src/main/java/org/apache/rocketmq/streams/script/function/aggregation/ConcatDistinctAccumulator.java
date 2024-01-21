@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.aggregation;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -32,13 +31,6 @@ public class ConcatDistinctAccumulator implements IAccumulator<String, ConcatDis
     private static final int USE_DEFAULT_SEPARATOR = 1;
 
     private static final int USE_DEFINED_SEPARATOR = 2;
-
-    public static class ConcatDistinctAccum {
-
-        public String separator = ",";
-
-        public Set<String> values = Collections.synchronizedSet(new HashSet<>());
-    }
 
     @Override
     public ConcatDistinctAccum createAccumulator() {
@@ -65,10 +57,10 @@ public class ConcatDistinctAccumulator implements IAccumulator<String, ConcatDis
         }
         try {
             if (USE_DEFAULT_SEPARATOR == parameters.length) {
-                accumulator.values.add((String)parameters[0]);
+                accumulator.values.add((String) parameters[0]);
             } else if (USE_DEFINED_SEPARATOR == parameters.length) {
-                accumulator.separator = (String)parameters[0];
-                accumulator.values.add((String)parameters[1]);
+                accumulator.separator = (String) parameters[0];
+                accumulator.values.add((String) parameters[1]);
             }
         } catch (Exception e) {
             throw e;
@@ -92,6 +84,13 @@ public class ConcatDistinctAccumulator implements IAccumulator<String, ConcatDis
     @Override
     public void retract(ConcatDistinctAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class ConcatDistinctAccum {
+
+        public String separator = ",";
+
+        public Set<String> values = new HashSet<>();
     }
 
 }

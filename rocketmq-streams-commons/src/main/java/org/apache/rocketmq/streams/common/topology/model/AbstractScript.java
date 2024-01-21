@@ -49,6 +49,15 @@ public abstract class AbstractScript<T, C extends AbstractContext> extends Based
     protected String value;
 
     protected String scriptType;
+    /**
+     * 存在私有空间，可变化
+     */
+    @Changeable
+    private String message;
+
+    public AbstractScript() {
+        setType(TYPE);
+    }
 
     /**
      * 获取字段名对应的脚本列表
@@ -64,16 +73,6 @@ public abstract class AbstractScript<T, C extends AbstractContext> extends Based
      * @return
      */
     public abstract Map<String, List<String>> getDependentFields();
-
-    /**
-     * 存在私有空间，可变化
-     */
-    @Changeable
-    private String message;
-
-    public AbstractScript() {
-        setType(TYPE);
-    }
 
     public String getLastUpdateTime() {
         return lastUpdateTime;

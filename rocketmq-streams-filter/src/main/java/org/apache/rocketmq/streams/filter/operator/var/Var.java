@@ -17,15 +17,11 @@
 package org.apache.rocketmq.streams.filter.operator.var;
 
 import java.io.Serializable;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.filter.operator.action.IConfigurableAction;
 
 public abstract class Var<T> extends BasedConfigurable implements IConfigurable, IConfigurableAction<T>, Serializable {
-
-    private static final Log LOG = LogFactory.getLog(Var.class);
 
     public static final String TYPE = "var";
 
@@ -42,7 +38,6 @@ public abstract class Var<T> extends BasedConfigurable implements IConfigurable,
     public void setVarName(String varName) {
         this.varName = varName;
     }
-
 
     @Override
     public boolean init() {

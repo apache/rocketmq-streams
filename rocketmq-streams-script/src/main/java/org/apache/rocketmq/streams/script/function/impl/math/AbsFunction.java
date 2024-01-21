@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -37,9 +36,9 @@ public class AbsFunction {
      */
     @FunctionMethod(value = "abs", alias = "abs", comment = "求数值的绝对值")
     public Double abs(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "string", comment =
-                          "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
-                          String number) {
+        @FunctionParamter(value = "string", comment =
+            "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
+        String number) {
         Double result = null;
         Double numberTem = Double.parseDouble(FunctionUtils.getValueString(message, context, number));
         if (numberTem == null) {
@@ -59,9 +58,9 @@ public class AbsFunction {
      */
     @FunctionMethod(value = "abs", alias = "abs", comment = "求数值的绝对值")
     public Double abs(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "Double", comment =
-                          "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
-                          Double number) {
+        @FunctionParamter(value = "Double", comment =
+            "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
+        Double number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -80,35 +79,14 @@ public class AbsFunction {
      */
     @FunctionMethod(value = "abs", alias = "abs", comment = "求数值的绝对值")
     public Integer abs(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment =
-                           "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
-                           Integer number) {
+        @FunctionParamter(value = "Integer", comment =
+            "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
+        Integer number) {
         Integer result = null;
         if (number == null) {
             return result;
         }
         result = Math.abs(number);
-        return result;
-    }
-
-    /**
-     * 求数值的绝对值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "abs", alias = "abs", comment = "求数值的绝对值")
-    public BigDecimal abs(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment =
-                              "Double或bigint类型或Decimal类型，输入为bigint时返回bigint，输入为double时返回double类型。输入decimal类型时返回decimal类型")
-                              BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = number.abs();
         return result;
     }
 

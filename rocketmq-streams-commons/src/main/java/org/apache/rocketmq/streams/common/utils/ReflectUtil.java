@@ -24,15 +24,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.AbstractConfigurable;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IFieldProcessor;
 import org.apache.rocketmq.streams.common.configurable.annotation.NoSerialized;
 import org.apache.rocketmq.streams.common.datatype.ArrayDataType;
@@ -41,16 +39,19 @@ import org.apache.rocketmq.streams.common.datatype.ListDataType;
 import org.apache.rocketmq.streams.common.datatype.MapDataType;
 import org.apache.rocketmq.streams.common.datatype.NotSupportDataType;
 import org.apache.rocketmq.streams.common.datatype.SetDataType;
+import org.apache.rocketmq.streams.common.model.Entity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 类ReflectUtil的实现描述
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ReflectUtil {
-    private static final String AUTOWIRED_CLASS_NAME = "org.springframework.beans.factory.annotation.Autowired";
-    private static Class AUTOWIRED_CLASS = null;
-    private static final Log LOG = LogFactory.getLog(ReflectUtil.class);
     public static final String SPLIT_SIGN = "\\.";                               // 及联调用的分隔符。如a.b.c
+    private static final String AUTOWIRED_CLASS_NAME = "org.springframework.beans.factory.annotation.Autowired";
+    private static final Logger LOG = LoggerFactory.getLogger(ReflectUtil.class);
+    private static Class AUTOWIRED_CLASS = null;
 
     static {
         try {
@@ -61,19 +62,27 @@ public class ReflectUtil {
     }
 
     public static <T> T getDeclaredField(Class clazz, Object object, String fieldName) {
+        String msg = fieldName;
+        if (object != null) {
+            msg = object.getClass().getName() + ":" + fieldName;
+        }
+
         try {
             Method method = getGetMethod(clazz, fieldName);
             if (method != null) {
                 return (T) method.invoke(object);
             }
+
             Field field = clazz.getDeclaredField(fieldName);
             field.setAccessible(true);
             return (T) field.get(object);
-        } catch (Exception e) {
-            String msg = fieldName;
-            if (object != null) {
-                msg = object.getClass().getName() + ":" + fieldName;
+        } catch (NoSuchFieldException ee) {
+            Class parent = clazz.getSuperclass();
+            if (parent != null) {
+                return getDeclaredField(parent, object, fieldName);
             }
+            throw new RuntimeException("get field value error " + msg, ee);
+        } catch (Exception e) {
             throw new RuntimeException("get field value error " + msg, e);
         }
     }
@@ -139,8 +148,7 @@ public class ReflectUtil {
             } else if ("boolean".equals(className)) {
                 return boolean.class;
             }
-            Class clazz = Class.forName(className);
-            return clazz;
+            return Class.forName(className);
         } catch (Exception e) {
             throw new RuntimeException("create class error " + className, e);
         }
@@ -161,20 +169,20 @@ public class ReflectUtil {
     }
 
     public static Object deserializeObject(JSONObject jsonObject) {
-        String className = jsonObject.getString(IConfigurableService.CLASS_NAME);
+        String className = jsonObject.getString(IConfigurable.CLASS_NAME);
         if (StringUtil.isEmpty(className)) {
             throw new RuntimeException("can not Deserialize object ，the class name is empty");
         }
         Object object = ReflectUtil.forInstance(className);
         scanFields(object, (o, field) -> {
             String fileName = field.getName();
-            Class fieldClass=ReflectUtil.getBeanFieldType(o.getClass(),fileName);
+            Class fieldClass = ReflectUtil.getBeanFieldType(o.getClass(), fileName);
             DataType dataType = DataTypeUtil.getDataTypeFromClass(fieldClass);
             String genericTypeStr = null;
             if (field.getGenericType() != null) {
                 genericTypeStr = field.getGenericType().toString();
             }
-            if (NotSupportDataType.class.isInstance(dataType)) {
+            if (dataType instanceof NotSupportDataType) {
                 Object object1 = ReflectUtil.getDeclaredField(o, field.getName());
                 if (object1 != null) {
                     //如果是接口类，则通过值获取类型
@@ -188,7 +196,7 @@ public class ReflectUtil {
 
                 }
             }
-            setDataTypeParadigmType(dataType, genericTypeStr, ParameterizedType.class.isInstance(field.getGenericType()));
+            setDataTypeParadigmType(dataType, genericTypeStr, field.getGenericType() instanceof ParameterizedType);
             String fieldJson = jsonObject.getString(fileName);
             if (fieldJson == null) {
                 return;
@@ -196,9 +204,7 @@ public class ReflectUtil {
             Object value = dataType.getData(fieldJson);
             try {
                 if (value != null) {
-                    ReflectUtil.setBeanFieldValue(object,field.getName(),value);
-//                    field.setAccessible(true);
-//                    field.set(object, value);
+                    ReflectUtil.setBeanFieldValue(object, field.getName(), value);
                 }
             } catch (Exception e) {
                 throw new RuntimeException("Deserialize error ,the field " + fileName + " Deserialize error ");
@@ -219,17 +225,17 @@ public class ReflectUtil {
         }
 
         JSONObject objectJson = new JSONObject();
-        objectJson.put(IConfigurableService.CLASS_NAME, o.getClass().getName());
+        objectJson.put(IConfigurable.CLASS_NAME, o.getClass().getName());
         scanFields(o, (o1, field) -> {
             field.setAccessible(true);
             String fileName = field.getName();
-            Class fieldClass=ReflectUtil.getBeanFieldType(o1.getClass(),fileName);
+            Class fieldClass = ReflectUtil.getBeanFieldType(o1.getClass(), fileName);
             DataType dataType = DataTypeUtil.getDataTypeFromClass(fieldClass);
             String genericTypeStr = null;
             if (field.getGenericType() != null) {
                 genericTypeStr = field.getGenericType().toString();
             }
-            if (NotSupportDataType.class.isInstance(dataType)) {
+            if (dataType instanceof NotSupportDataType) {
                 Object object1 = ReflectUtil.getDeclaredField(o, field.getName());
                 if (object1 != null) {
                     //如果是接口类，则通过值获取类型
@@ -243,9 +249,9 @@ public class ReflectUtil {
 
                 }
             }
-            setDataTypeParadigmType(dataType, genericTypeStr, ParameterizedType.class.isInstance(field.getGenericType()));
+            setDataTypeParadigmType(dataType, genericTypeStr, field.getGenericType() instanceof ParameterizedType);
             try {
-                Object value = ReflectUtil.getDeclaredField(o1,fileName);
+                Object value = ReflectUtil.getDeclaredField(o1, fileName);
                 if (value == null) {
                     return;
                 }
@@ -271,7 +277,7 @@ public class ReflectUtil {
     }
 
     public static void scanConfiguableFields(Object o, Class clazz, IFieldProcessor fieldProcessor) {
-        scanFields(o, clazz, fieldProcessor, AbstractConfigurable.class);
+        scanFields(o, clazz, fieldProcessor, Entity.class);
     }
 
     public static void scanFields(Object o, IFieldProcessor fieldProcessor) {
@@ -290,13 +296,13 @@ public class ReflectUtil {
             @Override
             public void doProcess(Object o, Field field) {
                 field.setAccessible(true);
-                Class fieldClass=ReflectUtil.getBeanFieldType(o.getClass(),field.getName());
+                Class fieldClass = ReflectUtil.getBeanFieldType(o.getClass(), field.getName());
                 DataType dataType = DataTypeUtil.getDataTypeFromClass(fieldClass);
                 String genericTypeStr = null;
                 if (field.getGenericType() != null) {
                     genericTypeStr = field.getGenericType().toString();
                 }
-                if (NotSupportDataType.class.isInstance(dataType)) {
+                if (dataType instanceof NotSupportDataType) {
                     Object object1 = ReflectUtil.getDeclaredField(o, field.getName());
                     if (object1 != null) {
                         //如果是接口类，则通过值获取类型
@@ -310,11 +316,11 @@ public class ReflectUtil {
 
                     }
                 }
-                setDataTypeParadigmType(dataType, genericTypeStr, ParameterizedType.class.isInstance(field.getGenericType()));
+                setDataTypeParadigmType(dataType, genericTypeStr, field.getGenericType() instanceof ParameterizedType);
                 Object value = dataType.byteToValue(bytes, offset.get());
                 offset.addAndGet(dataType.toBytes(value, false).length);
                 try {
-                    ReflectUtil.setBeanFieldValue(object,field.getName(),value);
+                    ReflectUtil.setBeanFieldValue(object, field.getName(), value);
                 } catch (Exception e) {
                     throw new RuntimeException("can not set field value " + field.getName(), e);
                 }
@@ -343,7 +349,7 @@ public class ReflectUtil {
                 if (field.getGenericType() != null) {
                     genericTypeStr = field.getGenericType().toString();
                 }
-                if (NotSupportDataType.class.isInstance(dataType)) {
+                if (dataType instanceof NotSupportDataType) {
                     Object object1 = ReflectUtil.getDeclaredField(o, field.getName());
                     if (object1 != null) {
                         //如果是接口类，则通过值获取类型
@@ -357,7 +363,7 @@ public class ReflectUtil {
 
                     }
                 }
-                setDataTypeParadigmType(dataType, genericTypeStr, ParameterizedType.class.isInstance(field.getGenericType()));
+                setDataTypeParadigmType(dataType, genericTypeStr, field.getGenericType() instanceof ParameterizedType);
 
                 byte[] bytes = new byte[0];
                 try {
@@ -394,25 +400,25 @@ public class ReflectUtil {
      * @param genericType
      */
     public static void setDataTypeParadigmType(DataType dataType, String genericType, boolean isGenericType) {
-        if (ListDataType.class.isInstance(dataType)) {
+        if (dataType instanceof ListDataType) {
             String genericTypeStr = "java.util.List<java.lang.String>";
             if (genericType != null && ParameterizedType.class.isInstance(genericType)) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
             }
             ((ListDataType) dataType).parseGenericParameter(genericTypeStr);
-        } else if (SetDataType.class.isInstance(dataType)) {
+        } else if (dataType instanceof SetDataType) {
             String genericTypeStr = "java.util.Set<java.lang.String>";
             if (genericType != null && isGenericType) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
             }
             ((SetDataType) dataType).parseGenericParameter(genericTypeStr);
-        } else if (MapDataType.class.isInstance(dataType)) {
+        } else if (dataType instanceof MapDataType) {
             String genericTypeStr = "java.util.Map<java.lang.String,java.lang.String>";
             if (genericType != null && isGenericType) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
             }
             ((MapDataType) dataType).parseGenericParameter(genericTypeStr);
-        } else if (ArrayDataType.class.isInstance(dataType)) {
+        } else if (dataType instanceof ArrayDataType) {
             String genericTypeStr = "java.lang.String[]";
             if (genericType != null && isGenericType) {
                 genericTypeStr = DataTypeUtil.convertGenericParameterString(genericType);
@@ -427,6 +433,9 @@ public class ReflectUtil {
      * @param fieldProcessor
      */
     public static void scanFields(Object o, Class clazz, IFieldProcessor fieldProcessor, Class basedClass) {
+        if (clazz == null) {
+            return;
+        }
         if (basedClass.getName().equals(clazz.getName())) {
             return;
         }
@@ -448,8 +457,8 @@ public class ReflectUtil {
                     continue;
                 }
                 fieldProcessor.doProcess(o, field);
-            }catch (Exception e){
-                throw new RuntimeException("Error serializing object, class is "+clazz.getName()+", field is "+field.getName(),e);
+            } catch (Exception e) {
+                throw new RuntimeException("Error serializing object, class is " + clazz.getName() + ", field is " + field.getName(), e);
             }
 
         }
@@ -543,6 +552,12 @@ public class ReflectUtil {
      * @return 返回结果
      */
     public static <T> T getBeanFieldOrJsonValue(Object bean, String fieldName) {
+        if (Map.class.isInstance(bean)) {
+            Object object = ((Map) bean).get(fieldName);
+            if (object != null) {
+                return (T) object;
+            }
+        }
         String[] fieldNames = fieldName.split(SPLIT_SIGN);
         Object result = null;
         Object modelBean = bean;// ChannelMessage
@@ -550,21 +565,21 @@ public class ReflectUtil {
             if (modelBean == null) {
                 return null;
             }
-            if (JSONObject.class.isInstance(modelBean)) {
+            if (modelBean instanceof JSONObject) {
                 result = getJsonItemValue(modelBean, name);
-            } else if (JSONArray.class.isInstance(modelBean)) {
+            } else if (modelBean instanceof JSONArray) {
                 result = getJsonItemValue(modelBean, name);
-            } else if (Map.class.isInstance(modelBean)) {
+            } else if (modelBean instanceof Map) {
                 result = ((Map) modelBean).get(name);
-            } else if(String.class.isInstance(modelBean)){
-                String value=(String)modelBean;
+            } else if (modelBean instanceof String) {
+                String value = (String) modelBean;
                 if (value.startsWith("[") && value.endsWith("]")) {
                     modelBean = JSON.parseArray(value);
                 } else {
                     modelBean = JSON.parseObject(value);
                 }
-                result=getJsonItemValue(modelBean,name);
-            }else {
+                result = getJsonItemValue(modelBean, name);
+            } else {
                 result = getDeclaredField(modelBean, name);// ChannelMessage.messageBody
             }
             modelBean = result;
@@ -573,20 +588,20 @@ public class ReflectUtil {
     }
 
     private static <T> T getJsonItemValue(Object bean, String fieldName) {
-        if (fieldName.indexOf("[") == -1 && JSONObject.class.isInstance(bean)) {
+        if (!fieldName.contains("[") && bean instanceof JSONObject) {
             JSONObject jsonObject = (JSONObject) bean;
             Object value = jsonObject.get(fieldName);
             return (T) value;
         }
-        if (fieldName.indexOf("[") != -1) {
-            if (JSONObject.class.isInstance(bean)) {
+        if (fieldName.contains("[")) {
+            if (bean instanceof JSONObject) {
                 JSONObject jsonObject = (JSONObject) bean;
                 int startIndex = fieldName.indexOf("[");
                 String word = fieldName.substring(0, startIndex);
                 JSONArray jsonArray = jsonObject.getJSONArray(word);
                 String lastStr = fieldName.substring(startIndex);
                 return getArrayIndexValue(jsonArray, lastStr);
-            } else if (JSONArray.class.isInstance(bean)) {
+            } else if (bean instanceof JSONArray) {
                 JSONArray jsonArray = (JSONArray) bean;
                 int startIndex = fieldName.indexOf("[");
                 String lastStr = fieldName.substring(startIndex);
@@ -605,7 +620,7 @@ public class ReflectUtil {
             if (indexStr.equals("*")) {
                 return (T) jsonArray.toJSONString();
             }
-            int index = Integer.valueOf(indexStr);
+            int index = Integer.parseInt(indexStr);
             indexDescription = indexDescription.substring(endIndex + 1);
             startIndex = indexDescription.indexOf("[");
             if (startIndex == -1) {
@@ -705,7 +720,6 @@ public class ReflectUtil {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
             throw new RuntimeException("setBeanFieldValue error， the modelFieldName is " + modelFieldName + "; the object is " + object + "; the fieldValue is " + fieldValue + ", the field value class is " + fieldValue.getClass().getName(), e);
         }
     }
@@ -721,15 +735,22 @@ public class ReflectUtil {
         String[] fieldNames = modelFieldName.split(SPLIT_SIGN);
         Class aClass = clazz;
         Class result = null;
-        for (String fieldName : fieldNames) {
-            Method method = getGetMethod(aClass, fieldName);
-            if (method == null) {
-                return null;
+        try {
+            for (String fieldName : fieldNames) {
+                Method method = getGetMethod(aClass, fieldName);
+                if (method == null) {
+                    Field field = clazz.getDeclaredField(fieldName);
+                    Type type = field.getType();
+                    return Class.forName(((Class) type).getTypeName());
+                }
+                result = getFieldType(aClass, fieldName);
+                aClass = result;
             }
-            result = getFieldType(aClass, fieldName);
-            aClass = result;
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("get field Type error " + clazz.getName() + "." + modelFieldName, e);
         }
-        return result;
+
     }
 
     public static boolean isJavaBean(Class clazz) {
@@ -762,10 +783,10 @@ public class ReflectUtil {
      * @return
      */
     private static <T> T getFieldValue(Object bean, String fieldName) {
-        if(bean==null){
+        if (bean == null) {
             return null;
         }
-        return (T)getDeclaredField(bean, fieldName);
+        return (T) getDeclaredField(bean, fieldName);
     }
 
     private static Class getFieldType(Class clazz, String modelFieldName) {
@@ -783,9 +804,7 @@ public class ReflectUtil {
         }
         try {
             aClass1 = DataTypeUtil.getDataTypeFromClass(aClass1).getDataClass();
-            Method method = findMethodFromClass(aClass, setMethodName, new Class[] {aClass1});
-
-            return method;
+            return findMethodFromClass(aClass, setMethodName, new Class[] {aClass1});
         } catch (Exception e) {
             LOG.error(aClass.getSimpleName() + "\r\n" + e.getMessage(), e);
             throw new RuntimeException(aClass.getSimpleName() + "\r\n" + e.getMessage() + " ,modelFieldName: " + modelFieldName, e);
@@ -862,10 +881,7 @@ public class ReflectUtil {
      */
     public static Boolean existMethodName(Class clazz, String methodName) {
         Method method = getMethodByName(clazz, methodName);
-        if (method != null) {
-            return true;
-        }
-        return false;
+        return method != null;
     }
 
     /**
@@ -892,8 +908,7 @@ public class ReflectUtil {
      * @return
      */
     private static String getGetMethodName(String fieldName) {
-        String methodName = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-        return methodName;
+        return "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
     }
 
     /**
@@ -906,13 +921,11 @@ public class ReflectUtil {
         if (fieldName.startsWith("is")) {
             return fieldName;
         }
-        String methodName = "is" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-        return methodName;
+        return "is" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
     }
 
     private static String getSetMethodName(String fieldName) {
-        String setMethodName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-        return setMethodName;
+        return "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
     }
 
     /**
@@ -925,8 +938,7 @@ public class ReflectUtil {
         if (fieldName.startsWith("is")) {
             fieldName = fieldName.substring(2);
         }
-        String methodName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-        return methodName;
+        return "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
     }
 
     public static Object forInstance(Class clazz, Class[] classes, Object[] objects) {

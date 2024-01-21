@@ -34,16 +34,16 @@ public class MathFunction {
      */
     @FunctionMethod(value = "math", comment = "将输入值number截取到指定小数点位置")
     public Object mathOperator(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
-                               @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") String a, String b) {
+        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
+        @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") String a, String b) {
         Object aValue = FunctionUtils.getValue(message, context, a);
         Object bValue = FunctionUtils.getValue(message, context, b);
         if (Double.class.isInstance(aValue)) {
-            return mathOperator(message, context, operator, (Double)aValue, (Double)bValue);
+            return mathOperator(message, context, operator, (Double) aValue, (Double) bValue);
         } else if (Integer.class.isInstance(aValue)) {
-            return mathOperator(message, context, operator, (Integer)aValue, (Integer)bValue);
+            return mathOperator(message, context, operator, (Integer) aValue, (Integer) bValue);
         } else {
-            return mathOperator(message, context, operator, (Long)aValue, (Long)bValue);
+            return mathOperator(message, context, operator, (Long) aValue, (Long) bValue);
         }
 
     }
@@ -57,8 +57,8 @@ public class MathFunction {
      */
     @FunctionMethod(value = "mathl", comment = "将输入值number截取到指定小数点位置")
     public Long mathOperator(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
-                             @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") Long a, Long b) {
+        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
+        @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") Long a, Long b) {
         operator = FunctionUtils.getValueString(message, context, operator);
         if ("+".equals(operator)) {
             return a + b;
@@ -84,8 +84,8 @@ public class MathFunction {
      */
     @FunctionMethod(value = "mathi", comment = "将输入值number截取到指定小数点位置")
     public Integer mathOperator(IMessage message, FunctionContext context,
-                                @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
-                                @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") Integer a, Integer b) {
+        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
+        @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") Integer a, Integer b) {
         operator = FunctionUtils.getValueString(message, context, operator);
         if ("+".equals(operator)) {
             return a + b;
@@ -111,8 +111,8 @@ public class MathFunction {
      */
     @FunctionMethod(value = "mathd", comment = "将输入值number截取到指定小数点位置")
     public Double mathOperator(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
-                               @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") Double a, Double b) {
+        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String operator,
+        @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") Double a, Double b) {
         operator = FunctionUtils.getValueString(message, context, operator);
         if ("+".equals(operator)) {
             return a + b;
@@ -129,7 +129,6 @@ public class MathFunction {
         }
     }
 
-
     /**
      * 将输入值number截取到指定小数点位置
      *
@@ -143,11 +142,11 @@ public class MathFunction {
         @FunctionParamter(value = "String", comment = "代表要截取小数点的位置") String mod) {
         operator = FunctionUtils.getValueString(message, context, operator);
         mod = FunctionUtils.getValueString(message, context, mod);
-        if(operator==null||mod==null){
+        if (operator == null || mod == null) {
             return -1;
         }
-        Long operatorLong=Long.valueOf(operator);
-        Long modLong=Long.valueOf(mod);
-        return operatorLong%modLong;
+        Double operatorLong = Double.valueOf(operator);
+        Double modLong = Double.valueOf(mod);
+        return operatorLong.longValue() % modLong.longValue();
     }
 }

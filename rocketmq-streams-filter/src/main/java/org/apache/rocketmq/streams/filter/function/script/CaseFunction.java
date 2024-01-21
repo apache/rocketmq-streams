@@ -48,6 +48,9 @@ public class CaseFunction {
         if (value == null) {
             value = tmp;
         }
+        if (value == null) {
+            return false;
+        }
         if (value.length() <= 5) {
             String lowValue = value.trim().toLowerCase();
             if (lowValue.equals("true") || lowValue.equals("false")) {

@@ -20,21 +20,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.db.Person;
 import org.junit.Test;
 
 public class ORMUtilTest {
-    private String URL = "";
     protected String USER_NAME = "";
     protected String PASSWORD = "";
+    private String URL = "";
 
     public ORMUtilTest() {
         //正式使用时，在配置文件配置
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL, URL);//数据库连接url
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME, USER_NAME);//用户名
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD, PASSWORD);//password
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL, URL);//数据库连接url
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME, USER_NAME);//用户名
+//        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD, PASSWORD);//password
     }
 
     @Test
@@ -78,7 +76,7 @@ public class ORMUtilTest {
         person.setName(name);
         person.setAge(18);
         person.setNameSpace(namespace);
-        person.setConfigureName("peronName");
+        person.setName("peronName");
         person.setType("person");
         return person;
     }

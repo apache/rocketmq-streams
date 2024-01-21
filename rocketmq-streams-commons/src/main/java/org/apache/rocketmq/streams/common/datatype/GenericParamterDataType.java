@@ -20,7 +20,6 @@ package org.apache.rocketmq.streams.common.datatype;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
-
 public abstract class GenericParamterDataType<T> extends BaseDataType<T> {
 
     protected String genericParamterStr;
@@ -33,6 +32,7 @@ public abstract class GenericParamterDataType<T> extends BaseDataType<T> {
             jsonObject.put(GENERIC_PARAMETER, genericParamterStr);
         }
     }
+
     public abstract String toDataStr(T t);
 
     @Override

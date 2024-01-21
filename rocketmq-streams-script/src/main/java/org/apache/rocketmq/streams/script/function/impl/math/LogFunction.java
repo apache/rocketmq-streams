@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -37,8 +36,8 @@ public class LogFunction {
      */
     @FunctionMethod(value = "log", alias = "log", comment = "返回以base为底的值的对数")
     public Double log(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "String", comment = "底数值") String base,
-                      @FunctionParamter(value = "String", comment = "要求对数的字段名或常量值") String x) {
+        @FunctionParamter(value = "String", comment = "底数值") String base,
+        @FunctionParamter(value = "String", comment = "要求对数的字段名或常量值") String x) {
         Double result = null;
         Double baseTem = Double.parseDouble(FunctionUtils.getValueString(message, context, base));
         Double xTem = Double.parseDouble(FunctionUtils.getValueString(message, context, x));
@@ -59,8 +58,8 @@ public class LogFunction {
      */
     @FunctionMethod(value = "log", alias = "log", comment = "返回以base为底的值的对数")
     public Double log(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "Double", comment = "底数值") Double base,
-                      @FunctionParamter(value = "Double", comment = "要求对数值的常量") Double x) {
+        @FunctionParamter(value = "Double", comment = "底数值") Double base,
+        @FunctionParamter(value = "Double", comment = "要求对数值的常量") Double x) {
         Double result = null;
         if (base == null || x == null) {
             return result;
@@ -79,8 +78,8 @@ public class LogFunction {
      */
     @FunctionMethod(value = "log", alias = "log", comment = "返回以base为底的值的对数")
     public Double log(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "Integer", comment = "底数值") Integer base,
-                      @FunctionParamter(value = "Integer", comment = "要求对数值的常量") Integer x) {
+        @FunctionParamter(value = "Integer", comment = "底数值") Integer base,
+        @FunctionParamter(value = "Integer", comment = "要求对数值的常量") Integer x) {
         Double result = null;
         if (base == null || x == null) {
             return result;
@@ -89,23 +88,4 @@ public class LogFunction {
         return result;
     }
 
-    /**
-     * 返回以base为底的x的对数
-     *
-     * @param message
-     * @param context
-     * @param x
-     * @return
-     */
-    @FunctionMethod(value = "log", alias = "log", comment = "返回以base为底的值的对数")
-    public BigDecimal log(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "BigDecimal", comment = "底数值") BigDecimal base,
-                          @FunctionParamter(value = "BigDecimal", comment = "要求对数值的常量") BigDecimal x) {
-        BigDecimal result = null;
-        if (base == null || x == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.log(base.doubleValue()) / Math.log(x.doubleValue()));
-        return result;
-    }
 }

@@ -21,18 +21,16 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IPUtil {
 
-    private static final Log LOG = LogFactory.getLog(IPUtil.class);
-
-    private static volatile InetAddress LOCAL_ADDRESS = null;
-    private static final Pattern IP_PATTERN = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3,5}$");
-
     public static final String LOCALHOST = "127.0.0.1";
     public static final String ANYHOST = "0.0.0.0";
+    private static final Logger LOG = LoggerFactory.getLogger(IPUtil.class);
+    private static final Pattern IP_PATTERN = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3,5}$");
+    private static volatile InetAddress LOCAL_ADDRESS = null;
 
     public static String getLocalIdentification() {
         return getLocalIP();
@@ -172,13 +170,19 @@ public class IPUtil {
      * @return 存在返回true，否则返回false
      */
     public static boolean ipInSection(String ip, String ipSection) {
-        if (ipSection == null) { throw new NullPointerException("IP段不能为空！"); }
-        if (ip == null) { throw new NullPointerException("IP不能为空！"); }
+        if (ipSection == null) {
+            throw new NullPointerException("IP段不能为空！");
+        }
+        if (ip == null) {
+            throw new NullPointerException("IP不能为空！");
+        }
         ipSection = ipSection.trim();
         ip = ip.trim();
         final String REGX_IP = "((25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]\\d|\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]\\d|\\d)";
         final String REGX_IPB = REGX_IP + "\\-" + REGX_IP;
-        if (!ipSection.matches(REGX_IPB) || !ip.matches(REGX_IP)) { return false; }
+        if (!ipSection.matches(REGX_IPB) || !ip.matches(REGX_IP)) {
+            return false;
+        }
         int idx = ipSection.indexOf('-');
         String[] sips = ipSection.substring(0, idx).split("\\.");
         String[] sipe = ipSection.substring(idx + 1).split("\\.");

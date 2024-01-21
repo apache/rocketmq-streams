@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.client.example;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.transform.window.HoppingWindow;
 import org.apache.rocketmq.streams.client.transform.window.Time;
-import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.junit.Test;
 
 public class CountFromFileTest {
@@ -27,22 +26,20 @@ public class CountFromFileTest {
     /**
      * 窗口10分钟，触发前，每一分钟发送一次数据，过了触发时间，每5秒发一次数据
      */
-    @Test
-    public void testCountTumplFromFile() {
-        StreamBuilder.dataStream("tmp", "tmp")
+    @Test public void testCountTumplFromFile() {
+
+        StreamExecutionEnvironment evn = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        evn.create("", "")
             .fromFile("window_msg_88121.txt", true)
-            .window(TumblingWindow.of(Time.seconds(5)))
-            .count("count_result")
-            .toDataSteam()
+            .count()
             .toPrint()
             .start();
+
     }
 
-    @Test
-    public void testHopCountFromFile() {
-        StreamBuilder.dataStream("tmp", "tmp")
-            // filepath can be either a classpath file or an absolute path file address
-            //filepath can set window_msg_10 or window_msg_100 window_msg_1000 or window_msg_10000
+    @Test public void testHopCountFromFile() {
+        StreamExecutionEnvironment.getExecutionEnvironment().create("", "")
             .fromFile("window_msg_10000.txt", true)
             .window(HoppingWindow.of(Time.seconds(10), Time.seconds(5)))
             .count("count_result")

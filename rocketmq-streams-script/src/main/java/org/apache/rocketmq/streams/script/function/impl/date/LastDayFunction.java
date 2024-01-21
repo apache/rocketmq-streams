@@ -40,8 +40,8 @@ public class LastDayFunction {
      */
     @FunctionMethod(value = "lastday", comment = "当前日期对应的月份中的最后一个天")
     public String lstDay(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表日期的字段名或常量") String date,
-                         @FunctionParamter(value = "string", comment = "代表时间格式的字段名或常量") String format) {
+        @FunctionParamter(value = "string", comment = "代表日期的字段名或常量") String date,
+        @FunctionParamter(value = "string", comment = "代表时间格式的字段名或常量") String format) {
         Timestamp timestamp = null;
         date = FunctionUtils.getValueString(message, context, date);
         format = FunctionUtils.getValueString(message, context, format);
@@ -59,7 +59,7 @@ public class LastDayFunction {
 
     @FunctionMethod(value = "lastday", comment = "当前日期对应的月份中的最后一个天")
     public String lstDay(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表日期的字段名或常量") String date) {
+        @FunctionParamter(value = "string", comment = "代表日期的字段名或常量") String date) {
         return lstDay(message, context, date, "'" + DateUtil.DEFAULT_FORMAT + "'");
     }
 

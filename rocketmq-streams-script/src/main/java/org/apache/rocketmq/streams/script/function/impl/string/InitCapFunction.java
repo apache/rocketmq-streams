@@ -37,7 +37,7 @@ public class InitCapFunction {
      */
     @FunctionMethod(value = "initcap", comment = "返回字符串，每个字转换器的第一个字母大写，其余为小写")
     public String initcap(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "string", comment = "字段名或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

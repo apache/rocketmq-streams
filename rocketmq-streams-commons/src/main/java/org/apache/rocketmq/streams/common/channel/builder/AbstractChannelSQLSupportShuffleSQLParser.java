@@ -22,15 +22,14 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 
-public abstract class AbstractChannelSQLSupportShuffleSQLParser extends AbstractSupportShuffleChannelBuilder{
-
-
+public abstract class AbstractChannelSQLSupportShuffleSQLParser extends AbstractSupportShuffleChannelBuilder {
 
     @Override public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
         return (ISource) ConfigurableUtil.create(getSourceClass(), namespace, name, createFormatProperty(properties), null);
     }
 
     protected abstract String getSourceClass();
+
     protected abstract String getSinkClass();
 
     @Override public String getType() {

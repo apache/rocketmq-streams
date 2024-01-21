@@ -18,18 +18,18 @@ package org.apache.rocketmq.streams.script.function.service.impl;
 
 import java.io.File;
 import java.lang.reflect.Modifier;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.calssscaner.AbstractScan;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 提供扫描function的能力
  */
 public class ScanFunctionService extends DefaultFunctionServiceImpl implements IFunctionService {
 
-    private static final Log LOG = LogFactory.getLog(ScanFunctionService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScanFunctionService.class);
 
     private static final ScanFunctionService functionService = new ScanFunctionService();
 
@@ -41,7 +41,7 @@ public class ScanFunctionService extends DefaultFunctionServiceImpl implements I
                     clazz.getModifiers()) || Modifier.isPrivate(clazz.getModifiers())) {
                     return;
                 }
-                if (clazz.getName().indexOf("$") != -1) {
+                if (clazz.getName().contains("$")) {
                     return;
                 }
                 Object o = clazz.newInstance();
@@ -53,7 +53,7 @@ public class ScanFunctionService extends DefaultFunctionServiceImpl implements I
 
             } catch (Exception e) {
                 e.printStackTrace();
-                LOG.error("初始化类错误" + e.getMessage(), e);
+                LOGGER.error("初始化类错误" + e.getMessage(), e);
             }
         }
     };
@@ -65,6 +65,7 @@ public class ScanFunctionService extends DefaultFunctionServiceImpl implements I
     public ScanFunctionService(boolean scanDipper) {
         super();
         if (scanDipper) {
+            scan.scanPackage("org.apache.rocketmq.streams.dim.function.script");
             scan.scanPackage("org.apache.rocketmq.streams.script.function.impl");
             scan.scanPackage("org.apache.rocketmq.streams.filter.function");
             scan.scanPackage("org.apache.rocketmq.streams.dim.function");
@@ -83,11 +84,11 @@ public class ScanFunctionService extends DefaultFunctionServiceImpl implements I
         scan.scanClassDir(dir, packageName, classLoader);
     }
 
-    public void scanePackages(String... packageNames) {
+    public void scanPackages(String... packageNames) {
         scan.scanPackages(packageNames);
     }
 
-    public void scanePackage(String packageName) {
+    public void scanPackage(String packageName) {
         scan.scanPackages(packageName);
 
     }

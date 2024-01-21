@@ -29,8 +29,8 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 public class ExtraFieldFunction {
     @FunctionMethod(value = "rename", alias = "rn", comment = "修改字段名称")
     public String extra(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "代表新字段的名称，不需要引号") String newFieldName,
-                        @FunctionParamter(value = "string", comment = "代表旧字段的字段，不需要引号") String oldFieldName) {
+        @FunctionParamter(value = "string", comment = "代表新字段的名称，不需要引号") String newFieldName,
+        @FunctionParamter(value = "string", comment = "代表旧字段的字段，不需要引号") String oldFieldName) {
         Object value = FunctionUtils.getValue(message, context, oldFieldName);
         if (value == null) {
             return null;
@@ -51,9 +51,9 @@ public class ExtraFieldFunction {
      * @param context
      * @param expandFieldName
      */
-    @FunctionMethod(value = "expandField" ,alias = "expand_json", comment = "json字段展开到外层数据结")
+    @FunctionMethod(value = "expandField", alias = "expand_json", comment = "json字段展开到外层数据结")
     public void expandField(IMessage channelMessage, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String expandFieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String expandFieldName) {
         if (StringUtil.isEmpty(expandFieldName)) {
             return;
         }

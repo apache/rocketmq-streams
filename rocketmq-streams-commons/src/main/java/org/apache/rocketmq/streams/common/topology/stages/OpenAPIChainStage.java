@@ -17,49 +17,21 @@
 package org.apache.rocketmq.streams.common.topology.stages;
 
 import org.apache.rocketmq.streams.common.channel.IChannel;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 
-public class OpenAPIChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
-    protected String openApiChannelName;
-    protected transient IChannel channel;
-    protected transient IStageHandle handle = new IStageHandle() {
-        @Override
-        protected IMessage doProcess(IMessage message, AbstractContext context) {
-            IStreamOperator<IMessage, IMessage> receiver = (IStreamOperator)channel;
-            IMessage msg = receiver.doMessage(message, context);
-            message.setMessageBody(msg.getMessageBody());
-            context.setMessage(message);
-            return message;
-        }
-
-        @Override
-        public String getName() {
-            return OpenAPIChainStage.class.getName();
-        }
-    };
+public class OpenAPIChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> {
+    @ConfigurableReference protected IChannel channel;
 
     @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        IChannel channel = configurableService.queryConfigurable(IChannel.TYPE, openApiChannelName);
-        this.channel = channel;
-    }
-
-    @Override
-    protected IStageHandle selectHandle(T t, AbstractContext context) {
-        return handle;
-    }
-
-    public String getOpenApiChannelName() {
-        return openApiChannelName;
-    }
-
-    public void setOpenApiChannelName(String openApiChannelName) {
-        this.openApiChannelName = openApiChannelName;
+    protected IMessage handleMessage(IMessage message, AbstractContext context) {
+        IStreamOperator<IMessage, IMessage> receiver = (IStreamOperator) channel;
+        IMessage msg = receiver.doMessage(message, context);
+        message.setMessageBody(msg.getMessageBody());
+        context.setMessage(message);
+        return message;
     }
 
     public IChannel getChannel() {
@@ -69,7 +41,6 @@ public class OpenAPIChainStage<T extends IMessage> extends AbstractStatelessChai
     public void setChannel(IChannel channel) {
         this.channel = channel;
         this.setNameSpace(channel.getNameSpace());
-        this.setOpenApiChannelName(channel.getConfigureName());
     }
 
     @Override

@@ -22,14 +22,11 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.channel.source.AbstractUnreliableSource;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.IPUtil;
@@ -39,27 +36,26 @@ import org.graylog2.syslog4j.server.SyslogServerEventIF;
 import org.graylog2.syslog4j.server.SyslogServerIF;
 import org.graylog2.syslog4j.server.SyslogServerSessionEventHandlerIF;
 import org.graylog2.syslog4j.server.impl.net.tcp.TCPNetSyslogServerConfigIF;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SyslogServer extends AbstractUnreliableSource {
-    private static final Log LOG = LogFactory.getLog(SyslogServer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SyslogServer.class);
+    private static final int DEFAULT_TIMEOUT = 10000;  //毫秒，只有tcp时有用
+    private static final String MSG_ID_NULL = "MSG_ID_NULL";
+    private static final String PREFIX = "dipper.upgrade.channel.syslog.envkey";
+    protected int timeout;
     @ENVDependence private String serverHost = IPUtil.getLocalAddress();
     @ENVDependence private String serverPort;
     private String protocol;
     private Integer ctimeout = DEFAULT_TIMEOUT;
-
     private transient SyslogServerIF syslogServer;
-
-    private static final int DEFAULT_TIMEOUT = 10000;  //毫秒，只有tcp时有用
-
-    private static final String MSG_ID_NULL = "MSG_ID_NULL";
-
     private volatile boolean isFinished = false;                                 // 如果消息被销毁，会通过这个标记停止消息的消费
-
-    protected int timeout;
     /**
      * 注册路由信息，由主服务做路由分发
      */
     private transient List<SyslogChannel> routers = new ArrayList<>();
+    private volatile transient SoftReferenceCache<String, List<SyslogChannel>> cache = new SoftReferenceCache<>();
 
     @Override protected boolean initConfigurable() {
 
@@ -89,11 +85,11 @@ public class SyslogServer extends AbstractUnreliableSource {
         setReceiver(new IStreamOperator() {
             @Override public Object doMessage(IMessage message, AbstractContext context) {
                 String hostAddress = message.getMessageBody().getString("hostAddress");
-                if(hostAddress==null){
+                if (hostAddress == null) {
                     return null;
                 }
                 List<SyslogChannel> syslogChannels = cache.get(hostAddress);
-                LOG.info("receive syslog msg, ip is  " + hostAddress + " msg is " + message.getMessageBody());
+                LOGGER.info("receive syslog msg, ip is  " + hostAddress + " msg is " + message.getMessageBody());
                 boolean hasMatch = false;
                 if (syslogChannels == null) {
                     syslogChannels = new ArrayList<>();
@@ -108,33 +104,27 @@ public class SyslogServer extends AbstractUnreliableSource {
                     hasMatch = true;
                 }
                 if (!hasMatch) {
-                    LOG.warn("the syslog msg had been discard, beacuse not match ip list, the ip is  " + hostAddress + ". the msg is " + message.getMessageBody());
+                    LOGGER.warn("the syslog msg had been discard, beacuse not match ip list, the ip is  " + hostAddress + ". the msg is " + message.getMessageBody());
                     return message;
                 }
                 for (SyslogChannel channel : syslogChannels) {
-                    if (channel.isDestroy() == false) {
-                        channel.doReceiveMessage(message.getMessageBody());
-                    } else {
-                        routers.remove(channel);
-                    }
+                    channel.doReceiveMessage(message.getMessageBody());
                 }
                 return message;
             }
         });
-        SyslogServerIF serverIF=org.graylog2.syslog4j.server.SyslogServer.getThreadedInstance(protocol);
+        SyslogServerIF serverIF = org.graylog2.syslog4j.server.SyslogServer.getThreadedInstance(protocol);
         return true;
     }
 
-    private static final String PREFIX = "dipper.upgrade.channel.syslog.envkey";
-
-    @Override public void destroy() {
+    @Override public void destroySource() {
         isFinished = true;
         if (syslogServer != null) {
             try {
                 syslogServer.shutdown();
                 Thread.sleep(30 * 1000);
             } catch (Exception e) {
-
+                throw new RuntimeException("syslog destroy error", e);
             }
 
         }
@@ -172,6 +162,7 @@ public class SyslogServer extends AbstractUnreliableSource {
         this.ctimeout = ctimeout;
     }
 
+    @Override
     public boolean isFinished() {
         return isFinished;
     }
@@ -180,7 +171,23 @@ public class SyslogServer extends AbstractUnreliableSource {
         isFinished = finished;
     }
 
-    private volatile transient SoftReferenceCache<String, List<SyslogChannel>> cache = new SoftReferenceCache<>();
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public void clearCache() {
+        SoftReferenceCache tmp = cache;
+        cache = new SoftReferenceCache<>();
+        tmp.clear();
+    }
+
+    public List<SyslogChannel> getRouters() {
+        return routers;
+    }
 
     protected class SyslogServerEventHandler implements SyslogServerSessionEventHandlerIF {
         private static final long serialVersionUID = 6036415838696050746L;
@@ -234,7 +241,7 @@ public class SyslogServer extends AbstractUnreliableSource {
 
             }
             JSONObject msg = new JSONObject();
-            msg.put("data",message);
+            msg.put("data", message);
             msg.put("facility", var4.getFacility());
             msg.put("hostName", hostName);
             msg.put("hostAddress", hostAddress);
@@ -255,23 +262,5 @@ public class SyslogServer extends AbstractUnreliableSource {
 
         @Override public void destroy(SyslogServerIF var1) {
         }
-    }
-
-    public int getTimeout() {
-        return timeout;
-    }
-
-    public void setTimeout(int timeout) {
-        this.timeout = timeout;
-    }
-
-    public void clearCache() {
-        SoftReferenceCache tmp = cache;
-        cache = new SoftReferenceCache<>();
-        tmp.clear();
-    }
-
-    public List<SyslogChannel> getRouters() {
-        return routers;
     }
 }

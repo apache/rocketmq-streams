@@ -24,14 +24,12 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.IChannel;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
@@ -41,35 +39,32 @@ import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 主要用于写db，输入可以是一个insert/replace 模版，也可以是metadata对象，二者选一即可。都支持批量插入，提高吞吐 sql 模版：insert into table(column1,column2,column3)values('#{var1}',#{var2},'#{var3}') MetaData:主要是描述每个字段的类型，是否必须 二者选一个即可。sql模式，系统会把一批（batchSize）数据拼成一个大sql。metadata模式，基于字段描述，最终也是拼成一个大sql
  */
 public class DBSink extends AbstractSink {
 
-    static final Log logger = LogFactory.getLog(DBSink.class);
-
     public static final String SQL_MODE_DEFAULT = "default";
     public static final String SQL_MODE_REPLACE = "replace";
     public static final String SQL_MODE_IGNORE = "ignore";
-
-    @ENVDependence protected String jdbcDriver = AbstractComponent.DEFAULT_JDBC_DRIVER;
+    static final Logger LOGGER = LoggerFactory.getLogger(DBSink.class);
+    /**
+     * 解析出insert value数据部分，对于批量的插入，效果会更佳
+     */
+    private static final String VALUES_NAME = "values";
+    @ENVDependence protected String jdbcDriver = ConfigurationKey.DEFAULT_JDBC_DRIVER;
     @ENVDependence protected String url;
     @ENVDependence protected String userName;
     @ENVDependence protected String tableName; //指定要插入的数据表
     @ENVDependence protected String password;
     @ENVDependence protected String sqlMode;
-
-    protected MetaData metaData;//可以指定meta data，和insertSQL二选一
-
     protected String insertSQLTemplate;//完成插入部分的工作，和metadata二选一。insert into table(column1,column2,column3)values('#{var1}',#{var2},'#{var3}')
-
     protected boolean openSqlCache = true;
-
     protected transient IMessageCache<String> sqlCache;//cache sql, batch submit sql
-
     boolean isMultiple = false; //是否多表
-
     /**
      * db串多数是名字，可以取个名字前缀，如果值为空，默认为此类的name，name为空，默认为简单类名
      *
@@ -79,7 +74,7 @@ public class DBSink extends AbstractSink {
     public DBSink(String insertSQL, String dbInfoNamePrefix) {
         setType(IChannel.TYPE);
         if (StringUtil.isEmpty(dbInfoNamePrefix)) {
-            dbInfoNamePrefix = getConfigureName();
+            dbInfoNamePrefix = getName();
         }
         if (StringUtil.isEmpty(dbInfoNamePrefix)) {
             dbInfoNamePrefix = this.getClass().getSimpleName();
@@ -115,7 +110,7 @@ public class DBSink extends AbstractSink {
     @Override protected boolean initConfigurable() {
         if (this.metaData == null) {
             try {
-                Class.forName("com.mysql.jdbc.Driver");
+                Class.forName(this.jdbcDriver);
                 if (StringUtil.isNotEmpty(this.tableName)) {
                     Connection connection = DriverManager.getConnection(this.url, this.userName, this.password);
                     DatabaseMetaData connectionMetaData = connection.getMetaData();
@@ -131,6 +126,7 @@ public class DBSink extends AbstractSink {
         List<String> insertFields = Lists.newArrayList();
         List<String> insertValues = Lists.newArrayList();
         List<String> duplicateKeys = Lists.newArrayList();
+
         fieldList.forEach(field -> {
             String fieldName = field.getFieldName();
             insertFields.add("`" + fieldName + "`");
@@ -154,7 +150,7 @@ public class DBSink extends AbstractSink {
         this.sqlCache = new MessageCache<>(sqls -> {
             JDBCDriver dataSource = DriverBuilder.createDriver(jdbcDriver, url, userName, password);
             try {
-                dataSource.executSqls(sqls);
+                dataSource.executeSqls(sqls);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
@@ -224,14 +220,9 @@ public class DBSink extends AbstractSink {
                 this.sqlCache.addCache(sql);
             }
         } else {
-            dbDataSource.executSqls(sqls);
+            dbDataSource.executeSqls(sqls);
         }
     }
-
-    /**
-     * 解析出insert value数据部分，对于批量的插入，效果会更佳
-     */
-    private static final String VALUES_NAME = "values";
 
     protected String parseInsertValues(String insertSQL) {
         int start = insertSQL.toLowerCase().indexOf(VALUES_NAME);
@@ -306,14 +297,6 @@ public class DBSink extends AbstractSink {
         this.sqlMode = sqlMode;
     }
 
-    public MetaData getMetaData() {
-        return metaData;
-    }
-
-    public void setMetaData(MetaData metaData) {
-        this.metaData = metaData;
-    }
-
     public boolean isOpenSqlCache() {
         return openSqlCache;
     }
@@ -352,11 +335,11 @@ public class DBSink extends AbstractSink {
         String createTableSql = MetaDataUtils.getCreateTableSqlByTableName(url, userName, password, sourceTableName);
         if (createTableSql == null) {
             String errMsg = String.format("source table is not exist. multiple db sink must be dependency logic table meta for auto create sub table. logic table name is ", sourceTableName);
-            logger.error(errMsg);
+            LOGGER.error(errMsg);
             throw new RuntimeException(errMsg);
         }
         createTableSql = createTableSql.replace(sourceTableName, targetTableName);
-        logger.info(String.format("createTableSql is %s", createTableSql));
+        LOGGER.info(String.format("createTableSql is %s", createTableSql));
         return createTableSql;
 
     }
