@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public final class DateUtil {
 
@@ -39,9 +37,12 @@ public final class DateUtil {
     public static final String DEFAULT_FORMAT = "yyyy-MM-dd HH:mm:ss";
     public static final String SIMPLE_SECOND_FORMAT = "yyyyMMddHHmmss";
     public static final String TIMESTAMP_FORMAT = "yyyyMMddHHmmssSSS";
+    public static final long DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
     private static final ThreadLocal<Map<String, DateFormat>> tl = new ThreadLocal<Map<String, DateFormat>>();
-
-    private static final Log LOG = LogFactory.getLog(DateUtil.class);
+    private static final int WORKTIME_DAY_OF_WEEK_BEGIN = 1;
+    private static final int WORKTIME_DAY_OF_WEEK_END = 5;
+    private static final int WORKTIME_HOUR_OF_DAY_BEGIN = 9;
+    private static final int WORKTIME_HOUR_OF_DAY_END = 18;
 
     /**
      * 给指定时间增加一个时间值
@@ -125,8 +126,6 @@ public final class DateUtil {
 
         return d1.getTime() == d2.getTime();
     }
-
-    public static final long DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
 
     public static int dayDiff(Date d1, Date d2) {
         long timeDiff = d1.getTime() - d2.getTime();
@@ -278,11 +277,6 @@ public final class DateUtil {
         calendar.setTime(date);
         return calendar.get(Calendar.WEEK_OF_YEAR);
     }
-
-    private static final int WORKTIME_DAY_OF_WEEK_BEGIN = 1;
-    private static final int WORKTIME_DAY_OF_WEEK_END = 5;
-    private static final int WORKTIME_HOUR_OF_DAY_BEGIN = 9;
-    private static final int WORKTIME_HOUR_OF_DAY_END = 18;
 
     /**
      * 判断是否是工作时间，工作时间为周一到周五（9:00-18:00）
@@ -451,6 +445,10 @@ public final class DateUtil {
         } else {
             throw new RuntimeException("illegal event time! " + eventTime);
         }
+    }
+
+    public static Date getWindowBeginTime(long eventTime, long sizeInterval) {
+        return getWindowBeginTime(eventTime, sizeInterval, sizeInterval).get(0);
     }
 
     /**

@@ -26,17 +26,13 @@ import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 public class OptimizationRegex {
+    //正则表达式，对应的关键词优化器
+    public static Map<String, OptimizationRegex> optimizationRegexMap = new HashMap<>();
     private static int orWordCount = 21;//对于or，超过多少就不处理了
-
     private static String[] regexSpecialWords = {"\\", "$", "(", ")", "*", "+", ".", "[", "]", "?", "^", "{", "}", "|"};
     //正则表达式特殊字符
     private static String[] replaceSpecialWords = {"&", "@", "~"};//用于替换转义字符的特殊字符
-
     private static String[] regexSpecialWordsForSplit = {"$", "*", "+", ".", "?", "^"};//分割单词的分割符
-
-    //正则表达式，对应的关键词优化器
-    public static Map<String, OptimizationRegex> optimizationRegexMap = new HashMap<>();
-
     protected String regex;//原来的正则表达式
     protected boolean supportOptimizate = false;//是否支持优化
     protected List<String> andWords = new ArrayList<>();//and 关系的关键词
@@ -287,7 +283,6 @@ public class OptimizationRegex {
         Collections.sort(allWordList);
         return MapKeyUtil.createKey("&", allWordList);
     }
-
 
     public boolean isSupportOptimizate() {
         return supportOptimizate;

@@ -17,9 +17,7 @@
 package org.apache.rocketmq.streams.client.strategy;
 
 import java.util.Properties;
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 
 public class WindowStrategy implements Strategy {
 
@@ -31,16 +29,11 @@ public class WindowStrategy implements Strategy {
 
     private WindowStrategy(String url, String username, String password) {
         properties = new Properties();
-        properties.put(AbstractComponent.JDBC_DRIVER, AbstractComponent.DEFAULT_JDBC_DRIVER);
-        properties.put(AbstractComponent.JDBC_URL, url);
-        properties.put(AbstractComponent.JDBC_USERNAME, username);
-        properties.put(AbstractComponent.JDBC_PASSWORD, password);
-        properties.put(AbstractComponent.JDBC_TABLE_NAME, AbstractComponent.DEFAULT_JDBC_TABLE_NAME);
-    }
-
-    @Override
-    public Properties getStrategyProperties() {
-        return this.properties;
+        properties.put(ConfigurationKey.JDBC_DRIVER, ConfigurationKey.DEFAULT_JDBC_DRIVER);
+        properties.put(ConfigurationKey.JDBC_URL, url);
+        properties.put(ConfigurationKey.JDBC_USERNAME, username);
+        properties.put(ConfigurationKey.JDBC_PASSWORD, password);
+        // properties.put(AbstractComponent.JDBC_TABLE_NAME, AbstractComponent.DEFAULT_JDBC_TABLE_NAME);
     }
 
     public static Strategy exactlyOnce(String url, String username, String password) {
@@ -52,9 +45,14 @@ public class WindowStrategy implements Strategy {
         return new WindowStrategy();
     }
 
-    public static Strategy windowDefaultSiZe(int defualtSize) {
-        ComponentCreator.getProperties().put(ConfigureFileKey.DIPPER_WINDOW_DEFAULT_INERVAL_SIZE, defualtSize);
+    public static Strategy windowDefaultSiZe(int defaultSize) {
+//        ComponentCreator.getProperties().put(ConfigureFileKey.DIPPER_WINDOW_DEFAULT_INERVAL_SIZE, defualtSize);
         return null;
+    }
+
+    @Override
+    public Properties getStrategyProperties() {
+        return this.properties;
     }
 
 }

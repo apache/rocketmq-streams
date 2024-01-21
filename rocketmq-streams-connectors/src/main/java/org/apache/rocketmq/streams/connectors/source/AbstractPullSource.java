@@ -16,267 +16,315 @@
  */
 package org.apache.rocketmq.streams.connectors.source;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.function.Consumer;
+
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.checkpoint.CheckPoint;
-import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
-import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.checkpoint.AbstractCheckPointStorage;
+import org.apache.rocketmq.streams.common.checkpoint.ICheckPointStorage;
+import org.apache.rocketmq.streams.common.checkpoint.ISplitOffset;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.connectors.balance.ISourceBalance;
-import org.apache.rocketmq.streams.connectors.balance.SplitChanged;
-import org.apache.rocketmq.streams.connectors.balance.impl.LeaseBalanceImpl;
-import org.apache.rocketmq.streams.connectors.model.PullMessage;
 import org.apache.rocketmq.streams.connectors.reader.ISplitReader;
-import org.apache.rocketmq.streams.connectors.reader.SplitCloseFuture;
-import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
+import org.apache.rocketmq.streams.connectors.source.client.SplitConsumer;
+import org.apache.rocketmq.streams.dispatcher.ICache;
+import org.apache.rocketmq.streams.dispatcher.IDispatcherCallback;
+import org.apache.rocketmq.streams.dispatcher.cache.DBCache;
+import org.apache.rocketmq.streams.dispatcher.enums.DispatchMode;
+import org.apache.rocketmq.streams.dispatcher.impl.LeaseDispatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPullSource extends AbstractSource implements IPullSource<AbstractSource> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPullSource.class);
+    protected static final String TASK_NAME_SPLIT = "->";
+    protected final String START_TIME = "start_time";
+    /**
+     * 可以有多种实现，通过名字选择不同的实现
+     */
+    protected long pullIntervalMs = 1000 * 20;
+    /**
+     * 每次拉取的条数
+     */
+    protected int pullSize = 1000;
+    protected transient volatile boolean shutDown = false;
+    protected boolean isTest = false;
+    protected boolean closeBalance = false;
+    protected transient Map<String, SplitConsumer> ownerConsumers = new ConcurrentHashMap<>() {};
+    protected transient ICache cache;
+    private transient LeaseDispatcher<?> dispatcher;
+    private transient IDispatcherCallback<?> balanceCallback;
+    private transient ExecutorService executorService;
 
-    private static final Log logger = LogFactory.getLog(AbstractPullSource.class);
+    @Override
+    protected boolean initConfigurable() {
+        if (this.cache == null) {
+            this.cache = new DBCache();
+        }
+        if (this.executorService == null) {
+            this.executorService = ThreadPoolFactory.createThreadPool(10, this.getNameSpace() + "_" + this.getName());
+        }
+        return super.initConfigurable();
+    }
 
-    protected transient ISourceBalance balance;// balance interface
-    protected transient ScheduledExecutorService balanceExecutor;//schdeule balance
-    protected transient Map<String, ISplitReader> splitReaders = new HashMap<>();//owner split readers
-    protected transient Map<String, ISplit> ownerSplits = new HashMap<>();//working splits by the source instance
-
-    //可以有多种实现，通过名字选择不同的实现
-    protected String balanceName = LeaseBalanceImpl.DB_BALANCE_NAME;
-    //balance schedule time
-    protected int balanceTimeSecond = 10;
-    protected long pullIntervalMs;
-    protected transient CheckPointManager checkPointManager = new CheckPointManager();
-    protected transient boolean shutDown=false;
     @Override
     protected boolean startSource() {
-        ServiceLoaderComponent serviceLoaderComponent = ServiceLoaderComponent.getInstance(ISourceBalance.class);
-        balance = (ISourceBalance) serviceLoaderComponent.getService().loadService(balanceName);
-        balance.setSourceIdentification(MapKeyUtil.createKey(getNameSpace(), getConfigureName()));
-        balanceExecutor = new ScheduledThreadPoolExecutor(1, new BasicThreadFactory.Builder().namingPattern("balance-task-%d").daemon(true).build());
-        List<ISplit> allSplits = fetchAllSplits();
-        SplitChanged splitChanged = balance.doBalance(allSplits, new ArrayList(ownerSplits.values()));
-        doSplitChanged(splitChanged);
-        balanceExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                logger.info("balance running..... current splits is " + ownerSplits);
-                List<ISplit> allSplits = fetchAllSplits();
-                SplitChanged splitChanged = balance.doBalance(allSplits, new ArrayList(ownerSplits.values()));
-                doSplitChanged(splitChanged);
-            }
-        }, balanceTimeSecond, balanceTimeSecond, TimeUnit.SECONDS);
-
+        if (isTest || closeBalance) {
+            doSplitAddition(fetchAllSplits());
+        }
+        if (!isTest) {
+            setOffsetStore();
+        }
+        if (!closeBalance) {
+            startBalance();
+        }
         startWorks();
         return true;
     }
 
-    private void startWorks() {
-        ExecutorService workThreads= ThreadPoolFactory.createThreadPool(maxThread);
-        long start=System.currentTimeMillis();
-        while (!shutDown) {
-            Iterator<Map.Entry<String, ISplitReader>> it = splitReaders.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, ISplitReader> entry=it.next();
-                String splitId=entry.getKey();
-                ISplit split=ownerSplits.get(splitId);
-                ISplitReader reader=entry.getValue();
-                ReaderRunner runner=new ReaderRunner(split,reader);
-                workThreads.execute(runner);
-            }
-            try {
-                long sleepTime=this.pullIntervalMs-(System.currentTimeMillis()-start);
-                if(sleepTime>0){
-                    Thread.sleep(sleepTime);
+    protected void startWorks() {
+        this.shutDown = false;
+        Thread thread = new Thread(() -> {
+            long start;
+            while (!shutDown) {
+                start = System.currentTimeMillis();
+                try {
+                    if (this.ownerConsumers != null && !this.ownerConsumers.isEmpty()) {
+                        for (SplitConsumer consumer : ownerConsumers.values()) {
+                            consumer.consume();
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("[{}][{}] Pull_Reader_Execute_Error", IdUtil.instanceId(), getName(), e);
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                waitPollingTime(start);
             }
-        }
+        });
+        thread.start();
     }
 
     @Override
-    public Map<String, ISplit> getAllSplitMap() {
-        List<ISplit> splits = fetchAllSplits();
+    public Map<String, ISplit<?, ?>> getAllSplitMap() {
+        List<ISplit<?, ?>> splits = fetchAllSplits();
         if (splits == null) {
             return new HashMap<>();
         }
-        Map<String, ISplit> splitMap = new HashMap<>();
-        for (ISplit split : splits) {
+        Map<String, ISplit<?, ?>> splitMap = new HashMap<>();
+        for (ISplit<?, ?> split : splits) {
             splitMap.put(split.getQueueId(), split);
         }
         return splitMap;
     }
 
-    protected void doSplitChanged(SplitChanged splitChanged) {
-        if (splitChanged == null) {
-            return;
-        }
-        if (splitChanged.getSplitCount() == 0) {
-            return;
-        }
-        if (splitChanged.isNewSplit()) {
-            doSplitAddition(splitChanged.getChangedSplits());
-        } else {
-            doSplitRelease(splitChanged.getChangedSplits());
-        }
+    public List<ISplit<?, ?>> getAllSplits() {
+        List<ISplit<?, ?>> splits = fetchAllSplits();
+        return new ArrayList<>(splits);
     }
 
-    protected void doSplitAddition(List<ISplit> changedSplits) {
+    protected synchronized void doSplitAddition(List<ISplit<?, ?>> changedSplits) {
         if (changedSplits == null) {
             return;
         }
-        Set<String> splitIds = new HashSet<>();
-        for (ISplit split : changedSplits) {
-            splitIds.add(split.getQueueId());
+        for (ISplit<?, ?> split : changedSplits) {
+            if (ownerConsumers.containsKey(split.getQueueId())) {
+                continue;
+            }
+            SplitConsumer splitConsumer = new SplitConsumer(this, split, executorService);
+            splitConsumer.open();
+            ownerConsumers.put(split.getQueueId(), splitConsumer);
         }
-        addNewSplit(splitIds);
-        for (ISplit split : changedSplits) {
-            ISplitReader reader = createSplitReader(split);
-            reader.open(split);
-            reader.seek(loadSplitOffset(split));
-            splitReaders.put(split.getQueueId(), reader);
-            this.ownerSplits.put(split.getQueueId(), split);
-//            logger.info("start next");
-//            Thread thread = new Thread(new Runnable() {
-//
-//            thread.setName("reader-task-" + reader.getSplit().getQueueId());
-//            thread.start();
+    }
+
+    protected synchronized void doSplitRelease(List<ISplit<?, ?>> changedSplits) {
+
+        try {
+            for (ISplit<?, ?> split : changedSplits) {
+                SplitConsumer consumer = this.ownerConsumers.get(split.getQueueId());
+                if (consumer == null) {
+                    continue;
+                }
+                consumer.destroy();
+                this.ownerConsumers.remove(split.getQueueId());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
     }
 
     @Override
-    public String loadSplitOffset(ISplit split) {
+    public String loadSplitOffset(ISplit<?, ?> split) {
         String offset = null;
-        CheckPoint<String> checkPoint = checkPointManager.recover(this, split);
+        ISplitOffset checkPoint = checkPointManager.recover(this, split);
         if (checkPoint != null) {
-            offset = JSON.parseObject(checkPoint.getData()).getString("offset");
+            offset = checkPoint.getOffset();
         }
         return offset;
     }
 
-    protected abstract ISplitReader createSplitReader(ISplit split);
+    public ISplitReader createReader(ISplit<?, ?> split) {
+        return createSplitReader(split);
+    }
 
-    protected void doSplitRelease(List<ISplit> changedSplits) {
-        boolean success = balance.getRemoveSplitLock();
-        if (!success) {
-            return;
+    protected abstract ISplitReader createSplitReader(ISplit<?, ?> split);
+
+    protected List<ISplit<?, ?>> getSplitByName(List<String> names) {
+        if (CollectionUtil.isEmpty(names)) {
+            return null;
         }
+        Map<String, ISplit<?, ?>> allSplits = getAllSplitMap();
+        List<ISplit<?, ?>> splits = new ArrayList<>();
+        for (String name : names) {
+            ISplit<?, ?> split = allSplits.get(name);
+            if (split == null) {
+                LOGGER.warn("[{}][{}] Source_Get_Split_Error({})", IdUtil.instanceId(), getName(), name);
+                continue;
+            }
+            splits.add(split);
+        }
+        return splits;
+
+    }
+
+    protected void setOffsetStore() {
+        ICheckPointStorage iCheckPointStorage = new AbstractCheckPointStorage() {
+
+            @Override
+            public String getStorageName() {
+                return "db";
+            }
+
+            @Override
+            public <T extends ISplitOffset> void save(List<T> checkPointState) {
+                if (checkPointState == null) {
+                    return;
+                }
+                for (T splitOffset : checkPointState) {
+                    String namespace = MapKeyUtil.createKey(getNameSpace(), getName());
+                    String queueId = splitOffset.getQueueId();
+                    String offset = splitOffset.getOffset();
+                    cache.putKeyConfig(namespace, queueId, offset);
+                }
+
+            }
+
+            @Override
+            public ISplitOffset recover(ISource iSource, String queueID) {
+                String name = MapKeyUtil.createKey(iSource.getNameSpace(), iSource.getName());
+                String offset = cache.getKeyConfig(name, queueID);
+                return new ISplitOffset() {
+
+                    @Override
+                    public String getName() {
+                        return name;
+                    }
+
+                    @Override
+                    public String getQueueId() {
+                        return queueID;
+                    }
+
+                    @Override
+                    public String getOffset() {
+                        return offset;
+                    }
+                };
+            }
+        };
+        checkPointManager.setiCheckPointStorage(iCheckPointStorage);
+    }
+
+    protected void startBalance() {
         try {
-            List<SplitCloseFuture> closeFutures = new ArrayList<>();
-            for (ISplit split : changedSplits) {
-                ISplitReader reader = this.splitReaders.get(split.getQueueId());
-                if (reader == null) {
-                    continue;
-                }
-                SplitCloseFuture future = reader.close();
-                closeFutures.add(future);
-            }
-            for (SplitCloseFuture future : closeFutures) {
-                try {
-                    if(!future.isDone()){
-                        future.get();
-                    }
-                    this.splitReaders.remove(future.getSplit().getQueueId());
-                    this.ownerSplits.remove(future.getSplit().getQueueId());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-            }
+            if (this.balanceCallback == null) {
+                this.balanceCallback = new IDispatcherCallback<>() {
 
-        } finally {
-            balance.unLockRemoveSplitLock();
-        }
-
-    }
-
-
-    protected class ReaderRunner implements Runnable{
-        long mLastCheckTime = System.currentTimeMillis();
-        protected ISplit split;
-        protected ISplitReader reader;
-
-        public ReaderRunner(ISplit split,ISplitReader reader){
-            this.split=split;
-            this.reader=reader;
-        }
-
-        @Override
-        public void run() {
-            logger.info("start running");
-            if (reader.isInterrupt() == false) {
-                if (reader.next()) {
-                    List<PullMessage> messages = reader.getMessage();
-                    if (messages != null) {
-                        for (PullMessage pullMessage : messages) {
-                            String queueId = split.getQueueId();
-                            String offset = pullMessage.getOffsetStr();
-                            JSONObject msg = createJson(pullMessage.getMessage());
-                            Message message = createMessage(msg, queueId, offset, false);
-                            message.getHeader().setOffsetIsLong(pullMessage.getMessageOffset().isLongOfMainOffset());
-                            executeMessage(message);
+                    @Override
+                    public List<String> start(List<String> jobNames) {
+                        List<String> names = splitQueueIds(jobNames);
+                        List<ISplit<?, ?>> additionSplits = getSplitByName(names);
+                        if (CollectionUtil.isEmpty(additionSplits)) {
+                            return jobNames;
                         }
+                        doSplitAddition(additionSplits);
+                        return jobNames;
                     }
-                    reader.notifyAll();
-                }
-                long curTime = System.currentTimeMillis();
-                if (curTime - mLastCheckTime > getCheckpointTime()) {
-                    sendCheckpoint(reader.getSplit().getQueueId());
-                    mLastCheckTime = curTime;
-                }
 
+                    @Override
+                    public List<String> stop(List<String> jobNames) {
+                        List<String> names = splitQueueIds(jobNames);
+                        List<ISplit<?, ?>> additionSplits = getSplitByName(names);
+                        if (CollectionUtil.isEmpty(additionSplits)) {
+                            return jobNames;
+                        }
+                        doSplitRelease(additionSplits);
+                        return jobNames;
+                    }
 
-            }else {
-                Set<String> removeSplits = new HashSet<>();
-                removeSplits.add(reader.getSplit().getQueueId());
-                removeSplit(removeSplits);
-                balance.unlockSplit(split);
-                reader.close();
-                synchronized (reader) {
-                    reader.notifyAll();
-                }
+                    @Override
+                    public List<String> list() {
+                        List<ISplit<?, ?>> splits = getAllSplits();
+                        List<String> names = new ArrayList<>();
+                        for (ISplit<?, ?> split : splits) {
+                            names.add(getName() + TASK_NAME_SPLIT + split.getQueueId());
+                        }
+                        return names;
+                    }
+
+                    @Override
+                    public void destroy() {
+
+                    }
+                };
             }
-
+            if (this.dispatcher == null) {
+                String jdbc = getConfiguration().getProperty(ConfigurationKey.JDBC_DRIVER);
+                String url = getConfiguration().getProperty(ConfigurationKey.JDBC_URL);
+                String userName = getConfiguration().getProperty(ConfigurationKey.JDBC_USERNAME);
+                String password = getConfiguration().getProperty(ConfigurationKey.JDBC_PASSWORD);
+                int scheduleTime = Integer.parseInt(getConfiguration().getProperty(ConfigurationKey.DIPPER_DISPATCHER_SCHEDULE_TIME, "60"));
+                this.dispatcher = new LeaseDispatcher<>(jdbc, url, userName, password, IdUtil.workerId(), getNameSpace() + "_" + getName(), DispatchMode.AVERAGELY, scheduleTime, this.balanceCallback, new DBCache(), "partition");
+            }
+            this.dispatcher.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+    }
 
+    protected void waitPollingTime(long start) {
+        try {
+            long sleepTime = this.pullIntervalMs - (System.currentTimeMillis() - start);
+            if (sleepTime > 0) {
+                Thread.sleep(sleepTime);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
-    public boolean supportNewSplitFind() {
-        return true;
-    }
-
-    @Override
-    public boolean supportRemoveSplitFind() {
-        return true;
-    }
-
-    @Override
-    public boolean supportOffsetRest() {
-        return true;
+    public void destroySource() {
+        if (this.dispatcher != null) {
+            this.dispatcher.close();
+        }
+        List<ISplit<?, ?>> splits = new ArrayList<>();
+        for (SplitConsumer splitConsumer : this.ownerConsumers.values()) {
+            splits.add(splitConsumer.getSplit());
+        }
+        doSplitRelease(new ArrayList<>(splits));
+        this.ownerConsumers = new HashMap<>();
+        this.shutDown = true;
     }
 
     @Override
@@ -284,29 +332,51 @@ public abstract class AbstractPullSource extends AbstractSource implements IPull
         return pullIntervalMs;
     }
 
-    public String getBalanceName() {
-        return balanceName;
-    }
-
-    public void setBalanceName(String balanceName) {
-        this.balanceName = balanceName;
-    }
-
-    public int getBalanceTimeSecond() {
-        return balanceTimeSecond;
-    }
-
-    public void setBalanceTimeSecond(int balanceTimeSecond) {
-        this.balanceTimeSecond = balanceTimeSecond;
-    }
-
     public void setPullIntervalMs(long pullIntervalMs) {
         this.pullIntervalMs = pullIntervalMs;
     }
 
     @Override
-    public List<ISplit> ownerSplits() {
-        return new ArrayList(ownerSplits.values());
+    public List<ISplit<?, ?>> ownerSplits() {
+        List<ISplit<?, ?>> splits = new ArrayList<>();
+        for (SplitConsumer splitConsumer : this.ownerConsumers.values()) {
+            splits.add(splitConsumer.getSplit());
+        }
+        return splits;
     }
 
+    protected List<String> splitQueueIds(List<String> taskNames) {
+        if (taskNames == null) {
+            return new ArrayList<>();
+        }
+        List<String> names = new ArrayList<>();
+        for (String taskName : taskNames) {
+            names.add(taskName.split(TASK_NAME_SPLIT)[1]);
+        }
+        return names;
+    }
+
+    public boolean isTest() {
+        return isTest;
+    }
+
+    public void setTest(boolean test) {
+        isTest = test;
+    }
+
+    public boolean isCloseBalance() {
+        return closeBalance;
+    }
+
+    public void setCloseBalance(boolean closeBalance) {
+        this.closeBalance = closeBalance;
+    }
+
+    public int getPullSize() {
+        return pullSize;
+    }
+
+    public void setPullSize(int pullSize) {
+        this.pullSize = pullSize;
+    }
 }

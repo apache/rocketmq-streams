@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.script;
 
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.IgnoreNameSpace;
@@ -30,8 +28,6 @@ import org.apache.rocketmq.streams.script.service.impl.ScriptServiceImpl;
  * 执行脚本，多个函数形成脚本。也可以通过脚本控制流的运转 可以自动扫描 标注了@Function的类。通过scan 来指定扫描的包路径
  */
 public class ScriptComponent extends AbstractComponent<IScriptService> implements IgnoreNameSpace {
-
-    private static final Log LOG = LogFactory.getLog(ScriptComponent.class);
 
     private static final ScriptComponent scriptComponent = ComponentCreator.getComponent(null, ScriptComponent.class);
     /**
@@ -47,8 +43,8 @@ public class ScriptComponent extends AbstractComponent<IScriptService> implement
 
     @Override
     public boolean startComponent(String namespace) {
-        functionService.scanePackage("org.apache.rocketmq.streams.script.function.impl");
-        functionService.scanePackage("org.apache.rocketmq.streams.dim.function.script");
+//        functionService.scanPackage("org.apache.rocketmq.streams.script.function.impl");
+//        functionService.scanPackage("org.apache.rocketmq.streams.dim.function.script");
         return true;
     }
 
@@ -62,8 +58,7 @@ public class ScriptComponent extends AbstractComponent<IScriptService> implement
         return scriptService;
     }
 
-    @Override
-    protected boolean initProperties(Properties properties) {
+    @Override protected boolean initProperties(Properties properties) {
         scriptService = new ScriptServiceImpl();
         return true;
     }

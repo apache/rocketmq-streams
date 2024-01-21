@@ -30,7 +30,7 @@ public class QuarterFunction {
 
     @FunctionMethod(value = "quarter", comment = "获取当前的季度值，用数字表示")
     public Integer quarter(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime) {
         return quarter(message, context, datetime, "'" + DateUtil.DEFAULT_FORMAT + "'");
     }
 
@@ -44,8 +44,8 @@ public class QuarterFunction {
      */
     @FunctionMethod(value = "quarter", comment = "获取当前的季度值，用数字表示")
     public Integer quarter(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
-                           @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
+        @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
         Integer quarter = null;
 
         datetime = FunctionUtils.getValueString(message, context, datetime);

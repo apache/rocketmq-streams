@@ -22,9 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
+import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -40,19 +39,33 @@ import org.apache.rocketmq.streams.script.function.aggregation.MaxAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.MinAccumulator;
 import org.apache.rocketmq.streams.script.function.aggregation.SumAccumulator;
 import org.apache.rocketmq.streams.script.service.IAccumulator;
+import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 主要在window中使用，做统计计算使用
  */
 public class AggregationScript implements IStreamOperator<IMessage, List<IMessage>> {
 
-    private static final Log LOG = LogFactory.getLog(AggregationScript.class);
-    private static Set<String> supportQuickStoreModelFunctions=new HashSet<String>(){{
-       add("max");
-       add("min");
-       add("count");
-       add("sum");
-       add("avg");
+    /**
+     * the way to accumulate: single or multi
+     */
+    public static final String INNER_AGGREGATION_COMPUTE_KEY = "_inner_aggregation_single_";
+    public static final String INNER_AGGREGATION_COMPUTE_SINGLE = "single";
+    public static final String INNER_AGGREGATION_COMPUTE_MULTI = "multi";
+    public static final String INNER_AGGREGATION_VALUE_KEY = "_inner_aggregation_result_";
+    /**
+     * inner field in message
+     */
+    public static final String _INNER_AGGREGATION_FUNCTION_VALUE_ = "_INNER_AGGREGATION_FUNCTION_VALUE_";
+    private static final Logger LOGGER = LoggerFactory.getLogger(AggregationScript.class);
+    private static Set<String> supportQuickStoreModelFunctions = new HashSet<String>() {{
+        add("max");
+        add("min");
+        add("count");
+        add("sum");
+        add("avg");
     }};
     private static Map<String, Class> aggregationEngineMap = new ConcurrentHashMap<String, Class>() {{
         put("max", MaxAccumulator.class);
@@ -66,43 +79,22 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
         put("concat_agg", ConcatAccumulator.class);
         put("count_distinct", CountDistinctAccumulator.class);
     }};
-
+    private static ScriptComponent scriptComponent = ScriptComponent.getInstance();
+    protected Object accumulator;
+    protected List accumulators;
     private String columnName;
-
     /**
      * aggregation function name
      */
     private String functionName;
-
     /**
      * parameter name
      */
     private String[] parameterNames;
-
     /**
      * guide the actors
      */
     private IAccumulator director;
-
-    protected Object accumulator;
-    protected List accumulators;
-    /**
-     * the way to accumulate: single or multi
-     */
-    public static final String INNER_AGGREGATION_COMPUTE_KEY = "_inner_aggregation_single_";
-
-    public static final String INNER_AGGREGATION_COMPUTE_SINGLE = "single";
-
-    public static final String INNER_AGGREGATION_COMPUTE_MULTI = "multi";
-
-    public static final String INNER_AGGREGATION_VALUE_KEY = "_inner_aggregation_result_";
-
-    /**
-     * inner field in message
-     */
-    public static final String _INNER_AGGREGATION_FUNCTION_VALUE_ = "_INNER_AGGREGATION_FUNCTION_VALUE_";
-
-    private static ScriptComponent scriptComponent = ScriptComponent.getInstance();
 
     public AggregationScript(String columnName, String functionName, String[] parameterNames) {
         this.functionName = functionName;
@@ -114,6 +106,30 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
 
     }
 
+    public static IAccumulator getAggregationFunction(String functionName) {
+        if (StringUtil.isEmpty(functionName)) {
+            return null;
+        }
+        try {
+            IAccumulator accumulator = scriptComponent.getFunctionService().getInnerInteface(functionName);
+            if (accumulator != null) {
+                return accumulator;
+            }
+            return aggregationEngineMap.containsKey(functionName) ? (IAccumulator) aggregationEngineMap.get(functionName)
+                .newInstance() : null;
+
+        } catch (Exception e) {
+            LOGGER.error("failed in getting aggregation function, " + functionName, e);
+        }
+        return null;
+    }
+
+    public static void registUDAF(String functionName, Class accumulator) {
+        aggregationEngineMap.put(functionName, accumulator);
+    }
+
+    //region setter and getter
+
     @Override
     public AggregationScript clone() {
         AggregationScript theClone = new AggregationScript(columnName, functionName, parameterNames);
@@ -121,12 +137,9 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
         return theClone;
     }
 
-
-    public boolean supportQuickStoreModel(){
-       return supportQuickStoreModelFunctions.contains(this.functionName);
+    public boolean supportQuickStoreModel() {
+        return supportQuickStoreModelFunctions.contains(this.functionName);
     }
-
-    //region setter and getter
 
     public String getFunctionName() {
         return functionName;
@@ -136,18 +149,18 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
         return columnName;
     }
 
-    public void setDirector(IAccumulator director) {
-        this.director = director;
-    }
-
     public IAccumulator getDirector() {
         return director;
+    }
+    //endregion
+
+    public void setDirector(IAccumulator director) {
+        this.director = director;
     }
 
     public void setParameterNames(String[] parameterNames) {
         this.parameterNames = parameterNames;
     }
-    //endregion
 
     @Override
     public List<IMessage> doMessage(IMessage message, AbstractContext context) {
@@ -155,7 +168,7 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
             director = getAggregationFunction(functionName);
         }
         if (director != null) {
-            String introduction = (String)message.getMessageBody().getOrDefault(INNER_AGGREGATION_COMPUTE_KEY, "");
+            String introduction = (String) message.getMessageBody().getOrDefault(INNER_AGGREGATION_COMPUTE_KEY, "");
             boolean isSingleAccumulate = INNER_AGGREGATION_COMPUTE_SINGLE.equals(introduction);
             boolean isMultiAccumulate = INNER_AGGREGATION_COMPUTE_MULTI.equals(introduction);
             if (isSingleAccumulate && accumulator != null && parameterNames != null) {
@@ -177,12 +190,12 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
     private Object[] getValueFromMessage(String[] parameterNames, IMessage message) {
         Object[] parameterValues = new Object[parameterNames.length];
         for (int index = 0; index < parameterNames.length; index++) {
-            if (isConstValue(parameterNames[index])) {
-                parameterValues[index] = parameterNames[index];
+            if ("*".equals(parameterNames[index])) {
+                parameterValues[index] = message.getMessageBody();
             } else {
-                parameterValues[index] = message.getMessageBody().getOrDefault(parameterNames[index],
-                    parameterNames[index]);
+                parameterValues[index] = FunctionUtils.getValue(message, new Context(message), parameterNames[index]);
             }
+
         }
         return parameterValues;
     }
@@ -191,28 +204,6 @@ public class AggregationScript implements IStreamOperator<IMessage, List<IMessag
         return parameter.startsWith("\"") || parameter.startsWith("'");
     }
 
-    public static IAccumulator getAggregationFunction(String functionName) {
-        if (StringUtil.isEmpty(functionName)) {
-            return null;
-        }
-        try {
-            IAccumulator accumulator = scriptComponent.getFunctionService().getInnerInteface(functionName);
-            if (accumulator != null) {
-                return accumulator;
-            }
-            return aggregationEngineMap.containsKey(functionName) ? (IAccumulator)aggregationEngineMap.get(functionName)
-                .newInstance() : null;
-
-        } catch (Exception e) {
-            LOG.error("failed in getting aggregation function, " + functionName, e);
-        }
-        return null;
-    }
-
-
-    public static void registUDAF(String functionName,Class accumulator){
-        aggregationEngineMap.put(functionName,accumulator);
-    }
     public Object getAccumulator() {
         return accumulator;
     }

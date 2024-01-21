@@ -19,17 +19,12 @@ package org.apache.rocketmq.streams.dim.intelligence;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 
 /**
  * table: ads_yunsec_abnormal_account
  */
-public class AccountIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfigurableRefreshListener {
-
-    private static final Log LOG = LogFactory.getLog(AccountIntelligenceCache.class);
+public class AccountIntelligenceCache extends AbstractIntelligenceCache {
 
     /**
      * 情报域名
@@ -66,7 +61,7 @@ public class AccountIntelligenceCache extends AbstractIntelligenceCache implemen
     @Override
     protected void doProccRows(IntValueKV intValueKV, List<Map<String, Object>> rows, int index) {
         rows.forEach(row -> {
-            String account = (String)row.get(keyName);
+            String account = (String) row.get(keyName);
             if (account != null) {
                 intValueKV.put(account, 1);
             }

@@ -17,16 +17,14 @@
 package org.apache.rocketmq.streams.filter.optimization.dependency;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
@@ -36,12 +34,12 @@ import org.apache.rocketmq.streams.common.utils.CollectionUtil;
  */
 public class DependencyTree {
 
-
-
     protected ChainPipeline chainPipeline;
-    protected FingerprintCache fingerprintCache;
-    public DependencyTree(ChainPipeline pipeline, FingerprintCache fingerprintCache) {
-        this.fingerprintCache = fingerprintCache;
+    protected List<CommonExpression> commonExpressions;
+    protected transient Map<String, Map<String, PreFingerprint>> preFingerprintExecutor = new HashMap<>();
+//    protected FingerprintCache fingerprintCache;
+
+    public DependencyTree(ChainPipeline pipeline) {
         this.chainPipeline = pipeline;
     }
 
@@ -55,12 +53,7 @@ public class DependencyTree {
         } else {
             return null;
         }
-        /**
-         * Create prefix fingerprint objects by branch and Merge branch
-         *
-         */
-        Collection<Map<String, PreFingerprint>> preFingerprintMap = chainPipeline.getPreFingerprintExecutor().values();
-        for (Map<String, PreFingerprint> fingerprintMap : preFingerprintMap) {
+        for (Map<String, PreFingerprint> fingerprintMap : preFingerprintExecutor.values()) {
             for (PreFingerprint fingerprint : fingerprintMap.values()) {
                 fingerprint.getFilterChainStage().setPreFingerprint(fingerprint);
                 for (AbstractStage<?> previewFilterChainStage : fingerprint.getAllPreviewFilterChainStage()) {
@@ -76,6 +69,7 @@ public class DependencyTree {
                 initSuccessCommonExpressions.add(commonExpression);
             }
         }
+        this.commonExpressions = initSuccessCommonExpressions;
         // System.out.println("finish homologous optimization");
         return initSuccessCommonExpressions;
     }
@@ -86,17 +80,15 @@ public class DependencyTree {
      * @param pipeline
      */
     public List<CommonExpression> parseTopology(ChainPipeline pipeline) {
-        if(StateLessDependencyTree.cache.containsKey(pipeline)){
+        if (StateLessDependencyTree.cache.containsKey(pipeline)) {
             return StateLessDependencyTree.cache.get(pipeline);
         }
         List<String> nextLalbes = pipeline.getChannelNextStageLabel();
         List<CommonExpression> commonExpressions = new ArrayList<>();
         parseTree(null, nextLalbes, pipeline, commonExpressions);
-        StateLessDependencyTree.cache.put(chainPipeline,commonExpressions);
+        StateLessDependencyTree.cache.put(chainPipeline, commonExpressions);
         return commonExpressions;
     }
-
-
 
     /**
      * @param parentTreeNode
@@ -122,7 +114,7 @@ public class DependencyTree {
                 }
             } else if (FilterChainStage.class.isInstance(stage)) {
                 FilterTreeNode filterTreeNode = new FilterTreeNode(pipeline, (FilterChainStage) stage, parentTreeNode);
-                PreFingerprint preFingerprint = filterTreeNode.createPreFingerprint(this.fingerprintCache);
+                PreFingerprint preFingerprint = filterTreeNode.createPreFingerprint();
                 if (preFingerprint == null) {
                     continue;
                 }
@@ -156,7 +148,7 @@ public class DependencyTree {
         if (sourceLable == null) {
             sourceLable = pipeline.getChannelName();
         }
-        Map<String, Map<String, PreFingerprint>> preFingerprintExecutor = pipeline.getPreFingerprintExecutor();
+        Map<String, Map<String, PreFingerprint>> preFingerprintExecutor = this.preFingerprintExecutor;
         Map<String, PreFingerprint> preFingerprintMap = preFingerprintExecutor.get(sourceLable);
         if (preFingerprintMap == null) {
             preFingerprintMap = new HashMap<>();
@@ -226,8 +218,20 @@ public class DependencyTree {
         return logFingerFieldNameSet;
     }
 
+    public Map<String, Map<String, PreFingerprint>> getPreFingerprintExecutor() {
+        return preFingerprintExecutor;
+    }
+
+    public void setPreFingerprintExecutor(
+        Map<String, Map<String, PreFingerprint>> preFingerprintExecutor) {
+        this.preFingerprintExecutor = preFingerprintExecutor;
+    }
+
     protected List<CommonExpression> parseSimple(ChainPipeline pipeline) {
         throw new RuntimeException("can not support this method");
     }
 
+    public List<CommonExpression> getCommonExpressions() {
+        return commonExpressions;
+    }
 }

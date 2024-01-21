@@ -35,7 +35,7 @@ public class MatchUtil {
      * @return
      */
     public static boolean matchCondition(Object object, Map<String, List<String>> fieldConditon,
-                                         boolean isAndRelation) {
+        boolean isAndRelation) {
         Iterator<Map.Entry<String, List<String>>> it = fieldConditon.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, List<String>> entry = it.next();

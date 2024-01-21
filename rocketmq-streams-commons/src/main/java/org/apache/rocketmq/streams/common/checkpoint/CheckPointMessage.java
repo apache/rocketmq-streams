@@ -29,7 +29,6 @@ public class CheckPointMessage implements ISystemMessage {
     protected boolean isValidate = true;
     protected String pipelineName;
 
-
     public ISource getSource() {
         return source;
     }
@@ -77,5 +76,9 @@ public class CheckPointMessage implements ISystemMessage {
 
     public void setPipelineName(String pipelineName) {
         this.pipelineName = pipelineName;
+    }
+
+    @Override public int getSystemMessageType() {
+        return ISystemMessage.CHECK_POINT;
     }
 }

@@ -34,7 +34,7 @@ public class SplitTest implements Serializable {
 
     @Test
     public void testOperator() throws InterruptedException {
-        DataStream stream = (StreamBuilder.dataStream("namespace", "name").fromFile("/Users/yuanxiaodong/chris/sls_1000.txt").flatMap(new FlatMapFunction<JSONObject, String>() {
+        DataStream stream = (StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name").fromFile("/Users/yuanxiaodong/chris/sls_1000.txt").flatMap(new FlatMapFunction<JSONObject, String>() {
             @Override
             public List<JSONObject> flatMap(String message) throws Exception {
                 List<JSONObject> msgs = new ArrayList<>();
@@ -61,7 +61,7 @@ public class SplitTest implements Serializable {
 
         DataStream children = splitStream.select("children");
         DataStream adult = splitStream.select("adult");
-        children.union(adult).join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5).setCondition("(name,==,name)").toDataSteam().window(TumblingWindow.of(Time.seconds(5))).groupBy("ProjectName", "LogStore").setLocalStorageOnly(true).count("total").sum("OutFlow", "OutFlow").sum("InFlow", "InFlow").toDataSteam().toPrint().asyncStart();
+        children.union(adult).join("dburl", "dbUserName", "dbPassowrd", "tableNameOrSQL", 5).setCondition("(name,==,name)").toDataSteam().window(TumblingWindow.of(Time.seconds(5))).groupBy("ProjectName", "LogStore").setLocalStorageOnly(true).count("total").sum("OutFlow", "OutFlow").sum("InFlow", "InFlow").toDataSteam().toPrint().start();
         while (true) {
             Thread.sleep(1000);
         }
@@ -70,7 +70,7 @@ public class SplitTest implements Serializable {
 
     @Test
     public void testDim() {
-        DataStream stream = (StreamBuilder.dataStream("namespace", "name").fromFile("/Users/yuanxiaodong/chris/sls_1000.txt").filter(new FilterFunction<JSONObject>() {
+        DataStream stream = (StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name").fromFile("/Users/yuanxiaodong/chris/sls_1000.txt").filter(new FilterFunction<JSONObject>() {
 
             @Override
             public boolean filter(JSONObject value) throws Exception {

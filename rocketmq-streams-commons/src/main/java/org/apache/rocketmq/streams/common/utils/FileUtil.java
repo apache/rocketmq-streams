@@ -26,9 +26,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
@@ -37,25 +37,16 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-//import org.apache.http.client.config.RequestConfig;
-//import org.apache.http.client.methods.CloseableHttpResponse;
-//import org.apache.http.client.methods.HttpGet;
-//import org.apache.http.impl.client.CloseableHttpClient;
-//import org.apache.http.impl.client.HttpClients;
-//import org.apache.log4j.lf5.util.StreamUtils;
 import org.apache.rocketmq.streams.common.interfaces.ILineMessageProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileUtil {
 
-    private static final Log LOG = LogFactory.getLog(FileUtil.class);
-
     public static final String LINE_SIGN = System.getProperty("line.separator");
-
     public static final String LOCAL_FILE_HEADER = "file:";
-
     public static final String CLASS_PATH_FILE_HEADER = "classpath://";
+    private static final Logger LOG = LoggerFactory.getLogger(FileUtil.class);
 
     /**
      * 查找指定的文件
@@ -88,7 +79,7 @@ public class FileUtil {
     public static String getJarPath() {
         String path = FileUtil.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         if (path.endsWith(".jar")) {
-            int startInde = path.lastIndexOf(File.separator);
+            int startInde = path.lastIndexOf(".");
             path = path.substring(0, startInde);
             return path;
         }
@@ -106,7 +97,10 @@ public class FileUtil {
         }
         if (fileUrl.startsWith(CLASS_PATH_FILE_HEADER)) {
             fileUrl = fileUrl.replaceFirst(CLASS_PATH_FILE_HEADER, "");
-            URL url = PropertiesUtils.class.getClassLoader().getResource(fileUrl);
+            URL url = PropertiesUtil.class.getClassLoader().getResource(fileUrl);
+            if (url == null) {
+                return null;
+            }
             String path = url.toString();
             if (path.indexOf("jar:file") != -1) {
                 return url;
@@ -318,13 +312,18 @@ public class FileUtil {
      * @return
      */
     public static File getResourceFile(String propertiesPath) {
-        URL url = PropertiesUtils.class.getClassLoader().getResource(propertiesPath);
+        URL url = PropertiesUtil.class.getClassLoader().getResource(propertiesPath);
         if (url == null) {
             LOG.error("can not load component's properties file " + propertiesPath);
             return null;
         }
 
-        return new File(url.getPath());
+        try {
+            return new File(url.toURI());
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     protected static boolean isMatch(String oriFileName, String matchedFileName, boolean supportRegex) {
@@ -552,6 +551,12 @@ public class FileUtil {
     public static boolean write(String fileName, List<String> rows, boolean isAppend) {
         File file = createFileSupportResourceFile(fileName);
         return write(file, rows, isAppend);
+    }
+
+    public static boolean write(String filePath, String row, boolean isAppend) {
+        List<String> rows = new ArrayList<>();
+        rows.add(row);
+        return write(filePath, rows, isAppend);
     }
 
     public static boolean write(File file, List<String> rows, boolean isAppend) {

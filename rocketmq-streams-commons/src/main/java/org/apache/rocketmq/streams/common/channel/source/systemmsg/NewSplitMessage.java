@@ -17,10 +17,18 @@
 package org.apache.rocketmq.streams.common.channel.source.systemmsg;
 
 import java.util.Set;
+import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 
+/**
+ * 系统消息，当数据源分片增加时发送消息，主要应用在窗口计算，提前加载窗口实例数据，加载新分片状态，不会跨shuffle
+ */
 public class NewSplitMessage extends SplitChangedMessage {
 
     public NewSplitMessage(Set<String> splitIds, Set<String> currentSplitIds) {
         super(splitIds, currentSplitIds, false);
+    }
+
+    @Override public int getSystemMessageType() {
+        return ISystemMessage.SPLIT_ADD;
     }
 }

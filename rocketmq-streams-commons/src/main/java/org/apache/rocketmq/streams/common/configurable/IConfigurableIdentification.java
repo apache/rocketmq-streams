@@ -22,7 +22,7 @@ public interface IConfigurableIdentification {
      *
      * @return 配置项名称
      */
-    String getConfigureName();
+    String getName();
 
     /**
      * 用于区分不同的业务，用命名空间隔离业务

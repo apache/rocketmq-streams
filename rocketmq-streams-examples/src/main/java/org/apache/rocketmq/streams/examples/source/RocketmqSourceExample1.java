@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.examples.source;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
 
@@ -24,10 +24,9 @@ import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_AD
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_CONSUMER_GROUP_NAME;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
-
 public class RocketmqSourceExample1 {
     public static void main(String[] args) {
-        ProducerFromFile.produce("data.txt",NAMESRV_ADDRESS, RMQ_TOPIC);
+        ProducerFromFile.produce("data.txt", NAMESRV_ADDRESS, RMQ_TOPIC);
 
         try {
             Thread.sleep(1000 * 3);
@@ -36,7 +35,7 @@ public class RocketmqSourceExample1 {
 
         System.out.println("begin streams code.");
 
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "pipeline");
         /**
          * 1、before run this case, make sure some data has already been rocketmq.
          */
@@ -44,10 +43,10 @@ public class RocketmqSourceExample1 {
                 RMQ_TOPIC,
                 RMQ_CONSUMER_GROUP_NAME,
                 NAMESRV_ADDRESS
-        )
-                .map(message -> message)
-                .toPrint(1)
-                .start();
+            )
+            .map(message -> message)
+            .toPrint(1)
+            .start();
 
     }
 }

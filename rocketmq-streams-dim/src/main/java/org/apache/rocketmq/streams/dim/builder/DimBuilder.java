@@ -16,16 +16,17 @@
  */
 package org.apache.rocketmq.streams.dim.builder;
 
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.dim.model.DBDim;
 
 public class DimBuilder {
 
+    protected Long pollingTimeSeconds = 60 * 10L;                    // 同步数据的事件间隔
     private String url;
     private String password;
     private String userName;
-    protected Long pollingTime = 60L;                    // 同步数据的事件间隔
-    private String jdbcDriver = "com.mysql.jdbc.Driver";
+    private String jdbcDriver = ConfigurationKey.DEFAULT_JDBC_DRIVER;
 
     public DimBuilder(String url, String userName, String password) {
         this.url = url;
@@ -37,15 +38,15 @@ public class DimBuilder {
         DBDim nameList = new DBDim();
         nameList.setNameSpace(namespace);
         if (StringUtil.isNotEmpty(name)) {
-            nameList.setConfigureName(name);
+            nameList.setName(name);
         }
         String sql = sqlOrTableName;
         if (sqlOrTableName.split(" ").length == 1) {
             sql = "select * from " + sqlOrTableName + " limit 500000";
         }
         nameList.setSql(sql);
-        nameList.setJdbcdriver(jdbcDriver);
-        nameList.setPollingTimeMinute(pollingTime);
+        nameList.setJdbcDriver(jdbcDriver);
+        nameList.setPollingTimeSeconds(pollingTimeSeconds);
         nameList.setUrl(url);
         nameList.setUserName(userName);
         nameList.setPassword(password);
@@ -76,12 +77,12 @@ public class DimBuilder {
         this.userName = userName;
     }
 
-    public Long getPollingTime() {
-        return pollingTime;
+    public Long getPollingTimeSeconds() {
+        return pollingTimeSeconds;
     }
 
-    public void setPollingTime(Long pollingTime) {
-        this.pollingTime = pollingTime;
+    public void setPollingTimeSeconds(Long pollingTimeSeconds) {
+        this.pollingTimeSeconds = pollingTimeSeconds;
     }
 
     public String getJdbcDriver() {

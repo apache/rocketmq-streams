@@ -36,13 +36,13 @@ public class LengthBFunction {
      */
     @FunctionMethod(value = "lengthb", alias = "lenb", comment = "字符串对应的字节长度")
     public Long lenghtb(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "字段名或常量") String param) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String param) {
         Long len = null;
         param = FunctionUtils.getValueString(message, context, param);
         if (param == null) {
             return len;
         }
-        len = (long)param.getBytes().length;
+        len = (long) param.getBytes().length;
         return len;
     }
 }

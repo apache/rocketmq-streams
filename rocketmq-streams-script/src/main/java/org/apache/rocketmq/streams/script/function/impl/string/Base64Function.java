@@ -41,7 +41,7 @@ public class Base64Function {
      */
     @FunctionMethod(value = "tobase64", comment = "把字节转换成base64")
     public String tobase64(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "array", comment = "字节数组") byte fieldName[]) {
+        @FunctionParamter(value = "array", comment = "字节数组") byte fieldName[]) {
         if (fieldName == null) {
             return null;
         }
@@ -58,7 +58,7 @@ public class Base64Function {
      */
     @FunctionMethod(value = "frombase64", comment = "把代表字符串的字段或常量转换为字节数组")
     public byte[] frombase64(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "代表字符串的字段或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段或常量") String fieldName) {
         byte[] bt = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         bt = decoder.decode(ori);
@@ -75,7 +75,7 @@ public class Base64Function {
      */
     @FunctionMethod(value = "decode16", comment = "把代表字符串的字段或常量转换为字节数组")
     public String decode16(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表字符串的字段或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段或常量") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

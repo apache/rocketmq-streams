@@ -25,12 +25,12 @@ import org.junit.Test;
 
 public class ScriptTest {
     @Test
-    public void testFloor(){
-        JSONObject msg=new JSONObject();
-        msg.put("_input",3233223.434334);
-        IMessage message=new Message(msg);
-        Context context=new Context(message);
-        ScriptComponent.getInstance().getService().executeScript(msg,"a=division(json_field(_input, 'lastTime'), 1000)");
+    public void testFloor() {
+        JSONObject msg = new JSONObject();
+        msg.put("_input", 3233223.434334);
+        IMessage message = new Message(msg);
+        Context context = new Context(message);
+        ScriptComponent.getInstance().getService().executeScript(msg, "a=division(json_field(_input, 'lastTime'), 1000)");
         System.out.println(msg);
     }
 }

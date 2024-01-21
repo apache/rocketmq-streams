@@ -59,7 +59,7 @@ public class NameListFunctionTest {
     private AbstractDim create() {
         DBDim dbNameList = new DBDim();
         dbNameList.setNameSpace("soc");
-        dbNameList.setConfigureName("isoc_field_mappings");
+        dbNameList.setName("isoc_field_mappings");
         dbNameList.setUrl("");
         dbNameList.setUserName("");
         dbNameList.setPassword("");
@@ -87,7 +87,7 @@ public class NameListFunctionTest {
     private AbstractDim createMapping() {
         DBDim dbNameList = new DBDim();
         dbNameList.setNameSpace("soc");
-        dbNameList.setConfigureName("isoc_field_mappings");
+        dbNameList.setName("isoc_field_mappings");
         dbNameList.setUrl("");
         dbNameList.setUserName("");
         dbNameList.setPassword("");

@@ -36,13 +36,13 @@ public class ChrFunction {
      */
     @FunctionMethod(value = "chr", alias = "char", comment = "将给定ASCII码ascii转换成字符")
     public String chr(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "string", comment = "字段名或常量") String ascii) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String ascii) {
         String number = null;
         int asciiTem = Integer.parseInt(FunctionUtils.getValueString(message, context, ascii));
         if (ascii == null || asciiTem < 0 || asciiTem > 255) {
             return number;
         }
-        number = (char)asciiTem + "";
+        number = (char) asciiTem + "";
         return number;
     }
 

@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.streams.client.example;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.transform.JoinStream;
 import org.junit.Test;
 
@@ -24,7 +24,7 @@ public class DimTest {
 
     @Test
     public void testInnerJoinDim() {
-        StreamBuilder.dataStream("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromFile("window_msg_10.txt", true)
             .join("classpath://dim.txt", 10000)
             .setJoinType(JoinStream.JoinType.INNER_JOIN)
@@ -36,7 +36,7 @@ public class DimTest {
 
     @Test
     public void testLeftDim() {
-        StreamBuilder.dataStream("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromFile("window_msg_10.txt", true)
             .join("classpath://dim.txt", 10000)
             .setJoinType(JoinStream.JoinType.LEFT_JOIN)

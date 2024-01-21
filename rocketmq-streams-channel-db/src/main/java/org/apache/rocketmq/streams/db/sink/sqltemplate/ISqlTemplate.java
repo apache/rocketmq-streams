@@ -28,7 +28,7 @@ public interface ISqlTemplate {
     public static final String SQL_MODE_DUPLICATE = "duplicate";
     public static final String SQL_MODE_IGNORE = "ignore";
 
-    static final String[] SUPPORTS = new String[]{
+    static final String[] SUPPORTS = new String[] {
         ISqlTemplate.SQL_MODE_DEFAULT,
         SQL_MODE_DUPLICATE,
         SQL_MODE_IGNORE
@@ -37,10 +37,11 @@ public interface ISqlTemplate {
     /**
      * create sql prefix
      * eg :
-     *  insert into table(`a`,`b`,`c`)
-     *  or insert ignore into table(`a`, `b`, `c`)
-     *  or insert into table(`a`,`b`,`c`)    on duplicate key update
+     * insert into table(`a`,`b`,`c`)
+     * or insert ignore into table(`a`, `b`, `c`)
+     * or insert into table(`a`,`b`,`c`)    on duplicate key update
      * `a` = values(`a`), `b` = values(`b`), `c` = values(`c`)
+     *
      * @return
      */
     void initSqlTemplate();

@@ -32,7 +32,7 @@ public class CastFunction {
     @Deprecated
     @FunctionMethod(value = "cast", comment = "转换字符串为某种类型")
     public Object cast(IMessage message, FunctionContext context, @FunctionParamter("代表带转换数据的字段名或常量") String fieldName,
-                       @FunctionParamter(value = "string", comment = "转换后的类型，支持字读名或常量，小写的类型如：string，int,long") String dataTypeName) {
+        @FunctionParamter(value = "string", comment = "转换后的类型，支持字读名或常量，小写的类型如：string，int,long") String dataTypeName) {
         String value = FunctionUtils.getValueString(message, context, fieldName);
         if (value == null) {
             return null;
@@ -48,8 +48,8 @@ public class CastFunction {
     @Deprecated
     @FunctionMethod(value = "byte2String", comment = "转换字符串为某种类型")
     public String byteEncode(IMessage message, FunctionContext context,
-                             @FunctionParamter("代表带转换数据的字段名或常量") String fieldName,
-                             @FunctionParamter(value = "string", comment = "转换后的类型，支持字读名或常量，小写的类型如：string，int,long") String chartcode) {
+        @FunctionParamter("代表带转换数据的字段名或常量") String fieldName,
+        @FunctionParamter(value = "string", comment = "转换后的类型，支持字读名或常量，小写的类型如：string，int,long") String chartcode) {
         Object value = FunctionUtils.getValue(message, context, fieldName);
         if (FunctionUtils.isConstant(chartcode)) {
             chartcode = FunctionUtils.getConstant(chartcode);
@@ -58,7 +58,7 @@ public class CastFunction {
         if (value == null || !byte[].class.isInstance(value)) {
             return null;
         }
-        byte[] data = (byte[])value;
+        byte[] data = (byte[]) value;
         String result = null;
         try {
             result = new String(data, chartcode);

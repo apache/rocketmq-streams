@@ -20,18 +20,18 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IJsonobjectProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageUtil {
 
-    private static final Log LOG = LogFactory.getLog(MessageUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MessageUtil.class);
 
     public static JSONObject reprocessingSingleMessage(String data, boolean isJsonData, boolean isArrayData,
-                                                       IJsonobjectProcessor messageProcessor) {
+        IJsonobjectProcessor messageProcessor) {
         JSONArray jsonArray = reprocessingMessage(data, isJsonData, isArrayData, messageProcessor);
         if (jsonArray == null || jsonArray.size() == 0) {
             return null;
@@ -43,7 +43,7 @@ public class MessageUtil {
     }
 
     public static JSONArray reprocessingMessage(String data, boolean isJsonData, boolean isArrayData,
-                                                IJsonobjectProcessor messageProcessor) {
+        IJsonobjectProcessor messageProcessor) {
         try {
             return reprocessingMessage0(data, isJsonData, isArrayData, messageProcessor);
         } catch (Exception e) {
@@ -56,7 +56,7 @@ public class MessageUtil {
 
     @SuppressWarnings("unchecked")
     public static JSONArray reprocessingMessage0(String data, boolean isJsonData, boolean isArrayData,
-                                                 IJsonobjectProcessor messageProcessor) {
+        IJsonobjectProcessor messageProcessor) {
         JSONObject jsonObject = null;
         JSONArray jsonArray = new JSONArray();
         if (isArrayData) {

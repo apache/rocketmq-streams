@@ -19,8 +19,8 @@ package org.apache.rocketmq.streams.connectors.source.filter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @Description
@@ -101,17 +101,36 @@ public enum CyclePeriod {
 
     };
 
+    static final Logger LOGGER = LoggerFactory.getLogger(CyclePeriod.class);
     boolean isHistory = false;
-
     long interval;
-
     int cycle;
-
     String format;
-
     String hisDateString;
 
-    static final Log logger = LogFactory.getLog(CyclePeriod.class);
+    public static CyclePeriod getInstance(String expression) throws ParseException {
+
+        String[] str = expression.split("\\-");
+        assert str.length == 2 : String.format("expression error : %s. ", expression);
+        String expr = str[0].trim();
+        String tmp = str[1].trim().toLowerCase();
+        String cycleStr = tmp.substring(0, tmp.length() - 1);
+        int cycle = Integer.parseInt(cycleStr);
+        CyclePeriod cyclePeriod = null;
+        if (tmp.endsWith("d")) {
+            cyclePeriod = CYCLE_PERIOD_DATE;
+        } else if (tmp.endsWith("h")) {
+            cyclePeriod = CYCLE_PERIOD_HOUR;
+        } else if (tmp.endsWith("m")) {
+            cyclePeriod = CYCLE_PERIOD_MINUTE;
+        } else {
+            new RuntimeException(String.format("unsupported format : %s", expression));
+        }
+        cyclePeriod.argsParser(expr);
+        cyclePeriod.cycle = cycle;
+
+        return cyclePeriod;
+    }
 
     void argsParser(String expr) throws ParseException {
         if (expr.matches("^\\d+$")) {
@@ -141,7 +160,7 @@ public enum CyclePeriod {
             new SimpleDateFormat(format).parse(expr);
             return true;
         } catch (ParseException e) {
-            logger.error(String.format("error format, expr is %s, format is %s.", expr, format));
+            LOGGER.error(String.format("error format, expr is %s, format is %s.", expr, format));
             e.printStackTrace();
             return false;
         }
@@ -159,16 +178,16 @@ public enum CyclePeriod {
         return interval;
     }
 
+    public void setInterval(long interval) {
+        this.interval = interval;
+    }
+
     public boolean isHistory() {
         return isHistory;
     }
 
     public void setHistory(boolean history) {
         isHistory = history;
-    }
-
-    public void setInterval(long interval) {
-        this.interval = interval;
     }
 
     public int getCycle() {
@@ -179,12 +198,12 @@ public enum CyclePeriod {
         this.cycle = cycle;
     }
 
-    public void setFormat(String format) {
-        this.format = format;
-    }
-
     public String getFormat() {
         return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
     }
 
     public String getHisDateString() {
@@ -193,30 +212,6 @@ public enum CyclePeriod {
 
     public void setHisDateString(String hisDateString) {
         this.hisDateString = hisDateString;
-    }
-
-    public static CyclePeriod getInstance(String expression) throws ParseException {
-
-        String[] str = expression.split("\\-");
-        assert str.length == 2 : String.format("expression error : %s. ", expression);
-        String expr = str[0].trim();
-        String tmp = str[1].trim().toLowerCase();
-        String cycleStr = tmp.substring(0, tmp.length() - 1);
-        int cycle = Integer.parseInt(cycleStr);
-        CyclePeriod cyclePeriod = null;
-        if (tmp.endsWith("d")) {
-            cyclePeriod = CYCLE_PERIOD_DATE;
-        } else if (tmp.endsWith("h")) {
-            cyclePeriod = CYCLE_PERIOD_HOUR;
-        } else if (tmp.endsWith("m")) {
-            cyclePeriod = CYCLE_PERIOD_MINUTE;
-        } else {
-            new RuntimeException(String.format("unsupported format : %s", expression));
-        }
-        cyclePeriod.argsParser(expr);
-        cyclePeriod.cycle = cycle;
-
-        return cyclePeriod;
     }
 
 }

@@ -26,16 +26,16 @@ import org.apache.rocketmq.streams.dim.model.FileDim;
 
 @AutoService(IDimSQLParser.class)
 @ServiceName(value = FileDimSQLParser.TYPE, aliasName = "FILE")
-public class FileDimSQLParser extends AbstractDimParser{
-    public static final String TYPE="file";
+public class FileDimSQLParser extends AbstractDimParser {
+    public static final String TYPE = "file";
 
     @Override
     protected AbstractDim createDim(Properties properties, MetaData data) {
-        String filePath=properties.getProperty("filePath");
-        if(StringUtil.isEmpty(filePath)){
-            filePath=properties.getProperty("file_path");
+        String filePath = properties.getProperty("filePath");
+        if (StringUtil.isEmpty(filePath)) {
+            filePath = properties.getProperty("file_path");
         }
-        FileDim fileDim=new FileDim();
+        FileDim fileDim = new FileDim();
         fileDim.setFilePath(filePath);
         return fileDim;
     }

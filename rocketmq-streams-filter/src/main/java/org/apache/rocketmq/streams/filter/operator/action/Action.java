@@ -30,6 +30,7 @@ public abstract class Action<T> extends BasedConfigurable implements IConfigurab
     private transient Map<String, MetaData> metaDataMap = new HashMap<>();
     private transient volatile Map<String, JDBCDriver> dataSourceMap = new HashMap<>();
     private transient volatile Map<String, Var> varMap = new HashMap<>();
+
     public Action() {
         setType(TYPE);
     }

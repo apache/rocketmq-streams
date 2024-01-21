@@ -28,16 +28,6 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class CoalesceFunction {
 
-    @FunctionMethod("coalesce")
-    public Object coalesce(IMessage message, FunctionContext context, String fieldName, String nullValue) {
-        Object o = message.getMessageBody().get(fieldName);
-        nullValue = FunctionUtils.getConstant(nullValue);
-        if (o == null) {
-            return nullValue;
-        }
-        return o;
-    }
-
     public static void main(String[] args) {
         ScriptComponent scriptComponent = ScriptComponent.getInstance();
         JSONObject msg = new JSONObject();
@@ -46,5 +36,15 @@ public class CoalesceFunction {
         for (IMessage message : messages) {
             System.out.println(message.getMessageBody());
         }
+    }
+
+    @FunctionMethod("coalesce")
+    public Object coalesce(IMessage message, FunctionContext context, String fieldName, String nullValue) {
+        Object o = message.getMessageBody().get(fieldName);
+        nullValue = FunctionUtils.getConstant(nullValue);
+        if (o == null) {
+            return nullValue;
+        }
+        return o;
     }
 }

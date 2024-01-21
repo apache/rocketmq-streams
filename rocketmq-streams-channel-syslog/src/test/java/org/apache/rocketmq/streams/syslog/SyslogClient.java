@@ -36,7 +36,7 @@ public class SyslogClient {
         syslogChannel.start(new IStreamOperator() {
             @Override
             public Object doMessage(IMessage message, AbstractContext context) {
-                if(!message.getHeader().isSystemMessage()){
+                if (!message.getHeader().isSystemMessage()) {
                     System.out.println(message.getMessageBody());
                 }
                 return null;
@@ -48,20 +48,19 @@ public class SyslogClient {
         Thread.sleep(1000000000l);
     }
 
-
     @Test
     public void sendTestData() throws InterruptedException {
-        IChannel channel=createSyslogChannel();
+        IChannel channel = createSyslogChannel();
         JSONObject msg = new JSONObject();
         msg.put("name", "chris");
-        msg.put("host",IPUtil.getLocalIP());
+        msg.put("host", IPUtil.getLocalIP());
         channel.batchAdd(new Message(msg));
         channel.flush();
         Thread.sleep(3000);
     }
 
     private SyslogChannel createSyslogChannel() {
-        SyslogChannel syslogChannel = new SyslogChannel(IPUtil.getLocalIP(),SyslogChannelManager.tcpPort);
+        SyslogChannel syslogChannel = new SyslogChannel(IPUtil.getLocalIP(), SyslogChannelManager.tcpPort);
         syslogChannel.setTCPProtol();
         syslogChannel.addIps(IPUtil.getLocalIP());
         System.out.println(IPUtil.getLocalIP());

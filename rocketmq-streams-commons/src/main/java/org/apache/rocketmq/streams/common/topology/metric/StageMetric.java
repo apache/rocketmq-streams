@@ -27,51 +27,51 @@ public class StageMetric {
     /**
      * metric info
      */
-    protected AtomicLong inCount=new AtomicLong(0);
-    protected AtomicLong outCount=new AtomicLong(0);
+    protected AtomicLong inCount = new AtomicLong(0);
+    protected AtomicLong outCount = new AtomicLong(0);
     protected transient Long firstReceiveTime;
     protected double qps;
 
-    protected long maxCostTime;
-    protected long avgCostTime;
-    protected transient long sumCostTime;
+    protected volatile long maxCostTime;
+    protected volatile long avgCostTime;
+    protected transient AtomicLong sumCostTime = new AtomicLong(0);
 
-    protected List<NotFireReason> notFireReasons=new ArrayList<>();
+    protected List<NotFireReason> notFireReasons = new ArrayList<>();
 
-    public long startCalculate(IMessage msg){
-        if(firstReceiveTime==null){
-            firstReceiveTime=System.currentTimeMillis();
+    public long startCalculate(IMessage msg) {
+        if (firstReceiveTime == null) {
+            firstReceiveTime = System.currentTimeMillis();
         }
-        long countValue=inCount.incrementAndGet();
-        long timeGap=(System.currentTimeMillis()-firstReceiveTime)/1000;
-        if(timeGap<1) {
+        long countValue = inCount.incrementAndGet();
+        long timeGap = (System.currentTimeMillis() - firstReceiveTime) / 1000;
+        if (timeGap < 1) {
             return System.currentTimeMillis();
         }
-        qps=countValue/timeGap;
+        qps = countValue / timeGap;
         return System.currentTimeMillis();
     }
 
-    public void endCalculate(long startTime){
-        long cost=System.currentTimeMillis()-startTime;
-        this.sumCostTime+=cost;
-        this.avgCostTime=this.sumCostTime/inCount.get();
-        if(this.maxCostTime<cost){
-            this.maxCostTime=cost;
+    public long endCalculate(long startTime) {
+        long cost = System.currentTimeMillis() - startTime;
+        long sum = this.sumCostTime.addAndGet(cost);
+        this.avgCostTime = sum / inCount.get();
+        if (this.maxCostTime < cost) {
+            this.maxCostTime = cost;
         }
-
+        return cost;
     }
+
     public void outCalculate() {
         outCount.incrementAndGet();
     }
 
-    public void filterCalculate(NotFireReason notFireReason){
-        if(!notFireReasons.contains(notFireReason)){
+    public synchronized void filterCalculate(NotFireReason notFireReason) {
+        if (!notFireReasons.contains(notFireReason)) {
             this.notFireReasons.add(notFireReason);
         }
-        while (notFireReasons.size()>100){
+        while (notFireReasons.size() > 10) {
             notFireReasons.remove(0);
         }
-
 
     }
 
@@ -107,17 +107,10 @@ public class StageMetric {
         this.avgCostTime = avgCostTime;
     }
 
-    public long getSumCostTime() {
-        return sumCostTime;
-    }
-
-    public void setSumCostTime(long sumCostTime) {
-        this.sumCostTime = sumCostTime;
-    }
-
     public Long getInCount() {
         return inCount.get();
     }
+
     public Long getOutCount() {
         return outCount.get();
     }
@@ -126,13 +119,12 @@ public class StageMetric {
         return notFireReasons;
     }
 
-    public String createNotFireReason() {
-        JSONArray jsonArray=new JSONArray();
-        for(NotFireReason notFireReason:this.notFireReasons){
+    public synchronized String createNotFireReason() {
+        JSONArray jsonArray = new JSONArray();
+        for (NotFireReason notFireReason : this.notFireReasons) {
             jsonArray.add(notFireReason.toJson());
         }
         return JsonableUtil.formatJson(jsonArray);
     }
-
 
 }

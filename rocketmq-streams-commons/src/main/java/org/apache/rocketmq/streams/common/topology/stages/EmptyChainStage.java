@@ -18,28 +18,16 @@ package org.apache.rocketmq.streams.common.topology.stages;
 
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 
 public class EmptyChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> {
-    protected transient IStageHandle handle = new IStageHandle() {
-        @Override public String getName() {
-            return getClass().getName();
-        }
 
-        @Override
-        protected IMessage doProcess(IMessage message, AbstractContext context) {
-            return proccessMessage(message,context);
-        }
-    };
-
-    protected IMessage proccessMessage(IMessage message, AbstractContext context) {
+    @Override
+    protected IMessage handleMessage(IMessage message, AbstractContext context) {
         return message;
     }
+
     @Override public boolean isAsyncNode() {
         return false;
     }
 
-    @Override protected IStageHandle<T> selectHandle(T t, AbstractContext context) {
-        return handle ;
-    }
 }

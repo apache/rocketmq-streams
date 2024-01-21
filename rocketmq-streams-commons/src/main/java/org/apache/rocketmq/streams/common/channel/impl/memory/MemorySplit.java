@@ -21,6 +21,9 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 
 public class MemorySplit extends BasedConfigurable implements ISplit<MemorySplit, MemorySplit> {
+    public MemorySplit() {
+    }
+
     @Override
     public String getQueueId() {
         return 1 + "";
@@ -40,8 +43,5 @@ public class MemorySplit extends BasedConfigurable implements ISplit<MemorySplit
     protected void getJsonObject(JSONObject jsonObject) {
         super.getJsonObject(jsonObject);
 
-    }
-
-    public MemorySplit() {
     }
 }

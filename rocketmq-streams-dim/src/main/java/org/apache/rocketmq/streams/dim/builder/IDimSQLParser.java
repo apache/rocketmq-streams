@@ -17,14 +17,14 @@
 package org.apache.rocketmq.streams.dim.builder;
 
 import java.util.Properties;
+import org.apache.rocketmq.streams.common.interfaces.IDim;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
-import org.apache.rocketmq.streams.dim.model.AbstractDim;
 
 /**
  * create dim by sql parser
  */
 public interface IDimSQLParser {
 
-    AbstractDim parseDim(String namespace,Properties properties, MetaData metaData);
+    IDim parseDim(String namespace, Properties properties, MetaData metaData);
 
 }

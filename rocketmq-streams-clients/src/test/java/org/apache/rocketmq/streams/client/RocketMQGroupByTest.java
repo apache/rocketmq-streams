@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.client;
 
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
@@ -30,7 +29,7 @@ public class RocketMQGroupByTest implements Serializable {
 
     @Test
     public void testRocketMq() throws Exception {
-        DataStreamSource.create("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromRocketmq("dipper_test_write_merge5", "dipper_group", true, "localhost:9876")
             .window(TumblingWindow.of(Time.seconds(5)))
             .groupBy("host_uuid", "cmdline")

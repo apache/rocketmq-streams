@@ -16,20 +16,18 @@
  */
 package org.apache.rocketmq.streams.common.model;
 
-public class NameCreatorContext {
-    protected static ThreadLocal<NameCreator> threadLocal = new ThreadLocal<>();
+import java.util.concurrent.Executors;
 
-    private NameCreatorContext(NameCreator nameCreator) {
-        threadLocal.set(nameCreator);
-    }
+public class NameCreatorContext {
+
+    private static ThreadLocal<NameCreator> threadLocal = new ThreadLocal<>();
 
     public static NameCreator get() {
-
         NameCreator nameCreator = threadLocal.get();
         if (nameCreator == null) {
             nameCreator = new NameCreator();
-            threadLocal.set(nameCreator);
         }
+        threadLocal.set(nameCreator);
         return nameCreator;
     }
 
@@ -37,8 +35,38 @@ public class NameCreatorContext {
         threadLocal.remove();
     }
 
-    public static NameCreatorContext init(NameCreator nameCreator) {
-        return new NameCreatorContext(nameCreator);
+    public static void main(String[] args) {
+
+        System.out.println("主线程: " + NameCreatorContext.get().createName("1111", "22222"));
+        System.out.println("主线程: " + NameCreatorContext.get().createName("1111", "22222"));
+        System.out.println("主线程: " + NameCreatorContext.get().createName("1111", "22222"));
+        System.out.println("主线程: " + NameCreatorContext.get().createName("1111", "22222"));
+        System.out.println("主线程: " + NameCreatorContext.get().createName("3333", "4444"));
+        System.out.println("主线程: " + NameCreatorContext.get().createName("3333", "4444"));
+        System.out.println("主线程: " + NameCreatorContext.get().createName("3333", "4444"));
+
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("线程1: " + NameCreatorContext.get().createName("1111", "22222"));
+                System.out.println("线程1: " + NameCreatorContext.get().createName("1111", "22222"));
+                System.out.println("线程1: " + NameCreatorContext.get().createName("1111", "22222"));
+                System.out.println("线程1: " + NameCreatorContext.get().createName("1111", "22222"));
+            }
+        });
+
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("线程2: " + NameCreatorContext.get().createName("3333", "4444"));
+                System.out.println("线程2: " + NameCreatorContext.get().createName("3333", "4444"));
+                System.out.println("线程2: " + NameCreatorContext.get().createName("3333", "4444"));
+                System.out.println("线程2: " + NameCreatorContext.get().createName("3333", "4444"));
+                System.out.println("线程2: " + NameCreatorContext.get().createName("3333", "4444"));
+                System.out.println("线程2: " + NameCreatorContext.get().createName("3333", "4444"));
+            }
+        });
+
     }
 
 }

@@ -18,10 +18,10 @@ package org.apache.rocketmq.streams.client.windows;
 
 import com.alibaba.fastjson.JSONObject;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
-import org.apache.rocketmq.streams.common.topology.model.IWindow;
+import org.apache.rocketmq.streams.common.topology.IWindow;
 import org.junit.Test;
 
 public class MultiSplitTest extends SingleSplitTest {
@@ -31,7 +31,7 @@ public class MultiSplitTest extends SingleSplitTest {
 
     protected DataStream createSourceDataStream() {
 
-        return StreamBuilder.dataStream("namespace", "name1")
+        return StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name1")
             .fromRocketmq(topic, "window_test", true, null);
     }
 
@@ -81,7 +81,7 @@ public class MultiSplitTest extends SingleSplitTest {
 
     @Test
     public void testInsertWindowMsg() {
-        StreamBuilder.dataStream("namespace", "name1")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name1")
             .fromFile(filePath, true).toRocketmq(topic, group, nameServerAddress).start();
     }
 

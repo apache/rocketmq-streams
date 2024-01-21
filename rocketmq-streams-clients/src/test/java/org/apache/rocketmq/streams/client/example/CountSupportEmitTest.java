@@ -16,10 +16,9 @@
  */
 package org.apache.rocketmq.streams.client.example;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.transform.window.HoppingWindow;
 import org.apache.rocketmq.streams.client.transform.window.Time;
-import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 import org.junit.Test;
 
 public class CountSupportEmitTest {
@@ -29,12 +28,9 @@ public class CountSupportEmitTest {
      */
     @Test
     public void testCountTumplFromFile() {
-        StreamBuilder.dataStream("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             .fromFile("window_msg_88121.txt", true)
-            .window(TumblingWindow.of(Time.minutes(10)))
-            .emitBeforeFire(Time.seconds(5))
-            .count("count_result")
-            .toDataSteam()
+            .count(5)
             .toPrint()
             .start();
         ;
@@ -42,7 +38,7 @@ public class CountSupportEmitTest {
 
     @Test
     public void testHopCountFromFile() {
-        StreamBuilder.dataStream("tmp", "tmp")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("tmp", "tmp")
             // filepath can be either a classpath file or an absolute path file address
             //filepath can set window_msg_10 or window_msg_100 window_msg_1000 or window_msg_10000
             .fromFile("window_msg_10000.txt", true)

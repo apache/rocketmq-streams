@@ -18,15 +18,18 @@
 package org.apache.rocketmq.streams.common.channel.impl.view;
 
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ViewSink extends AbstractSink {
-    private static final Log LOG = LogFactory.getLog(ViewSink.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ViewSink.class);
 
     protected String viewTableName;
+    protected int parallelTasks = 4;
+    protected int pollingTimeSecond = 10;
+
     @Override protected boolean batchInsert(List<IMessage> messages) {
         return false;
     }
@@ -37,5 +40,21 @@ public class ViewSink extends AbstractSink {
 
     public void setViewTableName(String viewTableName) {
         this.viewTableName = viewTableName;
+    }
+
+    public int getParallelTasks() {
+        return parallelTasks;
+    }
+
+    public void setParallelTasks(int parallelTasks) {
+        this.parallelTasks = parallelTasks;
+    }
+
+    public int getPollingTimeSecond() {
+        return pollingTimeSecond;
+    }
+
+    public void setPollingTimeSecond(int pollingTimeSecond) {
+        this.pollingTimeSecond = pollingTimeSecond;
     }
 }

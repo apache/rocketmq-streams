@@ -37,7 +37,7 @@ public class BroundFunction {
      */
     @FunctionMethod(value = "bround", alias = "bround", comment = "返回银行家舍入法的值")
     public Double bround(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "Integer", comment = "代表要求值的integer常量") Integer base) {
+        @FunctionParamter(value = "Integer", comment = "代表要求值的integer常量") Integer base) {
         Double result = null;
         if (base == null) {
             return result;
@@ -56,7 +56,7 @@ public class BroundFunction {
      */
     @FunctionMethod(value = "bround", alias = "bround", comment = "返回银行家舍入法的值")
     public Double bround(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String base) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String base) {
         Double result = null;
         Double numberTem = Double.parseDouble(FunctionUtils.getValueString(message, context, base));
         if (base == null) {
@@ -76,8 +76,8 @@ public class BroundFunction {
      */
     @FunctionMethod(value = "bround", alias = "bround", comment = "返回银行家舍入法的值")
     public Double bround(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "Integer", comment = "代表要求值的integer常量") Integer base,
-                         @FunctionParamter(value = "Integer", comment = "银行家舍入法计算后保留的小数位数") Integer x) {
+        @FunctionParamter(value = "Integer", comment = "代表要求值的integer常量") Integer base,
+        @FunctionParamter(value = "Integer", comment = "银行家舍入法计算后保留的小数位数") Integer x) {
         Double result = null;
         if (base == null || x == null) {
             return result;
@@ -96,8 +96,8 @@ public class BroundFunction {
      */
     @FunctionMethod(value = "bround", alias = "bround", comment = "返回银行家舍入法的值")
     public Double bround(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String base,
-                         @FunctionParamter(value = "Integer", comment = "银行家舍入法计算后保留的小数位数") Integer x) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量") String base,
+        @FunctionParamter(value = "Integer", comment = "银行家舍入法计算后保留的小数位数") Integer x) {
         Double result = null;
         Double numberTem = Double.parseDouble(FunctionUtils.getValueString(message, context, base));
         if (base == null || x == null) {

@@ -31,6 +31,6 @@ public class NotRegexCaseInsensitiveFunction extends RegexCaseInsensitiveFunctio
     @FunctionMethod(value = "notRegexCaseInsensitive", alias = "~!regex")
     @FunctionMethodAilas("正则不匹配(忽略大小写)")
     public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
-        return !super.doExpressionFunction(message,context,expression);
+        return !super.doExpressionFunction(message, context, expression);
     }
 }

@@ -35,6 +35,14 @@ public class DoubleDataType extends BaseDataType<Double> {
         setDataClazz(Double.class);
     }
 
+    public static String getTypeName() {
+        return "double";
+    }
+
+    public static void main(String[] args) {
+        System.out.println(double.class.getSimpleName());
+    }
+
     @Override
     public Double getData(String jsonValue) {
         if (jsonValue == null || "N/A".equals(jsonValue)) {
@@ -46,14 +54,6 @@ public class DoubleDataType extends BaseDataType<Double> {
     @Override
     public String getName() {
         return double.class.getSimpleName();
-    }
-
-    public static String getTypeName() {
-        return "double";
-    }
-
-    public static void main(String[] args) {
-        System.out.println(double.class.getSimpleName());
     }
 
     @Override

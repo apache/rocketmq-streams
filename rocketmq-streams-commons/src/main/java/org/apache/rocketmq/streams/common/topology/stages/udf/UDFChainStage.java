@@ -17,20 +17,15 @@
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
-import org.apache.rocketmq.streams.common.utils.Base64Utils;
-import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 
 /**
  * 所有给用户自定义代码的通用类，会转化成这个stage
  */
-public class UDFChainStage extends AbstractStatelessChainStage implements IAfterConfigurableRefreshListener {
-    protected String udfOperatorClassSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
+public class UDFChainStage extends AbstractStatelessChainStage {
+    //  protected String udfOperatorClassSerializeValue;//用户自定义的operator的序列化字节数组，做了base64解码
     protected transient StageBuilder selfChainStage;
 
     public UDFChainStage() {
@@ -38,8 +33,8 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
 
     public UDFChainStage(StageBuilder selfOperator) {
         this.selfChainStage = selfOperator;
-        byte[] bytes = InstantiationUtil.serializeObject(selfOperator);
-        udfOperatorClassSerializeValue = Base64Utils.encode(bytes);
+//        byte[] bytes = InstantiationUtil.serializeObject(selfOperator);
+//        udfOperatorClassSerializeValue = Base64Utils.encode(bytes);
     }
 
     @Override public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
@@ -48,10 +43,6 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
 
     @Override public boolean isAsyncNode() {
         return false;
-    }
-
-    @Override protected IStageHandle selectHandle(IMessage message, AbstractContext context) {
-        return selfChainStage.selectHandle(message, context);
     }
 
     @Override public IMessage doMessage(IMessage message, AbstractContext context) {
@@ -65,20 +56,12 @@ public class UDFChainStage extends AbstractStatelessChainStage implements IAfter
         return message;
     }
 
-    public String getUdfOperatorClassSerializeValue() {
-        return udfOperatorClassSerializeValue;
+    @Override protected IMessage handleMessage(IMessage message, AbstractContext context) {
+        return selfChainStage.doMessage(message, context);
     }
 
-    public void setUdfOperatorClassSerializeValue(String udfOperatorClassSerializeValue) {
-        this.udfOperatorClassSerializeValue = udfOperatorClassSerializeValue;
-    }
-
-    @Override public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        if (udfOperatorClassSerializeValue != null) {
-            byte[] bytes = Base64Utils.decode(udfOperatorClassSerializeValue);
-            selfChainStage = InstantiationUtil.deserializeObject(bytes);
-        }
+    @Override public void startJob() {
+        super.startJob();
         preFingerprint = loadLogFinger();
     }
-
 }

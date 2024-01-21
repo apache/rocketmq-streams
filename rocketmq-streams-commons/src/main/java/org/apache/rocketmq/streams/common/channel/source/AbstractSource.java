@@ -19,15 +19,12 @@ package org.apache.rocketmq.streams.common.channel.source;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
@@ -36,26 +33,38 @@ import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMe
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointManager;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
+import org.apache.rocketmq.streams.common.checkpoint.CheckPointState;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
-import org.apache.rocketmq.streams.common.context.MessageHeader;
+import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.context.UserDefinedMessage;
 import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
+import org.apache.rocketmq.streams.common.model.NameCreator;
+import org.apache.rocketmq.streams.common.topology.IWindow;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.metric.SourceMetric;
+import org.apache.rocketmq.streams.common.utils.CollectionUtil;
+import org.apache.rocketmq.streams.common.utils.DateUtil;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
+import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * channel的抽象，实现了消息的封装，发送等核心逻辑
  */
 public abstract class AbstractSource extends BasedConfigurable implements ISource<AbstractSource>, ILifeCycle {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSource.class);
 
     public static String CHARSET = "UTF-8";
     /**
@@ -67,21 +76,16 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      */
     protected Boolean msgIsJsonArray = false;
 
-    @ENVDependence
-    protected String groupName;
+    @ENVDependence protected String groupName;
 
-    protected int maxThread = Runtime.getRuntime().availableProcessors();
+    protected int maxThread = 2;
 
-    @ENVDependence
-    protected String topic = "";
+    @ENVDependence protected String topic = "";
     /**
      * 多长时间做一次checkpoint
      */
-    protected long checkpointTime = 1000 * 60 * 2;
-    /**
-     * 是否是批量消息，批量消息会一批做一次checkpoint，比如通过数据库加载的批消息
-     */
-    protected boolean isBatchMessage = false;
+    protected long checkpointTime = 1000 * 30;
+
     /**
      * 每次拉取的最大条数，多用于消息队列
      */
@@ -104,61 +108,121 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      */
     protected MetaData metaData;
 
+    /**
+     * 需要数据源支持
+     */
     protected List<String> headerFieldNames;
 
-    /**
-     * if set the value，the data will be shuffled to a new topic
-     */
-    protected int shuffleConcurrentCount;
+    protected String sendLogTimeFieldName;//可以配置日志中，把日志写入消息队列的时间字段，通过这个字段可以判断队列有无延迟
+    protected transient Map<String, SplitProgress> splitProgressMap = new HashMap<>();//每个分片的执行进度
+    protected transient Map<String, Long> split2MaxTime = new HashMap<>();//每个分片收到的最大发送时间
     /**
      * 数据源投递消息的算子，此算子用来接收source的数据，做处理
      */
     protected volatile transient IStreamOperator receiver;
-    /**
-     * 开启mock模式，则会收集mock数据，如果数据源没数据，则会发送mock数据
-     */
-    protected transient volatile Boolean openMock = false;
 
     protected transient AtomicBoolean hasStart = new AtomicBoolean(false);
+
+    protected transient Long msgLastReceiverTime = null;
+
+    protected transient SourceMetric sourceMetric = new SourceMetric();
 
     /**
      * 做checkpoint的管理
      */
     protected transient CheckPointManager checkPointManager = null;
 
-    @Override
-    protected boolean initConfigurable() {
+    public AbstractSource() {
+        setType(ISource.TYPE);
+    }
+
+    @Override protected boolean initConfigurable() {
         hasStart = new AtomicBoolean(false);
-        openMock = false;
         checkPointManager = new CheckPointManager();
+        sourceMetric.setMetaData(this.metaData);
+        sourceMetric.setSource(this);
+        sourceMetric.setMetaData(metaData);
         return super.initConfigurable();
     }
 
-    @Override
-    public boolean start(IStreamOperator receiver) {
+    @Override public boolean start(IStreamOperator receiver) {
         this.receiver = receiver;
-        boolean isStartSucess = true;
-        if (hasStart.compareAndSet(false, true)) {
-            isStartSucess = startSource();
+        boolean isStartSuccess = false;
+        try {
+            if (hasStart.compareAndSet(false, true)) {
+                isStartSuccess = startSource();
+                sourceMetric.setStartTime(System.currentTimeMillis());
+
+            }
+            LOGGER.info("[{}][{}] Source_Start_Success", IdUtil.instanceId(), this.getName());
+        } catch (Exception e) {
+            hasStart.set(false);
+            LOGGER.error("[{}][{}] Source_Start_Error", IdUtil.instanceId(), this.getName(), e);
+            throw new RuntimeException("Source_Start_Error", e);
         }
-        return isStartSucess;
+        return isStartSuccess;
     }
 
     @Override public void destroy() {
-        if (hasStart.compareAndSet(true, false)) {
-            super.destroy();
+        try {
+            hasStart.set(false);
+            destroySource();
+            LOGGER.info("[{}][{}] Source_Stop_Success", IdUtil.instanceId(), this.getName());
+        } catch (Exception e) {
+            hasStart.set(true);
+            LOGGER.error("[{}][{}] Source_Stop_Error", IdUtil.instanceId(), this.getName(), e);
+            throw new RuntimeException("Source_Stop_Error", e);
         }
     }
 
     /**
      * 启动 source
-     *
-     * @return
      */
     protected abstract boolean startSource();
 
-    public AbstractSource() {
-        setType(ISource.TYPE);
+    protected abstract void destroySource();
+
+    /**
+     * 处理消息，并且判断是否需要进行加入check point表识别
+     *
+     * @param message
+     * @param needFlushState 是否需要处理的算子刷新状态
+     * @return
+     */
+    public AbstractContext<?> doReceiveMessage(String message, boolean needFlushState, String queueId, String offset) {
+        return doReceiveMessage(message, needFlushState, queueId, offset, new HashMap<>());
+    }
+
+    /**
+     * 处理消息，并且判断是否需要进行加入check point表识别
+     *
+     * @param message
+     * @param needFlushState 是否需要处理的算子刷新状态
+     * @return
+     */
+    public AbstractContext<?> doReceiveMessage(String message, boolean needFlushState, String queueId, String offset, Map<String, Object> additionValues) {
+        if (this.msgIsJsonArray) {
+            JSONArray jsonArray = JSONObject.parseArray(message);
+            if (jsonArray == null || jsonArray.isEmpty()) {
+                return null;
+            }
+            AbstractContext<?> context = null;
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JSONObject msgBody = jsonArray.getJSONObject(i);
+                if (CollectionUtil.isNotEmpty(additionValues)) {
+                    msgBody.putAll(additionValues);
+                }
+                boolean checkpoint = needFlushState && i == jsonArray.size() - 1;
+                context = doReceiveMessage(msgBody, checkpoint, queueId, createBatchOffset(offset, i));
+            }
+            return context;
+        } else {
+            JSONObject jsonObject = create(message);
+            if (CollectionUtil.isNotEmpty(additionValues)) {
+                jsonObject.putAll(additionValues);
+            }
+            return doReceiveMessage(jsonObject, needFlushState, queueId, offset);
+        }
     }
 
     /**
@@ -167,52 +231,30 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      * @param message
      * @return
      */
-    public AbstractContext doReceiveMessage(JSONObject message, boolean needSetCheckPoint, String queueId, String offset) {
-        Message msg = createMessage(message, queueId, offset, needSetCheckPoint);
+    public AbstractContext<?> doReceiveMessage(JSONObject message, boolean needFlushState, String queueId, String offset) {
+        Message msg = createMessage(message, queueId, offset, needFlushState);
         return executeMessage(msg);
     }
 
     /**
-     * 处理消息，并且判断是否需要进行加入check point表识别
-     *
-     * @param message
-     * @param needSetCheckPoint
-     * @return
-     */
-    public AbstractContext doReceiveMessage(String message, boolean needSetCheckPoint, String queueId, String offset) {
-        if (this.msgIsJsonArray) {
-            JSONArray jsonArray = JSONObject.parseArray(message);
-            if (jsonArray == null || jsonArray.size() == 0) {
-                return null;
-            }
-            AbstractContext context = null;
-            for (int i = 0; i < jsonArray.size(); i++) {
-                JSONObject msgBody = jsonArray.getJSONObject(i);
-                boolean checkpoint = false;
-                if (needSetCheckPoint && i == jsonArray.size() - 1) {
-                    checkpoint = true;
-                }
-                context = doReceiveMessage(msgBody, checkpoint, queueId, createBatchOffset(offset, i));
-                if (!context.isContinue()) {
-                    continue;
-                }
-            }
-            return context;
-        } else {
-            JSONObject jsonObject = create(message);
-            return doReceiveMessage(jsonObject, needSetCheckPoint, queueId, offset);
-        }
-    }
-
-    /**
-     * 发送一个系统消息，执行组件不可见，告诉所有组件刷新存储
+     * 发送一个系统消息，执行组件不可见，告诉所有组件刷新状态
      *
      * @param queueId
      */
     public void sendCheckpoint(String queueId) {
-        Set<String> queues = new HashSet<>();
-        queues.add(queueId);
-        sendCheckpoint(queues);
+        sendCheckpoint(queueId, null);
+    }
+
+    public void sendCheckpoint(String queueId, MessageOffset offset) {
+        Set<String> queueIds = new HashSet<>();
+        queueIds.add(queueId);
+        if (offset != null) {
+            CheckPointState checkPointState = new CheckPointState();
+            checkPointState.getQueueIdAndOffset().put(queueId, offset);
+            sendCheckpoint(queueIds, checkPointState);
+        } else {
+            sendCheckpoint(queueIds);
+        }
     }
 
     /**
@@ -220,25 +262,29 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
      *
      * @param queueIds
      */
-    public void sendCheckpoint(Set<String> queueIds) {
+    public void sendCheckpoint(Set<String> queueIds, CheckPointState... checkPointStates) {
         JSONObject msg = new JSONObject();
         Message message = createMessage(msg, null, null, true);
         message.getMessageBody().put("_queues", queueIds);
         message.getHeader().setCheckpointQueueIds(queueIds);
         message.getHeader().setNeedFlush(true);
         message.getHeader().setSystemMessage(true);
-        if (supportOffsetRest()) {
-            message.getHeader().setNeedFlush(false);
-        }
 
         CheckPointMessage checkPointMessage = new CheckPointMessage();
+        if (checkPointStates != null) {
+            for (CheckPointState checkPointState : checkPointStates) {
+                checkPointMessage.getCheckPointStates().add(checkPointState);
+            }
+        }
         checkPointMessage.setStreamOperator(this.receiver);
         checkPointMessage.setSource(this);
         message.setSystemMessage(checkPointMessage);
         executeMessage(message);
-        if (checkPointMessage.isValidate() && supportOffsetRest()) {
+        sourceMetric.setSplitProgresses(this.getSplitProgress());
+        if (checkPointMessage.isValidate()) {
             saveCheckpoint(checkPointMessage);
         }
+        LOGGER.info("[{}][{}] Source_Heartbeat_On({})_At({})_LastMsgReceiveTime({})", IdUtil.instanceId(), getName(), String.join(",", queueIds), System.currentTimeMillis(), this.msgLastReceiverTime == null ? "-" : DateUtil.longToString(this.msgLastReceiverTime));
     }
 
     protected void saveCheckpoint(CheckPointMessage checkPointMessage) {
@@ -334,114 +380,118 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
 
     }
 
+    public AbstractContext<?> executeMessage(Message channelMessage) {
+        AbstractContext<?> context = new Context(channelMessage);
+        return executeMessage(channelMessage, context);
+    }
+
     /**
      * 交给receiver执行后续逻辑
      *
      * @param channelMessage
      * @return
      */
-    public AbstractContext executeMessage(Message channelMessage) {
+    public AbstractContext<?> executeMessage(Message channelMessage, AbstractContext<?> context) {
         if (BatchFinishMessage.isBatchFinishMessage(channelMessage)) {
-            /**
-             * 可以通过真实信息发送，消息结束通知
+            /*
+             * 系统消息：告诉系统后面没有消息了，需要尽快完成计算，尤其是窗口，不必等窗口触发，可以立即触发窗口
              */
             channelMessage.getHeader().setSystemMessage(true);
             channelMessage.setSystemMessage(new BatchFinishMessage(channelMessage));
         }
-        AbstractContext context = new Context(channelMessage);
+
         if (isSplitInRemoving(channelMessage)) {
             return context;
         }
-        if (!channelMessage.getHeader().isSystemMessage()) {
-            messageQueueChangedCheck(channelMessage.getHeader());
-        }
+//        if (!channelMessage.getHeader().isSystemMessage()) {
+//            messageQueueChangedCheck(channelMessage.getHeader());
+//        }
 
-        boolean needFlush = !channelMessage.getHeader().isSystemMessage() && channelMessage.getHeader().isNeedFlush();
+        boolean needFlushState = !channelMessage.getHeader().isSystemMessage() && channelMessage.getHeader().isNeedFlush();
 
         if (receiver != null) {
-            receiver.doMessage(channelMessage, context);
+            try {
+                this.msgLastReceiverTime = System.currentTimeMillis();
+
+                if (this.sendLogTimeFieldName != null && channelMessage.getMessageBody().containsKey(this.sendLogTimeFieldName)) {
+                    updateSplitProgress(channelMessage.getHeader().getQueueId(), channelMessage.getMessageBody().get(this.sendLogTimeFieldName));
+                }
+                sourceMetric.setMsgReceivTime(System.currentTimeMillis());
+                long start = System.currentTimeMillis();
+                receiver.doMessage(channelMessage, context);
+                sourceMetric.endCalculate(start);
+            } catch (Exception e) {
+                LOGGER.error("[{}][{}] Source_SendMsg_Error_On({})_Msg({})_ErrorMsg({})", IdUtil.instanceId(), NameCreator.getFirstPrefix(getName(), IWindow.TYPE, ISource.TYPE), this.getClass().getName(), channelMessage.getMessageBody(), e.getMessage(), e);
+            }
+
         }
-        if (needFlush) {
+        if (needFlushState) {
             sendCheckpoint(channelMessage.getHeader().getQueueId());
         }
-        executeMessageAfterReceiver(channelMessage, context);
         return context;
+    }
+
+    protected void updateSplitProgress(String splitId, Object sendLogTime) {
+        if (sendLogTime == null) {
+            return;
+        }
+        Long sendLogTimeLong = convertTime2Long(sendLogTime);
+        if (sendLogTimeLong == null) {
+            return;
+        }
+        Long maxSendLogTime = this.split2MaxTime.get(splitId);
+        if (maxSendLogTime == null || sendLogTimeLong > maxSendLogTime) {
+            this.split2MaxTime.put(splitId, sendLogTimeLong);
+            this.splitProgressMap.put(splitId, new SplitProgress(splitId, System.currentTimeMillis() - sendLogTimeLong, true));
+        }
+    }
+
+    /**
+     * 如果时间是long，直接返回，如果是string，判断是否是标准格式，如果是转换成long返回
+     *
+     * @param time
+     * @return
+     */
+    protected Long convertTime2Long(Object time) {
+        if (time == null) {
+            return null;
+        }
+        Long timeStamp = null;
+        String LONG = "^[-\\+]?[\\d]*$";            // 整数
+        if (time instanceof Long) {
+            timeStamp = (Long) time;
+        } else if (time instanceof String) {
+            String timeStr = (String) time;
+            if (StringUtil.matchRegex(timeStr, LONG)) {
+                timeStamp = Long.valueOf(timeStr);
+            } else {
+                Date date = DateUtil.parse(timeStr);
+                if (date == null) {
+                    LOGGER.warn(timeStr + " can not match date format, expect 2022-09-03 12:12:12");
+                    return null;
+                }
+                timeStamp = date.getTime();
+            }
+        } else {
+            LOGGER.warn(time.toString() + " can not match date format, expect 2022-09-03 12:12:12");
+            return null;
+        }
+        if (timeStamp != null) {
+            int length = (timeStamp + "").length();
+            if (length < 13) {
+                int x = 1;
+                for (int i = 0; i < 13 - length; i++) {
+                    x = x * 10;
+                }
+                timeStamp = timeStamp * x;
+            }
+        }
+        return timeStamp;
     }
 
     protected boolean isSplitInRemoving(Message channelMessage) {
         return this.checkPointManager.isRemovingSplit(channelMessage.getHeader().getQueueId());
     }
-
-    /**
-     * source 能否自动返现新增的分片，如果不支持，系统将会模拟实现
-     *
-     * @return
-     */
-    public boolean supportNewSplitFind() {
-        return false;
-    }
-
-    /**
-     * 能否发现分片移走了，如果不支持，系统会模拟实现
-     *
-     * @return
-     */
-    public abstract boolean supportRemoveSplitFind();
-
-    /**
-     * 是否运行中，在分片发现时，自动设置分片的offset。必须支持supportNewSplitFind
-     *
-     * @return
-     */
-    @Deprecated
-    public boolean supportOffsetRest() {
-        return false;
-    }
-
-    /**
-     * 系统模拟新分片发现，把消息中的分片保存下来，如果第一次收到，认为是新分片
-     *
-     * @param header
-     */
-    protected void messageQueueChangedCheck(MessageHeader header) {
-        if (supportNewSplitFind() && supportRemoveSplitFind()) {
-            return;
-        }
-        Set<String> queueIds = new HashSet<>();
-        String msgQueueId = header.getQueueId();
-        if (StringUtil.isNotEmpty(msgQueueId)) {
-            queueIds.add(msgQueueId);
-        }
-        Set<String> checkpointQueueIds = header.getCheckpointQueueIds();
-        if (checkpointQueueIds != null) {
-            queueIds.addAll(checkpointQueueIds);
-        }
-        Set<String> newQueueIds = new HashSet<>();
-        Set<String> removeQueueIds = new HashSet<>();
-        for (String queueId : queueIds) {
-            if (isNotDataSplit(queueId)) {
-                continue;
-            }
-            if (StringUtil.isNotEmpty(queueId)) {
-                if (!this.checkPointManager.contains(queueId)) {
-                    synchronized (this) {
-                        if (!this.checkPointManager.contains(queueId)) {
-                            this.checkPointManager.addSplit(queueId);
-                            newQueueIds.add(queueId);
-                        }
-                    }
-                } else {
-                    this.checkPointManager.updateLastUpdate(queueId);
-                }
-            }
-        }
-        if (!supportNewSplitFind()) {
-            addNewSplit(newQueueIds);
-        }
-
-    }
-
-    protected abstract boolean isNotDataSplit(String queueId);
 
     /**
      * 当分片被移走前需要做的回调
@@ -457,19 +507,13 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         //先保存所有的分片
         sendCheckpoint(splitIds);
         this.checkPointManager.flush();
-        synchronized (this) {
-            for (String splitId : splitIds) {
-                this.checkPointManager.removeSplit(splitId);
-            }
-
+        for (String splitId : splitIds) {
+            this.checkPointManager.removeSplit(splitId);
         }
+
     }
 
-    public List<ISplit> getAllSplits() {
-        return null;
-    }
-
-    public Map<String, List<ISplit>> getWorkingSplitsGroupByInstances() {
+    public Map<String, List<ISplit<?, ?>>> getWorkingSplitsGroupByInstances() {
         return new HashMap<>();
     }
 
@@ -486,7 +530,6 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         Message message = createMessage(msg, null, null, false);
         message.getMessageBody().put("_queues", splitIds);
         //message.getHeader().setCheckpointQueueIds(queueIds);
-
         message.getHeader().setNeedFlush(false);
         message.getHeader().setSystemMessage(true);
         NewSplitMessage systemMessage = new NewSplitMessage(splitIds, this.checkPointManager.getCurrentSplits());
@@ -499,7 +542,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     /**
      * 发送系统消息，执行组件不可见，告诉所有组件刷新存储
      *
-     * @param queueIds
+     * @param queueIds 队列
      */
     public void sendRemoveSplitSystemMessage(Set<String> queueIds) {
         JSONObject msg = new JSONObject();
@@ -508,8 +551,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         //message.getHeader().setCheckpointQueueIds(queueIds);
         message.getHeader().setNeedFlush(true);
         message.getHeader().setSystemMessage(true);
-        Set<String> currentSplitIds = new HashSet<>();
-        currentSplitIds.addAll(this.checkPointManager.getCurrentSplits());
+        Set<String> currentSplitIds = new HashSet<>(this.checkPointManager.getCurrentSplits());
         for (String queueId : queueIds) {
             currentSplitIds.remove(queueId);
         }
@@ -521,36 +563,10 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     }
 
     /**
-     * 如果存在offset，做更新，这里的offset是批流的offset，有系统创建和保存，多用于数据库查询结果场景
-     *
-     * @param channelMessage
-     * @param context
-     */
-    protected void executeMessageAfterReceiver(Message channelMessage, AbstractContext context) {
-        //如果有进度，则保存进度
-        if (channelMessage.getHeader() != null && channelMessage.getHeader().getProgress() != null) {
-            JSONObject msg = channelMessage.getHeader().getProgress().getCurrentMsg();
-            Iterator<Entry<String, Object>> it = msg.entrySet().iterator();
-            JSONObject newMsg = new JSONObject();
-            newMsg.putAll(msg);
-            while (it.hasNext()) {
-                Entry<String, Object> entry = it.next();
-                String key = entry.getKey();
-                if (channelMessage.getMessageBody().containsKey(key)) {
-                    newMsg.put(key, channelMessage.getMessageBody().get(key));
-                }
-            }
-            channelMessage.getHeader().getProgress().setCurrentMessage(newMsg.toJSONString());
-            channelMessage.getHeader().getProgress().update();
-        }
-
-    }
-
-    /**
      * 把json 转换成一个message对象
      *
-     * @param msg
-     * @return
+     * @param msg 获取的消息
+     * @return 返回dipper的message 实例
      */
     public Message createMessage(JSONObject msg, String queueId, String offset, boolean checkpoint) {
         Message channelMessage = new Message(msg);
@@ -558,6 +574,7 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         channelMessage.getHeader().setOffset(offset);
         channelMessage.getHeader().setQueueId(queueId);
         channelMessage.getHeader().setNeedFlush(checkpoint);
+        channelMessage.getHeader().setPipelineName(getName()); //消息的header中存储Pipeline的名称
         channelMessage.setJsonMessage(isJsonData);
         return channelMessage;
     }
@@ -565,50 +582,39 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
     /**
      * 每批次通过加小序号来区分offset的大小
      *
-     * @param offset
-     * @param i
-     * @return
+     * @param offset offset
+     * @param i      序号
+     * @return offset字符串
      */
     private String createBatchOffset(String offset, int i) {
-        String index = "" + i;
+        StringBuilder index = new StringBuilder("" + i);
         for (int j = index.length(); j < 5; j++) {
-            index = "0" + index;
+            index.insert(0, "0");
         }
         return offset + index;
     }
 
-    @Override
-    public void setMaxFetchLogGroupSize(int size) {
-        this.maxFetchLogGroupSize = size;
-    }
-
-    @Override
-    public AbstractSource createStageChain(PipelineBuilder pipelineBuilder) {
+    @Override public AbstractSource createStageChain(PipelineBuilder pipelineBuilder) {
         return this;
     }
 
-    @Override
-    public void addConfigurables(PipelineBuilder pipelineBuilder) {
+    @Override public void addConfigurables(PipelineBuilder pipelineBuilder) {
         pipelineBuilder.addConfigurables(this);
     }
 
-    @Override
-    public String getGroupName() {
+    @Override public String getGroupName() {
         return groupName;
     }
 
-    @Override
-    public void setGroupName(String groupName) {
+    @Override public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
 
-    @Override
-    public int getMaxThread() {
+    @Override public int getMaxThread() {
         return maxThread;
     }
 
-    @Override
-    public void setMaxThread(int maxThread) {
+    @Override public void setMaxThread(int maxThread) {
         this.maxThread = maxThread;
     }
 
@@ -636,24 +642,20 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         this.msgIsJsonArray = msgIsJsonArray;
     }
 
-    public void setBatchMessage(boolean batchMessage) {
-        isBatchMessage = batchMessage;
-    }
-
     public int getMaxFetchLogGroupSize() {
         return maxFetchLogGroupSize;
     }
 
-    public String getTopic() {
+    @Override public void setMaxFetchLogGroupSize(int size) {
+        this.maxFetchLogGroupSize = size;
+    }
+
+    @Override public String getTopic() {
         return topic;
     }
 
-    public void setTopic(String topic) {
+    @Override public void setTopic(String topic) {
         this.topic = topic;
-    }
-
-    public void setCheckpointTime(long checkpointTime) {
-        this.checkpointTime = checkpointTime;
     }
 
     public List<String> getLogFingerprintFields() {
@@ -664,22 +666,20 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         this.logFingerprintFields = logFingerprintFields;
     }
 
-    @Override
-    public long getCheckpointTime() {
+    @Override public long getCheckpointTime() {
         return checkpointTime;
     }
 
-    public boolean isBatchMessage() {
-        return isBatchMessage;
+    public void setCheckpointTime(long checkpointTime) {
+        this.checkpointTime = checkpointTime;
     }
 
-    @Override
-    public String createCheckPointName() {
+    @Override public String createCheckPointName() {
 
         ISource<?> source = this;
 
         String namespace = source.getNameSpace();
-        String name = source.getConfigureName();
+        String name = source.getName();
         String groupName = source.getGroupName();
 
         if (StringUtil.isEmpty(namespace)) {
@@ -694,28 +694,22 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
             groupName = "default_groupName";
         }
         String topic = source.getTopic();
-        if (topic == null || topic.trim().length() == 0) {
+        if (topic == null || topic.trim().isEmpty()) {
             topic = "default_topic";
         }
         return MapKeyUtil.createKey(namespace, groupName, topic, name);
 
     }
 
-    public int getShuffleConcurrentCount() {
-        return shuffleConcurrentCount;
+    @Override public Map<String, SplitProgress> getSplitProgress() {
+        return this.splitProgressMap;
     }
 
-    public void setShuffleConcurrentCount(int shuffleConcurrentCount) {
-        this.shuffleConcurrentCount = shuffleConcurrentCount;
-    }
-
-    @Override
-    public boolean isFinished() {
+    @Override public boolean isFinished() {
         return false;
     }
 
-    @Override
-    public void finish() {
+    @Override public void finish() {
         checkPointManager.finish();
     }
 
@@ -751,5 +745,16 @@ public abstract class AbstractSource extends BasedConfigurable implements ISourc
         this.headerFieldNames = headerFieldNames;
     }
 
+    public String getSendLogTimeFieldName() {
+        return sendLogTimeFieldName;
+    }
+
+    public void setSendLogTimeFieldName(String sendLogTimeFieldName) {
+        this.sendLogTimeFieldName = sendLogTimeFieldName;
+    }
+
+    public SourceMetric getSourceMetric() {
+        return sourceMetric;
+    }
 
 }

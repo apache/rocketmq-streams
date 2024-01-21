@@ -18,25 +18,28 @@ package org.apache.rocketmq.streams.common.optimization;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 
 /**
  * regex engine
  */
 public class RegexEngine<T> {
 
-    protected AtomicBoolean hasCompile = new AtomicBoolean(false);
-
     protected static final String RE2J_ENGINE = "re2j";
-
     protected static final String HYPER_SCAN_ENGINE = "hyperscan";
-
+    protected AtomicBoolean hasCompile = new AtomicBoolean(false);
     protected IStreamRegex engine = new HyperscanEngine<>();
 
     public RegexEngine() {
-        String option = ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_REGEX_ENGINE);
+        String option = SystemContext.getStringParameter(ConfigurationKey.DIPPER_REGEX_ENGINE);
         if (RE2J_ENGINE.equalsIgnoreCase(option)) {
+            engine = new Re2Engine<>();
+        }
+    }
+
+    public RegexEngine(boolean isRE2J) {
+        if (isRE2J) {
             engine = new Re2Engine<>();
         }
     }

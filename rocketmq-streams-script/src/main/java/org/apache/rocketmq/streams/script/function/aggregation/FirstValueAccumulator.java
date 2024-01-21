@@ -26,10 +26,6 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 @UDAFFunction("FIRST_VALUE")
 public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccumulator.FirstValue> {
 
-    public static class FirstValue<T> {
-        public T value;
-    }
-
     @Override
     public FirstValue createAccumulator() {
         return new FirstValue();
@@ -69,6 +65,10 @@ public class FirstValueAccumulator<T> implements IAccumulator<T, FirstValueAccum
     @Override
     public void retract(FirstValue accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class FirstValue<T> {
+        public T value;
     }
 
 }

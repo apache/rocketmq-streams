@@ -19,7 +19,6 @@ package org.apache.rocketmq.streams.filter.operator.action;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 
-public interface IConfigurableAction<T> extends IStreamOperator<IMessage,T> {
-
+public interface IConfigurableAction<T> extends IStreamOperator<IMessage, T> {
 
 }

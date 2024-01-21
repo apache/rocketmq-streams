@@ -29,6 +29,9 @@ import org.apache.rocketmq.streams.common.cache.softreference.RebuildCacheElemen
 public class SoftReferenceCache<K, V> implements ICache<K, V> {
 
     protected RebuildCacheElement<K, V> rebuildCacheElement;
+    // 缓存，用软引用记录
+    private ConcurrentHashMap<K, ExtraInfoReference<V>> cache = new ConcurrentHashMap<K, ExtraInfoReference<V>>();
+    private ReferenceQueue<V> refQueue = new ReferenceQueue<V>();
 
     public SoftReferenceCache(RebuildCacheElement<K, V> rebuildCacheElement) {
         this.rebuildCacheElement = rebuildCacheElement;
@@ -42,24 +45,6 @@ public class SoftReferenceCache<K, V> implements ICache<K, V> {
             }
         };
     }
-
-    protected class ExtraInfoReference<T> extends SoftReference<T> {
-
-        private Object info;
-
-        public ExtraInfoReference(Object info, T t, ReferenceQueue<T> refQueue) {
-            super(t, refQueue);
-            this.info = info;
-        }
-
-        public Object getExtraInfo() {
-            return this.info;
-        }
-    }
-
-    // 缓存，用软引用记录
-    private ConcurrentHashMap<K, ExtraInfoReference<V>> cache = new ConcurrentHashMap<K, ExtraInfoReference<V>>();
-    private ReferenceQueue<V> refQueue = new ReferenceQueue<V>();
 
     @Override
     public V get(K key) {
@@ -117,9 +102,23 @@ public class SoftReferenceCache<K, V> implements ICache<K, V> {
     @SuppressWarnings("unchecked")
     protected void clearRefQueue() {
         ExtraInfoReference<V> refValue = null;
-        while ((refValue = (ExtraInfoReference<V>)refQueue.poll()) != null) {
-            K key = (K)refValue.getExtraInfo();
+        while ((refValue = (ExtraInfoReference<V>) refQueue.poll()) != null) {
+            K key = (K) refValue.getExtraInfo();
             cache.remove(key);
+        }
+    }
+
+    protected class ExtraInfoReference<T> extends SoftReference<T> {
+
+        private Object info;
+
+        public ExtraInfoReference(Object info, T t, ReferenceQueue<T> refQueue) {
+            super(t, refQueue);
+            this.info = info;
+        }
+
+        public Object getExtraInfo() {
+            return this.info;
         }
     }
 

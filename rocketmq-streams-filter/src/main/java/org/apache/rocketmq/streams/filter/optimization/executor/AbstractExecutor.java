@@ -20,7 +20,6 @@ import org.apache.rocketmq.streams.script.function.impl.string.RegexFunction;
 import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimization;
 
 public abstract class AbstractExecutor implements IScriptOptimization.IOptimizationExecutor {
-    protected static RegexFunction regexFunction=new RegexFunction();// execute directly， not use reflect
-
+    protected static RegexFunction regexFunction = new RegexFunction();// execute directly， not use reflect
 
 }

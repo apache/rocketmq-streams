@@ -21,10 +21,9 @@ import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 
 public interface ILeaseStorasge {
 
-
-
     /**
      * 更新lease info，需要是原子操作，存储保障多线程操作的原子性
+     *
      * @param leaseInfo 租约表数据
      * @return
      */
@@ -32,6 +31,7 @@ public interface ILeaseStorasge {
 
     /**
      * 统计这个租约名称下，LeaseInfo对象个数
+     *
      * @param leaseName 租约名称，无特殊要求，相同名称会竞争租约
      * @return
      */
@@ -39,14 +39,15 @@ public interface ILeaseStorasge {
 
     /**
      * 查询无效的的租约
+     *
      * @param leaseName 租约名称，无特殊要求，相同名称会竞争租约
      * @return
      */
     LeaseInfo queryInValidateLease(String leaseName);
 
-
     /**
      * 查询无效的的租约
+     *
      * @param leaseName 租约名称，无特殊要求，相同名称会竞争租约
      * @return
      */
@@ -54,10 +55,9 @@ public interface ILeaseStorasge {
 
     /**
      * 增加租约
+     *
      * @param leaseInfo 租约名称，无特殊要求，相同名称会竞争租约
      */
     void addLeaseInfo(LeaseInfo leaseInfo);
-
-
 
 }

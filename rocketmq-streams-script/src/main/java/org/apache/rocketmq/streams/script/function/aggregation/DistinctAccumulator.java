@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.aggregation;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -33,10 +32,6 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 @Function
 @UDAFFunction("distinct")
 public class DistinctAccumulator implements IAccumulator<Set, DistinctAccumulator.DistinctAccum> {
-
-    public static class DistinctAccum {
-        public Set values = Collections.synchronizedSet(new HashSet<>());
-    }
 
     @Override
     public DistinctAccum createAccumulator() {
@@ -74,6 +69,10 @@ public class DistinctAccumulator implements IAccumulator<Set, DistinctAccumulato
     @Override
     public void retract(DistinctAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class DistinctAccum {
+        public Set values = new HashSet();
     }
 
 }

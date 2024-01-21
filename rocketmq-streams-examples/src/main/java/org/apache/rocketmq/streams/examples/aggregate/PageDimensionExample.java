@@ -20,7 +20,7 @@
 package org.apache.rocketmq.streams.examples.aggregate;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
@@ -45,35 +45,35 @@ public class PageDimensionExample {
         }
         System.out.println("begin streams code.");
 
-        DataStreamSource source = StreamBuilder.dataStream("pageClickNS", "pageClickPL");
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("pageClickNS", "pageClickPL");
         source.fromRocketmq(topic, "pageClickGroup", false, namesrv)
-                .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.minutes(1)))
-                .groupBy("url")
-                .setTimeField("eventTime")
-                .count("total")
-                .waterMark(1)
-                .setLocalStorageOnly(true)
-                .toDataSteam()
-                .toFile("/home/result.txt")
-                .with(WindowStrategy.highPerformance())
-                .start();
+            .map(message -> JSONObject.parseObject((String) message))
+            .window(TumblingWindow.of(Time.minutes(1)))
+            .groupBy("url")
+            .setTimeField("eventTime")
+            .count("total")
+            .waterMark(1)
+            .setLocalStorageOnly(true)
+            .toDataSteam()
+            .toFile("/home/result.txt")
+            .with(WindowStrategy.highPerformance())
+            .start();
     }
 
     @Test
     public void findMax() {
 
-        DataStreamSource source = StreamBuilder.dataStream("ns-1", "pl-1");
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("ns-1", "pl-1");
         source.fromFile("/home/result.txt", false)
-                .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.seconds(5)))
-                .groupBy("start_time","end_time")
-                .max("total")
-                .waterMark(1)
-                .setLocalStorageOnly(true)
-                .toDataSteam()
-                .toPrint(1)
-                .start();
+            .map(message -> JSONObject.parseObject((String) message))
+            .window(TumblingWindow.of(Time.seconds(5)))
+            .groupBy("start_time", "end_time")
+            .max("total")
+            .waterMark(1)
+            .setLocalStorageOnly(true)
+            .toDataSteam()
+            .toPrint(1)
+            .start();
 
     }
 

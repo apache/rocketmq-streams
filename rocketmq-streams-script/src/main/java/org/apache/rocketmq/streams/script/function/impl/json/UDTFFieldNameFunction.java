@@ -16,11 +16,7 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.json;
 
-
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.utils.ReflectUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
@@ -30,21 +26,19 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class UDTFFieldNameFunction {
 
-    @FunctionMethod(value = "addAliasForNewField",comment = "获取msg中的json数据")
+    @FunctionMethod(value = "addAliasForNewField", comment = "获取msg中的json数据")
     public Object addAliasForNewField(IMessage message, FunctionContext context,
-        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String fieldName,String alias,int i){
-        fieldName=FunctionUtils.getConstant(fieldName);
-        alias=FunctionUtils.getConstant(alias);
-        Object object=message.getMessageBody().get(fieldName);
-        if(message.getMessageBody().containsKey("f"+i)) {
-            object=message.getMessageBody().get("f"+i);
-            message.getMessageBody().put(alias+fieldName,object);
-        }
-        else if(message.getMessageBody().containsKey(fieldName)&&!message.getMessageBody().containsKey("f"+i)){
-            message.getMessageBody().put(alias+fieldName,object);
+        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String fieldName, String alias, int i) {
+        fieldName = FunctionUtils.getConstant(fieldName);
+        alias = FunctionUtils.getConstant(alias);
+        Object object = message.getMessageBody().get(fieldName);
+        if (message.getMessageBody().containsKey("f" + i)) {
+            object = message.getMessageBody().get("f" + i);
+            message.getMessageBody().put(alias + fieldName, object);
+        } else if (message.getMessageBody().containsKey(fieldName) && !message.getMessageBody().containsKey("f" + i)) {
+            message.getMessageBody().put(alias + fieldName, object);
         }
         return object;
     }
-
 
 }

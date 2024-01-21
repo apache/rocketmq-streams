@@ -36,7 +36,7 @@ public class UnHexFunction {
      */
     @FunctionMethod(value = "unhex", comment = "返回十六进制字符串所代表的字符串")
     public String unhex(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String base) {
+        @FunctionParamter(value = "String", comment = "代表要求值的列名称或常量值") String base) {
         String result = "";
         if (base == null) {
             return result;
@@ -45,7 +45,7 @@ public class UnHexFunction {
         byte[] baKeyword = new byte[s.length() / 2];
         for (int i = 0; i < baKeyword.length; i++) {
             try {
-                baKeyword[i] = (byte)(0xff & Integer.parseInt(s.substring(i * 2, i * 2 + 2), 16));
+                baKeyword[i] = (byte) (0xff & Integer.parseInt(s.substring(i * 2, i * 2 + 2), 16));
             } catch (Exception e) {
                 throw new RuntimeException("转换错误 " + s, e);
             }

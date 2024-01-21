@@ -23,13 +23,10 @@ import org.apache.rocketmq.streams.common.utils.TraceUtil;
 
 public class Message implements IMessage {
 
-    private JSONObject message;
-
-    private boolean isJsonMessage = true;
-
     protected ISystemMessage systemMessage;
-
     protected MessageHeader header = new MessageHeader();
+    private JSONObject message;
+    private boolean isJsonMessage = true;
 
     public Message(JSONObject message) {
         this.message = message;
@@ -47,9 +44,25 @@ public class Message implements IMessage {
         }
     }
 
+    public static JSONObject parseObject(String msg) {
+        JSONObject jsonObject = JSONObject.parseObject(msg);
+        if (jsonObject != null) {
+            String userObjectString = jsonObject.getString(UserDefinedMessage.class.getName());
+            if (userObjectString != null) {
+                return new UserDefinedMessage(jsonObject, userObjectString);
+            }
+        }
+        return jsonObject;
+    }
+
     @Override
     public MessageHeader getHeader() {
         return this.header;
+    }
+
+    @Override
+    public void setHeader(MessageHeader header) {
+        this.header = header;
     }
 
     @Override
@@ -65,6 +78,10 @@ public class Message implements IMessage {
     @Override
     public boolean isJsonMessage() {
         return isJsonMessage;
+    }
+
+    public void setJsonMessage(boolean jsonMessage) {
+        isJsonMessage = jsonMessage;
     }
 
     @Override
@@ -98,26 +115,6 @@ public class Message implements IMessage {
         message.isJsonMessage = isJsonMessage;
         message.header = getHeader().copy();
         return message;
-    }
-
-    public static JSONObject parseObject(String msg) {
-        JSONObject jsonObject = JSONObject.parseObject(msg);
-        if (jsonObject != null) {
-            String userObjectString = jsonObject.getString(UserDefinedMessage.class.getName());
-            if (userObjectString != null) {
-                return new UserDefinedMessage(jsonObject, userObjectString);
-            }
-        }
-        return jsonObject;
-    }
-
-    public void setJsonMessage(boolean jsonMessage) {
-        isJsonMessage = jsonMessage;
-    }
-
-    @Override
-    public void setHeader(MessageHeader header) {
-        this.header = header;
     }
 
     @Override

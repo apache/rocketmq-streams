@@ -37,6 +37,10 @@ public class LongDataType extends BaseDataType<Long> {
         setDataClazz(Long.class);
     }
 
+    public static String getTypeName() {
+        return "long";
+    }
+
     @Override
     public Long getData(String jsonValue) {
         if (jsonValue == null || "N/A".equals(jsonValue)) {
@@ -105,20 +109,8 @@ public class LongDataType extends BaseDataType<Long> {
     }
 
     @Override
-    public void setDataClazz(Class dataClazz) {
-        if (BigInteger.class.isAssignableFrom(dataClazz)) {
-            dataClazz = Long.class;
-        }
-        super.setDataClazz(dataClazz);
-    }
-
-    @Override
     public String getName() {
         return Long.class.getSimpleName();
-    }
-
-    public static String getTypeName() {
-        return "long";
     }
 
     public String toDataJson(BigInteger bigInteger) {
@@ -129,6 +121,14 @@ public class LongDataType extends BaseDataType<Long> {
     @Override
     public Class getDataClazz() {
         return Long.class;
+    }
+
+    @Override
+    public void setDataClazz(Class dataClazz) {
+        if (BigInteger.class.isAssignableFrom(dataClazz)) {
+            dataClazz = Long.class;
+        }
+        super.setDataClazz(dataClazz);
     }
 
     @Override
@@ -148,11 +148,11 @@ public class LongDataType extends BaseDataType<Long> {
 
     @Override
     public byte[] toBytes(Long value, boolean isCompress) {
-        if(value==null){
+        if (value == null) {
             return null;
         }
         if (isCompress) {
-            return numberToBytes((long)value);
+            return numberToBytes((long) value);
         } else {
             return createByteArrayFromNumber(value, 8);
         }

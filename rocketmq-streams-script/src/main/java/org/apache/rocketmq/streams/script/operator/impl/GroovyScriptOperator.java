@@ -26,22 +26,36 @@ import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.operator.AbstractScriptOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 实现思路，通过INNER_MESSAG 把message的jsonobject传给groovy，groovy中直接操作jsonobject
  */
 public class GroovyScriptOperator extends AbstractScriptOperator {
-    protected static final Log LOG = LogFactory.getLog(GroovyScriptOperator.class);
     protected static final String GROOVY_NAME = "groovy";
+    private static final Logger LOGGER = LoggerFactory.getLogger(GroovyScriptOperator.class);
     protected transient Invocable inv;
     protected transient ScriptEngine engine;
+
+    public static void main(String[] args) throws ScriptException {
+        //javax.operator.Bindings
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("age", 18);
+        jsonObject.put("date", new Date());
+        GroovyScriptOperator groovyScript = new GroovyScriptOperator();
+        groovyScript.setValue("_msg.put(\"name\",'chris');");
+        groovyScript.init();
+        Message message = new Message(jsonObject);
+
+        groovyScript.doMessage(message, new FunctionContext(message));
+        System.out.println(jsonObject);
+    }
 
     @Override
     protected boolean initConfigurable() {
@@ -49,11 +63,11 @@ public class GroovyScriptOperator extends AbstractScriptOperator {
             super.initConfigurable();
             ScriptEngineManager factory = new ScriptEngineManager();
             ScriptEngine engine = factory.getEngineByName(GROOVY_NAME);
-            inv = (Invocable)engine;
+            inv = (Invocable) engine;
             this.engine = engine;
             registFunction();
         } catch (Exception e) {
-            LOG.error("groovy init error " + getValue(), e);
+            LOGGER.error("groovy init error " + getValue(), e);
             return false;
         }
         return true;
@@ -77,20 +91,6 @@ public class GroovyScriptOperator extends AbstractScriptOperator {
             throw new RuntimeException("execute groovy error,the operator is " + script, e);
         }
         return null;
-    }
-
-    public static void main(String[] args) throws ScriptException {
-        //javax.operator.Bindings
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("age", 18);
-        jsonObject.put("date", new Date());
-        GroovyScriptOperator groovyScript = new GroovyScriptOperator();
-        groovyScript.setValue("_msg.put(\"name\",'chris');");
-        groovyScript.init();
-        Message message = new Message(jsonObject);
-
-        groovyScript.doMessage(message, new FunctionContext(message));
-        System.out.println(jsonObject);
     }
 
     @Override

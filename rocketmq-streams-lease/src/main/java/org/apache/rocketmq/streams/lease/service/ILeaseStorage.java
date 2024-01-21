@@ -68,4 +68,12 @@ public interface ILeaseStorage {
      */
     void addLeaseInfo(LeaseInfo leaseInfo);
 
+    /**
+     * 释放租约
+     *
+     * @param leaseName
+     * @return
+     */
+    void deleteLeaseInfo(String leaseName);
+
 }

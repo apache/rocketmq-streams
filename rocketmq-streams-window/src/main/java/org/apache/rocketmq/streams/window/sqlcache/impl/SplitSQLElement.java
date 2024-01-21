@@ -22,11 +22,11 @@ import org.apache.rocketmq.streams.window.sqlcache.ISQLElement;
 public class SplitSQLElement implements ISQLElement {
     protected String queueId;
     protected String sql;
-    public SplitSQLElement(String splitId,String sql){
-        this.queueId=splitId;
-        this.sql=sql;
-    }
 
+    public SplitSQLElement(String splitId, String sql) {
+        this.queueId = splitId;
+        this.sql = sql;
+    }
 
     @Override public boolean isWindowInstanceSQL() {
         return false;

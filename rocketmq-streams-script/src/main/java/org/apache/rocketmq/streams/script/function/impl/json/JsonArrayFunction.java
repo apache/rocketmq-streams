@@ -70,17 +70,17 @@ public class JsonArrayFunction {
 
     @FunctionMethod(value = "in_max", alias = "max_from_array", comment = "获取jsonArray中的最大元素")
     public Object extraMax(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName,
-                           @FunctionParamter(value = "string", comment = "获取json的模式，支持name.name的方式，支持数组$.name[index].name的方式")
-                               String path) {
+        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName,
+        @FunctionParamter(value = "string", comment = "获取json的模式，支持name.name的方式，支持数组$.name[index].name的方式")
+        String path) {
         return extraValue(message, context, jsonValueOrFieldName, path, true);
     }
 
     @FunctionMethod(value = "remove_max", alias = "rm_max", comment = "获取jsonArray中的最大元素")
     public Object removeMax(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName,
-                            @FunctionParamter(value = "string", comment = "获取json的模式，支持name.name的方式，支持数组$.name[index].name的方式") String path,
-                            @FunctionParamter(value = "boolean", comment = "去除最大值是否是排序") Boolean isOrder) {
+        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName,
+        @FunctionParamter(value = "string", comment = "获取json的模式，支持name.name的方式，支持数组$.name[index].name的方式") String path,
+        @FunctionParamter(value = "boolean", comment = "去除最大值是否是排序") Boolean isOrder) {
 
         String maxValue = null;
         if (isOrder) {
@@ -91,15 +91,15 @@ public class JsonArrayFunction {
         }
 
         String fieldName = FunctionUtils.getValueString(message, context, path);
-        List jsonArray = (List)message.getMessageBody().get(jsonValueOrFieldName);
+        List jsonArray = (List) message.getMessageBody().get(jsonValueOrFieldName);
         JSONArray result = new JSONArray();
         for (int i = 0; i < jsonArray.size(); i++) {
             Object o = jsonArray.get(i);
             Map<String, Object> row = null;
             if (IMessage.class.isInstance(o)) {
-                row = ((IMessage)o).getMessageBody();
+                row = ((IMessage) o).getMessageBody();
             } else {
-                row = (Map)o;
+                row = (Map) o;
             }
             Object rowValue = row.get(fieldName);
             String fieldValue = null;
@@ -119,20 +119,20 @@ public class JsonArrayFunction {
 
     @FunctionMethod(value = "in_min", alias = "min_from_array", comment = "获取jsonArray中的最小元素")
     public Object extraMin(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName,
-                           @FunctionParamter(value = "string", comment = "获取json的模式，支持name.name的方式，支持数组$.name[index].name的方式")
-                               String path) {
+        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName,
+        @FunctionParamter(value = "string", comment = "获取json的模式，支持name.name的方式，支持数组$.name[index].name的方式")
+        String path) {
         return extraValue(message, context, jsonValueOrFieldName, path, false);
     }
 
     public String extraValue(IMessage message, FunctionContext context, String jsonValueOrFieldName, String path,
-                             boolean isMax) {
+        boolean isMax) {
         if (StringUtil.isEmpty(jsonValueOrFieldName) || StringUtil.isEmpty(path)) {
             return null;
         }
 
         String fieldName = FunctionUtils.getValueString(message, context, path);
-        List jsonArray = (List)message.getMessageBody().get(jsonValueOrFieldName);
+        List jsonArray = (List) message.getMessageBody().get(jsonValueOrFieldName);
         if (jsonArray == null) {
             return null;
         }
@@ -141,9 +141,9 @@ public class JsonArrayFunction {
             Object o = jsonArray.get(i);
             Map<String, Object> row = null;
             if (IMessage.class.isInstance(o)) {
-                row = ((IMessage)o).getMessageBody();
+                row = ((IMessage) o).getMessageBody();
             } else {
-                row = (Map)o;
+                row = (Map) o;
             }
             Object rowValue = row.get(fieldName);
             String fieldValue = null;
@@ -174,7 +174,7 @@ public class JsonArrayFunction {
             return null;
         }
         String fieldName = FunctionUtils.getValueString(message, context, path);
-        List jsonArray = (List)message.getMessageBody().get(jsonValueOrFieldName);
+        List jsonArray = (List) message.getMessageBody().get(jsonValueOrFieldName);
         if (jsonArray == null) {
             return null;
         }
@@ -197,9 +197,9 @@ public class JsonArrayFunction {
         Object o = jsonArray.get(i);
         Map<String, Object> row = null;
         if (IMessage.class.isInstance(o)) {
-            row = ((IMessage)o).getMessageBody();
+            row = ((IMessage) o).getMessageBody();
         } else {
-            row = (Map)o;
+            row = (Map) o;
         }
         Object rowValue = row.get(fieldName);
         String fieldValue = null;
@@ -211,7 +211,7 @@ public class JsonArrayFunction {
 
     @FunctionMethod(value = "array_size", alias = "size_array", comment = "获取jsonArray的大小")
     public Integer arraySize(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName) {
+        @FunctionParamter(value = "string", comment = "代表json的字段名或常量") String jsonValueOrFieldName) {
         if (StringUtil.isEmpty(jsonValueOrFieldName)) {
             return 0;
         }
@@ -220,7 +220,7 @@ public class JsonArrayFunction {
         if (message.getMessageBody().get(jsonValueOrFieldName) == null) {
             jsonValueOrFieldName = tmp;
         }
-        List value = (List)FunctionUtils.getValue(message, context, jsonValueOrFieldName);
+        List value = (List) FunctionUtils.getValue(message, context, jsonValueOrFieldName);
         if (value == null) {
             return null;
         }

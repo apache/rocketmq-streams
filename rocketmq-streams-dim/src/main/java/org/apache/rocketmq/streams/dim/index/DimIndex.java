@@ -23,27 +23,26 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
 import org.apache.rocketmq.streams.common.cache.compress.KVAddress;
 import org.apache.rocketmq.streams.common.cache.compress.impl.MapAddressListKV;
 import org.apache.rocketmq.streams.common.datatype.IntDataType;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DimIndex {
 
-    private static final Log LOG = LogFactory.getLog(DimIndex.class);
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(DimIndex.class);
+    public static IntDataType INTDATATYPE = new IntDataType();
     /**
      * 索引字段名，支持多个索引，每个索引一行，支持组合索引，多个字段用；拼接 name 单索引 name;age 组合索引
      */
     protected List<String> indexs = new ArrayList<>();
-
     /**
      * 如果是非唯一索引，用这个结构存储 每个索引一行，后面的map：key：索引值；value：row id 列表，rowid用字节表示
      */
-    protected Map<String, MapAddressListKV> mutilIndex = new HashMap<>();
+    protected Map<String, MapAddressListKV> mutilIndexForRowIds = new HashMap<>();
 
     public DimIndex(List<String> indexs) {
         this.indexs = formatIndexs(indexs);
@@ -89,7 +88,7 @@ public class DimIndex {
      * @return
      */
     public List<Long> getRowIds(String indexName, String indexValue) {
-        MapAddressListKV indexs = this.mutilIndex.get(indexName);
+        MapAddressListKV indexs = this.mutilIndexForRowIds.get(indexName);
         if (indexs == null) {
             return null;
         }
@@ -109,17 +108,24 @@ public class DimIndex {
             AbstractMemoryTable.RowElement row = it.next();
             long rowIndex = row.getRowIndex();
 //            KVAddress mapAddress = new KVAddress(new ByteArray(NumberUtils.toByte(rowIndex)));
-            KVAddress mapAddress = KVAddress.createMapAddressFromLongValue(rowIndex);
-            addRowIndex(row.getRow(), mapAddress, tableCompress.getRowCount());
+            addRowIndex(row.getRow(), rowIndex, tableCompress.getRowCount());
 //            addRowIndex(row.getRow(),row.getRowIndex(),tableCompress.getRowCount());
             if ((i % 100000) == 0) {
-                LOG.info("dim build continue...." + i);
+                LOGGER.debug("dim build continue...." + i);
             }
             i++;
         }
+        LOGGER.debug(" finish poll data , the row count  is " + i + ". byte is " + tableCompress.getByteCount());
+    }
 
-        LOG.info(" finish poll data , the row count  is " + i + ". byte is " + tableCompress
-            .getByteCount());
+    /**
+     * 必须是唯一索引，
+     *
+     * @param row
+     */
+    public void addRowIndex(Map<String, Object> row, long value, int rowSize) {
+        KVAddress rowIndex = KVAddress.createMapAddressFromLongValue(value);
+        addRowIndex(row, rowIndex, rowSize);
     }
 
     /**
@@ -135,13 +141,13 @@ public class DimIndex {
             return;
         }
         for (String indexName : indexs) {
-            MapAddressListKV name2RowIndexs = this.mutilIndex.get(indexName);
+            MapAddressListKV name2RowIndexs = this.mutilIndexForRowIds.get(indexName);
             if (name2RowIndexs == null) {
                 synchronized (this) {
-                    name2RowIndexs = this.mutilIndex.get(indexName);
+                    name2RowIndexs = this.mutilIndexForRowIds.get(indexName);
                     if (name2RowIndexs == null) {
                         name2RowIndexs = new MapAddressListKV(rowSize);
-                        this.mutilIndex.put(indexName, name2RowIndexs);
+                        this.mutilIndexForRowIds.put(indexName, name2RowIndexs);
                     }
                 }
 
@@ -165,9 +171,8 @@ public class DimIndex {
         for (int i = 0; i < nameIndexs.length; i++) {
             indexValues[i] = row.get(nameIndexs[i]);
         }
-        if (indexValues != null && indexValues.length > 0) {
-            String indexValue = MapKeyUtil.createKey(indexValues);
-            return indexValue;
+        if (indexValues.length > 0) {
+            return MapKeyUtil.createKey(indexValues);
         }
         return null;
     }
@@ -180,18 +185,14 @@ public class DimIndex {
      */
     protected Map<String, String> createRow(Map<String, Object> row) {
         Map<String, String> cacheValues = new HashMap<String, String>();//一行数据
-        Iterator<Map.Entry<String, Object>> iterator = row.entrySet().iterator();
         //把数据value从object转化成string
-        while (iterator.hasNext()) {
-            Map.Entry<String, Object> entry = iterator.next();
+        for (Map.Entry<String, Object> entry : row.entrySet()) {
             if (entry != null && entry.getValue() != null && entry.getKey() != null) {
                 cacheValues.put(entry.getKey(), entry.getValue().toString());
             }
         }
         return cacheValues;
     }
-
-    public static IntDataType INTDATATYPE = new IntDataType();
 
     public List<String> getIndexs() {
         return indexs;

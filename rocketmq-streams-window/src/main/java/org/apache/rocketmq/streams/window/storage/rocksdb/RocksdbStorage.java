@@ -32,7 +32,6 @@ import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-
 import org.apache.rocketmq.streams.common.utils.SerializeUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.state.kv.rocksdb.RocksDBOperator;
@@ -51,8 +50,35 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
     protected static String DB_PATH = "/tmp/rocksdb";
     protected static String UTF8 = "UTF8";
     protected static AtomicBoolean hasCreate = new AtomicBoolean(false);
-    protected static RocksDB rocksDB = new RocksDBOperator().getInstance();
-    protected WriteOptions writeOptions = new WriteOptions();
+    protected static RocksDB rocksDB;
+    // protected WriteOptions writeOptions = new WriteOptions();
+
+    public RocksdbStorage() {
+        rocksDB = new RocksDBOperator().getInstance();
+    }
+
+    public RocksdbStorage(String rocksdbFileName) {
+        rocksDB = new RocksDBOperator(rocksdbFileName).getInstance();
+    }
+
+    /**
+     * 把byte转化成值
+     *
+     * @param bytes
+     * @return
+     */
+    protected static String getValueFromByte(byte[] bytes) {
+        try {
+            return new String(bytes, UTF8);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void main(String[] args) {
+        String x = "2012-01-03 00:03:09";
+        System.out.println(x.substring(x.length() - 2, x.length()));
+    }
 
     @Override
     public void removeKeys(Collection<String> keys) {
@@ -110,29 +136,24 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
 
     @Override
     public Map<String, T> multiGet(Class<T> clazz, List<String> keys) {
-        if (keys == null || keys.size() == 0) {
+        if (keys == null || keys.isEmpty()) {
             return new HashMap<>();
         }
         List<byte[]> keyByteList = new ArrayList<>();
-        List<String> keyStrList = new ArrayList<>();
         for (String key : keys) {
             keyByteList.add(getKeyBytes(key));
-            keyStrList.add(key);
         }
         try {
-            Map<String, T> jsonables = new HashMap<>();
-            //            List<byte[]>  list=  rocksDB.multiGetAsList(keyByteList);
-            Map<byte[], byte[]> map = rocksDB.multiGet(keyByteList);
-            int i = 0;
-            Iterator<Entry<byte[], byte[]>> it = map.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<byte[], byte[]> entry = it.next();
-                String key = getValueFromByte(entry.getKey());
-                T value = SerializeUtil.deserialize(entry.getValue(),clazz);
-                jsonables.put(key, value);
+            Map<String, T> jsons = new HashMap<>();
+            List<byte[]> valueByteList = rocksDB.multiGetAsList(keyByteList);
+            for (int i = 0; i < keyByteList.size(); i++) {
+                String key = getValueFromByte(keyByteList.get(i));
+                if (valueByteList.get(i) != null) {
+                    T value = SerializeUtil.deserialize(valueByteList.get(i), clazz);
+                    jsons.put(key, value);
+                }
             }
-            //            for(byte[] bytes:list){
-            return jsonables;
+            return jsons;
         } catch (RocksDBException e) {
             throw new RuntimeException("can not get value from rocksdb ", e);
         }
@@ -178,19 +199,16 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
         }
         try {
             Map<String, List<T>> resultMap = new HashMap<>();
-            Map<byte[], byte[]> map = rocksDB.multiGet(keyByteList);
-            int i = 0;
-            Iterator<Entry<byte[], byte[]>> it = map.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<byte[], byte[]> entry = it.next();
-                String key = getValueFromByte(entry.getKey());
-                String value = getValueFromByte(entry.getValue());
+            List<byte[]> valueByteList = rocksDB.multiGetAsList(keyByteList);
+            for (int i = 0; i < keyByteList.size(); i++) {
+                String key = getValueFromByte(keyByteList.get(i));
+                String value = getValueFromByte(valueByteList.get(i));
                 JSONArray array = JSONArray.parseArray(value);
                 List<T> valueList = new ArrayList<>();
                 for (int index = 0; index < array.size(); index++) {
                     String objectString = array.getString(index);
                     byte[] bytes = Base64Utils.decode(objectString);
-                    T valueObject = SerializeUtil.deserialize(bytes,clazz);
+                    T valueObject = SerializeUtil.deserialize(bytes, clazz);
                     valueList.add(valueObject);
                 }
                 resultMap.put(key, valueList);
@@ -245,14 +263,31 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
         return new LocalIterator<T>(keyPrefix, clazz, needKey);
     }
 
+    /**
+     * 把key转化成byte
+     *
+     * @param key
+     * @return
+     */
+    protected byte[] getKeyBytes(String key) {
+        try {
+            if (StringUtil.isEmpty(key)) {
+                return null;
+            }
+            return key.getBytes(UTF8);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("get bytes error ", e);
+        }
+    }
+
     public static class LocalIterator<T extends WindowBaseValue> extends WindowBaseValueIterator<T> {
         protected volatile boolean hasNext = true;
         protected AtomicBoolean hasInit = new AtomicBoolean(false);
-        ReadOptions readOptions = new ReadOptions();
-        private RocksIterator iter;
         protected String keyPrefix;
         protected Class<? extends T> clazz;
         protected boolean needKey;
+        ReadOptions readOptions = new ReadOptions();
+        private RocksIterator iter;
 
         public LocalIterator(String keyPrefix, Class<? extends T> clazz, boolean needKey) {
             readOptions.setPrefixSameAsStart(true).setTotalOrderSeek(true);
@@ -277,7 +312,7 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
                 hasNext = false;
                 return null;
             }
-            T windowBaseValue = (T) SerializeUtil.deserialize(iter.value(),clazz);
+            T windowBaseValue = (T) SerializeUtil.deserialize(iter.value(), clazz);
 //            T windowBaseValue = ReflectUtil.forInstance(clazz);
 //            windowBaseValue.toObject(value);
             if (needKey) {
@@ -295,41 +330,5 @@ public class RocksdbStorage<T extends WindowBaseValue> extends AbstractWindowSto
             return windowBaseValue;
         }
 
-    }
-
-    /**
-     * 把key转化成byte
-     *
-     * @param key
-     * @return
-     */
-    protected byte[] getKeyBytes(String key) {
-        try {
-            if (StringUtil.isEmpty(key)) {
-                return null;
-            }
-            return key.getBytes(UTF8);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("get bytes error ", e);
-        }
-    }
-
-    /**
-     * 把byte转化成值
-     *
-     * @param bytes
-     * @return
-     */
-    protected static String getValueFromByte(byte[] bytes) {
-        try {
-            return new String(bytes, UTF8);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static void main(String[] args) {
-        String x = "2012-01-03 00:03:09";
-        System.out.println(x.substring(x.length() - 2, x.length()));
     }
 }

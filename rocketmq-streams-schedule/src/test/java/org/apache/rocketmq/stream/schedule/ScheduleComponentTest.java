@@ -42,7 +42,7 @@ public class ScheduleComponentTest {
             }
 
             @Override
-            public String getConfigureName() {
+            public String getName() {
                 return "name";
             }
 

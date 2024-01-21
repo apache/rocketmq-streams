@@ -20,21 +20,17 @@ package org.apache.rocketmq.streams;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSupportShuffleSink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.junit.Test;
 
 public class RocketMQChannelTest extends AbstractChannelTest {
@@ -65,33 +61,10 @@ public class RocketMQChannelTest extends AbstractChannelTest {
 
     @Test
     public void testGetSplit() {
-        AbstractSupportShuffleSink sink = (AbstractSupportShuffleSink)createSink();
-        List<ISplit<?,?>> splits = sink.getSplitList();
+        AbstractSupportShuffleSink sink = (AbstractSupportShuffleSink) createSink();
+        List<ISplit<?, ?>> splits = sink.getSplitList();
         System.out.println(splits.size());
     }
-
-    //    @Test
-    //    public void testCreateChannel() throws InterruptedException {
-    //        RocketMQChannelBuilder builder = new RocketMQChannelBuilder();
-    //        IChannel consumer = builder.createChannel(getWindowNameSpace(),getWindowName(), createChannelProperties(), null);
-    //        IChannel producer = builder.createChannel(getWindowNameSpace(),getWindowName(), createChannelProperties(), null);
-    //        consumer.start(new IMessageProcssor() {
-    //            @Override
-    //            public Object doMessage(IMessage message, AbstractContext context) {
-    //                System.out.println(message.getMessageBody().toJSONString());
-    //                return null;
-    //            }
-    //        });((AbstractBatchMessageChannel)producer).getQueueList();
-    //
-    //        List<ChannelQueue> queueList = ((AbstractBatchMessageChannel)producer).getQueueList();
-    //        for (int i=0; i<100000; i++) {
-    //
-    //            producer.batchSave(createMsg(queueList.get(0)));
-    //        }
-    //        producer.flush();
-    //
-    //        Thread.sleep(10000000l);
-    //    }
 
     public List<IMessage> createMsg() {
         JSONObject obj = new JSONObject();
@@ -104,41 +77,7 @@ public class RocketMQChannelTest extends AbstractChannelTest {
     }
 
     protected Properties createChannelProperties() {
-        Properties properties = new Properties();
-        Iterator<Map.Entry<Object, Object>> it = ComponentCreator.getProperties().entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Object, Object> entry = it.next();
-            String key = (String)entry.getKey();
-            String value = (String)entry.getValue();
-            if (key.startsWith(WINDOW_TASK_PROPERTY_KEY_PREFIX)) {
-                String channelKey = key.replace(WINDOW_TASK_PROPERTY_KEY_PREFIX, "");
-                properties.put(channelKey, value);
-            }
-
-        }
-        String dynamicProperty = properties.getProperty("dynamic.property");
-        if (dynamicProperty != null) {
-            String namespace = this.getWindowNameSpace();
-            String name = this.getWindowName();
-            String startTime = this.getStartTime();
-            String endTime = this.getEndTime();
-            String startTimeStr = startTime.replace("-", "").replace(" ", "").replace(":", "");
-            String endTimeStr = endTime.replace("-", "").replace(" ", "").replace(":", "");
-            String dynamicPropertyValue = MapKeyUtil.createKeyBySign("_", namespace, name, startTimeStr + "",
-                endTimeStr + "");
-            dynamicPropertyValue = dynamicPropertyValue.replaceAll("\\.", "_");
-            String[] mutilPropertys = dynamicProperty.split(",");
-            String groupName = MapKeyUtil.createKeyBySign("_", namespace, name).replaceAll("\\.", "_");
-            for (String properyKey : mutilPropertys) {
-                if (properyKey.equals("group")) {
-                    properties.put(properyKey, groupName);
-                } else {
-                    properties.put(properyKey, dynamicPropertyValue);
-                }
-
-            }
-        }
-        return properties;
+        return new Properties();
     }
 
     public String getWindowNameSpace() {
@@ -160,19 +99,13 @@ public class RocketMQChannelTest extends AbstractChannelTest {
     @Override
     protected ISource createSource() {
         RocketMQChannelBuilder builder = new RocketMQChannelBuilder();
-        ISource rocketMQSource = builder.createSource(getWindowNameSpace(), getWindowName(), createChannelProperties(), null);
-        //        RocketMQSource rocketMQSource = new RocketMQSource();
-        //        rocketMQSource.setTopic("TOPIC_DIPPER_WINDOW_STATISTICS");
-        //        rocketMQSource.setTags("test");
-        //        rocketMQSource.setAccessKey();
-        return rocketMQSource;
+        return builder.createSource(getWindowNameSpace(), getWindowName(), createChannelProperties(), null);
     }
 
     @Override
     protected ISink createSink() {
         RocketMQChannelBuilder builder = new RocketMQChannelBuilder();
-        ISink sink = builder.createSink(getWindowNameSpace(), getWindowName(), createChannelProperties(), null);
-        return sink;
+        return builder.createSink(getWindowNameSpace(), getWindowName(), createChannelProperties(), null);
     }
 
 }

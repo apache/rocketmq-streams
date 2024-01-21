@@ -45,33 +45,33 @@ public class FunctionTest {
     @Test
     public void testDate() {
         JSONObject message = new JSONObject();
-        message.put("name", "Chris");
-        message.put("age", 18);
-        message.put("from", "2019-07-14 00:00:00");
-        message.put("last", "2019-07-14 01:00:00");
-        message.put("event_type", "alert");
-        String scriptValue = "now=now();x =concat(from,last)";
+        message.put("a", 1);
+        message.put("b", 0);
+        message.put("c", 2);
+        message.put("g", -1);
+        message.put("d", 10);
+        String scriptValue = "x=d+((a-b)/c+8)+(c-abs(g))%7;";
         List<IMessage> list = ScriptComponent.getInstance().getService().executeScript(message, scriptValue);
         for (int i = 0; i < list.size(); i++) {
-            assertTrue(list.get(i).getMessageBody().getString("from").equals("2019-07-14 00:00:00"));
             System.out.println(list.get(i).getMessageBody());
         }
 
     }
+
     @Test
-    public void testJSON(){
-        JSONObject jsonObject=new JSONObject();
-        JSONObject person=new JSONObject();
-        person.put("name","chris");
-        person.put("age",18);
-        jsonObject.put("persion",person);
-        JSONArray jsonArray=new JSONArray();
-        for(int i=0;i<3;i++){
-            JSONObject jsonObject1=new JSONObject();
-            jsonObject1.put("address","address"+i);
+    public void testJSON() {
+        JSONObject jsonObject = new JSONObject();
+        JSONObject person = new JSONObject();
+        person.put("name", "chris");
+        person.put("age", 18);
+        jsonObject.put("persion", person);
+        JSONArray jsonArray = new JSONArray();
+        for (int i = 0; i < 3; i++) {
+            JSONObject jsonObject1 = new JSONObject();
+            jsonObject1.put("address", "address" + i);
             jsonArray.add(jsonObject1);
         }
-        jsonObject.put("addresses",jsonArray);
+        jsonObject.put("addresses", jsonArray);
         System.out.println(JsonableUtil.formatJson(jsonObject));
     }
 

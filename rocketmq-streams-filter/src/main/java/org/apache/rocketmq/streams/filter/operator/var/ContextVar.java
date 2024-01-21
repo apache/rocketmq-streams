@@ -26,9 +26,10 @@ import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 public class ContextVar<T> extends Var<T> {
 
     private static final long serialVersionUID = -7025012350292140132L;
+    protected transient MetaData metaData;
     private String fieldName;
     private String metaDataName;                            // 消息队列对应的meta信息
-    protected transient MetaData metaData;
+
     @SuppressWarnings("unchecked")
     @Override
     public T doMessage(IMessage message, AbstractContext context) {
@@ -38,10 +39,10 @@ public class ContextVar<T> extends Var<T> {
         Object object = null;
         if (metaData == null) {
             object = message.getMessageBody().get(fieldName);
-            if (object == null&& !JSONObject.class.isInstance(message.getMessageBody())&&fieldName.indexOf(".")!=-1) {
+            if (object == null && !JSONObject.class.isInstance(message.getMessageBody()) && fieldName.indexOf(".") != -1) {
                 object = ReflectUtil.getBeanFieldOrJsonValue(message, String.class, fieldName);
             }
-            return (T)object;
+            return (T) object;
         }
         Class dataClass = String.class;
         MetaDataField field = metaData.getMetaDataField(fieldName);
@@ -52,7 +53,7 @@ public class ContextVar<T> extends Var<T> {
         if (object == null) {
             return null;
         }
-        return (T)object;
+        return (T) object;
     }
 
     public String getFieldName() {

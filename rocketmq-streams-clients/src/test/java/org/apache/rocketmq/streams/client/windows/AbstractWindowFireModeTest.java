@@ -29,12 +29,12 @@ import org.apache.rocketmq.streams.common.functions.ForEachFunction;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 
-
 public abstract class AbstractWindowFireModeTest implements Serializable {
-    protected Date date=new Date();
-    public AbstractWindowFireModeTest(){
+    protected Date date = new Date();
 
-        date.setYear(2021-1900);
+    public AbstractWindowFireModeTest() {
+
+        date.setYear(2021 - 1900);
         date.setMonth(6);
         date.setDate(14);
         date.setHours(12);
@@ -44,26 +44,27 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
     }
 
     public void testWindowFireMode0(boolean isLocalOnly) throws InterruptedException {
-        testWindowFireMode1(isLocalOnly,5);
+        testWindowFireMode1(isLocalOnly, 5);
     }
 
-    public void  testWindowFireMode0(boolean isLocalOnly,int windowSize) throws InterruptedException {
+    public void testWindowFireMode0(boolean isLocalOnly, int windowSize) throws InterruptedException {
 
         createSourceDataStream().map(new MapFunction<JSONObject, String>() {
-                int count=0;
-                Long time=null;
+                int count = 0;
+                Long time = null;
+
                 @Override
                 public JSONObject map(String message) throws Exception {
 
-                    if(time==null){
-                        time=date.getTime();
-                    }else {
-                        time+=count;
+                    if (time == null) {
+                        time = date.getTime();
+                    } else {
+                        time += count;
                     }
                     count++;
-                    JSONObject msg=JSONObject.parseObject(message);
+                    JSONObject msg = JSONObject.parseObject(message);
 
-                    msg.put("logTime",time);
+                    msg.put("logTime", time);
 
                     return msg;
                 }
@@ -71,27 +72,30 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .window(TumblingWindow.of(Time.seconds(windowSize)))
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(isLocalOnly)
-            .setMaxMsgGap(isLocalOnly?10L:20L)
+            .setMaxMsgGap(isLocalOnly ? 10L : 20L)
             .setTimeField("logTime")
             .count("total")
             .sum("OutFlow", "OutFlow")
             .sum("InFlow", "inflow")
             .toDataSteam()
             .forEach(new ForEachFunction<JSONObject>() {
-                AtomicInteger sum = new AtomicInteger(0) ;
+                AtomicInteger sum = new AtomicInteger(0);
+
                 @Override
                 public synchronized void foreach(JSONObject o) {
                     int total = o.getInteger("total");
-                    o.put("sum(total)",  sum.addAndGet(total));
+                    o.put("sum(total)", sum.addAndGet(total));
                 }
             }).toPrint().start();
     }
+
     public void testWindowFireMode1(boolean isLocalOnly) throws InterruptedException {
-        testWindowFireMode1(isLocalOnly,5);
+        testWindowFireMode1(isLocalOnly, 5);
     }
-    public void testWindowFireMode1(boolean isLocalOnly,int windowSize) throws InterruptedException {
-        AtomicInteger sum = new AtomicInteger(0) ;
-            createSourceDataStream()
+
+    public void testWindowFireMode1(boolean isLocalOnly, int windowSize) throws InterruptedException {
+        AtomicInteger sum = new AtomicInteger(0);
+        createSourceDataStream()
             //.map(new MapFunction<JSONObject, String>() {
             //    AtomicInteger COUNT=new AtomicInteger(0);
             //    Long time;
@@ -113,7 +117,7 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .window(TumblingWindow.of(Time.seconds(windowSize)))
             .setTimeField("logTime")
             .fireMode(1)
-                .setMaxMsgGap(isLocalOnly?20L:20L)
+            .setMaxMsgGap(isLocalOnly ? 20L : 20L)
             .waterMark(100000000)
             .groupBy("ProjectName", "LogStore")
             .setLocalStorageOnly(isLocalOnly)
@@ -123,37 +127,37 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .toDataSteam()
             .forEach(new ForEachFunction<JSONObject>() {
 
-
                 @Override
                 public synchronized void foreach(JSONObject o) {
                     int total = o.getInteger("total");
-                    o.put("sum(total)",  sum.addAndGet(total));
+                    o.put("sum(total)", sum.addAndGet(total));
                 }
             }).toPrint().start();
     }
 
-    public void testWindowFireMode2(boolean isLocalOnly){
-        long time=new Date().getTime();
+    public void testWindowFireMode2(boolean isLocalOnly) {
+        long time = new Date().getTime();
         System.out.println(DateUtil.getCurrentTimeString());
         createSourceDataStream()
             .map(new MapFunction<JSONObject, String>() {
-                int count=0;
+                int count = 0;
+
                 @Override
                 public JSONObject map(String message) throws Exception {
 
-                    JSONObject msg=JSONObject.parseObject(message);
-                    long time= msg.getLong("logTime");
-                    Date date=new Date(time);
-                    date.setYear(2021-1900);
+                    JSONObject msg = JSONObject.parseObject(message);
+                    long time = msg.getLong("logTime");
+                    Date date = new Date(time);
+                    date.setYear(2021 - 1900);
                     date.setMonth(6);
                     date.setDate(14);
-                    msg.put("logTime",date.getTime()+count++);
+                    msg.put("logTime", date.getTime() + count++);
                     return msg;
                 }
             })
             .window(TumblingWindow.of(Time.seconds(5)))
             .setTimeField("logTime")
-            .setMaxMsgGap(isLocalOnly?5L:20L)
+            .setMaxMsgGap(isLocalOnly ? 5L : 20L)
             .fireMode(1)
             .waterMark(100000000)
             .groupBy("ProjectName", "LogStore")
@@ -163,11 +167,12 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .sum("InFlow", "InFlow")
             .toDataSteam()
             .map(new MapFunction<JSONObject, JSONObject>() {
-                long time=new Date().getTime();
+                long time = new Date().getTime();
+
                 @Override
                 public JSONObject map(JSONObject message) throws Exception {
-                    message.put("name","chris");
-                    message.put("time",time++);
+                    message.put("name", "chris");
+                    message.put("time", time++);
                     return message;
                 }
             })
@@ -176,28 +181,28 @@ public abstract class AbstractWindowFireModeTest implements Serializable {
             .setMaxMsgGap(80L)
             .groupBy("name")
             .setTimeField("time")
-            .sum("total","sum_total")
+            .sum("total", "sum_total")
             .setLocalStorageOnly(true)
             .toDataSteam()
             .forEach(new ForEachFunction<JSONObject>() {
-                AtomicInteger sum = new AtomicInteger(0) ;
-                Map<String,Integer> map=new HashMap<>();
+                AtomicInteger sum = new AtomicInteger(0);
+                Map<String, Integer> map = new HashMap<>();
+
                 @Override
                 public synchronized void foreach(JSONObject o) {
-                    String windowInstanceId=o.getString("windowInstanceId");
-                    Integer oldValue=map.get(windowInstanceId);
+                    String windowInstanceId = o.getString("windowInstanceId");
+                    Integer oldValue = map.get(windowInstanceId);
                     int total = o.getInteger("sum_total");
-                    if(oldValue!=null){
-                        total=total-oldValue;
+                    if (oldValue != null) {
+                        total = total - oldValue;
                     }
-                    int nowValue=sum.addAndGet(total);
-                    map.put(windowInstanceId,total);
-                    o.put("sum(total)",  nowValue);
+                    int nowValue = sum.addAndGet(total);
+                    map.put(windowInstanceId, total);
+                    o.put("sum(total)", nowValue);
                 }
             }).toPrint().start();
 
     }
-
 
     protected abstract DataStream createSourceDataStream();
 }

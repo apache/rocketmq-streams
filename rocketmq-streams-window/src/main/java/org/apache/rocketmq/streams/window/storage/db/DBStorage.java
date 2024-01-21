@@ -45,14 +45,14 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         if (CollectionUtil.isEmpty(values)) {
             return null;
         }
-        String sql = ORMUtil.createBatchReplacetSQL(new ArrayList<>(values.values()));
+        String sql = ORMUtil.createBatchReplaceSQL(new ArrayList<>(values.values()));
         return sql;
     }
 
     @Override public String multiPutListSQL(Map<String, List<T>> infoMap) {
         if (CollectionUtil.isNotEmpty(infoMap)) {
             List<T> valueList = duplicate(infoMap);
-            return ORMUtil.createBatchReplacetSQL(valueList);
+            return ORMUtil.createBatchReplaceSQL(valueList);
         }
         return null;
     }
@@ -207,15 +207,25 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
         return sql;
     }
 
-    public static class DBIterator<T extends WindowBaseValue> extends WindowBaseValueIterator<T> {
-        private LinkedList<T> container = new LinkedList<>();
-        int batchSize = 1000;
-        private boolean exist = true;
+    protected Long getPartitionNum(String windowInstanceId, Class<T> clazz, boolean isMax) {
+        String partitionNumSQL = isMax ? "max(partition_num)" : "min(partition_num)";
+        String windowInstancePartitionId = StringUtil.createMD5Str(windowInstanceId);
+        String sql = "select " + partitionNumSQL + " as partition_num from " + ORMUtil.getTableName(clazz)
+            + " where window_instance_partition_id ='" + windowInstancePartitionId + "'";
+        WindowBaseValue windowBaseValue = ORMUtil.queryForObject(sql, new HashMap<>(4), clazz);
+        if (windowBaseValue == null) {
+            return null;
+        }
+        return windowBaseValue.getPartitionNum();
+    }
 
+    public static class DBIterator<T extends WindowBaseValue> extends WindowBaseValueIterator<T> {
+        int batchSize = 1000;
+        String sql;
+        private LinkedList<T> container = new LinkedList<>();
+        private boolean exist = true;
         private long maxPartitionIndex;
         private Class<T> clazz;
-
-        String sql;
 
         public DBIterator(String queueId, String windowInstanceId, String keyPrex, Class<T> clazz,
             long maxPartitionIndex) {
@@ -265,18 +275,6 @@ public class DBStorage<T extends WindowBaseValue> extends AbstractWindowStorage<
             return container.poll();
         }
 
-    }
-
-    protected Long getPartitionNum(String windowInstanceId, Class<T> clazz, boolean isMax) {
-        String partitionNumSQL = isMax ? "max(partition_num)" : "min(partition_num)";
-        String windowInstancePartitionId = StringUtil.createMD5Str(windowInstanceId);
-        String sql = "select " + partitionNumSQL + " as partition_num from " + ORMUtil.getTableName(clazz)
-            + " where window_instance_partition_id ='" + windowInstancePartitionId + "'";
-        WindowBaseValue windowBaseValue = ORMUtil.queryForObject(sql, new HashMap<>(4), clazz);
-        if (windowBaseValue == null) {
-            return null;
-        }
-        return windowBaseValue.getPartitionNum();
     }
 
 }

@@ -27,10 +27,6 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 @UDAFFunction("sum")
 public class SumAccumulator implements IAccumulator<Number, SumAccumulator.SumAccum> {
 
-    public static class SumAccum {
-        public Number sum;
-    }
-
     @Override
     public SumAccum createAccumulator() {
         SumAccum accum = new SumAccum();
@@ -50,10 +46,10 @@ public class SumAccumulator implements IAccumulator<Number, SumAccumulator.SumAc
         }
         try {
             if (parameters[0] instanceof Number) {
-                Number value = (Number)parameters[0];
+                Number value = (Number) parameters[0];
                 accumulator.sum = NumberUtils.stripTrailingZeros(accumulator.sum.doubleValue() + value.doubleValue());
             } else if (parameters[0] instanceof String) {
-                Number value = Double.valueOf((String)parameters[0]);
+                Number value = Double.valueOf((String) parameters[0]);
                 accumulator.sum = NumberUtils.stripTrailingZeros(accumulator.sum.doubleValue() + value.doubleValue());
             } else {
                 throw new RuntimeException("type error!");
@@ -77,5 +73,9 @@ public class SumAccumulator implements IAccumulator<Number, SumAccumulator.SumAc
     @Override
     public void retract(SumAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class SumAccum {
+        public Number sum;
     }
 }

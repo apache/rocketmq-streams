@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.examples.source;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.ShuffleStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
@@ -26,7 +26,7 @@ import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
 public class MqttSourceExample {
 
     public static void main(String[] args) {
-        DataStreamSource dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
+        DataStreamSource dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("test_namespace", "graph_pipeline");
         dataStream.fromMqtt("xxxxx", "xxxx", "xxxxxx", "", "")
             .flatMap(message -> ((JSONObject) message).getJSONArray("Data"))
             .window(TumblingWindow.of(Time.minutes(1)))

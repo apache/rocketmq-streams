@@ -71,14 +71,17 @@ public class KafkaChannelBuilder extends AbstractSupportShuffleChannelBuilder {
             }
             formatProperties.put(key, properties.getProperty(key));
         }
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "group.id");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "consumerGroup");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "endpoint", "bootstrap.servers");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "thread.max.count");
-
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "consumergroup");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "groupname");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "bootstrapServers", "bootstrap.servers");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "bootstrapServers", "bootstrap_servers");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "topic", "topic");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "group_name");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "userName", "user_name");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "password", "password");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "sessionTimeout", "session_timeout");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxPollRecords", "max_poll_records");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxthread", "max_thread");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxRequestSize", " max_request_size");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "autoOffsetReset", "auto_offset_reset");
         return formatProperties;
     }
 

@@ -33,16 +33,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MappedByteBufferTable extends FileBasedTable {
 
-    private static final Log logger = LogFactory.getLog(MappedByteBufferTable.class);
-
     protected static final int DEFAULT_SIZE = 1024 * 1024 * 1024;
+    private static final Logger logger = LoggerFactory.getLogger(MappedByteBufferTable.class);
     protected transient List<MappedByteBuffer> caches = new ArrayList<>();
     protected transient List<FileChannel> channels = new ArrayList<>();
     protected transient List<RandomAccessFile> files = new ArrayList<>();
@@ -325,6 +324,12 @@ public class MappedByteBufferTable extends FileBasedTable {
         this.files = files;
     }
 
+    public interface DateLoader {
+
+        void load(MappedByteBufferTable table);
+
+    }
+
     public static class FileMeta implements Serializable {
 
         private static final long serialVersionUID = -248063270830962898L;
@@ -459,12 +464,6 @@ public class MappedByteBufferTable extends FileBasedTable {
         }
     }
 
-    public interface DateLoader {
-
-        void load(MappedByteBufferTable table);
-
-    }
-
     public static class Creator {
 
         Properties properties = new Properties();
@@ -569,9 +568,9 @@ public class MappedByteBufferTable extends FileBasedTable {
             table.setFileOffset(meta.totalByteSize);
             table.setColumnsCount(meta.columnsCount);
             table.setFileRowCount(meta.totalRowCount);
-            table.setCloumnName2Index(meta.columnName2Index);
+            table.setColumnName2Index(meta.columnName2Index);
             table.setIndex2ColumnName(meta.index2ColumnName);
-            table.setCloumnName2DatatType(meta.columns2DataType);
+            table.setColumnName2DatatType(meta.columns2DataType);
             for (int i = 0; i < meta.filePaths.length; i++) {
                 String path = meta.filePaths[i];
                 int limit = meta.limits[i];
@@ -583,15 +582,18 @@ public class MappedByteBufferTable extends FileBasedTable {
 
         }
 
-        private String getCycleStr(Date date, int pollingTimeMinute) {
+        private String getCycleStr(Date date, int pollingTimeSecond) {
             String cycleStr = "";
-            if (pollingTimeMinute >= 1 && pollingTimeMinute < 60) {
+            if (pollingTimeSecond >= 1 && pollingTimeSecond < 60) {
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+                cycleStr = format.format(date);
+            } else if (pollingTimeSecond >= 60 && pollingTimeSecond < (60 * 60)) {
                 SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmm");
                 cycleStr = format.format(date);
-            } else if (pollingTimeMinute >= 60 && pollingTimeMinute < (60 * 24)) {
+            } else if (pollingTimeSecond >= 60 * 60 && pollingTimeSecond < (60 * 60 * 24)) {
                 SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHH");
                 cycleStr = format.format(date);
-            } else if (pollingTimeMinute >= (60 * 24)) {
+            } else if (pollingTimeSecond >= (60 * 60 * 24)) {
                 SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
                 cycleStr = format.format(date);
             }

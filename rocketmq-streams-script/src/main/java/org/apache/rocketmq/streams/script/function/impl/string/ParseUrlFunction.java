@@ -32,9 +32,9 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 public class ParseUrlFunction {
     @FunctionMethod(value = "parse_url", alias = "url", comment = "对url的解析，按key提取信息")
     public String parseurl(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "url") String urlStr,
-                           @FunctionParamter(value = "string", comment = "支持HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, 和 "
-                               + "USERINFO，不区分大小写,支持字段，常量") String part) throws MalformedURLException {
+        @FunctionParamter(value = "string", comment = "url") String urlStr,
+        @FunctionParamter(value = "string", comment = "支持HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, 和 "
+            + "USERINFO，不区分大小写,支持字段，常量") String part) throws MalformedURLException {
         return parseurl(message, context, urlStr, part, null);
     }
 
@@ -50,11 +50,11 @@ public class ParseUrlFunction {
      */
     @FunctionMethod(value = "parse_url", alias = "url", comment = "对url的解析，按key提取信息")
     public String parseurl(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "url") String urlStr,
-                           @FunctionParamter(value = "string", comment = "支持HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, 和 "
-                               + "USERINFO，不区分大小写,支持字段，常量") String part,
-                           @FunctionParamter(value = "string", comment = "当part为QUERY时根据key的值取出在query string中的value值，否则忽略key参数,支持字段，常量")
-                               String key) throws MalformedURLException {
+        @FunctionParamter(value = "string", comment = "url") String urlStr,
+        @FunctionParamter(value = "string", comment = "支持HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, 和 "
+            + "USERINFO，不区分大小写,支持字段，常量") String part,
+        @FunctionParamter(value = "string", comment = "当part为QUERY时根据key的值取出在query string中的value值，否则忽略key参数,支持字段，常量")
+        String key) throws MalformedURLException {
         if (StringUtil.isEmpty(urlStr) || StringUtil.isEmpty(part)) {
             return null;
         }

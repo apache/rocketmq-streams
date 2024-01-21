@@ -56,18 +56,18 @@ public class PreFingerprint {
     protected transient AbstractStage<?> filterChainStage;
     protected transient List<AbstractStage<?>> allPreviewFilterChainStage = new LinkedList<>();
 
-    public PreFingerprint(String logFingerFieldNames, String filterStageIdentification, String sourceStageLable, String nextStageLable, int expressionCount, AbstractStage<?> filterChainStage, FingerprintCache fingerprintCache) {
+    public PreFingerprint(String logFingerFieldNames, String filterStageIdentification, String sourceStageLable, String nextStageLable, int expressionCount, AbstractStage<?> filterChainStage) {
         this.logFingerFieldNames = logFingerFieldNames;
         this.filterStageIdentification = filterStageIdentification;
         this.sourceStageLabel = sourceStageLable;
         this.nextStageLabel = nextStageLable;
         this.expressionCount = expressionCount;
         this.filterChainStage = filterChainStage;
-        this.fingerprintCache = fingerprintCache;
+        this.fingerprintCache = FingerprintCache.getInstance();
     }
 
-    public PreFingerprint(String logFingerFieldNames, String filterStageIdentification, String sourceStageLable, String nextStageLable, AbstractStage<?> filterChainStage, FingerprintCache fingerprintCache) {
-        this(logFingerFieldNames, filterStageIdentification, sourceStageLable, nextStageLable, -1, filterChainStage, fingerprintCache);
+    public PreFingerprint(String logFingerFieldNames, String filterStageIdentification, String sourceStageLable, String nextStageLable, AbstractStage<?> filterChainStage) {
+        this(logFingerFieldNames, filterStageIdentification, sourceStageLable, nextStageLable, -1, filterChainStage);
     }
 
     /**
@@ -77,9 +77,9 @@ public class PreFingerprint {
      * @return
      */
     public boolean filterByLogFingerprint(IMessage message) {
-        if (logFingerFieldNames != null) {
+        if (logFingerFieldNames != null && !message.getHeader().isSystemMessage()) {
             String msgKey = FingerprintCache.creatFingerpringKey(message, filterStageIdentification, logFingerFieldNames);
-            if (msgKey != null) {
+            if (msgKey != null && !"<NULL>".equals(msgKey)) {
                 BitSetCache.BitSet bitSet = fingerprintCache.getLogFingerprint(filterStageIdentification, msgKey);
                 if (bitSet != null && bitSet.get(0)) {
                     return true;
@@ -89,6 +89,11 @@ public class PreFingerprint {
             }
         }
         return false;
+    }
+
+    public String createFieldMsg(IMessage message) {
+        String msgKey = FingerprintCache.creatFingerpringKey(message, filterStageIdentification, logFingerFieldNames);
+        return msgKey;
     }
 
     /**
@@ -108,6 +113,12 @@ public class PreFingerprint {
 
     public String getLogFingerFieldNames() {
         return logFingerFieldNames;
+    }
+
+    public void setLogFingerFieldNames(Set<String> logFingerFieldNames) {
+        List<String> fingers = new ArrayList<>(logFingerFieldNames);
+        Collections.sort(fingers);
+        this.logFingerFieldNames = MapKeyUtil.createKey(",", fingers);
     }
 
     public String getSourceStageLabel() {
@@ -130,18 +141,21 @@ public class PreFingerprint {
         return filterChainStage;
     }
 
-    public void setLogFingerFieldNames(Set<String> logFingerFieldNames) {
-        List<String> fingers = new ArrayList<>(logFingerFieldNames);
-        Collections.sort(fingers);
-        this.logFingerFieldNames = MapKeyUtil.createKey(",", fingers);
-    }
-
     public void addPreviwFilterChainStage(List<AbstractStage<?>> filterChainStages) {
         this.allPreviewFilterChainStage.addAll(filterChainStages);
     }
 
     public void addPreviwFilterChainStage(AbstractStage<?> filterChainStage) {
         this.allPreviewFilterChainStage.add(filterChainStage);
+    }
+
+    public FingerprintCache getFingerprintCache() {
+        return fingerprintCache;
+    }
+
+    public void setFingerprintCache(
+        FingerprintCache fingerprintCache) {
+        this.fingerprintCache = fingerprintCache;
     }
 
     public List<AbstractStage<?>> getAllPreviewFilterChainStage() {

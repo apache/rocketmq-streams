@@ -21,8 +21,8 @@ import java.io.Serializable;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.udf.StageBuilder;
 
 public class SplitStream implements Serializable {
@@ -32,9 +32,9 @@ public class SplitStream implements Serializable {
      */
     protected PipelineBuilder pipelineBuilder;
     protected Set<PipelineBuilder> otherPipelineBuilders;
-    protected ChainStage<?> currentChainStage;
+    protected AbstractChainStage<?> currentChainStage;
 
-    public SplitStream(PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders, ChainStage<?> currentChainStage) {
+    public SplitStream(PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders, AbstractChainStage<?> currentChainStage) {
         this.pipelineBuilder = pipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
@@ -48,12 +48,14 @@ public class SplitStream implements Serializable {
      */
     public DataStream select(String lableName) {
         StageBuilder operator = new StageBuilder() {
-            @Override protected <T> T operate(IMessage message, AbstractContext context) {
+            @Override protected IMessage handleMessage(IMessage message, AbstractContext context) {
+                System.out.println(message.getMessageBody());
                 return null;
             }
+
         };
 
-        ChainStage<?> stage = this.pipelineBuilder.createStage(operator);
+        AbstractChainStage<?> stage = this.pipelineBuilder.createStage(operator);
         stage.setLabel(lableName);
         this.pipelineBuilder.setTopologyStages(currentChainStage, stage);
         return new DataStream(pipelineBuilder, otherPipelineBuilders, stage);

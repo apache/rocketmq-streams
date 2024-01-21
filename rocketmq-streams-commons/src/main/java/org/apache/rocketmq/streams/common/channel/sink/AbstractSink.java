@@ -23,8 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sinkcache.IMessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MessageCache;
 import org.apache.rocketmq.streams.common.channel.sinkcache.impl.MultiSplitMessageCache;
@@ -35,34 +33,36 @@ import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.checkpoint.SourceState;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurableIdentification;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.ILifeCycle;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
+import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 输出的接口抽象，针对json消息的场景
  */
 public abstract class AbstractSink extends BasedConfigurable implements ISink<AbstractSink>, ILifeCycle {
 
-    private static final Log logger = LogFactory.getLog(AbstractSink.class);
-    public static String TARGET_QUEUE = "target_queue";//指定发送queue
     public static final int DEFAULT_BATCH_SIZE = 3000;
+    private static final Logger logger = LoggerFactory.getLogger(AbstractSink.class);
+    public static String TARGET_QUEUE = "target_queue";//指定发送queue
     protected transient IMessageCache<IMessage> messageCache;
     protected volatile int batchSize = DEFAULT_BATCH_SIZE;
     protected transient volatile Map<String, SourceState> sourceName2State = new HashMap<>();//保存完成刷新的queueid和offset
     protected volatile int autoFlushSize = 300;
     protected volatile int autoFlushTimeGap = 1000;
-
+    protected MetaData metaData;//可以指定meta data，和insertSQL二选一
     public AbstractSink() {
         setType(TYPE);
+
     }
 
-    @Override
-    protected boolean initConfigurable() {
+    @Override protected boolean initConfigurable() {
         messageCache = new MultiSplitMessageCache(this);
         ((MessageCache<IMessage>) messageCache).setAutoFlushTimeGap(autoFlushTimeGap);
         ((MessageCache<IMessage>) messageCache).setAutoFlushSize(autoFlushSize);
@@ -72,13 +72,13 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     }
 
     @Override
-    public boolean batchAdd(IMessage message,  ISplit<?,?> split) {
+    public boolean batchAdd(IMessage message, ISplit<?, ?> split) {
         message.getMessageBody().put(TARGET_QUEUE, split);
         return batchAdd(message);
     }
 
-    public ISplit<?,?> getSplit(IMessage message) {
-        return (ISplit<?,?>) message.getMessageBody().get(TARGET_QUEUE);
+    public ISplit<?, ?> getSplit(IMessage message) {
+        return (ISplit<?, ?>) message.getMessageBody().get(TARGET_QUEUE);
     }
 
     @Override
@@ -94,6 +94,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
 
     @Override
     public boolean batchSave(List<IMessage> messages) {
+        init();
         if (messages == null || messages.size() == 0) {
             //LOG.warn("has empty data to insert");
             return true;
@@ -150,7 +151,9 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
 
     @Override
     public void closeAutoFlush() {
-        messageCache.closeAutoFlush();
+        if (messageCache != null) {
+            messageCache.closeAutoFlush();
+        }
     }
 
     @Override
@@ -196,7 +199,7 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
 
     @Override
     public boolean flush() {
-        String name = getConfigureName();
+        String name = getName();
         if (StringUtil.isEmpty(name)) {
             name = getClass().getName();
         }
@@ -245,22 +248,22 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
         return messageCache;
     }
 
+    public void setMessageCache(IMessageCache<IMessage> messageCache) {
+        this.messageCache = messageCache;
+    }
+
     @Override
     public Map<String, MessageOffset> getFinishedQueueIdAndOffsets(CheckPointMessage checkPointMessage) {
         String pipelineName = null;
         if (checkPointMessage.getStreamOperator() instanceof IConfigurableIdentification) {
             IConfigurableIdentification configurable = (IConfigurableIdentification) checkPointMessage.getStreamOperator();
-            pipelineName = configurable.getConfigureName();
+            pipelineName = configurable.getName();
         }
         SourceState sourceState = this.sourceName2State.get(CheckPointManager.createSourceName(checkPointMessage.getSource(), pipelineName));
         if (sourceState != null) {
             return sourceState.getQueueId2Offsets();
         }
         return new HashMap<>();
-    }
-
-    public void setMessageCache(IMessageCache<IMessage> messageCache) {
-        this.messageCache = messageCache;
     }
 
     @Override
@@ -276,6 +279,19 @@ public abstract class AbstractSink extends BasedConfigurable implements ISink<Ab
     @Override
     public boolean isFinished() throws Exception {
         return false;
+    }
+
+    @Override public void destroy() {
+        super.destroy();
+        this.setHasInit(false);
+    }
+
+    public MetaData getMetaData() {
+        return metaData;
+    }
+
+    public void setMetaData(MetaData metaData) {
+        this.metaData = metaData;
     }
 
     public int getAutoFlushSize() {

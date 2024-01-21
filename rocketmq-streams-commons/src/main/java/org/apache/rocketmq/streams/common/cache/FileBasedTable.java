@@ -33,15 +33,13 @@ import org.apache.rocketmq.streams.common.utils.NumberUtils;
  */
 public abstract class FileBasedTable extends AbstractMemoryTable {
 
-    static transient String mappedFilePrefix = "/tmp/dipper_";
     protected static final ByteOrder order = ByteOrder.nativeOrder();
-
+    static transient String mappedFilePrefix = "/tmp/dipper_";
+    protected transient long fileOffset = 0; // unit -> byte
+    protected transient int fileRowCount = 0; //总的行数
     String fileName;
     int columnsCount = -1;
     TableSchema tableSchema;
-
-    protected transient long fileOffset = 0; // unit -> byte
-    protected transient int fileRowCount = 0; //总的行数
 
     protected FileBasedTable() {
 
@@ -60,12 +58,24 @@ public abstract class FileBasedTable extends AbstractMemoryTable {
                 String fieldName = tableSchema.getField(i);
                 String fieldType = tableSchema.getFieldType(i);
                 DataType dataType = DataTypeUtil.getDataType(fieldType);
-                cloumnName2Index.put(fieldName, i);
+                columnName2Index.put(fieldName, i);
                 index2ColumnName.put(i, fieldName);
-                cloumnName2DatatType.put(fieldName, dataType);
+                columnName2DataType.put(fieldName, dataType);
             }
         }
 
+    }
+
+    public static String createRealFilePath(String fileName, String cyclePeriod, String index) {
+        return mappedFilePrefix + fileName + "_" + cyclePeriod + "_" + index;
+    }
+
+    public static String createLockFilePath(String fileName, String cyclePeriod) {
+        return mappedFilePrefix + fileName + "_" + cyclePeriod + "_lock";
+    }
+
+    public static String createDoneFilePath(String fileName, String cyclePeriod) {
+        return mappedFilePrefix + fileName + "_" + cyclePeriod + "_done";
     }
 
     // row id
@@ -74,8 +84,8 @@ public abstract class FileBasedTable extends AbstractMemoryTable {
 
         return new Iterator<RowElement>() {
 
-            protected long nextCursor = 0;
             private final long totalByteCount = fileOffset;
+            protected long nextCursor = 0;
 
             @Override
             public boolean hasNext() {
@@ -294,14 +304,6 @@ public abstract class FileBasedTable extends AbstractMemoryTable {
         return loadFromFile(offset, 2);
     }
 
-    abstract byte[] loadFromFile(long offset, int len);
-
-    abstract boolean destroy();
-
-    int rowLenByte2Int(byte[] bytes) {
-        return NumberUtils.toInt(bytes);
-    }
-
 //    int lengthByte2Int(byte[] bytes){
 //        int bytesLength = bytes.length;
 //        if(bytesLength == 1){
@@ -311,6 +313,14 @@ public abstract class FileBasedTable extends AbstractMemoryTable {
 //            return NumberUtils.toInt(bytes);
 //        }
 //    }
+
+    abstract byte[] loadFromFile(long offset, int len);
+
+    abstract boolean destroy();
+
+    int rowLenByte2Int(byte[] bytes) {
+        return NumberUtils.toInt(bytes);
+    }
 
     private byte[] readColumnLen(byte[] bytes, int index) {
         byte b = bytes[index];
@@ -389,17 +399,5 @@ public abstract class FileBasedTable extends AbstractMemoryTable {
 
     public void setTableSchema(TableSchema tableSchema) {
         this.tableSchema = tableSchema;
-    }
-
-    public static String createRealFilePath(String fileName, String cyclePeriod, String index) {
-        return mappedFilePrefix + fileName + "_" + cyclePeriod + "_" + index;
-    }
-
-    public static String createLockFilePath(String fileName, String cyclePeriod) {
-        return mappedFilePrefix + fileName + "_" + cyclePeriod + "_lock";
-    }
-
-    public static String createDoneFilePath(String fileName, String cyclePeriod) {
-        return mappedFilePrefix + fileName + "_" + cyclePeriod + "_done";
     }
 }

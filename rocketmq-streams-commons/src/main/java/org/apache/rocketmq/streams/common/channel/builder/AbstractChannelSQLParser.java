@@ -19,12 +19,10 @@ package org.apache.rocketmq.streams.common.channel.builder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 
-public abstract class AbstractChannelSQLParser extends AbstractSupportShuffleChannelBuilder{
+public abstract class AbstractChannelSQLParser extends AbstractSupportShuffleChannelBuilder {
 
     @Override public ISink createBySource(ISource pipelineSource) {
         throw new RuntimeException("can not this method ");
     }
-
-
 
 }

@@ -65,7 +65,7 @@ public class ScriptFunction extends AbstractExpressionFunction {
             throw new RuntimeException("execute scriptFunction error, expect return boolean value ,real is null");
         }
         if (Boolean.class.isInstance(object)) {
-            return (Boolean)object;
+            return (Boolean) object;
         }
         throw new RuntimeException("execute scriptFunction error, expect return boolean value ,real is " + object.getClass().getName());
     }

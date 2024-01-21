@@ -17,22 +17,22 @@
 package org.apache.rocketmq.streams.filter.optimization.dependency;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.model.Pipeline;
+import org.apache.rocketmq.streams.common.topology.model.AbstractPipeline;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 
 public class SimplePipelineTree {
-    protected Pipeline pipeline;
+    protected AbstractPipeline pipeline;
     protected TreeNode rootNode;
     protected TreeNode leafNode;
-    public SimplePipelineTree(Pipeline pipeline){
-        this.pipeline=pipeline;
+
+    public SimplePipelineTree(AbstractPipeline pipeline) {
+        this.pipeline = pipeline;
     }
 
     /**
      * trace root field dependent in this script
+     *
      * @param varName
      * @return
      */

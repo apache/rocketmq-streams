@@ -23,10 +23,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.PreFingerprint;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -44,15 +43,12 @@ public class FilterTreeNode extends TreeNode<FilterChainStage> {
     public FilterTreeNode(ChainPipeline pipeline, FilterChainStage stage,
         TreeNode parent) {
         super(pipeline, stage, parent);
-        if (stage.getRules().size() > 1) {
-            throw new RuntimeException("can not optimizate mutil rule stages " + stage.getLabel());
-        }
-        rule = (Rule) stage.getRules().get(0);
+        rule = (Rule) stage.getRule();
         dependentFieldNames = rule.getDependentFields();
     }
 
-    public PreFingerprint createPreFingerprint(FingerprintCache fingerprintCache) {
-        String filterStageIdentification = MapKeyUtil.createKey(rule.getNameSpace(), this.pipeline.getConfigureName(), rule.getConfigureName());
+    public PreFingerprint createPreFingerprint() {
+        String filterStageIdentification = MapKeyUtil.createKey(rule.getNameSpace(), this.pipeline.getName(), rule.getName());
         List<String> parents = this.getStage().getPrevStageLabels();
 
         if (parents == null || this.getParents() == null || this.getParents().size() == 0) {
@@ -60,7 +56,7 @@ public class FilterTreeNode extends TreeNode<FilterChainStage> {
             if (containsDimField) {
                 return null;
             }
-            PreFingerprint preFingerprint = new PreFingerprint(createFingerprint(dependentFieldNames), filterStageIdentification, pipeline.getChannelName(), this.stage.getLabel(), getExpressionCount(), stage, fingerprintCache);
+            PreFingerprint preFingerprint = new PreFingerprint(createFingerprint(dependentFieldNames), filterStageIdentification, pipeline.getChannelName(), this.stage.getLabel(), getExpressionCount(), stage);
             return preFingerprint;
         }
         if (parents.size() > 1) {
@@ -75,7 +71,7 @@ public class FilterTreeNode extends TreeNode<FilterChainStage> {
         if (denpendentFields == null) {
             return null;
         }
-        PreFingerprint preFingerprint = new PreFingerprint(createFingerprint(denpendentFields), filterStageIdentification, sourceStage == null ? null : sourceStage.getLabel(), nextStage.getLabel(), getExpressionCount(), stage, fingerprintCache);
+        PreFingerprint preFingerprint = new PreFingerprint(createFingerprint(denpendentFields), filterStageIdentification, sourceStage == null ? null : sourceStage.getLabel(), nextStage.getLabel(), getExpressionCount(), stage);
         return preFingerprint;
     }
 

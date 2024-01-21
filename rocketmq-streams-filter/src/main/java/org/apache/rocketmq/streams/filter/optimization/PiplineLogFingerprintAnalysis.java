@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -44,10 +44,12 @@ public class PiplineLogFingerprintAnalysis {
     public PiplineLogFingerprintAnalysis(ChainPipeline pipline) {
         this.pipline = pipline;
     }
-    public PiplineLogFingerprintAnalysis(ChainPipeline pipline,int filterIndex) {
+
+    public PiplineLogFingerprintAnalysis(ChainPipeline pipline, int filterIndex) {
         this.pipline = pipline;
-        this.filterIndex=filterIndex;
+        this.filterIndex = filterIndex;
     }
+
     /**
      * 通过分析pipline找到可以过滤的日志指纹，插入到合适的stage中。如最顶部的stage中
      *
@@ -66,7 +68,7 @@ public class PiplineLogFingerprintAnalysis {
                 AbstractStage rootStage = stageMap.get(label);
                 //处理一个分支，目前只支持最顶层的分支，后续再有分支暂不支持
                 AbstractStage stage = analysisStage(rootStage, logFingerFieldNames, null, 0);
-                logFingerprintFliterChainStage = (FilterChainStage)stage;
+                logFingerprintFliterChainStage = (FilterChainStage) stage;
                 stageName = stage.getLabel();
 
             }
@@ -74,7 +76,7 @@ public class PiplineLogFingerprintAnalysis {
             List<AbstractStage> stages = pipline.getStages();
             AbstractStage rootStage = stages.get(0);
             AbstractStage stage = analysisStage(rootStage, logFingerFieldNames, null, 0);
-            logFingerprintFliterChainStage = (FilterChainStage)getPrewScriptChainStage(stage, FilterChainStage.class);
+            logFingerprintFliterChainStage = (FilterChainStage) getPrewScriptChainStage(stage, FilterChainStage.class);
             int i = 0;
             for (AbstractStage stage1 : stages) {
                 if (stage == stage1) {
@@ -91,7 +93,7 @@ public class PiplineLogFingerprintAnalysis {
         List<String> logFingerList = new ArrayList<>();
         logFingerList.addAll(logFingerFieldNames);
         Collections.sort(logFingerList);
-        String key = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getConfigureName(), stageName);
+        String key = MapKeyUtil.createKeyBySign(".", pipline.getNameSpace(), pipline.getName(), stageName);
         String value = MapKeyUtil.createKeyFromCollection(",", logFingerList);
         System.out.println(key + "=" + value);
         return logFingerList;
@@ -105,8 +107,8 @@ public class PiplineLogFingerprintAnalysis {
      * @return
      */
     private AbstractStage analysisStage(AbstractStage currentStage, Set<String> logFingerFieldNames,
-                                        FilterChainStage prewFilterStage, int filterStageIndex) {
-        ChainPipeline pipline = (ChainPipeline)currentStage.getPipeline();
+        FilterChainStage prewFilterStage, int filterStageIndex) {
+        ChainPipeline pipline = (ChainPipeline) currentStage.getPipeline();
         if (currentStage == null) {
             return prewFilterStage;
         }
@@ -117,7 +119,7 @@ public class PiplineLogFingerprintAnalysis {
             return prewFilterStage;
         }
         if (FilterChainStage.class.isInstance(currentStage)) {
-            FilterChainStage filterChainStage = (FilterChainStage)currentStage;
+            FilterChainStage filterChainStage = (FilterChainStage) currentStage;
             if (filterStageIndex >= filterIndex) {
                 return prewFilterStage;
             }
@@ -130,12 +132,12 @@ public class PiplineLogFingerprintAnalysis {
             }
 
             logFingerFieldNames.addAll(filterLogFingerprints);
-            prewFilterStage = (FilterChainStage)currentStage;
+            prewFilterStage = (FilterChainStage) currentStage;
             filterStageIndex++;
 
         } else if (ScriptChainStage.class.isInstance(currentStage)) {
             //continue
-        }  else {
+        } else {
             return prewFilterStage;
         }
         AbstractStage nextStage = getNextStage(currentStage);
@@ -162,24 +164,22 @@ public class PiplineLogFingerprintAnalysis {
      * @return
      */
     private Set<String> fetchLogFingerprint(FilterChainStage filterChainStage) {
-        ChainPipeline pipline = (ChainPipeline)filterChainStage.getPipeline();
-        List<AbstractRule> rules=filterChainStage.getRules();
-        if (rules == null) {
+        ChainPipeline pipline = (ChainPipeline) filterChainStage.getPipeline();
+        AbstractRule rule = filterChainStage.getRule();
+        if (rule == null) {
             return null;
         }
         /**
          * 规则依赖的所有字段
          */
         Set<String> dependentFields = new HashSet<>();
-        for (AbstractRule rule : rules) {
-            Set<String> set = rule.getDependentFields();
-            dependentFields.addAll(set);
-        }
+        Set<String> set = rule.getDependentFields();
+        dependentFields.addAll(set);
         Set<String> logFingerFieldNames = new HashSet<>();
         /**
          * 获取最近的script stage
          */
-        ScriptChainStage scriptChainStage = (ScriptChainStage)getPrewScriptChainStage(filterChainStage, ScriptChainStage.class);
+        ScriptChainStage scriptChainStage = (ScriptChainStage) getPrewScriptChainStage(filterChainStage, ScriptChainStage.class);
         for (String field : dependentFields) {
             Set<String> metaDataFields = getChannelMetaField(field, pipline.getChannelMetaData(), scriptChainStage);
             if (metaDataFields == null) {
@@ -264,7 +264,7 @@ public class PiplineLogFingerprintAnalysis {
         if (middleFieldNames.size() == 0) {
             return channelMetaFields;
         }
-        ScriptChainStage prewScriptChainStage = (ScriptChainStage)getPrewScriptChainStage(scriptChainStage, ScriptChainStage.class);
+        ScriptChainStage prewScriptChainStage = (ScriptChainStage) getPrewScriptChainStage(scriptChainStage, ScriptChainStage.class);
         if (prewScriptChainStage == null) {
             return null;
         }
@@ -286,7 +286,7 @@ public class PiplineLogFingerprintAnalysis {
      * @return
      */
     protected AbstractStage getPrewScriptChainStage(AbstractStage currentStage, Class stageClass) {
-        ChainPipeline pipline = (ChainPipeline)currentStage.getPipeline();
+        ChainPipeline pipline = (ChainPipeline) currentStage.getPipeline();
         /**
          * 如果是拓扑，则通过拓扑寻找，只支持单链模式。如果有两个来源，则不支持
          */
@@ -388,7 +388,7 @@ public class PiplineLogFingerprintAnalysis {
      * @return
      */
     protected AbstractStage getNextStage(AbstractStage currentStage) {
-        ChainPipeline pipline = (ChainPipeline)currentStage.getPipeline();
+        ChainPipeline pipline = (ChainPipeline) currentStage.getPipeline();
         if (pipline.isTopology()) {
             List<String> nextLables = currentStage.getNextStageLabels();
             if (nextLables == null || nextLables.size() != 1) {
@@ -414,7 +414,7 @@ public class PiplineLogFingerprintAnalysis {
 
     public String createLogFingerprint(ChainPipeline pipline) {
         List<String> logFingerList = analysisPipline();
-        return pipline.getNameSpace() + ">>" + pipline.getConfigureName() + "=" + MapKeyUtil.createKey(",", logFingerList);
+        return pipline.getNameSpace() + ">>" + pipline.getName() + "=" + MapKeyUtil.createKey(",", logFingerList);
     }
 
     public int getFilterIndex() {

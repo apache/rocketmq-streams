@@ -20,20 +20,47 @@ import java.util.List;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 
 /**
- * @description 负责checkpoint的保存、恢复
+ * @description 负责数据源offset的保存、恢复，一般用在AbstractPullSource上
  */
 public interface ICheckPointStorage {
 
     String TYPE = "checkpoint_storage";
 
+    /**
+     * 选择
+     *
+     * @return
+     */
     String getStorageName();
 
-    <T> void save(List<T> checkPointState);
+    /**
+     * 保存分片和offset到状态存储中
+     *
+     * @param checkPointState
+     * @param <T>
+     */
+    <T extends ISplitOffset> void save(List<T> checkPointState);
 
-    <T> T recover(ISource iSource, String queueID);
+    /**
+     * 给数据源恢复状态和存储
+     *
+     * @param iSource
+     * @param queueId
+     * @param <T>
+     * @return
+     */
+    <T extends ISplitOffset> T recover(ISource<?> iSource, String queueId);
 
+    /**
+     * 刷新缓存的状态到存储中
+     */
     void flush();
 
+    /**
+     * 把新收集的数据源分片和offset的信息保存到缓存
+     *
+     * @param message
+     */
     void addCheckPointMessage(CheckPointMessage message);
 
     void finish();

@@ -26,9 +26,9 @@ public interface PatternFilter {
     String yyyyMMddHH = "yyyyMMddHH";
     String yyyyMMddHHmm = "yyyyMMddHHmm";
 
-
     /**
      * 根据sourceName和tableName判断是否符合
+     *
      * @param sourceName
      * @param tableName
      * @return
@@ -36,6 +36,5 @@ public interface PatternFilter {
     boolean filter(String sourceName, String logicTableName, String tableName);
 
     PatternFilter setNext(PatternFilter filter);
-
 
 }

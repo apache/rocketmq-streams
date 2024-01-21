@@ -35,7 +35,7 @@ public class CardinalityFunction {
      */
     @FunctionMethod(value = "cardinality", alias = "cardinality", comment = "返回一个集合中的元素数量")
     public Integer cardinality(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "Array", comment = "待求值的集合") Object[] objects) {
+        @FunctionParamter(value = "Array", comment = "待求值的集合") Object[] objects) {
         Integer result = null;
         if (objects == null) {
             return result;

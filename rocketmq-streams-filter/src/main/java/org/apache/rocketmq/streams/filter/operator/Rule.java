@@ -19,30 +19,23 @@ package org.apache.rocketmq.streams.filter.operator;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Context;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataField;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
-import org.apache.rocketmq.streams.common.topology.builder.IStageBuilder;
+import org.apache.rocketmq.streams.common.topology.IStageBuilder;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
@@ -55,16 +48,17 @@ import org.apache.rocketmq.streams.filter.operator.expression.Expression;
 import org.apache.rocketmq.streams.filter.operator.expression.GroupExpression;
 import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression;
 import org.apache.rocketmq.streams.filter.operator.var.ContextVar;
-import org.apache.rocketmq.streams.filter.operator.var.InnerVar;
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.filter.optimization.ExpressionOptimization;
-import org.apache.rocketmq.streams.filter.optimization.dependency.CommonExpression;
-import org.apache.rocketmq.streams.filter.optimization.dependency.StateLessDependencyTree;
-import org.apache.rocketmq.streams.script.service.IScriptExpression;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class Rule extends AbstractRule implements IAfterConfigurableRefreshListener,
-    IStageBuilder<ChainStage> {
-    private static final Log LOG = LogFactory.getLog(Rule.class);
+public class Rule extends AbstractRule implements
+    IStageBuilder<AbstractChainStage<?>> {
+    public static final String FIRE_RULES = "fireRules";
+    private static final Logger LOGGER = LoggerFactory.getLogger(Rule.class);
+    private transient static FilterComponent filterComponent = FilterComponent.getInstance();
+    protected transient Expression rootExpression;
     private transient volatile Map<String, Var> varMap = new HashMap<>();
     private transient volatile Map<String, Expression> expressionMap = new HashMap<>();
     @Deprecated
@@ -72,8 +66,6 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     private transient Map<String, MetaData> metaDataMap = new HashMap<>();
     private transient volatile Map<String, JDBCDriver> dataSourceMap = new HashMap<>();
     private String expressionStr;//表达式
-    protected transient Expression rootExpression;
-
     /**
      * 如果已经完成varmap和expressionmap的初始化,主要是用于兼容老版本规则数据，新规则可以忽略这个字段，值设置为true
      */
@@ -95,6 +87,8 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         this.setExpressionStr(rule.getExpressionStr());
         this.setVarNames(rule.getVarNames());
         this.setExpressionName(rule.getExpressionName());
+        this.rootExpression = this.expressionMap.get(getExpressionName());
+        initElements();
     }
 
     public Rule(String expression) {
@@ -105,7 +99,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         Rule rule = new Rule();
         rule.setNameSpace(getNameSpace());
         rule.setType(getType());
-        rule.setConfigureName(getConfigureName());
+        rule.setName(getName());
         rule.varMap = varMap;
         rule.expressionMap = expressionMap;
         rule.actionMap = actionMap;
@@ -120,29 +114,12 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         rule.setRuleStatus(ruleStatus);
         rule.setRuleTitle(ruleTitle);
         rule.setRuleStatus(ruleStatus);
-        rule.setConfigurableService(configurableService);
-        rule.setPrivateDatas(privateDatas);
         rule.rootExpression = rootExpression;
         return rule;
     }
 
-    @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-
-        if (isFinishVarAndExpression == false) {
-            this.dataSourceMap = configurableService.queryConfigurableMapByType(ISink.TYPE);
-
-        }
-        initVar(configurableService);
-        initExpression(configurableService);
-        initAction(configurableService);
-        initMetaData(configurableService);
-
-        initElements();
-    }
-
     public void initElements() {
-        this.rootExpression = this.expressionMap.get(getExpressionName());
+
         for (Expression expression : this.expressionMap.values()) {
             if (RelationExpression.class.isInstance(expression)) {
                 RelationExpression relationExpression = (RelationExpression) expression;
@@ -159,57 +136,14 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     }
 
     public void addAction(SinkAction action) {
-        actionMap.put(action.getConfigureName(), action);
-        this.getActionNames().add(action.getConfigureName());
-    }
-
-    private void initVar(IConfigurableService configurableService) {
-        Map<String, Var> varMap = new HashMap<>();
-        if (isFinishVarAndExpression == false) {
-            varMap = configurableService.queryConfigurableMapByType(Var.TYPE);
-        }
-        if (expressionMap != null) {
-            Iterator<Entry<String, Expression>> it = expressionMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, Expression> entry = it.next();
-                Expression expression = entry.getValue();
-                if (RelationExpression.class.isInstance(expression)) {
-                    continue;
-                }
-                String varName = expression.getVarName();
-                Var var = varMap.get(varName);
-                if (var == null) {
-                    ContextVar contextVar = new ContextVar();
-                    contextVar.setNameSpace(expression.getNameSpace());
-                    contextVar.setConfigureName(varName);
-                    contextVar.setVarName(varName);
-                    contextVar.setFieldName(varName);
-                    varMap.put(varName, contextVar);
-                    var = contextVar;
-                }
-                this.varMap.put(varName, var);
-            }
-        }
-        InnerVar innerVar = new InnerVar();
-        innerVar.setNameSpace(getNameSpace());
-        innerVar.setConfigureName(innerVar.getClass().getSimpleName());
-        innerVar.setVarName(InnerVar.ORIG_MESSAGE);
-        this.varMap.put(innerVar.getVarName(), innerVar);
+        actionMap.put(action.getName(), action);
+        this.getActionNames().add(action.getName());
     }
 
     @Override
     public Set<String> getDependentFields() {
         Expression expression = expressionMap.get(getExpressionName());
         return expression.getDependentFields(expressionMap);
-    }
-
-    protected void initExpression(IConfigurableService configurableService) {
-        Map<String, Expression> expressionMap = new HashMap<>();
-        if (isFinishVarAndExpression == false) {
-            expressionMap = configurableService.queryConfigurableMapByType(Expression.TYPE);
-        }
-        String expressionName = getExpressionName();
-        fetchExpression(expressionName, expressionMap);
     }
 
     /**
@@ -223,7 +157,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         if (expression == null) {
             return;
         }
-        this.expressionMap.put(expression.getConfigureName(), expression);
+        this.expressionMap.put(expression.getName(), expression);
         if (!RelationExpression.class.isInstance(expression)) {
             return;
         }
@@ -236,59 +170,26 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         }
     }
 
-    protected void initMetaData(IConfigurableService configurableService) {
-        Map<String, MetaData> metaDataMap = new HashMap<>();
-        this.metaDataMap = configurableService.queryConfigurableMapByType(MetaData.TYPE);
-    }
-
     protected Var createVar(String varName) {
         ContextVar contextVar = new ContextVar();
         contextVar.setNameSpace(getNameSpace());
-        contextVar.setConfigureName(varName);
+        contextVar.setName(varName);
         contextVar.setVarName(varName);
         contextVar.setFieldName(varName);
         return contextVar;
     }
 
-    /**
-     * 赋值action给rule
-     *
-     * @param configurableService
-     */
-    protected void initAction(IConfigurableService configurableService) {
-        Map<String, Action> actionMap = new HashMap<>();
-        actionMap = configurableService.queryConfigurableMapByType(Action.TYPE);
-        if (actionNames != null) {
-            for (String actionName : actionNames) {
-                Action action = actionMap.get(actionName);
-                if (action != null) {
-                    this.actionMap.put(actionName, action);
-                }
-            }
-        }
-    }
-
     public void putConfigurableMap(IConfigurable configurable, String type) {
         if (Var.TYPE.equals(type)) {
-            varMap.put(configurable.getConfigureName(), (Var) configurable);
+            varMap.put(configurable.getName(), (Var) configurable);
         } else if (Expression.TYPE.equals(type)) {
-            expressionMap.put(configurable.getConfigureName(), (Expression) configurable);
+            expressionMap.put(configurable.getName(), (Expression) configurable);
         } else if (Action.TYPE.equals(type)) {
-            actionMap.put(configurable.getConfigureName(), (Action) configurable);
+            actionMap.put(configurable.getName(), (Action) configurable);
         } else if (MetaData.TYPE.equals(type)) {
-            metaDataMap.put(configurable.getConfigureName(), (MetaData) configurable);
+            metaDataMap.put(configurable.getName(), (MetaData) configurable);
         } else if (ISink.TYPE.equals(type)) {
-            dataSourceMap.put(configurable.getConfigureName(), (JDBCDriver) configurable);
-        }
-    }
-
-    private <T extends IConfigurable> void insertOrUpdate(IConfigurableService ruleEngineConfigurableService,
-        Collection<T> configurables) {
-        if (configurables == null) {
-            return;
-        }
-        for (IConfigurable configurable : configurables) {
-            ruleEngineConfigurableService.insert(configurable);
+            dataSourceMap.put(configurable.getName(), (JDBCDriver) configurable);
         }
     }
 
@@ -352,63 +253,14 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         this.dataSourceMap = dataSourceMap;
     }
 
-    private transient static FilterComponent filterComponent = FilterComponent.getInstance();
-
     @Override
     public Boolean doMessage(IMessage message, AbstractContext context) {
         boolean isTrace = TraceUtil.hit(message.getHeader().getTraceId());
         context.setNotFireExpressionMonitor(new ArrayList<>());
         boolean isFireRule = processExpress(message, context, isTrace);
-
-        if (isFireRule == false && isTrace) {
-            NotFireReason notFireReason= context.getNotFireReason();
-            if(notFireReason!=null){
-                ChainPipeline chainPipeline=notFireReason.getPipeline();
-                StateLessDependencyTree stateLessDependencyTree=new StateLessDependencyTree(chainPipeline);
-                List<CommonExpression>  commonExpressions=stateLessDependencyTree.parseTopology(chainPipeline);
-                Map<String, List<String>> filterFieldName2ETLScriptList=new HashMap<>();
-                Map<String, String> filterFieldName2OriFieldName=new HashMap<>();
-                for(CommonExpression commonExpression:commonExpressions){
-                    String filterFieldName=commonExpression.getVarName();
-                    String origFieldName=commonExpression.getSourceVarName();
-                    filterFieldName2OriFieldName.put(filterFieldName,origFieldName);
-                    List<String> etlScript=filterFieldName2ETLScriptList.get(filterFieldName);
-                    if(etlScript==null){
-                        etlScript=new ArrayList<>();
-                        filterFieldName2ETLScriptList.put(filterFieldName,etlScript);
-                    }
-                    for(IScriptExpression scriptExpression:commonExpression.getScriptExpressions()){
-                        if(!etlScript.contains(scriptExpression.toString())){
-                            etlScript.add(scriptExpression.toString());
-                        }
-                    }
-                }
-                List<String> filterFieldNames=new ArrayList<>();
-                List<String> expressions=new ArrayList<>();
-                List<String> expressionNames=context.getNotFireExpressionMonitor();
-                for(String expressionName:expressionNames){
-                    Expression expression=this.getExpressionMap().get(expressionName);
-                    if(expression==null){
-                        expressions.add(expressionName);
-                    }else if(RelationExpression.class.isInstance(expression)){
-                        expressions.add(expression.toExpressionString(this.getExpressionMap()));
-                        filterFieldNames.addAll(expression.getDependentFields(this.expressionMap));
-                    }else {
-                        filterFieldNames.add(expression.getVarName());
-                        expressions.add(expression.toExpressionString(this.getExpressionMap()));
-                    }
-                }
-                notFireReason.analysis(message,filterFieldName2ETLScriptList,filterFieldName2OriFieldName,expressions,filterFieldNames);
-                context.setNotFireReason(notFireReason);
-            }
-
-        }
-
         return isFireRule;
 
     }
-
-    public static final String FIRE_RULES = "fireRules";
 
     public boolean execute(JSONObject msg) {
         Message message = new Message(msg);
@@ -422,7 +274,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             return jsonArray;
         }
         for (Rule rule : fireRules) {
-            jsonArray.add(rule.getNameSpace() + ":" + rule.getConfigureName());
+            jsonArray.add(rule.getNameSpace() + ":" + rule.getName());
         }
         return jsonArray;
     }
@@ -476,12 +328,12 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
     }
 
     @Override
-    public ChainStage createStageChain(PipelineBuilder pipelineBuilder) {
+    public AbstractChainStage createStageChain(PipelineBuilder pipelineBuilder) {
         FilterChainStage filterChainStage = new FilterChainStage();
         pipelineBuilder.addConfigurables(this);
         filterChainStage.setRule(this);
         filterChainStage.setEntityName("filter");
-        filterChainStage.setLabel(this.getConfigureName());
+        filterChainStage.setLabel(this.getName());
         return filterChainStage;
     }
 
@@ -506,10 +358,10 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
      */
     public void optimize() {
         Expression root = createOptimizationRule();
-        if (!RelationExpression.class.isInstance(root)) {
-            return;
-        }
-        groupByChildrenExpression((RelationExpression) root);
+//        if (!RelationExpression.class.isInstance(root)) {
+//            return;
+//        }
+//        groupByChildrenExpression((RelationExpression) root);
     }
 
     /**
@@ -558,8 +410,8 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             if (groupExpression.size() < 2) {
                 newExpressionNames.addAll(groupExpression.getAllExpressionNames());
             } else {
-                expressionMap.put(groupExpression.getConfigureName(), groupExpression);
-                newExpressionNames.add(groupExpression.getConfigureName());
+                expressionMap.put(groupExpression.getName(), groupExpression);
+                newExpressionNames.add(groupExpression.getName());
             }
         }
         root.setValue(newExpressionNames);
@@ -590,7 +442,7 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
         expressions.clear();
         relationExpressions.clear();
         for (Expression express : list) {
-            expressionMap.put(express.getConfigureName(), express);
+            expressionMap.put(express.getName(), express);
             if (RelationExpression.class.isInstance(express)) {
                 relationExpressions.add((RelationExpression) express);
             } else {
@@ -619,15 +471,15 @@ public class Rule extends AbstractRule implements IAfterConfigurableRefreshListe
             }
 
             boolean match = expression.doMessage(message, context);
-            if(!RelationExpression.class.isInstance(expression)){
-                RuleContext.addNotFireExpressionMonitor(expression,context);
+            if (!RelationExpression.class.isInstance(expression)) {
+                RuleContext.addNotFireExpressionMonitor(expression, context);
             }
             if (!match) {
                 return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            LOG.error("DefaultRuleEngine processExpress error,rule is: " + getConfigureName(), e);
+            LOGGER.error("DefaultRuleEngine processExpress error,rule is: " + getName(), e);
             return false;
         }
         return true;

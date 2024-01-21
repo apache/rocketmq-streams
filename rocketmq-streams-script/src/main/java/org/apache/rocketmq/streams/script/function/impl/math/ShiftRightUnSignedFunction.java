@@ -35,8 +35,8 @@ public class ShiftRightUnSignedFunction {
      */
     @FunctionMethod(value = "shiftrightunsigned", comment = "无符号按位右移（>>>）")
     public Integer shiftrightunsigned(IMessage message, FunctionContext context,
-                                      @FunctionParamter(value = "String", comment = "代表要操作的列名称或常量") String number,
-                                      @FunctionParamter(value = "String", comment = "代表要移动的位数") String number2) {
+        @FunctionParamter(value = "String", comment = "代表要操作的列名称或常量") String number,
+        @FunctionParamter(value = "String", comment = "代表要移动的位数") String number2) {
         Integer result = null;
         if (number == null || number2 == null) {
             return result;

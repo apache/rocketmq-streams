@@ -33,6 +33,7 @@ public class JsonableUtil {
     private static final DataType stringDataType = new StringDataType();
     private static final DataType<List> listDataType = new ListDataType(List.class, stringDataType);
     private static final DataType<Map> mapDataType = new MapDataType(Map.class, stringDataType, stringDataType);
+    private static Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
     public static String toJson(List<String> value) {
         return listDataType.toDataJson(value);
@@ -52,12 +53,11 @@ public class JsonableUtil {
         return mapDataType.getData(value);
     }
 
-    private static Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
-
     public static String formatJson(JSONObject jsonObject) {
         String value = gson.toJson(jsonObject);
         return value;
     }
+
     public static String formatJson(JSONArray jsonObject) {
         String value = gson.toJson(jsonObject);
         return value;

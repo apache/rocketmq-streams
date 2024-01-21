@@ -16,12 +16,9 @@
  */
 package org.apache.rocketmq.streams.common.utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.util.HashMap;
 import org.nustaq.serialization.FSTConfiguration;
@@ -40,7 +37,7 @@ public class InstantiationUtil {
      * @return
      */
     public static byte[] serializeObject(Object o) {
-       return conf.asByteArray(o);
+        return conf.asByteArray(o);
 //        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
 //             ObjectOutputStream oos = new ObjectOutputStream(baos)) {
 //            oos.writeObject(o);
@@ -61,7 +58,7 @@ public class InstantiationUtil {
      * @throws ClassNotFoundException
      */
     public static <T> T deserializeObject(byte[] bytes) {
-        return (T)conf.asObject(bytes);
+        return (T) conf.asObject(bytes);
 //
 //        final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 //        try {
@@ -79,8 +76,21 @@ public class InstantiationUtil {
     }
 
     public static class ClassLoaderObjectInputStream extends ObjectInputStream {
-        protected final ClassLoader classLoader;
         private static final HashMap<String, Class<?>> primitiveClasses = new HashMap(9);
+
+        static {
+            primitiveClasses.put("boolean", Boolean.TYPE);
+            primitiveClasses.put("byte", Byte.TYPE);
+            primitiveClasses.put("char", Character.TYPE);
+            primitiveClasses.put("short", Short.TYPE);
+            primitiveClasses.put("int", Integer.TYPE);
+            primitiveClasses.put("long", Long.TYPE);
+            primitiveClasses.put("float", Float.TYPE);
+            primitiveClasses.put("double", Double.TYPE);
+            primitiveClasses.put("void", Void.TYPE);
+        }
+
+        protected final ClassLoader classLoader;
 
         public ClassLoaderObjectInputStream(InputStream in, ClassLoader classLoader) throws IOException {
             super(in);
@@ -95,7 +105,7 @@ public class InstantiationUtil {
                 try {
                     return Class.forName(name, false, this.classLoader);
                 } catch (ClassNotFoundException var5) {
-                    Class<?> cl = (Class)primitiveClasses.get(name);
+                    Class<?> cl = (Class) primitiveClasses.get(name);
                     if (cl != null) {
                         return cl;
                     } else {
@@ -105,18 +115,6 @@ public class InstantiationUtil {
             } else {
                 return super.resolveClass(desc);
             }
-        }
-
-        static {
-            primitiveClasses.put("boolean", Boolean.TYPE);
-            primitiveClasses.put("byte", Byte.TYPE);
-            primitiveClasses.put("char", Character.TYPE);
-            primitiveClasses.put("short", Short.TYPE);
-            primitiveClasses.put("int", Integer.TYPE);
-            primitiveClasses.put("long", Long.TYPE);
-            primitiveClasses.put("float", Float.TYPE);
-            primitiveClasses.put("double", Double.TYPE);
-            primitiveClasses.put("void", Void.TYPE);
         }
     }
 }

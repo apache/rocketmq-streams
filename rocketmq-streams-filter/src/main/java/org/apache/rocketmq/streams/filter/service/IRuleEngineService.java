@@ -26,7 +26,6 @@ import org.apache.rocketmq.streams.filter.operator.Rule;
  */
 public interface IRuleEngineService extends IFilterService<Rule> {
 
-
     /**
      * 执行规则，返回触发的规则
      *

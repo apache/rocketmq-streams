@@ -20,7 +20,7 @@
 package org.apache.rocketmq.streams.examples.aggregate;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 import org.apache.rocketmq.streams.client.strategy.WindowStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
@@ -32,10 +32,11 @@ public class UsersDimensionExample {
 
     /**
      * Count the number of times a user clicks on a webpage within 5s
+     *
      * @param args
      */
     public static void main(String[] args) {
-        ProducerFromFile.produce("pageClickData.txt",namesrv, topic);
+        ProducerFromFile.produce("pageClickData.txt", namesrv, topic);
 
         try {
             Thread.sleep(1000 * 3);
@@ -43,23 +44,20 @@ public class UsersDimensionExample {
         }
         System.out.println("begin streams code.");
 
-
-        DataStreamSource source = StreamBuilder.dataStream("pageClickNS", "pageClickPL");
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("pageClickNS", "pageClickPL");
         source.fromRocketmq(topic, "pageClickGroup", false, namesrv)
-                .map(message -> JSONObject.parseObject((String) message))
-                .window(TumblingWindow.of(Time.minutes(1)))
-                .groupBy("userId")
-                .setTimeField("eventTime")
-                .count("total")
-                .waterMark(1)
-                .setLocalStorageOnly(true)
-                .toDataSteam()
-                .toPrint(1)
-                .with(WindowStrategy.highPerformance())
-                .start();
+            .map(message -> JSONObject.parseObject((String) message))
+            .window(TumblingWindow.of(Time.minutes(1)))
+            .groupBy("userId")
+            .setTimeField("eventTime")
+            .count("total")
+            .waterMark(1)
+            .setLocalStorageOnly(true)
+            .toDataSteam()
+            .toPrint(1)
+            .with(WindowStrategy.highPerformance())
+            .start();
 
     }
-
-
 
 }

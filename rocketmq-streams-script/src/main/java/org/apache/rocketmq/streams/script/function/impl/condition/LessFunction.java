@@ -29,8 +29,8 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 public class LessFunction {
     @FunctionMethod(value = "less", alias = "<", comment = "<")
     public Boolean match(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName,
-                         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String value) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName,
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String value) {
         String leftValue = FunctionUtils.getValueString(message, context, fieldName);
         if (FunctionUtils.isConstant(value)) {
             return leftValue.equals(FunctionUtils.getConstant(value));

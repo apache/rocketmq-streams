@@ -29,47 +29,19 @@ public class RegexUtil {
 
     // private static final long MAX_TIMEOUT = 1000;// 如果没有设置超时时间，最大的超时时间默认为1s
 
-    private static class InterruptibleCharSequence implements CharSequence {
-
-        private CharSequence inner;
-        private long timeout;
-        private boolean isStart = false;
-        private long startTime = -1;
-
-        public InterruptibleCharSequence(CharSequence inner, long timeout) {
-            super();
-            this.inner = inner;
-            this.timeout = timeout;
-        }
-
-        @Override
-        public int length() {
-            return inner.length();
-        }
-
-        @Override
-        public char charAt(int index) {
-            if (!isStart) {
-                isStart = true;
-                startTime = System.currentTimeMillis();
-            }
-            if (System.currentTimeMillis() - startTime > timeout && timeout > 0) {
-                throw new RegexTimeoutException("正则执行超时：" + inner.toString());
-            }
-            return inner.charAt(index);
-
-        }
-
-        @Override
-        public CharSequence subSequence(int start, int end) {
-            return new InterruptibleCharSequence(inner.subSequence(start, end), timeout);
-        }
-
-        @Override
-        public String toString() {
-            return inner.toString();
-        }
-    }
+    private static final String SPLIT_STR =
+        "\\d|\\w|\\s|\\|\\$|\\(|\\)|\\*|\\+|\\.|\\[|\\]|\\?|\\^|\\{|\\}|\\|";
+    /**
+     * 根据要匹配的字符串，匹配模式字符串，是否忽略大小写和超时时间创建matcher
+     *
+     * @param content 待匹配的字符串
+     * @param patternStr 匹配模式
+     * @param caseInsensitive 是否忽略大小写
+     * @param timeout 超时时间
+     * @return
+     */
+    private static Map<String, Pattern> pattern2MatcherForCaseInsensitive = new HashMap<>();
+    private static Map<String, Pattern> pattern2Matcher = new HashMap<>();
 
     /**
      * content为字符串，configure为pattern
@@ -125,9 +97,6 @@ public class RegexUtil {
         }
     }
 
-    private static final String SPLIT_STR =
-        "\\d|\\w|\\s|\\|\\$|\\(|\\)|\\*|\\+|\\.|\\[|\\]|\\?|\\^|\\{|\\}|\\|";
-
     public static List<String> compilePattern(String regex) {
         List<String> strs = new ArrayList<>();
         // List<String> keywords = new ArrayList<String>();
@@ -142,18 +111,6 @@ public class RegexUtil {
         }
         return strs;
     }
-
-    /**
-     * 根据要匹配的字符串，匹配模式字符串，是否忽略大小写和超时时间创建matcher
-     *
-     * @param content 待匹配的字符串
-     * @param patternStr 匹配模式
-     * @param caseInsensitive 是否忽略大小写
-     * @param timeout 超时时间
-     * @return
-     */
-    private static Map<String, Pattern> pattern2MatcherForCaseInsensitive = new HashMap<>();
-    private static Map<String, Pattern> pattern2Matcher = new HashMap<>();
 
     private static Matcher createMatcher(String content, String patternStr, boolean caseInsensitive, long timeout) {
         Map<String, Pattern> map = null;
@@ -190,6 +147,48 @@ public class RegexUtil {
             return matcher;
         }
 
+    }
+
+    private static class InterruptibleCharSequence implements CharSequence {
+
+        private CharSequence inner;
+        private long timeout;
+        private boolean isStart = false;
+        private long startTime = -1;
+
+        public InterruptibleCharSequence(CharSequence inner, long timeout) {
+            super();
+            this.inner = inner;
+            this.timeout = timeout;
+        }
+
+        @Override
+        public int length() {
+            return inner.length();
+        }
+
+        @Override
+        public char charAt(int index) {
+            if (!isStart) {
+                isStart = true;
+                startTime = System.currentTimeMillis();
+            }
+            if (System.currentTimeMillis() - startTime > timeout && timeout > 0) {
+                throw new RegexTimeoutException("正则执行超时：" + inner.toString());
+            }
+            return inner.charAt(index);
+
+        }
+
+        @Override
+        public CharSequence subSequence(int start, int end) {
+            return new InterruptibleCharSequence(inner.subSequence(start, end), timeout);
+        }
+
+        @Override
+        public String toString() {
+            return inner.toString();
+        }
     }
 
 }

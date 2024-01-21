@@ -26,9 +26,9 @@ import org.junit.Test;
 
 public class DBWriteOnlyChannelTest {
 
-    private String URL = "*";
     protected String USER_NAME = "*";
     protected String PASSWORD = "*";
+    private String URL = "*";
 
     @Test
     public void testOutputBySQL() {

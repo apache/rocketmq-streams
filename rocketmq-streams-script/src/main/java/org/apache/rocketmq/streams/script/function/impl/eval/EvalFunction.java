@@ -38,6 +38,26 @@ public class EvalFunction {
         return "exec_function".equals(name) || "eval_function".equals(name);
     }
 
+    public static void main(String[] args) {
+        String value = "now()";
+
+        Object object = ScriptComponent.getInstance().getFunctionService().directExecuteFunction("eval_function", "now()");
+        System.out.println(object);
+    }
+
+    @FunctionMethod(value = "eval")
+    public Object eval(IMessage message, FunctionContext context,
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String script) {
+        String scriptValue = FunctionUtils.getValueString(message, context, script);
+        FunctionScript functionScript = functionScriptICache.get(scriptValue);
+        if (functionScript == null) {
+            functionScript = new FunctionScript(scriptValue);
+            functionScript.init();
+            functionScriptICache.put(scriptValue, functionScript);
+        }
+        return functionScript.executeScriptAsFunction(message, context);
+    }
+
     @FunctionMethod(value = "exec_function")
     public Object execFunction(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String script) {
@@ -78,12 +98,5 @@ public class EvalFunction {
         Object object = ScriptComponent.getInstance().getFunctionService().executeFunction(message, context,
             "execFunction", "你的脚本");
         return object;
-    }
-
-    public static void main(String[] args) {
-        String value = "now()";
-
-        Object object = ScriptComponent.getInstance().getFunctionService().directExecuteFunction("eval_function", "now()");
-        System.out.println(object);
     }
 }

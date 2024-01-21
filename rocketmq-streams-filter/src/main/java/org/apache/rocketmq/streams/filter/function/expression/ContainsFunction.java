@@ -41,7 +41,7 @@ public class ContainsFunction extends AbstractExpressionFunction {
         }
         Object varObject = null;
         Object valueObject = null;
-        varObject = var.doMessage(message,context);
+        varObject = var.doMessage(message, context);
         valueObject = expression.getValue();
 
         if (varObject == null || valueObject == null) {

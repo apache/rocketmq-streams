@@ -36,13 +36,13 @@ public class LengthFunction {
      */
     @FunctionMethod(value = "length", alias = "len,CHAR_LENGTH", comment = "字符串长度")
     public Long lenght(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "string", comment = "字段名或常量") String param) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String param) {
         Long len = null;
         param = FunctionUtils.getValueString(message, context, param);
         if (param == null) {
             return len;
         }
-        len = (long)param.length();
+        len = (long) param.length();
         return len;
     }
 }

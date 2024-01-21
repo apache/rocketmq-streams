@@ -25,72 +25,49 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
-import org.apache.rocketmq.streams.common.utils.PropertiesUtils;
+import org.apache.rocketmq.streams.common.utils.PropertiesUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 
 /**
  * 创建组件，如果参数未发生变化（如果未传入，则是配置文件的参数），返回同一个组件对象，如果发生变化，返回不同的组件对象
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
 public class ComponentCreator {
-
-    private static final Log LOG = LogFactory.getLog(ComponentCreator.class);
 
     /**
      * 代理dbchannel的class，需要继承JDBCDataSource抽象类。如果配置这个参数，则会给dbchannel增加一层代理，所有需要db访问的，都是通过open api发送sql给代理
      */
     public static final String DB_PROXY_CLASS_NAME = "db_proxy_class_name";
-
     /**
      * 创建channel的服务
      */
-    public static final String DIPPER_INSTANCE_CHANNEL_CREATOR_SERVICE_NAME
-        = "dipper_instance_channel_creator_service_name";
-
+    public static final String DIPPER_INSTANCE_CHANNEL_CREATOR_SERVICE_NAME = "dipper_instance_channel_creator_service_name";
     /**
      * blink jar包所在的路径
      */
-    public static final String BLINK_UDF_JAR_PATH = "dipper.blink.udf.jar.path";
+    public static final String UDF_JAR_PATH = "dipper.udf.jar.path";
+    public static final String UDF_JAR_OSS_ACCESS_ID = "dipper.udf.jar.oss.access.id";
+    public static final String UDF_JAR_OSS_ACCESS_KEY = "dipper.udf.jar.oss.access.key";
     private static final Map<String, IComponent> key2Component = new HashMap<>();
     private static Properties properties;
-    public static String propertiesPath;//属性文件位置，便于定期刷新
 
     static {
-        Properties properties1 = PropertiesUtils.getResourceProperties("dipper.properties");
-        if (properties1 == null) {
-            ComponentCreator.createMemoryProperties(10000L);
-        } else {
-            ComponentCreator.setProperties(properties1);
+        Properties tmpProperties = PropertiesUtil.getResourceProperties("dipper.properties");
+        if (tmpProperties == null) {
+            tmpProperties = new Properties();
         }
+        ComponentCreator.properties = tmpProperties;
     }
 
     public static String getDBProxyClassName() {
         return properties.getProperty(DB_PROXY_CLASS_NAME);
     }
 
-    public static void setProperties(String propertiesPath) {
-        ComponentCreator.propertiesPath = propertiesPath;
-        createProperties(propertiesPath);
-    }
-
-    public static void setProperties(Properties properties) {
-        ComponentCreator.properties = properties;
-    }
-
-    public static void updateProperties(Properties properties) {
-        ComponentCreator.properties.putAll(properties);
-    }
-
     public static String[] createKV(Properties properties) {
         List<String> keys = new ArrayList<>();
-        Iterator<Object> keyIterator = properties.keySet().iterator();
-        while (keyIterator.hasNext()) {
-            keys.add(keyIterator.next().toString());
+        for (Object o : properties.keySet()) {
+            keys.add(o.toString());
         }
         Collections.sort(keys);
         Iterator<String> it = keys.iterator();
@@ -105,27 +82,22 @@ public class ComponentCreator {
         return kvs;
     }
 
-    public static void createMemoryProperties(Long pollingTime) {
-        Properties properties = new Properties();
-        properties.put(AbstractComponent.CONNECT_TYPE, IConfigurableService.MEMORY_SERVICE_NAME);
-        properties.put(AbstractComponent.POLLING_TIME, pollingTime + "");
-        ComponentCreator.properties = loadOtherProperty(properties);
-    }
-
+    @Deprecated(since = "该方法直接改动了系统配置， 后续会下线")
     public static void createProperties(Properties properties) {
         ComponentCreator.properties = loadOtherProperty(properties);
     }
 
+    @Deprecated(since = "该方法直接改动了系统配置， 后续会下线")
     public static void createProperties(String propertiesFilePath) {
-        Properties properties = PropertiesUtils.getResourceProperties(propertiesFilePath);
+        Properties properties = PropertiesUtil.getResourceProperties(propertiesFilePath);
         if (properties == null) {
-            properties = PropertiesUtils.loadPropertyByFilePath(propertiesFilePath);
+            properties = PropertiesUtil.loadPropertyByFilePath(propertiesFilePath);
         }
         ComponentCreator.properties = loadOtherProperty(properties);
     }
 
     private static Properties loadOtherProperty(Properties tmp, String... kvs) {
-        Properties properties = new Properties();
+        Properties tmpProperties = new Properties();
         for (Entry<Object, Object> entry : tmp.entrySet()) {
             String key = (String) entry.getKey();
             String value = (String) entry.getValue();
@@ -137,26 +109,65 @@ public class ComponentCreator {
                 }
             }
 
-            properties.put(key, realValue);
+            tmpProperties.put(key, realValue);
         }
-        if (kvs == null || kvs.length == 0) {
-            return properties;
+        if (kvs == null) {
+            return tmpProperties;
         }
         for (String kv : kvs) {
             int startIndex = kv.indexOf(":");
             String key = kv.substring(0, startIndex);
             String value = kv.substring(startIndex + 1);
-            properties.put(key, value);
+            tmpProperties.put(key, value);
         }
-        return properties;
+        tmpProperties.putAll(properties);
+        return tmpProperties;
+    }
+
+    private static Properties loadOtherProperty(Properties tmp, Properties tmp1) {
+        Properties tmpProperties = new Properties();
+        for (Entry<Object, Object> entry : tmp.entrySet()) {
+            String key = (String) entry.getKey();
+            String value = (String) entry.getValue();
+            String realValue = value;
+            if (value.contains("#{")) {
+                realValue = SQLUtil.parseIbatisSQL(tmp, value, true);
+                if (realValue != null && realValue.startsWith("'")) {
+                    realValue = realValue.replace("'", "");
+                }
+            }
+            tmpProperties.put(key, realValue);
+        }
+        if (tmp1 == null) {
+            return tmpProperties;
+        }
+        for (Entry<Object, Object> entry : tmp1.entrySet()) {
+            String key = (String) entry.getKey();
+            String value = (String) entry.getValue();
+            String realValue = value;
+            if (value.contains("#{")) {
+                realValue = SQLUtil.parseIbatisSQL(tmp, value, true);
+                if (realValue != null && realValue.startsWith("'")) {
+                    realValue = realValue.replace("'", "");
+                }
+            }
+            tmpProperties.put(key, realValue);
+        }
+        tmpProperties.putAll(properties);
+        return tmpProperties;
+    }
+
+    public static <T extends IComponent> T getComponent(String namespace, Class componentType, Properties properties) {
+        Properties newProperties = loadOtherProperty(ComponentCreator.properties, properties);
+        String[] kvArray = createKV(newProperties);
+        return (T) getComponentInner(namespace, componentType, true, kvArray);
     }
 
     public static <T extends IComponent> T getComponent(String namespace, Class componentType, String... kvs) {
         return getComponent(namespace, componentType, true, kvs);
     }
 
-    protected static <T extends IComponent> T getComponent(String namespace, Class componentType, boolean isStart,
-        String... kvs) {
+    protected static <T extends IComponent> T getComponent(String namespace, Class componentType, boolean isStart, String... kvs) {
         Properties properties = loadOtherProperty(ComponentCreator.properties, kvs);
         String[] kvArray = createKV(properties);
         return (T) getComponentInner(namespace, componentType, isStart, kvArray);
@@ -170,18 +181,21 @@ public class ComponentCreator {
         return (T) getComponentInner(namespace, componentType, false, createKV(properties));
     }
 
+    public static <T extends IComponent> T getComponentNotStart(String namespace, Class componentType, Properties properties) {
+        Properties newProperties = loadOtherProperty(ComponentCreator.properties, properties);
+        String[] kvArray = createKV(newProperties);
+        return (T) getComponentInner(namespace, componentType, false, kvArray);
+    }
+
     public static <T extends IComponent> T getComponentNotStart(String namespace, Class componentType, String... kvs) {
         return getComponent(namespace, componentType, false, kvs);
     }
 
-    @Deprecated
-    public static <T extends IComponent> T getComponentUsingPropertiesFile(String namespace, Class componentType,
-        String propertiesPath) {
+    @Deprecated public static <T extends IComponent> T getComponentUsingPropertiesFile(String namespace, Class componentType, String propertiesPath) {
         return (T) getComponentInner(namespace, componentType, true, propertiesPath);
     }
 
-    private static IComponent getComponentInner(String namespace, Class<IComponent> componentType, boolean needStart,
-        Object o) {
+    private static IComponent getComponentInner(String namespace, Class<IComponent> componentType, boolean needStart, Object o) {
         String key = createKey(componentType, namespace, o);
         if (key2Component.containsKey(key) && key2Component.get(key) != null) {
             return key2Component.get(key);
@@ -200,9 +214,7 @@ public class ComponentCreator {
 
                 return component;
             } catch (Exception e) {
-                LOG.error("can not get component.  namespace is " + namespace + ", type is " + componentType.getName(),
-                    e);
-                throw new RuntimeException(e.getMessage(), e);
+                throw new RuntimeException("can not get component.  namespace is " + namespace + ", type is " + componentType.getName(), e);
             }
         }
 
@@ -235,7 +247,7 @@ public class ComponentCreator {
             component.init();
         } else if (o instanceof String) {
             String propertiesPath = (String) o;
-            URL url = PropertiesUtils.class.getClassLoader().getResource(propertiesPath);
+            URL url = PropertiesUtil.class.getClassLoader().getResource(propertiesPath);
             if (url != null) {
                 component.initByClassPath(propertiesPath);
             } else {
@@ -247,13 +259,21 @@ public class ComponentCreator {
         return;
     }
 
-    public static void createProperty(String outputFilePath) {
-        Properties properties = ComponentCreator.getProperties();
-        PropertiesUtils.flush(properties, outputFilePath);
-    }
+//    public static void createProperty(String outputFilePath) {
+//        Properties properties = ComponentCreator.getProperties();
+//        PropertiesUtil.flush(properties, outputFilePath);
+//    }
 
-    public static Properties getProperties() {
-        return properties;
+//    public static Properties getPropertiesDirectly() {
+//        return properties;
+//    }
+//
+//    public static Properties getProperties() {
+//        return SQLParseContext.getProperties();
+//    }
+
+    public static void setProperties(String propertiesPath) {
+        createProperties(propertiesPath);
     }
 
     public static boolean getPropertyBooleanValue(String key) {
@@ -261,9 +281,6 @@ public class ComponentCreator {
         if (value == null) {
             return false;
         }
-        if ("true".equals(value)) {
-            return true;
-        }
-        return false;
+        return "true".equals(value);
     }
 }

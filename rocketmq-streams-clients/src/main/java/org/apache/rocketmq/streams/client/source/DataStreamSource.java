@@ -35,7 +35,7 @@ package org.apache.rocketmq.streams.client.source;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
-import java.util.Set;
+import java.util.Properties;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.common.channel.impl.CollectionSource;
 import org.apache.rocketmq.streams.common.channel.impl.file.FileSource;
@@ -43,28 +43,24 @@ import org.apache.rocketmq.streams.common.channel.impl.memory.MemoryCache;
 import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
-import org.apache.rocketmq.streams.connectors.source.CycleDynamicMultipleDBScanSource;
-import org.apache.rocketmq.streams.connectors.source.DynamicMultipleDBScanSource;
+import org.apache.rocketmq.streams.db.source.CycleDynamicMultipleDBScanSource;
+import org.apache.rocketmq.streams.db.source.DynamicMultipleDBScanSource;
 import org.apache.rocketmq.streams.connectors.source.filter.CycleSchedule;
 import org.apache.rocketmq.streams.kafka.source.KafkaSource;
 import org.apache.rocketmq.streams.mqtt.source.PahoSource;
-import org.apache.rocketmq.streams.source.RocketMQSource;
+import org.apache.rocketmq.streams.rocketmq.source.RocketMQSource;
+import org.apache.rocketmq.streams.sls.source.SLSSource;
 
 public class DataStreamSource {
-    protected PipelineBuilder mainPipelineBuilder;
-    protected Set<PipelineBuilder> otherPipelineBuilders;
 
-    public DataStreamSource(String namespace, String pipelineName) {
-        this.mainPipelineBuilder = new PipelineBuilder(namespace, pipelineName);
-        this.otherPipelineBuilders = Sets.newHashSet();
-    }
+    private final String namespace;
+    private final String jobName;
+    private final Properties properties;
 
-    public static DataStreamSource create(String namespace, String pipelineName) {
-        return new DataStreamSource(namespace, pipelineName);
-    }
-
-    public static DataStreamSource create(String namespace, String pipelineName, String[] duplicateKeys, Long windowSize) {
-        return new DataStreamSource(namespace, pipelineName);
+    public DataStreamSource(String namespace, String jobName, Properties properties) {
+        this.namespace = namespace;
+        this.jobName = jobName;
+        this.properties = properties;
     }
 
     public DataStream fromArray(Object[] o) {
@@ -74,41 +70,67 @@ public class DataStreamSource {
 
     public DataStream fromMemory(MemoryCache memoryCache, boolean isJson) {
         MemorySource memorySource = new MemorySource();
-        this.mainPipelineBuilder.addConfigurables(memoryCache);
         memorySource.setMemoryCache(memoryCache);
         memorySource.setJsonData(isJson);
-        this.mainPipelineBuilder.setSource(memorySource);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.addConfigurables(memoryCache);
+        rootPipelineBuilder.setSource(memorySource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
     public DataStream fromFile(String filePath) {
         return fromFile(filePath, true);
     }
 
+    public DataStream fromCSVFile(String filePath) {
+        FileSource fileChannel = new FileSource(filePath);
+        fileChannel.setCSV(true);
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(fileChannel);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
+    }
+
     public DataStream fromFile(String filePath, Boolean isJsonData) {
         FileSource fileChannel = new FileSource(filePath);
         fileChannel.setJsonData(isJsonData);
-        this.mainPipelineBuilder.setSource(fileChannel);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(fileChannel);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName, String namesrvAddress) {
-        return fromRocketmq(topic, groupName, false, namesrvAddress);
+    public DataStream fromSls(String endPoint, String project, String logStore, String ak, String sk, String groupName) {
+        SLSSource slsSource = new SLSSource(endPoint, project, logStore, ak, sk, groupName);
+        slsSource.setJsonData(true);
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(slsSource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String namesrvAddress) {
-        return fromRocketmq(topic, groupName, "*", isJson, namesrvAddress);
+    public DataStream fromRocketmq(String topic, String groupName, String nameServer) {
+        return fromRocketmq(topic, groupName, false, nameServer);
     }
 
-    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String namesrvAddress) {
+    public DataStream fromRocketmq(String topic, String groupName, boolean isJson, String nameServer) {
+        return fromRocketmq(topic, groupName, "*", isJson, nameServer);
+    }
+
+    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String nameServer) {
+        return fromRocketmq(topic, groupName, tags, isJson, nameServer, false);
+    }
+
+    public DataStream fromRocketmq(String topic, String groupName, String tags, boolean isJson, String nameServer, boolean isMessageListenerConcurrently) {
+
         RocketMQSource rocketMQSource = new RocketMQSource();
         rocketMQSource.setTopic(topic);
         rocketMQSource.setTags(tags);
         rocketMQSource.setGroupName(groupName);
         rocketMQSource.setJsonData(isJson);
-        rocketMQSource.setNamesrvAddr(namesrvAddress);
-        this.mainPipelineBuilder.setSource(rocketMQSource);
-        return new DataStream(this.mainPipelineBuilder, null);
+        rocketMQSource.setNamesrvAddr(nameServer);
+        rocketMQSource.setMessageListenerConcurrently(isMessageListenerConcurrently);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(rocketMQSource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
     public DataStream fromMultipleDB(String url, String userName, String password, String tablePattern) {
@@ -118,65 +140,81 @@ public class DataStreamSource {
         source.setPassword(password);
         source.setBatchSize(10);
         source.setLogicTableName(tablePattern);
-        this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(source);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
-    public DataStream fromCycleSource(String url, String userName, String password, String tablePattern,
-        CycleSchedule.Cycle cycle, int balanceSec) {
+    public DataStream fromCycleSource(String url, String userName, String password, String tablePattern, CycleSchedule.Cycle cycle, int balanceSec) {
         CycleDynamicMultipleDBScanSource source = new CycleDynamicMultipleDBScanSource(cycle);
         source.setUrl(url);
         source.setUserName(userName);
         source.setPassword(password);
         source.setBatchSize(10);
         source.setLogicTableName(tablePattern);
-        source.setBalanceTimeSecond(balanceSec);
-
-        this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(source);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
     public DataStream fromCollection(JSONObject... elements) {
         CollectionSource source = new CollectionSource();
         source.addAll(elements);
-        this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(source);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
     public DataStream fromMqtt(String url, String clientId, String topic) {
         PahoSource mqttSource = new PahoSource(url, clientId, topic);
         mqttSource.setJsonData(true);
-        this.mainPipelineBuilder.setSource(mqttSource);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(mqttSource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
     public DataStream fromMqtt(String url, String clientId, String topic, String username, String password) {
         PahoSource mqttSource = new PahoSource(url, clientId, topic, username, password);
         mqttSource.setJsonData(true);
-        this.mainPipelineBuilder.setSource(mqttSource);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(mqttSource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
-    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password,
-        Boolean cleanSession, Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect) {
+    public DataStream fromMqttForJsonArray(String url, String clientId, String topic, String username, String password) {
+        PahoSource mqttSource = new PahoSource(url, clientId, topic, username, password);
+        mqttSource.setJsonData(true);
+        mqttSource.setMsgIsJsonArray(true);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(mqttSource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
+    }
+
+    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password, Boolean cleanSession, Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect) {
         return fromMqtt(url, clientId, topic, username, password, cleanSession, connectionTimeout, aliveInterval, automaticReconnect, true);
     }
 
-    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password,
-        Boolean cleanSession, Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect,
-        Boolean jsonData) {
+    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password, Boolean cleanSession, Integer connectionTimeout, Integer aliveInterval, Boolean automaticReconnect, Boolean jsonData) {
         PahoSource mqttSource = new PahoSource(url, clientId, topic, username, password, cleanSession, connectionTimeout, aliveInterval, automaticReconnect);
         mqttSource.setJsonData(jsonData);
-        this.mainPipelineBuilder.setSource(mqttSource);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(mqttSource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
-    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password,
-        Boolean jsonData) {
+    public DataStream fromMqtt(String url, String clientId, String topic, String username, String password, Boolean jsonData) {
         PahoSource mqttSource = new PahoSource(url, clientId, topic, username, password);
         mqttSource.setJsonData(jsonData);
-        this.mainPipelineBuilder.setSource(mqttSource);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(mqttSource);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
     public DataStream fromKafka(String endpoint, String topic, String groupName) {
@@ -194,13 +232,16 @@ public class DataStreamSource {
         kafkaChannel.setGroupName(groupName);
         kafkaChannel.setJsonData(isJson);
         kafkaChannel.setMaxThread(maxThread);
-        this.mainPipelineBuilder.setSource(kafkaChannel);
-        return new DataStream(this.mainPipelineBuilder, null);
+
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(kafkaChannel);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
     public DataStream from(ISource<?> source) {
-        this.mainPipelineBuilder.setSource(source);
-        return new DataStream(this.mainPipelineBuilder, this.otherPipelineBuilders, null);
+        PipelineBuilder rootPipelineBuilder = new PipelineBuilder(namespace, jobName, properties);
+        rootPipelineBuilder.setSource(source);
+        return new DataStream(rootPipelineBuilder, Sets.newHashSet(), null);
     }
 
 }

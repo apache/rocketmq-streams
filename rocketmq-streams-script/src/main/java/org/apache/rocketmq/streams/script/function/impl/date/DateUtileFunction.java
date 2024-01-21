@@ -26,7 +26,6 @@ import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 
-
 @Function
 public class DateUtileFunction {
 
@@ -66,7 +65,6 @@ public class DateUtileFunction {
         return DateUtil.format(date, format);
     }
 
-
     @FunctionMethod(value = "addMonth", alias = "monthAdd", comment = "给当前时间增加n月")
     public String addMonth(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
@@ -87,7 +85,6 @@ public class DateUtileFunction {
         date = DateUtil.addMonths(date, value.intValue());
         return DateUtil.format(date, format);
     }
-
 
     @FunctionMethod(value = "addYear", alias = "yearAdd", comment = "给当前时间增加n年")
     public String addYear(IMessage message, FunctionContext context,
@@ -110,7 +107,6 @@ public class DateUtileFunction {
         return DateUtil.format(date, format);
     }
 
-
     @FunctionMethod(value = "addHour", alias = "hourAdd", comment = "给当前时间增加n个小时")
     public String addHour(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
@@ -132,20 +128,21 @@ public class DateUtileFunction {
         return DateUtil.format(date, format);
     }
 
-    @FunctionMethod(value="to_date")
+    @FunctionMethod(value = "to_date")
     public Date create(IMessage message, FunctionContext context,
         @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
         @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
         datetime = FunctionUtils.getValueString(message, context, datetime);
-        if(format==null){
+        if (format == null) {
             return DateUtil.parse(datetime);
         }
         format = FunctionUtils.getValueString(message, context, format);
-        return DateUtil.parse(datetime,format);
+        return DateUtil.parse(datetime, format);
     }
-    @FunctionMethod(value="to_date")
+
+    @FunctionMethod(value = "to_date")
     public Date create(IMessage message, FunctionContext context,
-        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime){
-        return create(message,context,datetime,null);
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime) {
+        return create(message, context, datetime, null);
     }
 }

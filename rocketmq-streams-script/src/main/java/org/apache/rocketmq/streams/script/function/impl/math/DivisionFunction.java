@@ -39,8 +39,8 @@ public class DivisionFunction {
      */
     @FunctionMethod(value = "division", alias = "division", comment = "两个数值的除法返回结果")
     public Object division(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "String", comment = "代表要求乘法的第一个参数") String x,
-                           @FunctionParamter(value = "String", comment = "代表要求乘法的第二个参数") String y) {
+        @FunctionParamter(value = "String", comment = "代表要求乘法的第一个参数") String x,
+        @FunctionParamter(value = "String", comment = "代表要求乘法的第二个参数") String y) {
         Double result = null;
         String paramX = FunctionUtils.getValueString(message, context, x);
         String paramY = FunctionUtils.getValueString(message, context, y);

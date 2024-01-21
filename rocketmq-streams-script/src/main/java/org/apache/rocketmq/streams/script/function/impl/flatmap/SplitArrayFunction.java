@@ -20,8 +20,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -31,12 +29,13 @@ import org.apache.rocketmq.streams.script.annotation.FunctionParamter;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Function
 public class SplitArrayFunction {
-    private static final Log LOG = LogFactory.getLog(SplitArrayFunction.class);
-    public static final String SPLIT_LAST_FLAG = "__split_last_flag";//对于拆分的消息，会在最后一条加一个标识别。
     public static final String FUNTION_NAME = "splitArray";
+    private static final Logger LOGGER = LoggerFactory.getLogger(SplitArrayFunction.class);
 
     /**
      * 把一个json结构中包含的数组平铺起来
@@ -92,7 +91,7 @@ public class SplitArrayFunction {
                 copyMessage.setMessageBody(jsonObject);
                 newMessage = copyMessage;
             } else {
-                LOG.warn("can not support split item , the value is " + value.getClass().getName());
+                LOGGER.warn("can not support split item , the value is " + value.getClass().getName());
                 continue;
             }
             if (i < jsonArray.size() - 1) {

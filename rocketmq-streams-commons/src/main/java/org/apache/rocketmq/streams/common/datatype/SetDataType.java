@@ -54,6 +54,10 @@ public class SetDataType extends GenericParameterDataType<Set> {
 
     }
 
+    public static String getTypeName() {
+        return "set";
+    }
+
     @Override
     public String toDataStr(Set value) {
         StringBuilder stringBuilder = new StringBuilder();
@@ -215,10 +219,6 @@ public class SetDataType extends GenericParameterDataType<Set> {
         return false;
     }
 
-    public static String getTypeName() {
-        return "list";
-    }
-
     @Override
     public boolean matchClass(Class clazz) {
         return Set.class.isAssignableFrom(clazz);
@@ -270,6 +270,10 @@ public class SetDataType extends GenericParameterDataType<Set> {
     protected String createGenericParameterStr() {
         String subStr = createGenericParameterStr(paradigmType);
         return List.class.getName() + "<" + subStr + ">";
+    }
+
+    public DataType getParadigmType() {
+        return paradigmType;
     }
 
     public void setParadigmType(DataType paradigmType) {

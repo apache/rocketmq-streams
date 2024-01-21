@@ -37,13 +37,16 @@ public class PullMessage<T> {
     public void setMessageOffset(MessageOffset messageOffset) {
         this.messageOffset = messageOffset;
     }
+
     /**
      * 获取offset字符串，通过.把主offset和子offset串接在一起
+     *
      * @return
      */
-    public String getOffsetStr(){
-       return this.messageOffset.getOffsetStr();
+    public String getOffsetStr() {
+        return this.messageOffset.getOffsetStr();
     }
+
     public String getMainOffset() {
         return messageOffset.getMainOffset();
     }

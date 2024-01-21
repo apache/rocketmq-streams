@@ -32,6 +32,10 @@ public class StringDataType extends BaseDataType<String> {
         setDataClazz(clazz);
     }
 
+    public static String getTypeName() {
+        return "string";
+    }
+
     @Override
     public String getData(String jsonValue) {
         return jsonValue;
@@ -40,10 +44,6 @@ public class StringDataType extends BaseDataType<String> {
     @Override
     public String getName() {
         return String.class.getSimpleName();
-    }
-
-    public static String getTypeName() {
-        return "string";
     }
 
     @Override

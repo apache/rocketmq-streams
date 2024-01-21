@@ -27,6 +27,14 @@ import org.apache.rocketmq.streams.common.utils.FileUtil;
 public class FileDim extends AbstractDim {
     protected String filePath;
 
+    public static void main(String[] args) {
+        List<String> lines = FileUtil.loadFileLine("/tmp/data_model_extractor_config.txt");
+        for (String row : lines) {
+            JSONObject jsonObject = JSON.parseObject(row);
+            System.out.println(jsonObject);
+        }
+    }
+
     @Override
     protected void loadData2Memory(AbstractMemoryTable tableCompress) {
         List<String> rows = FileUtil.loadFileLine(filePath);
@@ -40,18 +48,12 @@ public class FileDim extends AbstractDim {
         }
     }
 
-    public static void main(String[] args) {
-        List<String> lines = FileUtil.loadFileLine("/tmp/data_model_extractor_config.txt");
-        for (String row : lines) {
-            JSONObject jsonObject = JSON.parseObject(row);
-            System.out.println(jsonObject);
-        }
-    }
-
+    @Override
     public String getFilePath() {
         return filePath;
     }
 
+    @Override
     public void setFilePath(String filePath) {
         this.filePath = filePath;
     }

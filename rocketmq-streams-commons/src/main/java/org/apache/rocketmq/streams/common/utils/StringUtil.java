@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.optimization.OptimizationRegex;
 
 public final class StringUtil {
@@ -34,14 +33,18 @@ public final class StringUtil {
      * 是否开启 用于快速优化，抽取正则里面的词，能够先匹配，目的是快速失效 的开关 默认为false
      */
     private static boolean regex_fast_switch = false;
-
-    static {
-        // dipper.properties 配置文件中 获取
-        String propertyFlag = ComponentCreator.getProperties().getProperty("regex.fast.switch");
-        if ("true".equals(propertyFlag)) {
-            regex_fast_switch = true;
-        }
-    }
+    /**
+     * 根据要匹配的字符串，匹配模式字符串，是否忽略大小写和超时时间创建matcher
+     *
+     * @param content 待匹配的字符串
+     * @param patternStr 匹配模式
+     * @param caseInsensitive 是否忽略大小写
+     * @param timeout 超时时间
+     * @return
+     */
+    private static Map<String, Pattern> pattern2MatcherForCaseInsensitive = new HashMap<String, Pattern>();
+    private static Map<String, Pattern> pattern2Matcher = new HashMap<String, Pattern>();
+    private static String hexString = "0123456789abcdef";
 
     public static boolean isEmpty(String string) {
         return string == null || "".equals(string.trim());
@@ -265,18 +268,6 @@ public final class StringUtil {
         return false;
     }
 
-    /**
-     * 根据要匹配的字符串，匹配模式字符串，是否忽略大小写和超时时间创建matcher
-     *
-     * @param content 待匹配的字符串
-     * @param patternStr 匹配模式
-     * @param caseInsensitive 是否忽略大小写
-     * @param timeout 超时时间
-     * @return
-     */
-    private static Map<String, Pattern> pattern2MatcherForCaseInsensitive = new HashMap<String, Pattern>();
-    private static Map<String, Pattern> pattern2Matcher = new HashMap<String, Pattern>();
-
     private static Matcher createMatcher(String content, String patternStr, boolean caseInsensitive, long timeout) {
         Map<String, Pattern> map = null;
         if (caseInsensitive) {
@@ -351,8 +342,6 @@ public final class StringUtil {
         }
         return propertyValue;
     }
-
-    private static String hexString = "0123456789abcdef";
 
     /*
      * 将16进制数字解码成字符串,适用于所有字符（包括中文）

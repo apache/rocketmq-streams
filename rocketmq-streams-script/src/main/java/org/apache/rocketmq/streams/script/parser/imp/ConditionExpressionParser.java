@@ -33,10 +33,8 @@ import org.apache.rocketmq.streams.script.utils.ScriptParserUtil;
 public class ConditionExpressionParser implements IScriptExpressionParser {
 
     public final static String LINE_SEPERATOR = System.getProperty("line.separator");
-
-    private List<String> keywords = new ArrayList<>();
-
     private static final String ELSEIF = "elseif";
+    private List<String> keywords = new ArrayList<>();
 
     public ConditionExpressionParser(String... conditonKeywords) {
         if (conditonKeywords == null) {
@@ -56,7 +54,7 @@ public class ConditionExpressionParser implements IScriptExpressionParser {
     }
 
     protected GroupScriptExpression parse(String itemStr, GroupScriptExpression current, GroupScriptExpression root,
-                                          Map<String, String> flag2ExpressionStr) {
+        Map<String, String> flag2ExpressionStr) {
         int startIndex = 0;
 
         List<IScriptExpression> list = new ArrayList<>();
@@ -152,7 +150,7 @@ public class ConditionExpressionParser implements IScriptExpressionParser {
     }
 
     private List<IScriptExpression> parseScriptExpression(String expressionStr,
-                                                          Map<String, String> flag2ExpressionStr) {
+        Map<String, String> flag2ExpressionStr) {
         expressionStr = expressionStr.trim();
         if (expressionStr.startsWith("if((")) {
             expressionStr = expressionStr.replace("if((", "if('(");

@@ -50,7 +50,8 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
         this(messageValue, null);
     }
 
-    public UserDefinedMessage() {}
+    public UserDefinedMessage() {
+    }
 
     public UserDefinedMessage(Object messageValue, List<String> columnNames) {
         this.messageValue = messageValue;
@@ -65,7 +66,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
             }
         } else if (DataTypeUtil.isList(clazz) || DataTypeUtil.isArray(clazz)) {
             isList = true;
-            Iterator<?> it = ((Iterable<?>)messageValue).iterator();
+            Iterator<?> it = ((Iterable<?>) messageValue).iterator();
             int i = 0;
             while (it.hasNext()) {
                 Object value = it.next();
@@ -78,7 +79,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
             }
         } else if (DataTypeUtil.isMap(clazz) || messageValue instanceof JSONObject) {
             isMap = true;
-            this.fieldMap = (Map<String, Object>)messageValue;
+            this.fieldMap = (Map<String, Object>) messageValue;
         } else {
             isPojo = true;
             ReflectUtil.scanFields(messageValue, (o, field) -> this.fieldMap.put(field.getName(), field));
@@ -130,7 +131,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
 
     @Override
     public Object get(Object key) {
-        Object msgValue = getBeanFieldOrJsonValue(messageValue, (String)key);
+        Object msgValue = getBeanFieldOrJsonValue(messageValue, (String) key);
         if (msgValue != null) {
             return msgValue;
         }
@@ -141,7 +142,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public JSONObject getJSONObject(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue instanceof JSONObject) {
-            return (JSONObject)msgValue;
+            return (JSONObject) msgValue;
         }
         return super.getJSONObject(key);
     }
@@ -150,7 +151,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public JSONArray getJSONArray(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue instanceof JSONArray) {
-            return (JSONArray)msgValue;
+            return (JSONArray) msgValue;
         }
         return super.getJSONArray(key);
     }
@@ -159,7 +160,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public <T> T getObject(String key, Class<T> clazz) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (clazz.isInstance(msgValue)) {
-            return (T)msgValue;
+            return (T) msgValue;
         }
         return super.getObject(key, clazz);
     }
@@ -168,7 +169,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Boolean getBoolean(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isBoolean(msgValue.getClass())) {
-            return (Boolean)msgValue;
+            return (Boolean) msgValue;
         }
         return super.getBoolean(key);
     }
@@ -177,7 +178,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public byte[] getBytes(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && byte[].class.isInstance(msgValue.getClass())) {
-            return (byte[])msgValue;
+            return (byte[]) msgValue;
         }
         return super.getBytes(key);
     }
@@ -186,7 +187,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public boolean getBooleanValue(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isBoolean(msgValue.getClass())) {
-            return (Boolean)msgValue;
+            return (Boolean) msgValue;
         }
         return super.getBooleanValue(key);
     }
@@ -195,7 +196,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Byte getByte(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isByte(msgValue.getClass())) {
-            return (Byte)msgValue;
+            return (Byte) msgValue;
         }
         return super.getByte(key);
     }
@@ -204,7 +205,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public byte getByteValue(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isByte(msgValue.getClass())) {
-            return (Byte)msgValue;
+            return (Byte) msgValue;
         }
         return super.getByteValue(key);
     }
@@ -213,7 +214,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Short getShort(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isShort(msgValue.getClass())) {
-            return (Short)msgValue;
+            return (Short) msgValue;
         }
         return super.getShort(key);
     }
@@ -222,7 +223,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public short getShortValue(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isShort(msgValue.getClass())) {
-            return (Short)msgValue;
+            return (Short) msgValue;
         }
         return super.getShortValue(key);
     }
@@ -231,7 +232,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Integer getInteger(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isInt(msgValue.getClass())) {
-            return (Integer)msgValue;
+            return (Integer) msgValue;
         }
         return super.getInteger(key);
     }
@@ -240,7 +241,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public int getIntValue(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isInt(msgValue.getClass())) {
-            return (int)msgValue;
+            return (int) msgValue;
         }
         return super.getIntValue(key);
     }
@@ -249,7 +250,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Long getLong(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isLong(msgValue.getClass())) {
-            return (Long)msgValue;
+            return (Long) msgValue;
         }
         return super.getLong(key);
     }
@@ -258,7 +259,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public long getLongValue(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isLong(msgValue.getClass())) {
-            return (long)msgValue;
+            return (long) msgValue;
         }
         return super.getLongValue(key);
     }
@@ -267,7 +268,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Float getFloat(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isFloat(msgValue.getClass())) {
-            return (Float)msgValue;
+            return (Float) msgValue;
         }
         return super.getFloat(key);
     }
@@ -276,7 +277,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public float getFloatValue(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isFloat(msgValue.getClass())) {
-            return (float)msgValue;
+            return (float) msgValue;
         }
         return super.getFloatValue(key);
     }
@@ -285,7 +286,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Double getDouble(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isDouble(msgValue.getClass())) {
-            return (Double)msgValue;
+            return (Double) msgValue;
         }
         return super.getDouble(key);
     }
@@ -294,7 +295,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public double getDoubleValue(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && DataTypeUtil.isDouble(msgValue.getClass())) {
-            return (double)msgValue;
+            return (double) msgValue;
         }
         return super.getDoubleValue(key);
     }
@@ -303,7 +304,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public BigDecimal getBigDecimal(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && BigDecimal.class.isInstance(msgValue.getClass())) {
-            return (BigDecimal)msgValue;
+            return (BigDecimal) msgValue;
         }
         return super.getBigDecimal(key);
     }
@@ -312,7 +313,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public BigInteger getBigInteger(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && BigInteger.class.isInstance(msgValue.getClass())) {
-            return (BigInteger)msgValue;
+            return (BigInteger) msgValue;
         }
         return super.getBigInteger(key);
     }
@@ -321,7 +322,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public String getString(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && String.class.isInstance(msgValue.getClass())) {
-            return (String)msgValue;
+            return (String) msgValue;
         }
         return super.getString(key);
     }
@@ -330,7 +331,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public Date getDate(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && Date.class.isInstance(msgValue.getClass())) {
-            return (Date)msgValue;
+            return (Date) msgValue;
         }
         return super.getDate(key);
     }
@@ -339,18 +340,18 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
     public java.sql.Date getSqlDate(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && java.sql.Date.class.isInstance(msgValue.getClass())) {
-            return (java.sql.Date)msgValue;
+            return (java.sql.Date) msgValue;
         }
-        return super.getSqlDate(key);
+        return (java.sql.Date) super.getSqlDate(key);
     }
 
     @Override
     public Timestamp getTimestamp(String key) {
         Object msgValue = getBeanFieldOrJsonValue(messageValue, key);
         if (msgValue != null && Timestamp.class.isInstance(msgValue.getClass())) {
-            return (Timestamp)msgValue;
+            return (Timestamp) msgValue;
         }
-        return super.getTimestamp(key);
+        return (Timestamp) super.getTimestamp(key);
     }
 
     @Override
@@ -458,7 +459,7 @@ public class UserDefinedMessage extends JSONObject implements Serializable {
             data = dataType.toDataJson(messageValue);
             type = "datatype";
         } else if (isMap && JSONObject.class.isInstance(messageValue)) {
-            JSONObject jsonObject = (JSONObject)messageValue;
+            JSONObject jsonObject = (JSONObject) messageValue;
             data = jsonObject.toJSONString();
             type = "json";
         } else {

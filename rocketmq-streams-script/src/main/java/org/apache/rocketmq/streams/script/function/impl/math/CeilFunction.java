@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -37,7 +36,7 @@ public class CeilFunction {
      */
     @FunctionMethod(value = "ceil", alias = "ceil", comment = "返回不小于输入值value的最小整数")
     public Double ceil(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
         Double result = null;
         Double numberTem = Double.parseDouble(FunctionUtils.getValueString(message, context, number));
         if (numberTem == null) {
@@ -57,7 +56,7 @@ public class CeilFunction {
      */
     @FunctionMethod(value = "ceil", alias = "ceil", comment = "返回不小于输入值value的最小整数")
     public Double ceil(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Double", comment = "代表要求值的Double常量") Double number) {
+        @FunctionParamter(value = "Double", comment = "代表要求值的Double常量") Double number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -75,27 +74,8 @@ public class CeilFunction {
      * @return
      */
     @FunctionMethod(value = "ceil", alias = "ceil", comment = "返回不小于输入值value的最小整数")
-    public BigDecimal ceil(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "BigDecimal", comment = "代表要求值的BigDecimal常量") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.ceil(number.intValue()));
-        return result;
-    }
-
-    /**
-     * 返回不小于输入值value的最小整数
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "ceil", alias = "ceil", comment = "返回不小于输入值value的最小整数")
     public Double ceil(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "Integer", comment = "代表要求值的Integer常量") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "代表要求值的Integer常量") Integer number) {
         Double result = null;
         if (number == null) {
             return result;

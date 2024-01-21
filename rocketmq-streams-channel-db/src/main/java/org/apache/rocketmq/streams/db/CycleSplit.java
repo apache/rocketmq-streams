@@ -26,11 +26,11 @@ public class CycleSplit extends DynamicMultipleDBSplit implements Serializable {
     private static final long serialVersionUID = 4309494143340650195L;
     String cyclePeriod;
 
-    public CycleSplit(){
+    public CycleSplit() {
 
     }
 
-    public CycleSplit(String version){
+    public CycleSplit(String version) {
         this.cyclePeriod = version;
     }
 

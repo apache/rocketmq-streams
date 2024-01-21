@@ -44,6 +44,7 @@ public class SimpleExpression extends Expression {
         setValue(dataType.getData(value));
         setDataType(dataType);
     }
+
     public boolean doExecute(JSONObject msg) {
         return ExpressionBuilder.executeExecute(this, msg);
     }

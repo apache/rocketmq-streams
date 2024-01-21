@@ -34,15 +34,26 @@ public class IsDecimalFunction {
      * @param number
      * @return
      */
+    String regex = "^[a-zA-Z]+$";
+
+    /**
+     * 将整数或字符转换为十六进制格式
+     *
+     * @param message
+     * @param context
+     * @param number
+     * @return
+     */
     @FunctionMethod("IS_DECIMAL")
     public boolean isDecimal(IMessage message, FunctionContext context,
         @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
-        if(number==null){
+        if (number == null) {
             return false;
         }
-        number= FunctionUtils.getValueString(message, context, number);
+        number = FunctionUtils.getValueString(message, context, number);
         return FunctionUtils.isDouble(number);
     }
+
     /**
      * 将整数或字符转换为十六进制格式
      *
@@ -54,30 +65,20 @@ public class IsDecimalFunction {
     @FunctionMethod(value = "is_number", comment = "将整数或字符转换为十六进制格式")
     public boolean isNumber(IMessage message, FunctionContext context,
         @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
-        if(number==null){
+        if (number == null) {
             return false;
         }
-        number= FunctionUtils.getValueString(message, context, number);
+        number = FunctionUtils.getValueString(message, context, number);
         return FunctionUtils.isLong(number);
     }
 
-
-    /**
-     * 将整数或字符转换为十六进制格式
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    String regex="^[a-zA-Z]+$";
     @FunctionMethod(value = "IS_ALPHA", comment = "将整数或字符转换为十六进制格式")
     public boolean isAlpha(IMessage message, FunctionContext context,
         @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
-        if(number==null){
+        if (number == null) {
             return false;
         }
-        number= FunctionUtils.getValueString(message, context, number);
-        return StringUtil.matchRegex(number,regex);
+        number = FunctionUtils.getValueString(message, context, number);
+        return StringUtil.matchRegex(number, regex);
     }
 }

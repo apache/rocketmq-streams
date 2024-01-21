@@ -27,11 +27,11 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class ToLowerFunction {
 
-    public static boolean isLowFunction(String functionName){
-        if(functionName==null){
+    public static boolean isLowFunction(String functionName) {
+        if (functionName == null) {
             return false;
         }
-        if("tolower".equals(functionName.toLowerCase())||"lower".equals(functionName.toLowerCase())){
+        if ("tolower".equals(functionName.toLowerCase()) || "lower".equals(functionName.toLowerCase())) {
             return true;
         }
         return false;
@@ -47,7 +47,7 @@ public class ToLowerFunction {
      */
     @FunctionMethod(value = "tolower", alias = "lower", comment = "将值转换为小写")
     public String tolower(IMessage message, FunctionContext context,
-                          @FunctionParamter(value = "string", comment = "待转换的字符串代表列名称或常量值") String fieldName) {
+        @FunctionParamter(value = "string", comment = "待转换的字符串代表列名称或常量值") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

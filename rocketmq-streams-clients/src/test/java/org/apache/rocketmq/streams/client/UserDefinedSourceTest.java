@@ -18,5 +18,4 @@ package org.apache.rocketmq.streams.client;
 
 public class UserDefinedSourceTest {
 
-
 }

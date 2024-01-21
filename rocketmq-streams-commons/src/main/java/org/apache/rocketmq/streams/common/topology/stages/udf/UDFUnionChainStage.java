@@ -16,20 +16,17 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages.udf;
 
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 import org.apache.rocketmq.streams.common.topology.model.Union;
 import org.apache.rocketmq.streams.common.topology.stages.AbstractStatelessChainStage;
 
-public class UDFUnionChainStage extends AbstractStatelessChainStage implements IAfterConfigurableRefreshListener {
-    protected String unionName;//union对象的名字
+public class UDFUnionChainStage extends AbstractStatelessChainStage {
     protected boolean isMainStream = false;//是主流，在union时，主流.union(支流)
 
-    protected transient Union union;
+    @ConfigurableReference protected Union union;
 
     @Override
     public boolean isAsyncNode() {
@@ -37,47 +34,26 @@ public class UDFUnionChainStage extends AbstractStatelessChainStage implements I
     }
 
     @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        union = configurableService.queryConfigurable(Union.TYPE, unionName);
-        if (isMainStream) {
-            IStreamOperator<IMessage, AbstractContext<IMessage>> receiver = getReceiverAfterCurrentNode();
-            union.setReceiver(receiver);
+    protected IMessage handleMessage(IMessage message, AbstractContext context) {
+        if (!isMainStream) {
+            union.doMessage(message, context);
         }
-
-    }
-
-    @Override
-    protected IStageHandle selectHandle(IMessage message, AbstractContext context) {
-        return new IStageHandle() {
-            @Override
-            protected IMessage doProcess(IMessage message, AbstractContext context) {
-                if (!isMainStream) {
-                    union.doMessage(message, context);
-                }
-                return message;
-            }
-
-            @Override
-            public String getName() {
-                return UDFUnionChainStage.class.getName();
-            }
-        };
+        return message;
     }
 
     public void setUnion(Union union) {
         this.union = union;
         if (union != null) {
-            setUnionName(union.getConfigureName());
-            setLabel(union.getConfigureName());
+            setLabel(union.getName());
         }
     }
 
-    public String getUnionName() {
-        return unionName;
-    }
-
-    public void setUnionName(String unionName) {
-        this.unionName = unionName;
+    @Override public void startJob() {
+        super.startJob();
+        if (isMainStream) {
+            IStreamOperator<IMessage, AbstractContext<IMessage>> receiver = getReceiverAfterCurrentNode();
+            union.setReceiver(receiver);
+        }
     }
 
     public boolean isMainStream() {

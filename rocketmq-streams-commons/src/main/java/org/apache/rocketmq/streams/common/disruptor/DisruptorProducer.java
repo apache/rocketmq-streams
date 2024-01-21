@@ -19,11 +19,11 @@ package org.apache.rocketmq.streams.common.disruptor;
 import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DisruptorProducer<T> {
-    private static final Log LOG = LogFactory.getLog(DisruptorProducer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DisruptorProducer.class);
     private Disruptor disruptor;
 
     public DisruptorProducer(Disruptor disruptor) {

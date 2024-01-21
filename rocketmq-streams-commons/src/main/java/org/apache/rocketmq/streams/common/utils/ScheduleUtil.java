@@ -26,7 +26,7 @@ public class ScheduleUtil {
         if (!(receiver instanceof IConfigurable)) {
             throw new RuntimeException("can not convert to IScheduleExecutor, need function Iconfiguable interface");
         }
-        IConfigurable configurable = (IConfigurable)receiver;
+        IConfigurable configurable = (IConfigurable) receiver;
         return new IScheduleExecutor() {
             @Override
             public void doExecute() throws InterruptedException {
@@ -34,8 +34,8 @@ public class ScheduleUtil {
             }
 
             @Override
-            public String getConfigureName() {
-                return configurable.getConfigureName();
+            public String getName() {
+                return configurable.getName();
             }
 
             @Override

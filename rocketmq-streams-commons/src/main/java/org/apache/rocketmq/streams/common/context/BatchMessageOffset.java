@@ -45,7 +45,7 @@ public class BatchMessageOffset extends BasedConfigurable {
     public static BatchMessageOffset create(IConfigurable configurable, String msg, String offsetName, String currentMessageKey) {
         BatchMessageOffset offset = new BatchMessageOffset();
         offset.setNameSpace(configurable.getNameSpace());
-        offset.setConfigureName(offsetName);
+        offset.setName(offsetName);
         offset.ownerType = configurable.getType();
         if (StringUtil.isEmpty(msg)) {
             offset.getMessages().put(currentMessageKey, new JSONObject().toJSONString());
@@ -92,6 +92,10 @@ public class BatchMessageOffset extends BasedConfigurable {
         return messages;
     }
 
+    public void setMessages(Map<String, String> messages) {
+        this.messages = messages;
+    }
+
     public String getOwnerType() {
         return ownerType;
     }
@@ -104,19 +108,15 @@ public class BatchMessageOffset extends BasedConfigurable {
         return lastUpdateTime;
     }
 
+    public void setLastUpdateTime(long lastUpdateTime) {
+        this.lastUpdateTime = lastUpdateTime;
+    }
+
     public String getCurrentMessageKey() {
         return currentMessageKey;
     }
 
     public void setCurrentMessageKey(String currentMessageKey) {
         this.currentMessageKey = currentMessageKey;
-    }
-
-    public void setMessages(Map<String, String> messages) {
-        this.messages = messages;
-    }
-
-    public void setLastUpdateTime(long lastUpdateTime) {
-        this.lastUpdateTime = lastUpdateTime;
     }
 }

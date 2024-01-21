@@ -18,8 +18,8 @@ package org.apache.rocketmq.streams.filter.optimization.dependency;
 
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.topology.stages.ScriptChainStage;
 
@@ -31,10 +31,6 @@ public class PipelineTree {
     public PipelineTree(ChainPipeline pipeline) {
         this.pipeline = pipeline;
         stageMap = pipeline.getStageMap();
-    }
-
-    protected class Context {
-
     }
 
     public void registePreFingerprint(Context context, TreeNode parent, List<String> nextLabels) {
@@ -52,6 +48,10 @@ public class PipelineTree {
                 registePreFingerprint(context, current, current.getStage().getNextStageLabels());
             }
         }
+    }
+
+    protected class Context {
+
     }
 
 }

@@ -21,22 +21,20 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IPUtil {
 
-    private static final Log LOG = LogFactory.getLog(IPUtil.class);
-
-    private static volatile InetAddress LOCAL_ADDRESS = null;
-    private static final Pattern IP_PATTERN = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3,5}$");
-
     public static final String LOCALHOST = "127.0.0.1";
     public static final String ANYHOST = "0.0.0.0";
+    private static final Logger LOGGER = LoggerFactory.getLogger(IPUtil.class);
+    private static final Pattern IP_PATTERN = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3,5}$");
     private static final Pattern pattern = Pattern.compile(
         "^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])" + "\\.(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)"
             + "\\.(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)" + "\\.(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|\\d)$");
-    private static final long ALLONES = (long)(Math.pow(2, 32) - 1);
+    private static final long ALLONES = (long) (Math.pow(2, 32) - 1);
+    private static volatile InetAddress LOCAL_ADDRESS = null;
 
     public static String getLocalIP() {
         InetAddress address = getLocalIPAddress();
@@ -60,7 +58,7 @@ public class IPUtil {
                 return localAddress;
             }
         } catch (Throwable e) {
-            LOG.warn("Failed to retrieving ip address, " + e.getMessage(), e);
+            LOGGER.warn("Failed to retrieving ip address, " + e.getMessage(), e);
         }
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
@@ -77,19 +75,19 @@ public class IPUtil {
                                         return address;
                                     }
                                 } catch (Throwable e) {
-                                    LOG.warn("Failed to retrieving ip address, " + e.getMessage(), e);
+                                    LOGGER.warn("Failed to retrieving ip address, " + e.getMessage(), e);
                                 }
                             }
                         }
                     } catch (Throwable e) {
-                        LOG.warn("Failed to retrieving ip address, " + e.getMessage(), e);
+                        LOGGER.warn("Failed to retrieving ip address, " + e.getMessage(), e);
                     }
                 }
             }
         } catch (Throwable e) {
-            LOG.warn("Failed to retrieving ip address, " + e.getMessage(), e);
+            LOGGER.warn("Failed to retrieving ip address, " + e.getMessage(), e);
         }
-        LOG.error("Could not get local host ip address, will use 127.0.0.1 instead.");
+        LOGGER.error("Could not get local host ip address, will use 127.0.0.1 instead.");
         return localAddress;
     }
 

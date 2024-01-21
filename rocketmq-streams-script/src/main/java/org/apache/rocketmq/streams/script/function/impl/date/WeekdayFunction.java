@@ -37,8 +37,8 @@ public class WeekdayFunction {
      */
     @FunctionMethod(value = "weekday", alias = "dayofweek", comment = "获取星期几")
     public Integer weekday(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
-                           @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime,
+        @FunctionParamter(value = "string", comment = "代表格式的字段名或常量") String format) {
         Integer day = null;
         datetime = FunctionUtils.getValueString(message, context, datetime);
         format = FunctionUtils.getValueString(message, context, format);
@@ -51,7 +51,7 @@ public class WeekdayFunction {
 
     @FunctionMethod(value = "weekday", alias = "dayofweek", comment = "获取星期几")
     public Integer weekday(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String datetime) {
         return weekday(message, context, datetime, "'" + DateUtil.DEFAULT_FORMAT + "'");
     }
 }

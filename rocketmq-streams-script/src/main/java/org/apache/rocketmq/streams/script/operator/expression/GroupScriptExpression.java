@@ -26,6 +26,7 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.topology.model.AbstractRule;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.PrintUtil;
+import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.context.FunctionContext;
 import org.apache.rocketmq.streams.script.parser.imp.FunctionParser;
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
@@ -37,23 +38,18 @@ import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
  */
 public class GroupScriptExpression implements IScriptExpression {
 
-    private IScriptExpression ifExpresssion;
-
-    private List<IScriptExpression> thenExpresssions;
-
-    private List<IScriptExpression> elseExpressions;
-
-    private String scriptParameterStr;
-    protected List<? extends AbstractRule> rules;
-
-    protected List<GroupScriptExpression> elseIfExpressions = new ArrayList<>();
-
     private static final String TAB = FunctionParser.TAB;
-
+    protected List<? extends AbstractRule> rules;
+    protected List<GroupScriptExpression> elseIfExpressions = new ArrayList<>();
     protected List<IScriptExpression> beforeExpressions;
     protected List<IScriptExpression> afterExpressions;
-
-    private transient ICaseDependentParser caseDependentParser;
+    private IScriptExpression ifExpresssion;
+    private transient String boolVar;
+    private transient AbstractRule rule;
+    private List<IScriptExpression> thenExpresssions;
+    private List<IScriptExpression> elseExpressions;
+    private String scriptParameterStr;
+    private transient IGroupScriptOptimization caseDependentParser;
 
     @Override
     public Object getScriptParamter(IMessage message, FunctionContext context) {
@@ -65,15 +61,15 @@ public class GroupScriptExpression implements IScriptExpression {
         return scriptParameterStr;
     }
 
+    public void setScriptParameterStr(String scriptParameterStr) {
+        this.scriptParameterStr = scriptParameterStr;
+    }
+
     @Override
     public Object executeExpression(IMessage channelMessage, FunctionContext context) {
-        if (beforeExpressions != null) {
-            for (IScriptExpression scriptExpression : beforeExpressions) {
-                scriptExpression.executeExpression(channelMessage, context);
-            }
-        }
+        executeBeforeExpression(channelMessage, context);
+        Boolean result = executeIf(this, channelMessage, context);
 
-        Boolean result = (Boolean) ifExpresssion.executeExpression(channelMessage, context);
         Object value = null;
         if (result) {
             if (thenExpresssions != null) {
@@ -86,7 +82,7 @@ public class GroupScriptExpression implements IScriptExpression {
         if (elseIfExpressions != null && elseIfExpressions.size() > 0) {
             for (int i = elseIfExpressions.size() - 1; i >= 0; i--) {
                 GroupScriptExpression expression = elseIfExpressions.get(i);
-                boolean success = (Boolean) expression.ifExpresssion.executeExpression(channelMessage, context);
+                boolean success = executeIf(expression, channelMessage, context);
                 if (success) {
                     if (expression.thenExpresssions != null) {
                         for (IScriptExpression scriptExpression : expression.thenExpresssions) {
@@ -105,6 +101,26 @@ public class GroupScriptExpression implements IScriptExpression {
             }
         }
         return null;
+    }
+
+    protected Boolean executeIf(GroupScriptExpression groupScriptExpression, IMessage message, FunctionContext context) {
+        if (StringUtil.isNotEmpty(groupScriptExpression.boolVar)) {
+            return message.getMessageBody().getBooleanValue(groupScriptExpression.boolVar);
+        } else if (groupScriptExpression.rule != null) {
+            return groupScriptExpression.rule.doMessage(message, context);
+        } else {
+            Boolean result = (Boolean) groupScriptExpression.ifExpresssion.executeExpression(message, context);
+            return result;
+        }
+    }
+
+    public void executeBeforeExpression(IMessage channelMessage, FunctionContext context) {
+        if (beforeExpressions != null) {
+            for (IScriptExpression scriptExpression : beforeExpressions) {
+                scriptExpression.executeExpression(channelMessage, context);
+            }
+        }
+
     }
 
     protected Object executeAfterExpression(IMessage channelMessage, FunctionContext context) {
@@ -205,7 +221,7 @@ public class GroupScriptExpression implements IScriptExpression {
         if (elseIfExpressions != null) {
             parameters.addAll(elseIfExpressions);
         }
-        ICaseDependentParser caseDependentParser = loadCaseDependentParser();
+        IGroupScriptOptimization caseDependentParser = loadCaseDependentParser();
         if (parameters != null && parameters.size() > 0) {
             for (IScriptExpression scriptExpression : parameters) {
                 List<String> names = null;
@@ -220,6 +236,31 @@ public class GroupScriptExpression implements IScriptExpression {
             }
         }
         return fieldNames;
+    }
+
+    public Set<String> getIFDependentFields() {
+        Set<String> fieldNames = new HashSet<>();
+        List<IScriptExpression> parameters = new ArrayList<>();
+        if (ifExpresssion != null) {
+            parameters.add(ifExpresssion);
+        }
+
+        IGroupScriptOptimization caseDependentParser = loadCaseDependentParser();
+        if (ifExpresssion != null && parameters.size() > 0) {
+            for (IScriptExpression scriptExpression : parameters) {
+                List<String> names = null;
+                if (caseDependentParser != null && caseDependentParser.isCaseFunction(scriptExpression)) {
+                    names = new ArrayList<>(caseDependentParser.getDependentFields(scriptExpression));
+                } else {
+                    names = scriptExpression.getDependentFields();
+                }
+                if (names != null) {
+                    fieldNames.addAll(names);
+                }
+            }
+        }
+        return fieldNames;
+
     }
 
     protected Set<String> getNewFieldNamesInner() {
@@ -242,7 +283,7 @@ public class GroupScriptExpression implements IScriptExpression {
         return set;
     }
 
-    protected ICaseDependentParser loadCaseDependentParser() {
+    protected IGroupScriptOptimization loadCaseDependentParser() {
         if (this.caseDependentParser != null) {
             return this.caseDependentParser;
         }
@@ -250,32 +291,17 @@ public class GroupScriptExpression implements IScriptExpression {
             if (caseDependentParser != null) {
                 return this.caseDependentParser;
             }
-            ServiceLoaderComponent caseServiceLoader = ServiceLoaderComponent.getInstance(ICaseDependentParser.class);
+            ServiceLoaderComponent caseServiceLoader = ServiceLoaderComponent.getInstance(IGroupScriptOptimization.class);
 
-            List<ICaseDependentParser> caseDependentParsers = caseServiceLoader.loadService();
-            ICaseDependentParser caseDependentParser = null;
+            List<IGroupScriptOptimization> caseDependentParsers = caseServiceLoader.loadService();
+            IGroupScriptOptimization caseDependentParser = null;
             if (caseDependentParsers != null && caseDependentParsers.size() > 0) {
                 caseDependentParser = caseDependentParsers.get(0);
+                caseDependentParser.compile(this);
             }
             return caseDependentParser;
         }
 
-    }
-
-    public void setIfExpresssion(IScriptExpression ifExpresssion) {
-        this.ifExpresssion = ifExpresssion;
-    }
-
-    public void setThenExpresssions(List<IScriptExpression> thenExpresssions) {
-        this.thenExpresssions = thenExpresssions;
-    }
-
-    public void setElseExpressions(List<IScriptExpression> elseExpressions) {
-        this.elseExpressions = elseExpressions;
-    }
-
-    public void setScriptParameterStr(String scriptParameterStr) {
-        this.scriptParameterStr = scriptParameterStr;
     }
 
     public List<GroupScriptExpression> getElseIfExpressions() {
@@ -288,6 +314,10 @@ public class GroupScriptExpression implements IScriptExpression {
 
     public IScriptExpression getIfExpresssion() {
         return ifExpresssion;
+    }
+
+    public void setIfExpresssion(IScriptExpression ifExpresssion) {
+        this.ifExpresssion = ifExpresssion;
     }
 
     public List<IScriptExpression> getBeforeExpressions() {
@@ -312,6 +342,10 @@ public class GroupScriptExpression implements IScriptExpression {
         return elseExpressions;
     }
 
+    public void setElseExpressions(List<IScriptExpression> elseExpressions) {
+        this.elseExpressions = elseExpressions;
+    }
+
     public List<? extends AbstractRule> getRules() {
         return rules;
     }
@@ -322,6 +356,10 @@ public class GroupScriptExpression implements IScriptExpression {
 
     public List<IScriptExpression> getThenExpresssions() {
         return thenExpresssions;
+    }
+
+    public void setThenExpresssions(List<IScriptExpression> thenExpresssions) {
+        this.thenExpresssions = thenExpresssions;
     }
 
     public Map<? extends String, ? extends List<String>> getBeforeDependents() {
@@ -336,5 +374,21 @@ public class GroupScriptExpression implements IScriptExpression {
             }
         }
         return map;
+    }
+
+    public String getBoolVar() {
+        return boolVar;
+    }
+
+    public void setBoolVar(String boolVar) {
+        this.boolVar = boolVar;
+    }
+
+    public AbstractRule getRule() {
+        return rule;
+    }
+
+    public void setRule(AbstractRule rule) {
+        this.rule = rule;
     }
 }

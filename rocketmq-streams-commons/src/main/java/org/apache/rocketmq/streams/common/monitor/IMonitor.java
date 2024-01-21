@@ -50,7 +50,7 @@ public interface IMonitor {
      * @return
      */
     static IMonitor createMonitor(IConfigurable configurable) {
-        String name = MapKeyUtil.createKeyBySign(".", configurable.getType(), configurable.getNameSpace(), configurable.getConfigureName());
+        String name = MapKeyUtil.createKeyBySign(".", configurable.getType(), configurable.getNameSpace(), configurable.getName());
         IMonitor monitor = new DipperMonitor();
         monitor.startMonitor(name);
         return monitor;

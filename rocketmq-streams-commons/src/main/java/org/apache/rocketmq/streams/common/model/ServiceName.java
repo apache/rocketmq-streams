@@ -30,7 +30,5 @@ public @interface ServiceName {
 
     String aliasName() default "";
 
-
-
     String name() default "";
 }

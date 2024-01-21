@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.streams.state.impl;
+
 import org.apache.rocketmq.streams.state.AbstractState;
 
-public class MapState<V> extends AbstractState<String,V> {
+public class MapState<V> extends AbstractState<String, V> {
 
     public MapState(String namespace, String backendName) {
         super(namespace, backendName);

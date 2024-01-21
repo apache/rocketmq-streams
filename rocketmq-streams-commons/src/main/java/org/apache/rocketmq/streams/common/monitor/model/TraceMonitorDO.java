@@ -95,13 +95,6 @@ public class TraceMonitorDO {
     private String jobName;
 
     /**
-     * setter for column 主键
-     */
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    /**
      * getter for column 主键
      */
     public int getId() {
@@ -109,10 +102,10 @@ public class TraceMonitorDO {
     }
 
     /**
-     * setter for column traceid
+     * setter for column 主键
      */
-    public void setTraceId(String traceId) {
-        this.traceId = traceId;
+    public void setId(int id) {
+        this.id = id;
     }
 
     /**
@@ -123,10 +116,10 @@ public class TraceMonitorDO {
     }
 
     /**
-     * setter for column stagename
+     * setter for column traceid
      */
-    public void setStageName(String stageName) {
-        this.stageName = stageName;
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
     }
 
     /**
@@ -137,10 +130,10 @@ public class TraceMonitorDO {
     }
 
     /**
-     * setter for column 输入数量
+     * setter for column stagename
      */
-    public void setInputNumber(int inputNumber) {
-        this.inputNumber = inputNumber;
+    public void setStageName(String stageName) {
+        this.stageName = stageName;
     }
 
     /**
@@ -151,10 +144,10 @@ public class TraceMonitorDO {
     }
 
     /**
-     * setter for column 输入最后一条消息
+     * setter for column 输入数量
      */
-    public void setInputLastMsg(String inputLastMsg) {
-        this.inputLastMsg = inputLastMsg;
+    public void setInputNumber(int inputNumber) {
+        this.inputNumber = inputNumber;
     }
 
     /**
@@ -165,10 +158,10 @@ public class TraceMonitorDO {
     }
 
     /**
-     * setter for column 输出数量
+     * setter for column 输入最后一条消息
      */
-    public void setOutputNumber(int outputNumber) {
-        this.outputNumber = outputNumber;
+    public void setInputLastMsg(String inputLastMsg) {
+        this.inputLastMsg = inputLastMsg;
     }
 
     /**
@@ -179,10 +172,10 @@ public class TraceMonitorDO {
     }
 
     /**
-     * setter for column 输出最后一条消息
+     * setter for column 输出数量
      */
-    public void setOutputLastMsg(String outputLastMsg) {
-        this.outputLastMsg = outputLastMsg;
+    public void setOutputNumber(int outputNumber) {
+        this.outputNumber = outputNumber;
     }
 
     /**
@@ -190,6 +183,13 @@ public class TraceMonitorDO {
      */
     public String getOutputLastMsg() {
         return this.outputLastMsg;
+    }
+
+    /**
+     * setter for column 输出最后一条消息
+     */
+    public void setOutputLastMsg(String outputLastMsg) {
+        this.outputLastMsg = outputLastMsg;
     }
 
     public Date getLastInputMsgTime() {

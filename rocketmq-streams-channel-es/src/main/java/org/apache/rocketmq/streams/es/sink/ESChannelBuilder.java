@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.auto.service.AutoService;
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
-import org.apache.rocketmq.streams.common.channel.builder.IShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
@@ -29,7 +28,7 @@ import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(value = ESChannelBuilder.TYPE, aliasName = "ES")
-public class ESChannelBuilder implements IChannelBuilder  {
+public class ESChannelBuilder implements IChannelBuilder {
     public static final String TYPE = "es";
 
     protected JSONObject createFormatProperty(Properties properties) {
@@ -43,8 +42,8 @@ public class ESChannelBuilder implements IChannelBuilder  {
         }
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "host", "endPoint");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndex", "index");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndexType", "typeName");;
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esMsgId", "es_msg_id");;
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esIndexType", "typeName");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "esMsgId", "es_msg_id");
         return formatProperties;
     }
 

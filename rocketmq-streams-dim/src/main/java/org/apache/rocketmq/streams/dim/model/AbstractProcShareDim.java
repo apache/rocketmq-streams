@@ -20,21 +20,25 @@ import java.io.File;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.AbstractMemoryTable;
+import org.apache.rocketmq.streams.common.threadpool.ScheduleFactory;
 import org.apache.rocketmq.streams.dim.index.DimIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description 基于本地文件存储的多进程共享的dim
  */
 public abstract class AbstractProcShareDim extends AbstractDim {
 
-    static final Log logger = LogFactory.getLog(AbstractProcShareDim.class);
-
+    static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcShareDim.class);
+    static final Object lock = new Object();
+    static volatile boolean isFinishCreate = false;
+    static AbstractMemoryTable table;
+    static DimIndex dimIndex;
+    static String cycleStr;
+    String filePath;
     /**
      * 多进程文件锁
      */
@@ -44,14 +48,6 @@ public abstract class AbstractProcShareDim extends AbstractDim {
      */
     private transient File doneFile;
     private transient FileChannel lockChannel;
-    String filePath;
-
-    static final Object lock = new Object();
-    static volatile boolean isFinishCreate = false;
-    static AbstractMemoryTable table;
-    static ScheduledExecutorService executorService;
-    static DimIndex dimIndex;
-    static String cycleStr;
 
     public AbstractProcShareDim(String filePath) {
         super();
@@ -60,50 +56,47 @@ public abstract class AbstractProcShareDim extends AbstractDim {
 
     @Override
     protected boolean initConfigurable() {
-        if (executorService == null) {
-            synchronized (lock) {
-                if (executorService == null) {
-                    executorService = new ScheduledThreadPoolExecutor(1);
-                    executorService.scheduleAtFixedRate(new Runnable() {
-                        @Override
-                        public void run() {
-                            loadNameList();
-                        }
-                    }, pollingTimeMinute, pollingTimeMinute, TimeUnit.MINUTES);
+        synchronized (lock) {
+            ScheduleFactory.getInstance().execute(getNameSpace() + "-" + getName() + "-file_dim_schedule", new Runnable() {
+                @Override
+                public void run() {
+                    loadNameList();
                 }
-            }
+            }, pollingTimeSeconds, pollingTimeSeconds, TimeUnit.MINUTES);
         }
-//        boolean old = Boolean.parseBoolean(ComponentCreator.getProperties().getProperty(ConfigureFileKey.DIPPER_RUNNING_STATUS));
-//        ComponentCreator.getProperties().put(ConfigureFileKey.DIPPER_RUNNING_STATUS, false);
-//        boolean success = super.initConfigurable();
-//        ComponentCreator.getProperties().put(ConfigureFileKey.DIPPER_RUNNING_STATUS, old);
         return true;
     }
 
+    @Override
     protected void loadNameList() {
         try {
-            logger.info(getConfigureName() + " begin polling data");
+            LOGGER.info(getName() + " begin polling data");
             //全表数据
             AbstractMemoryTable dataCacheVar = loadData();
             table = dataCacheVar;
             this.nameListIndex = buildIndex(dataCacheVar);
             this.columnNames = this.dataCache.getCloumnName2Index().keySet();
         } catch (Exception e) {
-            logger.error("Load configurables error:" + e.getMessage(), e);
+            LOGGER.error("Load configurables error:" + e.getMessage(), e);
         }
     }
 
     private void getCycleStr(Date date) {
-        if (pollingTimeMinute >= 1 && pollingTimeMinute < 60) {
+        String cycleStr = "";
+        if (pollingTimeSeconds >= 1 && pollingTimeSeconds < 60) {
+            SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+            cycleStr = format.format(date);
+        } else if (pollingTimeSeconds >= 60 && pollingTimeSeconds < (60 * 60)) {
             SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmm");
             cycleStr = format.format(date);
-        } else if (pollingTimeMinute >= 60 && pollingTimeMinute < (60 * 24)) {
+        } else if (pollingTimeSeconds >= 60 * 60 && pollingTimeSeconds < (60 * 60 * 24)) {
             SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHH");
             cycleStr = format.format(date);
-        } else if (pollingTimeMinute >= (60 * 24)) {
+        } else if (pollingTimeSeconds >= (60 * 60 * 24)) {
             SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
             cycleStr = format.format(date);
         }
+
     }
 
 }

@@ -22,14 +22,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShellUtil {
 
     private static final String SEPERATOR_LINE = "\r\n";
-    private static final Log LOG = LogFactory.getLog(ShellUtil.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ShellUtil.class);
     private static final String ENV_CMD = "env";
 
     public static Map<String, String> exeENV() {
@@ -119,7 +120,7 @@ public class ShellUtil {
             String osType = System.getProperty("os.name");
             if ("Windows 10".equalsIgnoreCase(osType)) {
                 process = Runtime.getRuntime().exec(shStr.split(" "), null,
-                    new File(ComponentCreator.getProperties().getProperty("siem.python.workdir")));
+                    new File(SystemContext.getStringParameter(ConfigurationKey.PYTHON_WORK_DIR)));
             } else {
                 process = Runtime.getRuntime().exec(new String[] {"/bin/sh", "-c", shStr});
             }

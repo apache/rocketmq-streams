@@ -18,7 +18,6 @@ package org.apache.rocketmq.streams.script.function.model;
 
 public enum FunctionType {
 
-
     /**
      * 1:1
      */
@@ -44,13 +43,12 @@ public enum FunctionType {
      */
     UNKNOWN("unknow");
     private String name;
-    private FunctionType(String name){
-        this.name=name;
+
+    private FunctionType(String name) {
+        this.name = name;
     }
 
-
-
-    public String getName(){
+    public String getName() {
         return name;
     }
 }

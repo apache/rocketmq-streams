@@ -17,14 +17,11 @@
 package org.apache.rocketmq.streams.script.function.model;
 
 import java.util.Objects;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * 保存每个函数的参数和描述信息 主要用于展示
  */
 public class FunctionInfo {
-    private static final Log LOG = LogFactory.getLog(FunctionInfo.class);
     private String params;//参数列表和参数类型
     private String comment;//函数的说明信息
     private String returnType;//返回的类型
@@ -87,7 +84,7 @@ public class FunctionInfo {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        FunctionInfo that = (FunctionInfo)o;
+        FunctionInfo that = (FunctionInfo) o;
         return Objects.equals(params, that.params) && Objects.equals(comment, that.comment) && Objects.equals(
             returnType, that.returnType) && Objects.equals(functionName, that.functionName) && Objects.equals(group,
             that.group);

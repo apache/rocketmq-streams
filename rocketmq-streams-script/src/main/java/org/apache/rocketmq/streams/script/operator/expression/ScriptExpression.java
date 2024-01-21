@@ -22,16 +22,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.optimization.HomologousVar;
-import org.apache.rocketmq.streams.common.utils.PrintUtil;
+import org.apache.rocketmq.streams.common.utils.IdUtil;
+import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.ScriptComponent;
@@ -43,6 +42,8 @@ import org.apache.rocketmq.streams.script.optimization.performance.IScriptOptimi
 import org.apache.rocketmq.streams.script.service.IScriptExpression;
 import org.apache.rocketmq.streams.script.service.IScriptParamter;
 import org.apache.rocketmq.streams.script.utils.FunctionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 一个函数，如a=now();就是一个表达式 这里是函数真正执行的地方
@@ -50,32 +51,26 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @SuppressWarnings("rawtypes")
 public class ScriptExpression implements IScriptExpression {
 
-    private static Log LOG = LogFactory.getLog(ScriptExpression.class);
-
-    private String newFieldName;
-
-    protected transient Boolean ismutilField;//mutil fields eg :a.b.c
-
-    private String expressionStr;
-
-    private String functionName;
-
-    private List<IScriptParamter> parameters;
-
-    private Long groupId;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScriptExpression.class);
+    private final static ICache<String, Boolean> cache = new SoftReferenceCache<>();
+    protected transient Boolean isMultiField;
     protected transient HomologousVar homologousVar;
-
     protected transient volatile CompileScriptExpression compileScriptExpression;
-
     protected transient volatile CompileParameter compileParameter;
-    private transient static ICache<String, Boolean> cache = new SoftReferenceCache<>();
+    protected transient Boolean hasSubField = null;
+    private String newFieldName;
+    private String expressionStr;
+    private String functionName;
+    private List<IScriptParamter> parameters;
+    private Long groupId;
+    private ScriptComponent scriptComponent = ScriptComponent.getInstance();
 
     @Override
     public Object executeExpression(IMessage message, FunctionContext context) {
-
+        String configName = message.getHeader().getPipelineName();
         try {
-            if (ismutilField == null && newFieldName != null) {
-                ismutilField = newFieldName.indexOf(".") != -1;
+            if (isMultiField == null && newFieldName != null) {
+                isMultiField = newFieldName.contains(".");
             }
             Boolean isMatch = null;
             if (this.homologousVar != null) {
@@ -107,33 +102,21 @@ public class ScriptExpression implements IScriptExpression {
                 value = execute(message, context);
             }
             long cost = System.currentTimeMillis() - startTime;
-            long timeout = 10;
-            if (ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT) != null) {
-                timeout = Long.valueOf(ComponentCreator.getProperties().getProperty(ConfigureFileKey.MONITOR_SLOW_TIMEOUT));
+            long timeout = 1000;
+            if (SystemContext.getProperty(ConfigurationKey.MONITOR_SLOW_TIMEOUT) != null) {
+                timeout = Long.parseLong(SystemContext.getProperty(ConfigurationKey.MONITOR_SLOW_TIMEOUT));
             }
             if (cost > timeout) {
-                String varValue = "";
-                if (this.getScriptParamters() != null && this.getScriptParamters().size() > 0) {
-                    varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
-                    varValue = message.getMessageBody().getString(varValue);
-                }
-                LOG.warn("SLOW-" + cost + "----" + this.toString() + PrintUtil.LINE + "the var value is " + varValue);
+                LOGGER.warn("[{}][{}] Expression_Exec_Slow_({})_Cost({})", IdUtil.instanceId(), configName, this.expressionStr, cost);
+
             }
             return value;
         } catch (Exception e) {
-            e.printStackTrace();
-            String varValue = "";
-            if (this.getScriptParamters() != null && this.getScriptParamters().size() > 0) {
-                varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
-                varValue = message.getMessageBody().getString(varValue);
-            }
-            LOG.error("ERROR-" + this.toString() + PrintUtil.LINE + "the var value is " + varValue, e);
-            throw new RuntimeException(e);
+            Object[] ps = createParameters(message, context, false, null);
+            throw new RuntimeException("[" + this.expressionStr + "]--[" + MapKeyUtil.createKeyFromObject(ps) + "]", e);
         }
 
     }
-
-    private ScriptComponent scriptComponent = ScriptComponent.getInstance();
 
     public Object execute(IMessage message, FunctionContext context) {
         Object[] ps = null;
@@ -161,7 +144,8 @@ public class ScriptExpression implements IScriptExpression {
                 varValue = IScriptOptimization.getParameterValue(this.getParameters().get(0));
                 varValue = message.getMessageBody().getString(varValue);
             }
-            throw new RuntimeException("can not find function " + functionName + "ERROR-" + this.toString() + PrintUtil.LINE + "the var value is " + varValue + PrintUtil.LINE + this.toString() + "the var value is " + varValue);
+            String configName = message.getHeader().getPipelineName();
+            throw new RuntimeException("[" + this.expressionStr + "]--[" + MapKeyUtil.createKeyFromObject(ps) + "]");
         }
         Object value = executeFunctionConfigue(message, context, functionConfigure, ps);
         compileScriptExpression = new CompileScriptExpression(this, functionConfigure);
@@ -199,13 +183,11 @@ public class ScriptExpression implements IScriptExpression {
         return value;
     }
 
-    protected transient Boolean hasSubField = null;
-
     public void setValue2Var(IMessage message, AbstractContext context, String newFieldName, Object value) {
-        if (newFieldName == null || value == null) {
+        if (newFieldName == null) {
             return;
         }
-        if (!ismutilField) {
+        if (!isMultiField) {
             message.getMessageBody().put(newFieldName, value);
             return;
         }
@@ -261,7 +243,7 @@ public class ScriptExpression implements IScriptExpression {
                 if (value == null) {
                     paras[i] = null;
                 }
-                if (String.class.isInstance(value)) {
+                if (value instanceof String) {
                     String str = (String) value;
                     Object object = FunctionUtils.getValue(message, context, str);
                     paras[i] = object;
@@ -310,13 +292,13 @@ public class ScriptExpression implements IScriptExpression {
         return functionName;
     }
 
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
+    }
+
     @Override
     public String getExpressionDescription() {
         return expressionStr;
-    }
-
-    public void setFunctionName(String functionName) {
-        this.functionName = functionName;
     }
 
     public List<IScriptParamter> getParameters() {

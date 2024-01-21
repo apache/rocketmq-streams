@@ -27,8 +27,8 @@ import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
 @Function
 public class IsNotNull extends AbstractExpressionFunction {
 
-    public static boolean matchFunction(String functionName){
-        return "isNotNull".equals(functionName)||"notNull".equals(functionName);
+    public static boolean matchFunction(String functionName) {
+        return "isNotNull".equals(functionName) || "notNull".equals(functionName);
     }
 
     @Override
@@ -40,7 +40,7 @@ public class IsNotNull extends AbstractExpressionFunction {
             return false;
         }
         Object varObject = null;
-        varObject = var.doMessage(message,context);
+        varObject = var.doMessage(message, context);
         if (varObject == null) {
             return false;
         }

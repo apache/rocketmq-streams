@@ -26,8 +26,8 @@ import org.apache.rocketmq.streams.script.context.FunctionContext;
 public class ExecuteByConditionFuction {
     @FunctionMethod("executeByCondition")
     public boolean executeByCondition(IMessage message, FunctionContext context, String fieldName,
-                                      String conditionFuction, String value, String executeFunction, String... parameters) {
-        Boolean match = (Boolean)context.executeFunction(conditionFuction, message, context, fieldName, value);
+        String conditionFuction, String value, String executeFunction, String... parameters) {
+        Boolean match = (Boolean) context.executeFunction(conditionFuction, message, context, fieldName, value);
         if (match) {
             context.executeFunction(executeFunction, message, context, parameters);
         }

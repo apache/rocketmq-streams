@@ -24,10 +24,11 @@ public class SQLElement implements ISQLElement {
     protected String windowInstanceId;
     protected String sql;
     protected Integer index;
-    public SQLElement(String splitId,String windowInstanceId,String sql){
-        this.queueId=splitId;
-        this.windowInstanceId=windowInstanceId;
-        this.sql=sql;
+
+    public SQLElement(String splitId, String windowInstanceId, String sql) {
+        this.queueId = splitId;
+        this.windowInstanceId = windowInstanceId;
+        this.sql = sql;
     }
 
     @Override public boolean isWindowInstanceSQL() {
@@ -65,6 +66,5 @@ public class SQLElement implements ISQLElement {
     public void setIndex(int index) {
         this.index = index;
     }
-
 
 }

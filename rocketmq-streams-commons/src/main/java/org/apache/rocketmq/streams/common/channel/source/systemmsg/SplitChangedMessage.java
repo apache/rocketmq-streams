@@ -21,7 +21,10 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.interfaces.ISystemMessage;
 
-public class SplitChangedMessage implements ISystemMessage {
+/**
+ * 系统消息，当数据源分片发生变化时发送消息，主要应用在窗口计算，提前加载窗口实例数据，加载新分片状态，不会跨shuffle
+ */
+public abstract class SplitChangedMessage implements ISystemMessage {
     protected Set<String> splitIds;
     protected boolean needFlush;//需要同步刷新
     protected ISource source;//数据源对象

@@ -30,7 +30,7 @@ public class DayFunction {
 
     @FunctionMethod(value = "dayBegin", alias = "begin", comment = "获取指定日期的开始时间")
     public Long dayBegin(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表往前推几天,0表示当天的时间") String datepart) {
+        @FunctionParamter(value = "string", comment = "代表往前推几天,0表示当天的时间") String datepart) {
         String datepartStr = FunctionUtils.getValueString(message, context, datepart);
         Date date = new Date();
         Calendar dateStart = Calendar.getInstance();
@@ -46,7 +46,7 @@ public class DayFunction {
 
     @FunctionMethod(value = "dayEnd", alias = "end", comment = "获取指定日期的结束时间")
     public Long dayEnd(IMessage message, FunctionContext context,
-                       @FunctionParamter(value = "string", comment = "代表往前推几天,0表示当天的时间") String datepart) {
+        @FunctionParamter(value = "string", comment = "代表往前推几天,0表示当天的时间") String datepart) {
         String datepartStr = FunctionUtils.getValueString(message, context, datepart);
         Date date = new Date();
         Calendar dateEnd = Calendar.getInstance();

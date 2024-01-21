@@ -38,11 +38,6 @@ public class DistinctAccumulator2 implements IAccumulator<DistinctAccumulator2.D
     private static final Integer PARAMETER_SIZE = 3;
     private static RocksdbState state = new RocksdbState();
 
-    public static class DistinctAccum2 {
-        public String windowInstanceId;
-        public String groupByMd5;
-    }
-
     @Override
     public DistinctAccum2 createAccumulator() {
         return new DistinctAccum2();
@@ -97,6 +92,11 @@ public class DistinctAccumulator2 implements IAccumulator<DistinctAccumulator2.D
 
     @Override
     public void retract(DistinctAccum2 accumulator, String... parameters) {
+    }
+
+    public static class DistinctAccum2 {
+        public String windowInstanceId;
+        public String groupByMd5;
     }
 
 }

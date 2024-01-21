@@ -16,9 +16,8 @@
  */
 package org.apache.rocketmq.streams.client.strategy;
 
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
-
 import java.util.Properties;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 
 public class ShuffleStrategy implements Strategy {
 
@@ -26,16 +25,15 @@ public class ShuffleStrategy implements Strategy {
 
     private ShuffleStrategy(String windowShuffleType) {
         properties = new Properties();
-        properties.put(AbstractComponent.WINDOW_SHUFFLE_CHANNEL_TYPE, windowShuffleType);
-    }
-
-    @Override
-    public Properties getStrategyProperties() {
-        return this.properties;
+        properties.put(ConfigurationKey.WINDOW_SHUFFLE_CHANNEL_TYPE, windowShuffleType);
     }
 
     public static Strategy shuffleWithMemory() {
         return new ShuffleStrategy("memory");
+    }
+
+    @Override public Properties getStrategyProperties() {
+        return this.properties;
     }
 
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.streams.filter.function.expression;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -27,11 +25,13 @@ import org.apache.rocketmq.streams.filter.utils.IPUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethodAilas;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Function
 public class IpContainsFunction extends AbstractExpressionFunction {
 
-    private static final Log LOG = LogFactory.getLog(IpContainsFunction.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IpContainsFunction.class);
 
     private String ip;
     private long start;
@@ -55,7 +55,7 @@ public class IpContainsFunction extends AbstractExpressionFunction {
             }
             Object varObject = null;
             Object valueObject = null;
-            varObject = var.doMessage(message,context );
+            varObject = var.doMessage(message, context);
             valueObject = expression.getValue();
 
             if (varObject == null || valueObject == null) {
@@ -73,7 +73,7 @@ public class IpContainsFunction extends AbstractExpressionFunction {
             parseRegexIp(regex);
             return contains(varString);
         } catch (Exception e) {
-            LOG.error("IpContainsFunction doExpressionFunction error", e);
+            LOGGER.error("IpContainsFunction doExpressionFunction error", e);
             return false;
         }
 

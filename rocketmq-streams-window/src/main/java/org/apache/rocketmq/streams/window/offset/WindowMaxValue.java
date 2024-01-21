@@ -24,17 +24,17 @@ import org.apache.rocketmq.streams.common.model.Entity;
  * save windowintance max offset
  */
 public class WindowMaxValue extends Entity {
-    public static long MAX_VALUE_BASE_VALUE=100000000;
+    public static long MAX_VALUE_BASE_VALUE = 100000000;
     protected String msgKey;
-    protected AtomicLong maxValue=new AtomicLong(MAX_VALUE_BASE_VALUE);
-    protected String maxOffset="-1";
+    protected AtomicLong maxValue = new AtomicLong(MAX_VALUE_BASE_VALUE);
+    protected String maxOffset = "-1";
     protected boolean isMaxOffsetLong;
 
-    protected AtomicLong maxEventTime=new AtomicLong();//只有window需要
+    protected AtomicLong maxEventTime = new AtomicLong();//只有window需要
 
-    public WindowMaxValue(){
-        this.gmtModified=new Date();
-        this.gmtCreate=new Date();
+    public WindowMaxValue() {
+        this.gmtModified = new Date();
+        this.gmtCreate = new Date();
     }
 
     public Long getMaxEventTime() {
@@ -42,10 +42,10 @@ public class WindowMaxValue extends Entity {
     }
 
     public void setMaxEventTime(Long maxEventTime) {
-        if(maxEventTime==null){
+        if (maxEventTime == null) {
             return;
         }
-        this.maxEventTime.set( maxEventTime);
+        this.maxEventTime.set(maxEventTime);
     }
 
     public String getMsgKey() {
@@ -64,19 +64,19 @@ public class WindowMaxValue extends Entity {
         this.maxValue.set(maxValue);
     }
 
-    public long comareAndSet(Long eventTime){
-        if(eventTime==null){
+    public long comareAndSet(Long eventTime) {
+        if (eventTime == null) {
             return maxEventTime.get();
         }
-        long old=maxEventTime.get();
-        if(old>=eventTime){
+        long old = maxEventTime.get();
+        if (old >= eventTime) {
             return old;
         }
-        boolean updateSuccess=false;
-        while (!updateSuccess){
-            old=maxEventTime.get();
-            if(eventTime>old){
-                updateSuccess= maxEventTime.compareAndSet(old,eventTime);
+        boolean updateSuccess = false;
+        while (!updateSuccess) {
+            old = maxEventTime.get();
+            if (eventTime > old) {
+                updateSuccess = maxEventTime.compareAndSet(old, eventTime);
             } else {
                 break;
             }
@@ -100,7 +100,7 @@ public class WindowMaxValue extends Entity {
         this.maxOffset = maxOffset;
     }
 
-    public long incrementAndGetMaxOffset(){
+    public long incrementAndGetMaxOffset() {
         return maxValue.incrementAndGet();
     }
 }

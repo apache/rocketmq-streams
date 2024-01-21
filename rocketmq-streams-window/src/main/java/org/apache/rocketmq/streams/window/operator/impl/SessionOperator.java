@@ -30,8 +30,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.Base64Utils;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
@@ -43,6 +41,8 @@ import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * an implementation of session window to save extra memory for different group by window instances
@@ -51,12 +51,9 @@ import org.apache.rocketmq.streams.window.storage.WindowStorage.WindowBaseValueI
  */
 public class SessionOperator extends WindowOperator {
 
-    protected static final Log LOG = LogFactory.getLog(SessionOperator.class);
-
     public static final String SESSION_WINDOW_BEGIN_TIME = "1970-01-01";
-
     public static final String SESSION_WINDOW_END_TIME = "9999-01-01";
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(SessionOperator.class);
     private static final String SESSION_DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
     private static final String ORDER_BY_FIRE_TIME_PREFIX = "_order_by_fire_time_";
@@ -74,6 +71,14 @@ public class SessionOperator extends WindowOperator {
 
     public SessionOperator(Integer timeout) {
         this.sessionTimeOut = Optional.ofNullable(timeout).orElse(sessionTimeOut);
+    }
+
+    private static String createPrefixKey(WindowValue windowValue, WindowInstance windowInstance, String queueId) {
+        return MapKeyUtil.createKey(getOrderBypPrefix() + queueId, windowInstance.createWindowInstanceId(), windowValue.getFireTime(), String.valueOf(windowValue.getPartitionNum()), windowValue.getGroupBy());
+    }
+
+    protected static String getOrderBypPrefix() {
+        return ORDER_BY_FIRE_TIME_PREFIX;
     }
 
     public int getSessionTimeOut() {
@@ -108,11 +113,11 @@ public class SessionOperator extends WindowOperator {
             //out of order data, normal fire mode considered only
             Long maxEventTime = getMaxEventTime(queueId);
             if (maxEventTime == null) {
-                LOG.warn("use current time as max event time!");
+                LOGGER.warn("use current time as max event time!");
                 maxEventTime = System.currentTimeMillis();
             }
             if (fireDate.getTime() <= maxEventTime) {
-                LOG.warn("message is discarded as out of date! fire time: " + fireDate.getTime() + " max event time: " + maxEventTime);
+                LOGGER.warn("message is discarded as out of date! fire time: " + fireDate.getTime() + " max event time: " + maxEventTime);
                 return new ArrayList<>();
             }
             instance.setFireTime(DateUtil.format(fireDate, SESSION_DATETIME_PATTERN));
@@ -128,7 +133,7 @@ public class SessionOperator extends WindowOperator {
     }
 
     @Override
-    public void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId) {
+    protected void shuffleCalculate(List<IMessage> messages, WindowInstance instance, String queueId, String groupFieldName) {
         /**
          * 1、消息分组：获得分组的groupBy值和对应的消息
          * 2、获取已有所有分组的窗口计算结果：1）通过queueId、instance和groupBy计算存储的key；2）调用存储的获取接口；
@@ -139,12 +144,12 @@ public class SessionOperator extends WindowOperator {
         synchronized (lock) {
             //
             List<String> groupSortedByOffset = new ArrayList<>();
-            Map<String, List<IMessage>> groupBy = groupByGroupName(messages, groupSortedByOffset);
+            Map<String, List<IMessage>> groupBy = groupByGroupName(messages, groupSortedByOffset, groupFieldName);
             int groupSize = groupSortedByOffset.size();
             //
             Map<String, String> value2StoreMap = new HashMap<>(groupSize);
             for (String groupValue : groupSortedByOffset) {
-                String storeKey = createStoreKey(queueId, groupValue, instance);
+                String storeKey = createStoreKey(queueId, groupValue, instance, groupFieldName);
                 value2StoreMap.put(groupValue, storeKey);
             }
             Map<String, List<WindowValue>> storeValueMap = storage.multiGetList(WindowValue.class, new ArrayList<>(value2StoreMap.values()));
@@ -300,16 +305,12 @@ public class SessionOperator extends WindowOperator {
         storage.getLocalStorage().removeKeys(keyList);
     }
 
-    private static String createPrefixKey(WindowValue windowValue, WindowInstance windowInstance, String queueId) {
-        return MapKeyUtil.createKey(getOrderBypPrefix() + queueId, windowInstance.createWindowInstanceId(), windowValue.getFireTime(), String.valueOf(windowValue.getPartitionNum()), windowValue.getGroupBy());
-    }
-
     private Pair<Date, Date> getSessionTime(IMessage message) {
         Long occurTime = System.currentTimeMillis();
         try {
             occurTime = WindowInstance.getOccurTime(this, message);
         } catch (Exception e) {
-            LOG.error("failed in computing occur time from the message!", e);
+            LOGGER.error("failed in computing occur time from the message!", e);
         }
         Date occurDate = new Date(occurTime);
         Date endDate = DateUtil.addDate(TimeUnit.SECONDS, occurDate, sessionTimeOut);
@@ -359,17 +360,13 @@ public class SessionOperator extends WindowOperator {
         value.setGroupBy(groupBy);
         value.setMsgKey(StringUtil.createMD5Str(storeKey));
         //FIXME shuffleId vs queueId TODO delete assert
-        String shuffleId = shuffleChannel.getChannelQueue(groupBy).getQueueId();
-        assert shuffleId.equalsIgnoreCase(queueId);
+        // String shuffleId = shuffleChannel.getChannelQueue(groupBy).getQueueId();
+        //assert shuffleId.equalsIgnoreCase(queueId);
         value.setPartitionNum(createPartitionNum(value, queueId, instance));
-        value.setPartition(shuffleId);
+        value.setPartition(queueId);
         value.setWindowInstancePartitionId(instance.getWindowInstanceKey());
         value.setWindowInstanceId(instance.getWindowInstanceKey());
         return value;
-    }
-
-    protected static String getOrderBypPrefix() {
-        return ORDER_BY_FIRE_TIME_PREFIX;
     }
 
     /**
@@ -377,11 +374,10 @@ public class SessionOperator extends WindowOperator {
      *
      * @param windowInstance
      * @param queueId
-     * @param queueId2Offset
      * @return
      */
     @Override
-    public int fireWindowInstance(WindowInstance windowInstance, String queueId, Map<String, String> queueId2Offset) {
+    public int fireWindowInstance(WindowInstance windowInstance, String queueId) {
         synchronized (lock) {
             //get iterator sorted by fire time
             WindowBaseValueIterator<WindowValue> it = storage.loadWindowInstanceSplitData(getOrderBypPrefix(), queueId, windowInstance.createWindowInstanceId(), null, getWindowBaseValueClass());
@@ -412,9 +408,9 @@ public class SessionOperator extends WindowOperator {
                 WindowInstance existedWindowInstance = searchWindowInstance(instanceId);
                 if (existedWindowInstance != null) {
                     existedWindowInstance.setFireTime(DateUtil.format(new Date(nextFireTime)));
-                    windowFireSource.registFireWindowInstanceIfNotExist(windowInstance, this);
+                    getWindowTrigger().registFireWindowInstanceIfNotExist(windowInstance, this);
                 } else {
-                    LOG.error("window instance lost, queueId: " + queueId + " ,fire time" + windowInstance.getFireTime());
+                    LOGGER.error("window instance lost, queueId: " + queueId + " ,fire time" + windowInstance.getFireTime());
                 }
             }
             //
@@ -460,7 +456,7 @@ public class SessionOperator extends WindowOperator {
         Set<Long> valueIdSet = new HashSet<>(deleteValueList.size());
         Set<String> prefixKeySet = new HashSet<>(deleteValueList.size());
         for (WindowValue windowValue : deleteValueList) {
-            String storeKey = createStoreKey(queueId, windowValue.getGroupBy(), instance);
+            String storeKey = createStoreKey(queueId, windowValue.getGroupBy(), instance, windowValue.getGroupByFieldName());
             String prefixKey = createPrefixKey(windowValue, instance, queueId);
             Long valueId = windowValue.getPartitionNum();
             storeKeySet.add(storeKey);

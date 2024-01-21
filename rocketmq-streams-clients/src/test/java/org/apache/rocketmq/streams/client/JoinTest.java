@@ -22,40 +22,35 @@ import java.io.Serializable;
 import org.apache.rocketmq.streams.client.transform.DataStream;
 import org.apache.rocketmq.streams.client.transform.JoinStream.JoinType;
 import org.apache.rocketmq.streams.common.functions.FilterFunction;
+import org.apache.rocketmq.streams.common.functions.MapFunction;
 import org.junit.Test;
 
 public class JoinTest implements Serializable {
 
     @Test
     public void testJoin() {
-        DataStream leftStream = (StreamBuilder.dataStream("namespace", "name")
-            .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
-            .filter(new FilterFunction<JSONObject>() {
-
-                @Override
-                public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") != null && value.getString("LogStore") != null) {
-                        return true;
-                    }
-                    return false;
+        DataStream leftStream = (StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name")
+            .fromCSVFile("/Users/yuanxiaodong/Downloads/sample.csv"))
+//            .selectFields("dst_ip")
+            .map(new MapFunction<JSONObject, JSONObject>() {
+                @Override public JSONObject map(JSONObject message) throws Exception {
+                    message.put("left", "true");
+                    return message;
                 }
-            }));
+            });
 
-        DataStream rightStream = (StreamBuilder.dataStream("namespace", "name2")
-            .fromFile("/Users/yuanxiaodong/chris/sls_1000.txt")
-            .filter(new FilterFunction<JSONObject>() {
-
-                @Override
-                public boolean filter(JSONObject value) throws Exception {
-                    if (value.getString("ProjectName") != null && value.getString("LogStore") != null) {
-                        return true;
-                    }
-                    return false;
+        DataStream rightStream = (StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name2")
+            .fromCSVFile("/Users/yuanxiaodong/Downloads/sample.csv"))
+//            .selectFields("dst_ip")
+            .map(new MapFunction<JSONObject, JSONObject>() {
+                @Override public JSONObject map(JSONObject message) throws Exception {
+                    message.put("rigth", "true");
+                    return message;
                 }
-            }));
+            });
 
         leftStream.join(rightStream).setJoinType(JoinType.INNER_JOIN)
-            .setCondition("(ProjectName,==,ProjectName)&(LogStore,==,LogStore)")
+            .setCondition("(dst_ip,==,dst_ip)")
             .toDataSteam()
             .toPrint()
             .start();
@@ -64,7 +59,7 @@ public class JoinTest implements Serializable {
 
     @Test
     public void testDim() {
-        DataStream stream = (StreamBuilder.dataStream("namespace", "name")
+        DataStream stream = (StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name")
             .fromFile("/Users/junjie.cheng/workspace/rocketmq-streams-apache/rocketmq-streams-clients/src/test/resources/window_msg_10.txt")
             .filter((FilterFunction<JSONObject>) value -> {
                 if (value.getString("ProjectName") == null || value.getString("LogStore") == null) {

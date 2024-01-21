@@ -19,10 +19,6 @@ package org.apache.rocketmq.streams.window.offset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
@@ -30,7 +26,7 @@ import org.apache.rocketmq.streams.window.sqlcache.SQLCache;
 public class WindowMaxValueManager implements IWindowMaxValueManager {
     protected AbstractWindow window;
     protected Map<String, WindowMaxValueProcessor> windowMaxValueProcessorMap = new HashMap<>();
-  //  protected transient ExecutorService executorService;
+    //  protected transient ExecutorService executorService;
     protected transient SQLCache sqlCache;
 
     public WindowMaxValueManager(AbstractWindow window, SQLCache sqlCache) {

@@ -29,6 +29,25 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class UrlEncodeFunction {
 
+    public static void main(String[] args) throws UnsupportedEncodingException {
+        StringBuilder result = new StringBuilder();
+        String ss = "示例for url_encode:// (fdsf)";
+        char temp[] = ss.toCharArray();
+        for (char cha : temp) {
+            if (cha > 64 && cha < 91) {
+                result.append(cha);
+            } else if (cha > 96 && cha < 123) {
+                result.append(cha);
+            } else if (cha == 46 || cha == 45 || cha == 42 || cha == 95) {
+                result.append(cha);
+            } else {
+                result.append(URLEncoder.encode(cha + "", "UTF-8"));
+            }
+        }
+        System.out.println(result.toString());
+
+    }
+
     /**
      * 将输入字符串编码为application/x-www-form-urlencoded MIME格式
      *
@@ -39,7 +58,7 @@ public class UrlEncodeFunction {
      */
     @FunctionMethod(value = "urlencode", comment = "将输入字符串编码为application/x-www-form-urlencoded MIME格式")
     public String urlencode(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "带编码的字符串代表列名称或常量值") String str) {
+        @FunctionParamter(value = "string", comment = "带编码的字符串代表列名称或常量值") String str) {
         String ori = FunctionUtils.getValueString(message, context, str);
         StringBuilder result = new StringBuilder();
         if (StringUtil.isEmpty(ori)) {
@@ -74,8 +93,8 @@ public class UrlEncodeFunction {
      */
     @FunctionMethod(value = "urlencode", comment = "将输入字符串根据指定的编码编码为application/x-www-form-urlencoded MIME格式")
     public String urlencode(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "string", comment = "带编码的字符串代表列名称或常量值") String str,
-                            @FunctionParamter(value = "string", comment = "指定的编码") String encodeing) {
+        @FunctionParamter(value = "string", comment = "带编码的字符串代表列名称或常量值") String str,
+        @FunctionParamter(value = "string", comment = "指定的编码") String encodeing) {
         String ori = FunctionUtils.getValueString(message, context, str);
         StringBuilder result = new StringBuilder();
         if (StringUtil.isEmpty(ori)) {
@@ -98,25 +117,6 @@ public class UrlEncodeFunction {
             }
         }
         return result.toString();
-    }
-
-    public static void main(String[] args) throws UnsupportedEncodingException {
-        StringBuilder result = new StringBuilder();
-        String ss = "示例for url_encode:// (fdsf)";
-        char temp[] = ss.toCharArray();
-        for (char cha : temp) {
-            if (cha > 64 && cha < 91) {
-                result.append(cha);
-            } else if (cha > 96 && cha < 123) {
-                result.append(cha);
-            } else if (cha == 46 || cha == 45 || cha == 42 || cha == 95) {
-                result.append(cha);
-            } else {
-                result.append(URLEncoder.encode(cha + "", "UTF-8"));
-            }
-        }
-        System.out.println(result.toString());
-
     }
 
 }

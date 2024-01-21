@@ -22,70 +22,77 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.optimization.IHomologousOptimization;
 import org.apache.rocketmq.streams.common.optimization.fingerprint.FingerprintCache;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 import org.apache.rocketmq.streams.common.utils.CollectionUtil;
 import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
 
 public class NotFireReason {
-    protected List<String> oriFilterFieldNames=new ArrayList<>();//参与过滤的字段名
-    protected  Map<String,String> oriFilterFields=new HashMap<>();//原始
+    protected List<String> oriFilterFieldNames = new ArrayList<>();//参与过滤的字段名
+    protected Map<String, String> oriFilterFields = new HashMap<>();//原始
 
-
-    protected List<String> expressions=new ArrayList<>();//过滤失败的表达式
-    protected Map<String,String> filterFields=new HashMap<>();//参与过滤的字段名和值
-    protected Map<String, List<String>> filterFieldName2ETLScriptList=new HashMap<>();//过滤字段和ETL脚本
-    private List<String> filterFieldNames=new ArrayList<>();//过滤字段列表
-
+    protected List<String> expressions = new ArrayList<>();//过滤失败的表达式
+    protected Map<String, String> filterFields = new HashMap<>();//参与过滤的字段名和值
+    protected Map<String, List<String>> filterFieldName2ETLScriptList = new HashMap<>();//过滤字段和ETL脚本
     protected transient ChainPipeline pipeline;
     protected transient FilterChainStage stage;
-    public NotFireReason(FilterChainStage stage,String fieldValues){
-        this.stage=stage;
-        this.pipeline=(ChainPipeline) stage.getPipeline();
-        String logFingerFieldNames=this.stage.getPreFingerprint().getLogFingerFieldNames();
-        String[] values=logFingerFieldNames.split(",");
-        for(String oriFieldName:values){
+    protected Map<String, String> filterFieldName2OriFieldName;
+    private List<String> filterFieldNames = new ArrayList<>();//过滤字段列表
+
+    public NotFireReason(FilterChainStage stage, String fieldValues) {
+        this.stage = stage;
+        this.pipeline = (ChainPipeline) stage.getPipeline();
+        String logFingerFieldNames = this.stage.getPreFingerprint().getLogFingerFieldNames();
+        if (logFingerFieldNames == null) {
+            return;
+        }
+        String[] values = logFingerFieldNames.split(",");
+        for (String oriFieldName : values) {
             oriFilterFieldNames.add(oriFieldName);
         }
-        values=fieldValues.split(FingerprintCache.FIELD_VALUE_SPLIT_SIGN);
-        for(int i=0;i<values.length;i++){
-            String fieldName=oriFilterFieldNames.get(i);
-            String fiedlValue=values[i];
-            oriFilterFields.put(fieldName,fiedlValue);
-        }
-    }
-    public void analysis(IMessage message,Map<String, List<String>> filterFieldName2ETLScriptList,Map<String, String> filterFieldName2OriFieldName,List<String> expressions,List<String> filterFieldNames){
-        this.expressions.addAll(expressions);
-        Map<String, List<String>> etlScript=new HashMap<>();
-        this.filterFieldNames.addAll(filterFieldNames);
-        Map<String,String> oriFilterFields=new HashMap<>();
-        List<String> oriFilterFieldNames=new ArrayList<>();
-        for(String filteFieldName:filterFieldNames){
-            String oriFieldName=filterFieldName2OriFieldName.get(filteFieldName);
-            String oriFieldValue=this.oriFilterFields.get(oriFieldName);
-            if(oriFieldName!=null&&oriFieldValue!=null){
-                oriFilterFields.put(oriFieldName,oriFieldValue);
+        if (fieldValues != null) {
+            values = fieldValues.split(FingerprintCache.FIELD_VALUE_SPLIT_SIGN);
+            for (int i = 0; i < values.length; i++) {
+                String fieldName = oriFilterFieldNames.get(i);
+                String fiedlValue = values[i];
+                oriFilterFields.put(fieldName, fiedlValue);
             }
-            String filterValue=message.getMessageBody().getString(filteFieldName);
-            if(filterValue!=null){
-                filterFields.put(filteFieldName,filterValue);
+        }
+
+    }
+
+    public void analysis(IMessage message) {
+        if (oriFilterFields.size() == 0) {
+            return;
+        }
+        Map<String, List<String>> etlScript = new HashMap<>();
+        Map<String, String> oriFilterFields = new HashMap<>();
+        List<String> oriFilterFieldNames = new ArrayList<>();
+        for (String filteFieldName : filterFieldNames) {
+            String oriFieldName = filterFieldName2OriFieldName.get(filteFieldName);
+            String oriFieldValue = this.oriFilterFields.get(oriFieldName);
+            if (oriFieldName != null && oriFieldValue != null) {
+                oriFilterFields.put(oriFieldName, oriFieldValue);
+            }
+            String filterValue = message.getMessageBody().getString(filteFieldName);
+            if (filterValue != null) {
+                filterFields.put(filteFieldName, filterValue);
             }
 
-            if(oriFieldName!=null){
+            if (oriFieldName != null) {
                 oriFilterFieldNames.add(oriFieldName);
             }
-            List<String> etl=filterFieldName2ETLScriptList.get(filteFieldName);
-            if(etl!=null){
-                etlScript.put(oriFieldName,etl);
+            List<String> etl = filterFieldName2ETLScriptList.get(filteFieldName);
+            if (etl != null) {
+                etlScript.put(oriFieldName, etl);
             }
 
         }
-        this.filterFieldName2ETLScriptList=etlScript;
-        this.oriFilterFields=oriFilterFields;
-        this.oriFilterFieldNames=oriFilterFieldNames;
+        this.filterFieldName2ETLScriptList = etlScript;
+        this.oriFilterFields = oriFilterFields;
+        this.oriFilterFieldNames = oriFilterFieldNames;
     }
 
     public List<String> getOriFilterFieldNames() {
@@ -144,33 +151,46 @@ public class NotFireReason {
     public ChainPipeline getPipeline() {
         return pipeline;
     }
+
     @Override public String toString() {
         return JsonableUtil.formatJson(toJson());
     }
-     public JSONObject toJson() {
-        JSONObject jsonObject=new JSONObject();
-        jsonObject.put("expression", MapKeyUtil.createKey("\n",this.expressions));
 
-        if(CollectionUtil.isNotEmpty(this.filterFields)){
-            JSONObject filterFields=new JSONObject();
-            filterFields.putAll(this.filterFields);
-            jsonObject.put("field current value",filterFields);
+    public JSONObject toJson() {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("表达式和数据", MapKeyUtil.createKey("\n", this.expressions));
+
+        JSONObject values = new JSONObject();
+
+        if (CollectionUtil.isNotEmpty(this.filterFields)) {
+            values.putAll(this.filterFields);
         }
 
-
-        if(CollectionUtil.isNotEmpty(this.oriFilterFields)){
-            JSONObject oriFilterFields=new JSONObject();
-            oriFilterFields.putAll(this.oriFilterFields);
-            jsonObject.put("field original value",oriFilterFields);
+        if (CollectionUtil.isNotEmpty(this.oriFilterFields)) {
+            values.putAll(this.oriFilterFields);
 
         }
 
-        if(CollectionUtil.isNotEmpty(this.filterFieldName2ETLScriptList)){
-            JSONObject etl=new JSONObject();
-            etl.putAll(this.filterFieldName2ETLScriptList);
-            jsonObject.put("field etl",etl);
+        if (CollectionUtil.isNotEmpty(this.filterFieldName2ETLScriptList)) {
+            List<String> strings = new ArrayList<>();
+            for (List<String> scripts : this.filterFieldName2ETLScriptList.values()) {
+                strings.add(MapKeyUtil.createKey("<br>", scripts));
+                strings.add("<p>");
+            }
+            jsonObject.put("etl", "<br>" + MapKeyUtil.createKeyFromCollection("<br>", strings));
+        }
+        if (CollectionUtil.isNotEmpty(values)) {
+            jsonObject.put("field value", values);
         }
 
         return jsonObject;
+    }
+
+    public Map<String, String> getFilterFieldName2OriFieldName() {
+        return filterFieldName2OriFieldName;
+    }
+
+    public void setFilterFieldName2OriFieldName(Map<String, String> filterFieldName2OriFieldName) {
+        this.filterFieldName2OriFieldName = filterFieldName2OriFieldName;
     }
 }

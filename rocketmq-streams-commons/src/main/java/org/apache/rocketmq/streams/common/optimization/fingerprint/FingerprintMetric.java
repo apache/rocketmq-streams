@@ -22,48 +22,45 @@ import org.apache.rocketmq.streams.common.utils.JsonableUtil;
 
 public class FingerprintMetric {
     protected String namespace;
-    protected AtomicLong visitCount=new AtomicLong(0);
-    protected AtomicLong hitCacheCount=new AtomicLong(0);
-    protected AtomicLong cacheSize=new AtomicLong(0);
-    protected boolean isCloseFingerprint=false;
+    protected AtomicLong visitCount = new AtomicLong(0);
+    protected AtomicLong hitCacheCount = new AtomicLong(0);
+    protected AtomicLong cacheSize = new AtomicLong(0);
+    protected boolean isCloseFingerprint = false;
 
-    public FingerprintMetric(String namespace){
-        this.namespace=namespace;
+    public FingerprintMetric(String namespace) {
+        this.namespace = namespace;
     }
 
-    public void addMetric(boolean isHitCache){
+    public void addMetric(boolean isHitCache) {
         visitCount.incrementAndGet();
-        if(isHitCache){
+        if (isHitCache) {
             hitCacheCount.incrementAndGet();
         }
     }
 
-
-    public void addCaceSize(){
+    public void addCaceSize() {
         cacheSize.incrementAndGet();
     }
 
-    public Long getVisitCount(){
+    public Long getVisitCount() {
         return this.visitCount.get();
     }
 
-    public Long getHitCacheCount(){
+    public Long getHitCacheCount() {
         return this.hitCacheCount.get();
     }
 
-
-
-    public Long getCacheSize(){
+    public Long getCacheSize() {
         return this.cacheSize.get();
     }
 
-    public double getHitCacheRate(){
-        double visitCount=getVisitCount();
-        if(visitCount==0){
-            visitCount=1;
+    public double getHitCacheRate() {
+        double visitCount = getVisitCount();
+        if (visitCount == 0) {
+            visitCount = 1;
         }
-        double hitCacheCount=getHitCacheCount();
-        return hitCacheCount/visitCount;
+        double hitCacheCount = getHitCacheCount();
+        return hitCacheCount / visitCount;
     }
 
     public boolean isCloseFingerprint() {
@@ -81,13 +78,13 @@ public class FingerprintMetric {
     }
 
     public void print() {
-        JSONObject msg=new JSONObject();
-        msg.put("visitCount",visitCount.get());
-        msg.put("hitCacheCount",hitCacheCount.get());
-        msg.put("cacheSize",cacheSize.get());
-        msg.put("hitCacheRate",getHitCacheRate());
-        msg.put("namespace",namespace);
-        msg.put("isClosed",isCloseFingerprint);
+        JSONObject msg = new JSONObject();
+        msg.put("visitCount", visitCount.get());
+        msg.put("hitCacheCount", hitCacheCount.get());
+        msg.put("cacheSize", cacheSize.get());
+        msg.put("hitCacheRate", getHitCacheRate());
+        msg.put("namespace", namespace);
+        msg.put("isClosed", isCloseFingerprint);
         System.out.println(JsonableUtil.formatJson(msg));
     }
 

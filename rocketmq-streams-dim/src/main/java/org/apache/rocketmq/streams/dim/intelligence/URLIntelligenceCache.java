@@ -20,14 +20,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.cache.compress.impl.IntValueKV;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class URLIntelligenceCache extends AbstractIntelligenceCache implements IAfterConfigurableRefreshListener {
+public class URLIntelligenceCache extends AbstractIntelligenceCache {
 
-    private static final Log LOG = LogFactory.getLog(URLIntelligenceCache.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(URLIntelligenceCache.class);
 
     protected transient String keyName = "url";
 
@@ -61,13 +60,13 @@ public class URLIntelligenceCache extends AbstractIntelligenceCache implements I
     @Override
     protected void doProccRows(IntValueKV intValueKV, List<Map<String, Object>> rows, int index) {
         for (Map<String, Object> row : rows) {
-            String ip = (String)row.get(keyName);
+            String ip = (String) row.get(keyName);
             if (ip == null) {
-                LOG.warn("load Intelligence exception ,the ip is null");
+                LOGGER.warn("load Intelligence exception ,the ip is null");
                 continue;
             }
             List<String> values = new ArrayList<>();
-            values.add((String)row.get("is_malicious_source"));
+            values.add((String) row.get("is_malicious_source"));
             int value = createInt(values);
             synchronized (this) {
                 intValueKV.put(ip, value);

@@ -20,22 +20,20 @@ import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.utils.ReflectUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 创建JDBCDriver，如果没有
  */
 public class DriverBuilder {
 
-    private static final Log LOG = LogFactory.getLog(DriverBuilder.class);
-
-    public static final String DEFALUT_JDBC_DRIVER = "com.mysql.jdbc.Driver";
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(DriverBuilder.class);
     private static final Map<String, JDBCDriver> dataSourceMap = new ConcurrentHashMap<>();
 
     private static AtomicInteger count = new AtomicInteger(0);
@@ -46,10 +44,10 @@ public class DriverBuilder {
      * @return
      */
     public static JDBCDriver createDriver() {
-        String driver = ComponentCreator.getProperties().getProperty(AbstractComponent.JDBC_DRIVER);
-        String url = ComponentCreator.getProperties().getProperty(AbstractComponent.JDBC_URL);
-        String userName = ComponentCreator.getProperties().getProperty(AbstractComponent.JDBC_USERNAME);
-        String password = ComponentCreator.getProperties().getProperty(AbstractComponent.JDBC_PASSWORD);
+        String driver = SystemContext.getProperty(ConfigurationKey.JDBC_DRIVER);
+        String url = SystemContext.getProperty(ConfigurationKey.JDBC_URL);
+        String userName = SystemContext.getProperty(ConfigurationKey.JDBC_USERNAME);
+        String password = SystemContext.getProperty(ConfigurationKey.JDBC_PASSWORD);
         return createDriver(driver, url, userName, password);
     }
 
@@ -62,19 +60,16 @@ public class DriverBuilder {
      * @param password 密码
      * @return JDBCDriver
      */
-    public static JDBCDriver createDriver(String driver, final String url, final String userName,
-                                          final String password) {
+    public static JDBCDriver createDriver(String driver, final String url, final String userName, final String password) {
         if (StringUtil.isEmpty(driver)) {
-            driver = DEFALUT_JDBC_DRIVER;
+            driver = ConfigurationKey.DEFAULT_JDBC_DRIVER;
         }
         String className = ComponentCreator.getDBProxyClassName();
         if (StringUtil.isNotEmpty(className)) {
             Class clazz = ReflectUtil.forClass(className);
             try {
-                Constructor constructor = clazz.getConstructor(
-                    new Class[] {String.class, String.class, String.class, String.class});
-                JDBCDriver abstractDBDataSource = (JDBCDriver)constructor.newInstance(url, userName, password,
-                    driver);
+                Constructor constructor = clazz.getConstructor(new Class[] {String.class, String.class, String.class, String.class});
+                JDBCDriver abstractDBDataSource = (JDBCDriver) constructor.newInstance(url, userName, password, driver);
                 abstractDBDataSource.init();
                 return abstractDBDataSource;
             } catch (Exception e) {
@@ -85,7 +80,7 @@ public class DriverBuilder {
         final String jdbcdriver = driver;
         ReflectUtil.forClass(jdbcdriver);
         JDBCDriver resource = new JDBCDriver();
-        LOG.debug("jdbcdriver=" + jdbcdriver + ",url=" + url);
+        LOGGER.debug("jdbcdriver=" + jdbcdriver + ",url=" + url);
         resource.setJdbcDriver(jdbcdriver);
         resource.setUrl(url);
         resource.setUserName(userName);
@@ -102,7 +97,7 @@ public class DriverBuilder {
      * @param password
      * @return
      */
-    private static String genereateKey(String url, String userName, String password) {
+    private static String generateKey(String url, String userName, String password) {
         return url + "_" + userName + "_" + password;
     }
 

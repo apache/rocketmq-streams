@@ -17,8 +17,7 @@
 package org.apache.rocketmq.streams.lease;
 
 import java.util.Date;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import java.util.List;
 import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
@@ -31,19 +30,13 @@ import static org.junit.Assert.assertTrue;
 
 public class LeaseComponentTest {
 
-    private String URL = "";
     protected String USER_NAME = "";
     protected String PASSWORD = "";
+    private String URL = "";
 
     public LeaseComponentTest() {
 
-        //正式使用时，在配置文件配置
-        ComponentCreator.getProperties().put(ConfigureFileKey.CONNECT_TYPE, "DB");
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_URL, URL);//数据库连接url
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_USERNAME, USER_NAME);//用户名
-        ComponentCreator.getProperties().put(ConfigureFileKey.JDBC_PASSWORD, PASSWORD);//password
-
-        JDBCDriver driver = DriverBuilder.createDriver();
+        JDBCDriver driver = DriverBuilder.createDriver(null, URL, USER_NAME, PASSWORD);
         driver.execute(LeaseInfo.createTableSQL());
     }
 
@@ -83,7 +76,7 @@ public class LeaseComponentTest {
     @Test
     public void testHoldLock() throws InterruptedException {
         String name = "dipper";
-        String lockName = "lease.test";
+        String lockName = "lease.test1";
         int leaseTime = 6;
         boolean success = LeaseComponent.getInstance().getService().holdLock(name, lockName, leaseTime);//锁定5秒钟
         assertTrue(success);//获取锁
@@ -102,6 +95,15 @@ public class LeaseComponentTest {
         while (true) {
             Thread.sleep(1000);
             System.out.println(holdLock(name, lockName, leaseTime));
+        }
+    }
+
+    @Test
+    public void testQueryLockedInstanceByNamePrefix() throws InterruptedException {
+        String name = "dipper";
+        List<LeaseInfo> leaseInfoList = LeaseComponent.getInstance().getService().queryLockedInstanceByNamePrefix(name, "");
+        for (LeaseInfo leaseInfo : leaseInfoList) {
+            System.out.println(leaseInfo.getLeaseName());
         }
     }
 

@@ -56,7 +56,7 @@ public class AccumulatorTest {
         Assert.assertEquals(1.75, averageAccum.value);
         String objectValue = ReflectUtil.serializeObject(averageAccum).toJSONString();
         JSONObject objectJson = JSONObject.parseObject(objectValue);
-        AverageAccum reflectAvgAccum = (AverageAccum)ReflectUtil.deserializeObject(objectJson);
+        AverageAccum reflectAvgAccum = (AverageAccum) ReflectUtil.deserializeObject(objectJson);
         Assert.assertEquals(1.75, reflectAvgAccum.value);
 
         averageAccum = averageAccumulator.createAccumulator();
@@ -64,7 +64,7 @@ public class AccumulatorTest {
         averageAccumulator.accumulate(averageAccum, 2);
         objectValue = ReflectUtil.serializeObject(averageAccum).toJSONString();
         objectJson = JSONObject.parseObject(objectValue);
-        reflectAvgAccum = (AverageAccum)ReflectUtil.deserializeObject(objectJson);
+        reflectAvgAccum = (AverageAccum) ReflectUtil.deserializeObject(objectJson);
         Assert.assertEquals(1.5, reflectAvgAccum.value);
 
         averageAccum = averageAccumulator.createAccumulator();
@@ -72,7 +72,7 @@ public class AccumulatorTest {
         averageAccumulator.accumulate(averageAccum, 2);
         objectValue = ReflectUtil.serializeObject(averageAccum).toJSONString();
         objectJson = JSONObject.parseObject(objectValue);
-        reflectAvgAccum = (AverageAccum)ReflectUtil.deserializeObject(objectJson);
+        reflectAvgAccum = (AverageAccum) ReflectUtil.deserializeObject(objectJson);
         Assert.assertEquals(2, reflectAvgAccum.value);
 
         averageAccum = averageAccumulator.createAccumulator();
@@ -81,7 +81,7 @@ public class AccumulatorTest {
         Assert.assertEquals(2, averageAccum.value);
         objectValue = ReflectUtil.serializeObject(averageAccum).toJSONString();
         objectJson = JSONObject.parseObject(objectValue);
-        reflectAvgAccum = (AverageAccum)ReflectUtil.deserializeObject(objectJson);
+        reflectAvgAccum = (AverageAccum) ReflectUtil.deserializeObject(objectJson);
         Assert.assertEquals(2, reflectAvgAccum.value);
     }
 
@@ -93,7 +93,7 @@ public class AccumulatorTest {
         sumAccumulator.accumulate(sumAccum, 2.5);
         String dbValue = ReflectUtil.serializeObject(sumAccum).toJSONString();
         JSONObject memObject = JSONObject.parseObject(dbValue);
-        SumAccum reflectSumAccum = (SumAccum)ReflectUtil.deserializeObject(memObject);
+        SumAccum reflectSumAccum = (SumAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals(3.5, reflectSumAccum.sum);
 
         sumAccum = sumAccumulator.createAccumulator();
@@ -101,7 +101,7 @@ public class AccumulatorTest {
         sumAccumulator.accumulate(sumAccum, 2);
         dbValue = ReflectUtil.serializeObject(sumAccum).toJSONString();
         memObject = JSONObject.parseObject(dbValue);
-        reflectSumAccum = (SumAccum)ReflectUtil.deserializeObject(memObject);
+        reflectSumAccum = (SumAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals(3, reflectSumAccum.sum);
     }
 
@@ -113,7 +113,7 @@ public class AccumulatorTest {
         minAccumulator.accumulate(minAccum, 12);
         String dbAccum = ReflectUtil.serializeObject(minAccum).toJSONString();
         JSONObject memObject = JSONObject.parseObject(dbAccum);
-        MinAccum reflectMinAccum = (MinAccum)ReflectUtil.deserializeObject(memObject);
+        MinAccum reflectMinAccum = (MinAccum) ReflectUtil.deserializeObject(memObject);
         //TODO 序列化过程中的value都被转成了string 如果碰到这个问题 暂时在sql里加一个类型转换解决
         Assert.assertEquals("12", reflectMinAccum.min);
 
@@ -122,7 +122,7 @@ public class AccumulatorTest {
         minAccumulator.accumulate(minAccum, "2021-06-18 12:00:00");
         dbAccum = ReflectUtil.serializeObject(minAccum).toJSONString();
         memObject = JSONObject.parseObject(dbAccum);
-        reflectMinAccum = (MinAccum)ReflectUtil.deserializeObject(memObject);
+        reflectMinAccum = (MinAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("2021-06-16 12:00:00", reflectMinAccum.min);
 
         minAccum = minAccumulator.createAccumulator();
@@ -130,7 +130,7 @@ public class AccumulatorTest {
         minAccumulator.accumulate(minAccum, "127.0.0.2");
         dbAccum = ReflectUtil.serializeObject(minAccum).toJSONString();
         memObject = JSONObject.parseObject(dbAccum);
-        reflectMinAccum = (MinAccum)ReflectUtil.deserializeObject(memObject);
+        reflectMinAccum = (MinAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("127.0.0.1", reflectMinAccum.min);
     }
 
@@ -142,7 +142,7 @@ public class AccumulatorTest {
         maxAccumulator.accumulate(maxAccum, 12);
         String dbAccum = ReflectUtil.serializeObject(maxAccum).toJSONString();
         JSONObject memObject = JSONObject.parseObject(dbAccum);
-        MaxAccum reflectMaxAccum = (MaxAccum)ReflectUtil.deserializeObject(memObject);
+        MaxAccum reflectMaxAccum = (MaxAccum) ReflectUtil.deserializeObject(memObject);
         //TODO 序列化过程中的value都被转成了string 如果碰到这个问题 暂时在sql里加一个类型转换解决
         Assert.assertEquals("13", reflectMaxAccum.max);
 
@@ -151,7 +151,7 @@ public class AccumulatorTest {
         maxAccumulator.accumulate(maxAccum, "2021-06-18 12:00:00");
         dbAccum = ReflectUtil.serializeObject(maxAccum).toJSONString();
         memObject = JSONObject.parseObject(dbAccum);
-        reflectMaxAccum = (MaxAccum)ReflectUtil.deserializeObject(memObject);
+        reflectMaxAccum = (MaxAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("2021-06-18 12:00:00", reflectMaxAccum.max);
 
         maxAccum = maxAccumulator.createAccumulator();
@@ -159,7 +159,7 @@ public class AccumulatorTest {
         maxAccumulator.accumulate(maxAccum, "127.0.0.2");
         dbAccum = ReflectUtil.serializeObject(maxAccum).toJSONString();
         memObject = JSONObject.parseObject(dbAccum);
-        reflectMaxAccum = (MaxAccum)ReflectUtil.deserializeObject(memObject);
+        reflectMaxAccum = (MaxAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("127.0.0.2", reflectMaxAccum.max);
     }
 
@@ -172,7 +172,7 @@ public class AccumulatorTest {
         concatAccumulator.accumulate(concatAccum, "listener");
         String dbValue = ReflectUtil.serializeObject(concatAccum).toJSONString();
         JSONObject memObject = JSONObject.parseObject(dbValue);
-        ConcatAccum reflectConcatAccum = (ConcatAccum)ReflectUtil.deserializeObject(memObject);
+        ConcatAccum reflectConcatAccum = (ConcatAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("be,a,listener", concatAccumulator.getValue(reflectConcatAccum));
 
         concatAccum = concatAccumulator.createAccumulator();
@@ -181,7 +181,7 @@ public class AccumulatorTest {
         concatAccumulator.accumulate(concatAccum, " ", "listener");
         dbValue = ReflectUtil.serializeObject(concatAccum).toJSONString();
         memObject = JSONObject.parseObject(dbValue);
-        reflectConcatAccum = (ConcatAccum)ReflectUtil.deserializeObject(memObject);
+        reflectConcatAccum = (ConcatAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("be a listener", concatAccumulator.getValue(reflectConcatAccum));
     }
 
@@ -199,7 +199,7 @@ public class AccumulatorTest {
         concatDistinctAccumulator.accumulate(concatDistinctAccum, "code");
         String dbValue = ReflectUtil.serializeObject(concatDistinctAccum).toJSONString();
         JSONObject memObject = JSONObject.parseObject(dbValue);
-        ConcatDistinctAccum reflectConcatAccum = (ConcatDistinctAccum)ReflectUtil.deserializeObject(memObject);
+        ConcatDistinctAccum reflectConcatAccum = (ConcatDistinctAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("code,show,me,talk,is,cheap", concatDistinctAccumulator.getValue(reflectConcatAccum));
 
         concatDistinctAccum = concatDistinctAccumulator.createAccumulator();
@@ -213,7 +213,7 @@ public class AccumulatorTest {
         concatDistinctAccumulator.accumulate(concatDistinctAccum, " ", "code");
         dbValue = ReflectUtil.serializeObject(concatDistinctAccum).toJSONString();
         memObject = JSONObject.parseObject(dbValue);
-        reflectConcatAccum = (ConcatDistinctAccum)ReflectUtil.deserializeObject(memObject);
+        reflectConcatAccum = (ConcatDistinctAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals("code show me talk is cheap", concatDistinctAccumulator.getValue(reflectConcatAccum));
     }
 
@@ -227,7 +227,7 @@ public class AccumulatorTest {
         distinctAccumulator.accumulate(distinctAccum, "pua");
         String dbValue = ReflectUtil.serializeObject(distinctAccum).toJSONString();
         JSONObject memObject = JSONObject.parseObject(dbValue);
-        DistinctAccum reflectDistinctAccum = (DistinctAccum)ReflectUtil.deserializeObject(memObject);
+        DistinctAccum reflectDistinctAccum = (DistinctAccum) ReflectUtil.deserializeObject(memObject);
         Assert.assertEquals(3, distinctAccumulator.getValue(reflectDistinctAccum).size());
     }
 

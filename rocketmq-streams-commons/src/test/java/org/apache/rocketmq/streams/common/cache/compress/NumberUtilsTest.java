@@ -22,12 +22,7 @@ import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 import org.apache.rocketmq.streams.common.utils.NumberUtils;
 import org.junit.Test;
 
-/**
- * @author zengyu.cw
- * @program rocketmq-streams-apache
- * @create 2021-11-21 22:41:15
- * @description
- */
+
 public class NumberUtilsTest {
 
     private void testFloat(float f) {

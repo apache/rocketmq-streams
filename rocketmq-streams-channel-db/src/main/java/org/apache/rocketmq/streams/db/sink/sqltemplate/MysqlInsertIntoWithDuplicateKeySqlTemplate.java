@@ -21,13 +21,8 @@ import java.util.Map;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 
-/**
- * @author zengyu.cw
- * @program apache-rocketmq-streams-fork
- * @create 2021-09-28 13:49:40
- * @description createDuplicateKeyUpdateSegment
- */
-public class MysqlInsertIntoWithDuplicateKeySqlTemplate extends MysqlInsertIntoSqlTemplate{
+
+public class MysqlInsertIntoWithDuplicateKeySqlTemplate extends MysqlInsertIntoSqlTemplate {
 
     String sqlSuffix;
 
@@ -36,17 +31,17 @@ public class MysqlInsertIntoWithDuplicateKeySqlTemplate extends MysqlInsertIntoS
     }
 
     @Override
-    public void initSqlTemplate(){
-        if(sqlPrefix == null){
+    public void initSqlTemplate() {
+        if (sqlPrefix == null) {
             sqlPrefix = SQLUtil.createInsertSegment(metaData, isContainsId);
         }
-        if(sqlSuffix == null){
+        if (sqlSuffix == null) {
             sqlSuffix = SQLUtil.createDuplicateKeyUpdateSegment(metaData, isContainsId);
         }
     }
 
     @Override
-    public String createSql(List<? extends Map<String, Object>> rows){
+    public String createSql(List<? extends Map<String, Object>> rows) {
         initSqlTemplate();
         return String.join(" ", sqlPrefix, SQLUtil.createValuesSegment(metaData, rows, isContainsId), sqlSuffix);
     }

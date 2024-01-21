@@ -28,7 +28,7 @@ public class BooleanFunction {
 
     @FunctionMethod(value = "convertBoolen", alias = "convert_boolen", comment = "判断字段名或常量是否是Boolean类型,是返回1,否返回0")
     public int createInSQL(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String fieldName) {
         fieldName = FunctionUtils.getValueString(message, context, fieldName);
         if (Boolean.parseBoolean(fieldName)) {
             return 1;

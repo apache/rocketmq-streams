@@ -17,7 +17,6 @@
 package org.apache.rocketmq.streams.filter.context;
 
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,20 +25,12 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.metadata.MetaDataAdapter;
 import org.apache.rocketmq.streams.common.monitor.IMonitor;
-import org.apache.rocketmq.streams.common.monitor.TopologyFilterMonitor;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.filter.function.expression.ExpressionFunction;
 import org.apache.rocketmq.streams.filter.operator.Rule;
@@ -49,31 +40,24 @@ import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression
 import org.apache.rocketmq.streams.filter.operator.var.Var;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.function.service.impl.ScanFunctionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RuleContext extends AbstractContext<Message> implements Serializable {
-
-    private static final Log LOG = LogFactory.getLog(RuleContext.class);
 
     /**
      * 观察者对应的configure
      */
     public static final String OBSERVER_NAME = "observerDBAction";
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(RuleContext.class);
     private static RuleContext superRuleContext;
-
+    private static volatile boolean initflag = false;
     private ExecutorService actionExecutor = null;
-
-    /**
-     * 默认的命名空间
-     */
-    public static final String DEFALUT_NAME_SPACE = IConfigurableService.PARENT_CHANNEL_NAME_SPACE;
-
     /**
      * var的名称合值对应的map
      */
     private ConcurrentMap<String, Object> varValueMap = new ConcurrentHashMap<String, Object>();
     private ConcurrentMap<String, Boolean> expressionValueMap = new ConcurrentHashMap<String, Boolean>();
-
     /**
      * 错误信息
      */
@@ -82,50 +66,23 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
      * 当前的命名空间
      */
     private String nameSpace;
-
     /**
      * 配置服务
      */
     //    private transient IConfigurableService configureService;
 
     private transient ScanFunctionService functionService = ScanFunctionService.getInstance();
-    private transient RuleContext parentContext;
     private transient Rule rule;
-
     /**
      * 监控一条信息的运行情况
      */
     private transient volatile IMonitor ruleMonitor;
 
+    // private transient static volatile AtomicBoolean initflag = new AtomicBoolean(false);
     /**
      * 一个规则对应的系统配置
      */
     private transient ContextConfigure contextConfigure;
-
-    // private transient static volatile AtomicBoolean initflag = new AtomicBoolean(false);
-
-    private static volatile boolean initflag = false;
-
-
-
-    public static void initSuperRuleContext(ContextConfigure contextConfigure) {
-        if (!initflag) {
-            synchronized (RuleContext.class) {
-                if (!initflag) {
-                    RuleContext staticRuleContext = new RuleContext(DEFALUT_NAME_SPACE, contextConfigure);
-                    ThreadFactory actionFactory = new ThreadFactoryBuilder().setNameFormat("RuleContext-Action-Poo-%d").build();
-                    int threadSize = contextConfigure.getActionPoolSize();
-                    ExecutorService actionExecutor = new ThreadPoolExecutor(threadSize, threadSize, 0L, TimeUnit.MILLISECONDS,
-                        new LinkedBlockingQueue<>(1024), actionFactory, new ThreadPoolExecutor.AbortPolicy());
-                    staticRuleContext.actionExecutor = actionExecutor;
-                    staticRuleContext.functionService.scanePackage("org.apache.rocketmq.streams.filter.function");
-                    superRuleContext = staticRuleContext;
-                    initflag = true;
-                }
-            }
-        }
-
-    }
 
     private RuleContext(String pnameSpace, ContextConfigure contextConfigure) {
         this(pnameSpace, new JSONObject(), null, contextConfigure);
@@ -133,18 +90,9 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
 
     public RuleContext(String nameSpace, JSONObject pmessage, Rule rule, ContextConfigure contextConfigure) {
         super(new Message(pmessage));
-        if (!DEFALUT_NAME_SPACE.equals(nameSpace)) {
-            this.parentContext = superRuleContext;
-        }
         this.nameSpace = nameSpace;
         this.rule = rule;
         this.contextConfigure = contextConfigure;
-        if (contextConfigure == null && parentContext != null) {
-            this.contextConfigure = this.parentContext.getContextConfigure();
-        }
-        if (this.functionService == null && this.parentContext != null) {
-            this.functionService = this.parentContext.getFunctionService();
-        }
 
     }
 
@@ -156,14 +104,34 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
         this(rule.getNameSpace(), pmessage, rule, new ContextConfigure(null));
     }
 
+    public static void addNotFireExpressionMonitor(
+        Object expression, AbstractContext context) {
+
+        if (RelationExpression.class.isInstance(expression)) {
+            List<String> notFireExpressionMonitor = new ArrayList<>();
+            RelationExpression relationExpression = (RelationExpression) expression;
+            notFireExpressionMonitor.add(relationExpression.getName());
+            context.setNotFireExpressionMonitor(notFireExpressionMonitor);
+        } else if (Expression.class.isInstance(expression)) {
+            Expression e = (Expression) expression;
+            context.getNotFireExpressionMonitor().add(e.getName());
+        } else if (String.class.isInstance(expression)) {
+            context.getNotFireExpressionMonitor().add((String) expression);
+        } else {
+            LOGGER.warn("can not support the express " + expression);
+        }
+
+    }
+
     public String getNameSpace() {
         if (nameSpace != null) {
             return nameSpace;
         }
-        if (parentContext != null) {
-            return parentContext.getNameSpace();
-        }
         return nameSpace;
+    }
+
+    public void setNameSpace(String nameSpace) {
+        this.nameSpace = nameSpace;
     }
 
     /**
@@ -230,7 +198,7 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
             }
             return (ExpressionFunction) fc.getBean();
         } catch (Exception e) {
-            LOG.error("RuleContext getExpressionFunction error,name is: " + name, e);
+            LOGGER.error("RuleContext getExpressionFunction error,name is: " + name, e);
             return null;
         }
 
@@ -264,59 +232,6 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
         return false;
     }
 
-    /**
-     * 获取变量值,内部使用，不能直接使用，获取变量的值需要用var.getVarValue()
-     *
-     * @param varName
-     * @return
-     */
-    public Object getVarCacheValue(String varName) {
-        Object value = varValueMap.get(varName);
-        if (value != null) {
-            return value;
-        }
-        if (parentContext != null) {
-            value = parentContext.getVarCacheValue(varName);
-        }
-        return value;
-
-    }
-
-    /**
-     * 设置变量值
-     *
-     * @param varName
-     * @param value
-     */
-    public void putVarValue(String nameSpace, String varName, Object value) {
-        if (varName == null || value == null) {
-            return;
-        }
-        if (rule.getVarMap().containsKey(varName)) {
-            varValueMap.putIfAbsent(varName, value);
-        }
-
-    }
-
-    public void setContextConfigure(ContextConfigure contextConfigure) {
-        this.contextConfigure = contextConfigure;
-    }
-
-    public ContextConfigure getContextConfigure() {
-        if (contextConfigure != null) {
-            return contextConfigure;
-        }
-        if (parentContext != null) {
-            return parentContext.getContextConfigure();
-        }
-        return null;
-    }
-
-    @Override
-    public IConfigurableService getConfigurableService() {
-        return rule.getConfigurableService();
-    }
-
     @Override
     public AbstractContext copy() {
         IMessage message = this.message.deepCopy();
@@ -327,22 +242,8 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
         context.expressionValueMap = expressionValueMap;
         context.functionService = functionService;
         context.ruleMonitor = ruleMonitor;
-        context.parentContext = parentContext;
         context.varValueMap = varValueMap;
-        context.configurableService = configurableService;
         return context;
-    }
-
-    public ExecutorService getActionExecutor() {
-        if (actionExecutor != null) {
-            return actionExecutor;
-        } else {
-            return parentContext.getActionExecutor();
-        }
-    }
-
-    public void setNameSpace(String nameSpace) {
-        this.nameSpace = nameSpace;
     }
 
     public ConcurrentMap<String, Object> getVarValueMap() {
@@ -373,14 +274,6 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
         return functionService;
     }
 
-    public RuleContext getParentContext() {
-        return parentContext;
-    }
-
-    public void setParentContext(RuleContext parentContext) {
-        this.parentContext = parentContext;
-    }
-
     public Rule getRule() {
         return rule;
     }
@@ -395,29 +288,5 @@ public class RuleContext extends AbstractContext<Message> implements Serializabl
 
     public void setRuleMonitor(IMonitor ruleMonitor) {
         this.ruleMonitor = ruleMonitor;
-    }
-
-    public static void addNotFireExpressionMonitor(
-        Object expression,AbstractContext context) {
-
-        if(RelationExpression.class.isInstance(expression)){
-            List<String> notFireExpressionMonitor=new ArrayList<>();
-            RelationExpression relationExpression=(RelationExpression) expression;
-            for(String expressionName:notFireExpressionMonitor){
-                if(!relationExpression.getValue().contains(expressionName)){
-                    notFireExpressionMonitor.add(expressionName);
-                }
-            }
-            notFireExpressionMonitor.add(relationExpression.getConfigureName());
-            context.setNotFireExpressionMonitor(notFireExpressionMonitor);
-        }else if(Expression.class.isInstance(expression)) {
-            Expression e=(Expression)expression;
-            context.getNotFireExpressionMonitor().add(e.getConfigureName());
-        }else if(String.class.isInstance(expression)){
-            context.getNotFireExpressionMonitor().add((String)expression);
-        }else {
-            LOG.warn("can not support the express "+expression);
-        }
-
     }
 }

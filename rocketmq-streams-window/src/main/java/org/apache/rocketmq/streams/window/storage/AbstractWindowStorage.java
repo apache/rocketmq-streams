@@ -17,12 +17,12 @@
 package org.apache.rocketmq.streams.window.storage;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -33,11 +33,9 @@ import org.apache.rocketmq.streams.window.state.WindowBaseValue;
 
 public abstract class AbstractWindowStorage<T extends WindowBaseValue> implements IWindowStorage<T> {
     protected boolean isLocalStorageOnly = false;
-//    protected transient ExecutorService dataLoaderExecutor = new ThreadPoolExecutor(10, 10,
-//        0L, TimeUnit.MILLISECONDS,
-//        new LinkedBlockingQueue<Runnable>(), new ThreadPoolFactory.DipperThreadFactory("AbstractWindowStorage-"));
 
-    protected transient ExecutorService dataLoaderExecutor = ThreadPoolFactory.createThreadPool(10);
+    protected transient ExecutorService dataLoaderExecutor = ThreadPoolFactory.createThreadPool(10, 10, 0L, TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(), "AbstractWindowStorage");
     ;
 
     @Override
@@ -56,18 +54,11 @@ public abstract class AbstractWindowStorage<T extends WindowBaseValue> implement
             return;
         }
         String windowInstancePartitionId = StringUtil.createMD5Str(windowInstanceId);
-        dataLoaderExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                long start = System.currentTimeMillis();
-                BatchRowLoader batchRowLoader = new BatchRowLoader("partition_num",
-                    "select * from " + ORMUtil.getTableName(clazz) + "  where window_instance_partition_id ='"
-                        + windowInstancePartitionId + "'", processor);
-                batchRowLoader.startLoadData();
-                ShufflePartitionManager.getInstance().setWindowInstanceFinished(windowInstanceId);
-                System.out.println(System.currentTimeMillis() - start);
-                System.out.println("");
-            }
+        dataLoaderExecutor.execute(() -> {
+            long start = System.currentTimeMillis();
+            BatchRowLoader batchRowLoader = new BatchRowLoader("partition_num", "select * from " + ORMUtil.getTableName(clazz) + "  where window_instance_partition_id ='" + windowInstancePartitionId + "'", processor);
+            batchRowLoader.startLoadData();
+            ShufflePartitionManager.getInstance().setWindowInstanceFinished(windowInstanceId);
         });
 
     }
@@ -90,10 +81,7 @@ public abstract class AbstractWindowStorage<T extends WindowBaseValue> implement
 
     @Override
     public Map<String, T> multiGet(Class<T> clazz, String... keys) {
-        List<String> keyList = new ArrayList<>();
-        for (String key : keys) {
-            keyList.add(key);
-        }
+        List<String> keyList = new ArrayList<>(Arrays.asList(keys));
         return multiGet(clazz, keyList);
     }
 

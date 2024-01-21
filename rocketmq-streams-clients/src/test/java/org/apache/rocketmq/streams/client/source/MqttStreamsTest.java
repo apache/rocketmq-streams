@@ -17,7 +17,7 @@
 package org.apache.rocketmq.streams.client.source;
 
 import com.alibaba.fastjson.JSONObject;
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.strategy.ShuffleStrategy;
 import org.apache.rocketmq.streams.client.transform.window.Time;
 import org.apache.rocketmq.streams.client.transform.window.TumblingWindow;
@@ -29,7 +29,7 @@ public class MqttStreamsTest {
 
     @Before
     public void init() {
-        dataStream = StreamBuilder.dataStream("test_namespace", "graph_pipeline");
+        dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("test_namespace", "graph_pipeline");
     }
 
     @Test

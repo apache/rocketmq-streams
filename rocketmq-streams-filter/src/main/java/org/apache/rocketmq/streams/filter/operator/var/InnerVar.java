@@ -22,8 +22,8 @@ import org.apache.rocketmq.streams.common.context.IMessage;
 @SuppressWarnings("rawtypes")
 public class InnerVar extends Var {
 
-    private static final long serialVersionUID = -166963014761276615L;
     public static final String ORIG_MESSAGE = "inner_message";
+    private static final long serialVersionUID = -166963014761276615L;
 
     @Override
     public Object doMessage(IMessage message, AbstractContext context) {

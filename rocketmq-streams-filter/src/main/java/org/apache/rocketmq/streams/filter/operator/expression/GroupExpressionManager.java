@@ -52,7 +52,7 @@ public class GroupExpressionManager {
                     regexEngine = new RegexEngine();
                     regexEngineMap.put(varName, regexEngine);
                 }
-                regexEngine.addRegex((String) expression.getValue(), expression.getConfigureName());
+                regexEngine.addRegex((String) expression.getValue(), expression.getName());
 //                if(LikeFunction.isLikeFunciton(expression.getFunctionName())){
 //                    String like=(String)expression.getValue();
 //                    LikeRegex likeRegex=new LikeRegex(like);

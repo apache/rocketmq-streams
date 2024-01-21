@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.streams.window.builder;
 
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
-import org.apache.rocketmq.streams.common.topology.model.IWindow;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
+import org.apache.rocketmq.streams.common.topology.IWindow;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.operator.impl.OverWindow;
@@ -62,9 +62,9 @@ public class WindowBuilder {
         if (TEST_MODE) {
             joinWindow = new JoinWindow();
         }
-        joinWindow.setSizeInterval(getIntValue(ConfigureFileKey.DIPPER_WINDOW_JOIN_DEFAULT_ITERVA_SIZE, 5));//默认5分钟一个窗口
-        joinWindow.setSlideInterval(getIntValue(ConfigureFileKey.DIPPER_WINDOW_JOIN_DEFAULT_ITERVA_SIZE, 5));
-        joinWindow.setRetainWindowCount(getIntValue(ConfigureFileKey.DIPPER_WINDOW_JOIN_RETAIN_WINDOW_COUNT, 6));//join的时间窗口是20分钟
+        joinWindow.setSizeInterval(getIntValue(ConfigurationKey.DIPPER_WINDOW_JOIN_DEFAULT_INTERVAL_SIZE, 5));//默认5分钟一个窗口
+        joinWindow.setSlideInterval(getIntValue(ConfigurationKey.DIPPER_WINDOW_JOIN_DEFAULT_INTERVAL_SIZE, 5));
+        joinWindow.setRetainWindowCount(getIntValue(ConfigurationKey.DIPPER_WINDOW_JOIN_RETAIN_WINDOW_COUNT, 6));//join的时间窗口是20分钟
         joinWindow.setWindowType(AbstractWindow.TUMBLE_WINDOW);
         //  joinWindow.setFireDelaySecond(getIntValue(ConfigureFileKey.DIPPER_WINDOW_DEFAULT_FIRE_DELAY_SECOND,5));//延迟5分钟触发
         joinWindow.setTimeFieldName("");
@@ -77,7 +77,7 @@ public class WindowBuilder {
         overWindow.setGroupByFieldName(groupBy);
         overWindow.setRowNumerName(rowNumName);
         overWindow.setTimeFieldName("");
-        overWindow.setSizeInterval(getIntValue(ConfigureFileKey.DIPPER_WINDOW_OVER_DEFAULT_ITERVA_SIZE, 60));
+        overWindow.setSizeInterval(getIntValue(ConfigurationKey.DIPPER_WINDOW_OVER_DEFAULT_INTERVAL_SIZE, 60));
         overWindow.setSlideInterval(overWindow.getSizeInterval());
         return overWindow;
     }
@@ -90,7 +90,7 @@ public class WindowBuilder {
      * @return
      */
     public static int getIntValue(String propertyKey, int defalutValue) {
-        String value = ComponentCreator.getProperties().getProperty(propertyKey);
+        String value = SystemContext.getProperty(propertyKey);
         if (StringUtil.isNotEmpty(value)) {
             return Integer.valueOf(value);
         }

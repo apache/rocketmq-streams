@@ -25,44 +25,69 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.classloader.IsolationClassLoader;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.loader.archive.Archive;
+import org.springframework.boot.loader.archive.JarFileArchive;
+import org.springframework.boot.loader.jar.Handler;
 
+/**
+ * 可以扫描指定位置的类，支持目录和package扫描
+ */
 public abstract class AbstractScan {
 
-    private static final Log LOG = LogFactory.getLog(AbstractScan.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractScan.class);
 
     private static final String CLASS_REAR = ".class";
 
     protected Set<String> scanDirs = new HashSet<>();
 
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
+        AbstractScan scan = new AbstractScan() {
+            @Override
+            protected void doProcessor(Class clazz, String functionName) {
+                System.out.println(clazz.getName());
+            }
+        };
+        scan.scanClassInJar(new URL("jar:file:/Users/fgm0129/Desktop/stream-engine.jar!/BOOT-INF/lib/rsqldb-parser-1.0.3_siem.industry-SNAPSHOT.jar!/com/alibaba/rsqldb/parser/parser/sqlnode"), "com/alibaba/rsqldb/parser/parser/sqlnode".replace("/", "."), AbstractScan.class.getClassLoader(), null);
+//        scan.scanClassInJar(new URL("jar:file:/Users/yuanxiaodong/Downloads/tmp/et-industry-stream-engine.jar!/BOOT-INF/lib/rsqldb-parser-1.0.3_siem.industry-SNAPSHOT.jar!/com/alibaba/rsqldb/parser/parser/sqlnode"),"com/alibaba/rsqldb/parser/parser/sqlnode".replace("/","."),AbstractScan.class.getClassLoader(),"xxx");
+    }
+
     public void scanJarsFromDir(String dir, String packageName) {
         IsolationClassLoader classLoader = new IsolationClassLoader(dir);
         File file = new File(dir);
-        if (file.exists() == false) {
+        if (!file.exists()) {
             return;
         }
-        if (file.isDirectory() == false) {
+        if (!file.isDirectory()) {
             return;
         }
         File[] jars = file.listFiles();
-        for (File jar : jars) {
-            if (!jar.getName().endsWith(".jar")) {
-                continue;
+        if (jars != null) {
+            for (File jar : jars) {
+                if (!jar.getName().endsWith(".jar")) {
+                    continue;
+                }
+                scanClassDir(jar, packageName, classLoader, null);
             }
-            scanClassDir(jar, packageName, classLoader, null);
         }
     }
 
     public void scanClassDir(File jarFile, String packageName, ClassLoader classLoader, String functionName) {
-        scanClassInJar(jarFile.getAbsolutePath(), packageName, classLoader, functionName);
+        try {
+            scanClassInJar(new URL("jar:file:" + jarFile.getAbsolutePath()), packageName, classLoader, functionName);
+        } catch (Exception e) {
+            throw new RuntimeException("url parse error " + jarFile.getAbsolutePath(), e);
+        }
+
     }
 
     public void scanClassDir(String dir, String packageName, ClassLoader classLoader) {
@@ -84,19 +109,20 @@ public abstract class AbstractScan {
         }
 
         File[] files = dirs.listFiles();
-        if (files.length == 0) {
-            return;
-        }
-        for (File file : files) {
-            try {
-                String className = file.getName();
-                if (className.endsWith(CLASS_REAR)) {
-                    Class clazz = classLoader.loadClass(packageName + "." + className.replace(CLASS_REAR, ""));
-                    doProcessor(clazz, null);
+        if (files != null) {
+            if (files.length == 0) {
+                return;
+            }
+            for (File file : files) {
+                try {
+                    String className = file.getName();
+                    if (className.endsWith(CLASS_REAR)) {
+                        Class<?> clazz = classLoader.loadClass(packageName + "." + className.replace(CLASS_REAR, ""));
+                        doProcessor(clazz, null);
+                    }
+                } catch (ClassNotFoundException e) {
+                    LOG.error("load class error " + file.getName(), e);
                 }
-            } catch (ClassNotFoundException e) {
-                LOG.error("load class error " + file.getName(), e);
-                continue;
             }
         }
     }
@@ -139,7 +165,6 @@ public abstract class AbstractScan {
                     scanDir(dir);
                     hasScan.add(dir);
                 }
-
             }
         }
 
@@ -197,37 +222,83 @@ public abstract class AbstractScan {
         } catch (Exception e) {
             LOG.error("ScanFunctionService scanClassInJar error", e);
         }
-
-        // jar:file:/Users/yuanxiaodong/alibaba/rule-engine-feature/5/rules-engine/engine/target/ruleengine
-        // .jar!/com/aliyun/filter/function/expression
-
-        String jarUrl = url.toString().replace("jar:file:", "");
-        int index = jarUrl.indexOf("!/");
         String packageName = createPackageName(dirName);
-        jarUrl = jarUrl.substring(0, index);
-        scanClassInJar(jarUrl, packageName, this.getClass().getClassLoader(), null);
-
+        scanClassInJar(url, packageName, this.getClass().getClassLoader(), null);
     }
 
-    protected void scanClassInJar(String jarPath, String packageName, ClassLoader classLoader, String functionName) {
+    protected void scanClassInJar(String packageName, ClassLoader classLoader, String functionName) {
         try {
             if (classLoader == null) {
                 classLoader = this.getClass().getClassLoader();
             }
-            JarFile jarFile = new JarFile(jarPath);
-            Enumeration<JarEntry> entries = jarFile.entries();
-
-            while (entries.hasMoreElements()) {
-                String className = entries.nextElement().getName().replace("/", ".");
-                if (className.startsWith(packageName) && className.endsWith(".class")) {
-                    className = className.replace(CLASS_REAR, "");
-                    doRegisterFunction(functionName, className, classLoader);
-                }
-
-            }
+            doRegisterFunction(functionName, packageName, classLoader);
         } catch (Exception e) {
             LOG.error("ScanFunctionService scanClassInJar JarFile error", e);
         }
+    }
+
+    protected void scanClassInJar(URL url, String packageName, ClassLoader classLoader, String functionName) {
+        try {
+            if (classLoader == null) {
+                classLoader = this.getClass().getClassLoader();
+            }
+            if (isNestJar(url)) {
+                Handler handler = new Handler();
+                org.springframework.boot.loader.jar.JarFile root = handler.getRootJarFileFromUrl(url);
+                int startIndex = url.toString().indexOf("!/");
+                int endIndex = url.toString().lastIndexOf("!/");
+                String jarPath = url.toString().substring(startIndex + 2, endIndex);
+                JarFileArchive jarFileArchive = new JarFileArchive(root);
+                //过滤Jar包
+                Iterator<Archive> jarFileIterator = jarFileArchive.getNestedArchives(entry -> {
+                    if (entry.getName().equals(jarPath)) {
+                        System.out.println(jarPath);
+                        return true;
+                    }
+                    return false;
+                }, null);
+                final ClassLoader jarClassLoader = classLoader;
+                while (jarFileIterator.hasNext()) {
+                    JarFileArchive archive = (JarFileArchive) jarFileIterator.next();
+                    //过滤class
+                    archive.iterator().forEachRemaining(entry -> {
+                        String className = entry.getName().replace("/", ".");
+                        if (className.startsWith(packageName) && className.endsWith(".class")) {
+                            className = className.replace(CLASS_REAR, "");
+                            doRegisterFunction(functionName, className, jarClassLoader);
+                        }
+                    });
+                }
+            } else {
+                String jarPath = url.toString().replace("jar:file:", "");
+                int index = jarPath.indexOf("!/");
+                jarPath = jarPath.substring(0, index);
+                JarFile jarFile = new JarFile(jarPath);
+                Enumeration<JarEntry> entries = jarFile.entries();
+                while (entries.hasMoreElements()) {
+                    String className = entries.nextElement().getName().replace("/", ".");
+                    if (className.startsWith(packageName) && className.endsWith(".class")) {
+                        className = className.replace(CLASS_REAR, "");
+                        doRegisterFunction(functionName, className, classLoader);
+                    }
+
+                }
+            }
+
+        } catch (Exception e) {
+            LOG.error("ScanFunctionService scanClassInJar JarFile url:{},packageName:{},functionName:{},error:{}", url.getPath(), packageName, functionName, e);
+            throw new RuntimeException("ScanFunctionService scanClassInJar JarFile error", e);
+        }
+    }
+
+    protected boolean isNestJar(URL url) {
+        String urlStr = url.toString();
+        int startIndex = urlStr.indexOf("!/");
+        int endIndex = urlStr.lastIndexOf("!/");
+        if (startIndex == endIndex) {
+            return false;
+        }
+        return true;
     }
 
     protected void scanClassInDir(String dirName) {
@@ -257,8 +328,7 @@ public abstract class AbstractScan {
 
     protected String createPackageName(String dirName) {
         if (dirName.startsWith("/")) {
-            String packageName = dirName.substring(1).replace("/", ".") + ".";
-            return packageName;
+            return dirName.substring(1).replace("/", ".") + ".";
         } else {
             return this.getClass().getPackage().getName() + "." + dirName + ".";
         }
@@ -269,15 +339,15 @@ public abstract class AbstractScan {
     }
 
     protected void doRegisterFunction(String functionName, String className, ClassLoader classLoader) {
-        Class clazz = null;
+        Class<?> clazz = null;
         try {
             clazz = Class.forName(className, true, classLoader);
             doProcessor(clazz, functionName);
         } catch (Exception e) {
-            e.printStackTrace();
             LOG.error("初始化类错误" + e.getMessage(), e);
         }
     }
 
     protected abstract void doProcessor(Class clazz, String functionName);
+
 }

@@ -17,12 +17,14 @@
 package org.apache.rocketmq.streams.common.monitor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.rocketmq.streams.common.cache.softreference.ICache;
 import org.apache.rocketmq.streams.common.cache.softreference.impl.SoftReferenceCache;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
+import org.apache.rocketmq.streams.common.interfaces.ITaskStart;
 import org.apache.rocketmq.streams.common.logger.LoggerOutputChannel;
 import org.apache.rocketmq.streams.common.monitor.impl.DipperMonitor;
 
@@ -31,13 +33,12 @@ public class MonitorFactory {
     public static final String NAMESPACE_PIPLINES = "namespace.";//所有的pipline
     public static final String PIPLINE_START_UP = "startup";
     public static final String PIPLINE_START_UP_ERROR = "errorChannels";
-    private static ICache<String, IMonitor> monitorICache = new SoftReferenceCache();
+    private static final ICache<String, IMonitor> monitorICache = new SoftReferenceCache();
+    private static final List<ISink<?>> defaultOutput = new ArrayList<>();
+    private static final Map<String, List<ISink<?>>> outputs = new HashMap<>();
+    private static final Map<String, ISink<?>> loggerOutputChannelMap = new HashMap<>();
     public static String LOG_ROOT_DIR = "/tmp/dipper/logs";
-    private static ISink loggerOutputDataSource;//默认的输出channel，输出到日志
-
-    private static List<ISink> defalutOutput = new ArrayList<>();
-    private static Map<String, List<ISink>> outputs = new HashMap<>();
-    private static Map<String, ISink> loggerOutputChannelMap = new HashMap<>();
+    private static ISink<?> loggerOutputDataSource;//默认的输出channel，输出到日志
 
     public static IMonitor createMonitor(String name) {
         IMonitor monitor = new DipperMonitor();
@@ -61,18 +62,12 @@ public class MonitorFactory {
      * @param name
      * @param channels
      */
-    public static void addChannel(String name, ISink... channels) {
-        List<ISink> outputDataSources = outputs.get(name);
-        if (outputDataSources == null) {
-            outputDataSources = new ArrayList<>();
-            outputs.put(name, outputDataSources);
-        }
+    public static void addChannel(String name, ISink<?>... channels) {
+        List<ISink<?>> outputDataSources = outputs.computeIfAbsent(name, k -> new ArrayList<>());
         if (channels == null || channels.length == 0) {
             return;
         }
-        for (ISink outputDataSource : channels) {
-            outputDataSources.add(outputDataSource);
-        }
+        Collections.addAll(outputDataSources, channels);
     }
 
     /**
@@ -80,24 +75,24 @@ public class MonitorFactory {
      *
      * @param channels
      */
-    public static void addChannel(ISink... channels) {
-        if (channels == null || channels.length == 0) {
+    public static void addChannel(ISink<?>... channels) {
+        if (channels == null) {
             return;
         }
-        for (ISink outputDataSource : channels) {
+        for (ISink<?> outputDataSource : channels) {
             if (outputDataSource != null) {
-                defalutOutput.add(outputDataSource);
+                defaultOutput.add(outputDataSource);
             }
         }
     }
 
-    public static List<ISink> getOutputDataSource(String name, String level) {
-        List<ISink> outputDataSources = outputs.get(name);
+    public static List<ISink<?>> getOutputDataSource(String name, String level) {
+        List<ISink<?>> outputDataSources = outputs.get(name);
         if (outputDataSources != null) {
             return outputDataSources;
         }
-        if (defalutOutput != null && defalutOutput.size() > 0) {
-            return defalutOutput;
+        if (defaultOutput != null && defaultOutput.size() > 0) {
+            return defaultOutput;
         }
         return null;
     }
@@ -110,8 +105,8 @@ public class MonitorFactory {
         LOG_ROOT_DIR = rootLogDir;
     }
 
-    public static ISink createOrGetLogOutputDatasource(String outputName) {
-        ISink loggerOutputDataSource = loggerOutputChannelMap.get(outputName);
+    public static ISink<?> createOrGetLogOutputDatasource(String outputName) {
+        ISink<?> loggerOutputDataSource = loggerOutputChannelMap.get(outputName);
         if (loggerOutputDataSource != null) {
             return loggerOutputDataSource;
         }
@@ -123,9 +118,10 @@ public class MonitorFactory {
             loggerOutputDataSource = new LoggerOutputChannel(LOG_ROOT_DIR, outputName);
 
             loggerOutputChannelMap.put(outputName, loggerOutputDataSource);
-            loggerOutputDataSource.init();
+            ((ITaskStart) loggerOutputDataSource).startTask();
             loggerOutputDataSource.openAutoFlush();
             return loggerOutputDataSource;
+
         }
 
     }

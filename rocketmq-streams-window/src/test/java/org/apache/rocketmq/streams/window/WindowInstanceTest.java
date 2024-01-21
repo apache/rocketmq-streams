@@ -43,7 +43,7 @@ public class WindowInstanceTest {
     public void testWindowInstanceSave() {
         WindowOperator window = new WindowOperator();
         window.setNameSpace("namespace_chris");
-        window.setConfigureName("name");
+        window.setName("name");
         WindowInstance windowInstance = window.createWindowInstance("2021-07-09 11:00:00", "2021-07-09 11:10:00", "2021-07-09 11:10:00", "1");
         ORMUtil.batchReplaceInto(windowInstance);
         WindowInstance queryWindowInstance = ORMUtil.queryForObject("select * from window_instance where window_instance_key='" + windowInstance.getWindowInstanceKey() + "'", null, WindowInstance.class);
@@ -54,7 +54,6 @@ public class WindowInstanceTest {
     public void testWindowInstanceNormalMode() {
         WindowOperator window = new WindowOperator();
         window.init();
-//        window.doProcessAfterRefreshConfigurable(null);
         window.setFireMode(0);
         window.setTimeFieldName("time");
         window.setSlideInterval(5);
@@ -62,7 +61,7 @@ public class WindowInstanceTest {
         window.setWaterMarkMinute(5);
         window.setEmitAfterValue(60L);
         window.setNameSpace("namespace_chris");
-        window.setConfigureName("name");
+        window.setName("name");
         JSONObject msg = new JSONObject();
         msg.put("time", "2021-07-09 11:00:01");
         List<WindowInstance> windowInstances = window.queryOrCreateWindowInstance(new Message(msg), "1");
@@ -78,7 +77,7 @@ public class WindowInstanceTest {
         window.setSizeInterval(5);
         window.setWaterMarkMinute(1000);
         window.setNameSpace("namespace_chris");
-        window.setConfigureName("name");
+        window.setName("name");
         JSONObject msg = new JSONObject();
         msg.put("time", "2021-07-09 11:00:01");
         List<WindowInstance> windowInstances = window.queryOrCreateWindowInstance(new Message(msg), "1");
@@ -99,7 +98,7 @@ public class WindowInstanceTest {
         window.setSizeInterval(5);
         window.setWaterMarkMinute(5);
         window.setNameSpace("namespace_chris");
-        window.setConfigureName("name");
+        window.setName("name");
         JSONObject msg = new JSONObject();
         msg.put("time", "2021-07-09 11:00:01");
         List<WindowInstance> windowInstances = window.queryOrCreateWindowInstance(new Message(msg), "1");
@@ -116,7 +115,7 @@ public class WindowInstanceTest {
         window.setSizeInterval(5);
         window.setWaterMarkMinute(1000);
         window.setNameSpace("namespace_chris");
-        window.setConfigureName("name");
+        window.setName("name");
         JSONObject msg = new JSONObject();
         msg.put("time", "2021-07-09 11:00:01");
         List<WindowInstance> windowInstances = window.queryOrCreateWindowInstance(new Message(msg), "1");
@@ -199,7 +198,7 @@ public class WindowInstanceTest {
         window.setSizeInterval(5);
         window.setWaterMarkMinute(0);
         window.setNameSpace("namespace_test");
-        window.setConfigureName("window_name");
+        window.setName("window_name");
 
         JSONObject msg = new JSONObject();
         String eventTime = "2021-08-27 18:03:00";
@@ -232,7 +231,7 @@ public class WindowInstanceTest {
         window.setSizeInterval(5);
         window.setWaterMarkMinute(120);
         window.setNameSpace("namespace_test");
-        window.setConfigureName("window_name");
+        window.setName("window_name");
 
         msg = new JSONObject();
         eventTime = "2021-08-27 17:03:00";
@@ -264,7 +263,7 @@ public class WindowInstanceTest {
         window.setSizeInterval(5);
         window.setWaterMarkMinute(120);
         window.setNameSpace("namespace_test");
-        window.setConfigureName("window_name");
+        window.setName("window_name");
 
         msg = new JSONObject();
         eventTime = "2021-08-27 17:03:00";

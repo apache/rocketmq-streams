@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -37,7 +36,7 @@ public class FloorFunction {
      */
     @FunctionMethod(value = "floor", alias = "floor", comment = "向下取整，返回比当前值小的整数值")
     public Double floor(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
         Double result = null;
         String value = FunctionUtils.getValueString(message, context, number);
         if (value == null) {
@@ -65,7 +64,7 @@ public class FloorFunction {
      */
     @FunctionMethod(value = "floor", alias = "floor", comment = "向下取整，返回比当前值小的整数值")
     public Double floor(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "Double", comment = "代表要求值的常量值") Double number) {
+        @FunctionParamter(value = "Double", comment = "代表要求值的常量值") Double number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -84,7 +83,7 @@ public class FloorFunction {
      */
     @FunctionMethod(value = "floor", alias = "floor", comment = "向下取整，返回比当前值小的整数值")
     public Double floor(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
+        @FunctionParamter(value = "Integer", comment = "代表要求值的常量值") Integer number) {
         Double result = null;
         if (number == null) {
             return result;
@@ -93,22 +92,4 @@ public class FloorFunction {
         return result;
     }
 
-    /**
-     * 向下取整，返回比number小的整数值
-     *
-     * @param message
-     * @param context
-     * @param number
-     * @return
-     */
-    @FunctionMethod(value = "floor", alias = "floor", comment = "向下取整，返回比当前值小的整数值")
-    public BigDecimal floor(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量值") BigDecimal number) {
-        BigDecimal result = null;
-        if (number == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.floor(number.intValue()));
-        return result;
-    }
 }

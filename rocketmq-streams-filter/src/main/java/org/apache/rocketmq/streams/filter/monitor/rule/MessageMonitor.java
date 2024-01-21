@@ -82,7 +82,7 @@ public class MessageMonitor extends Monitor<List<Rule>> {
         if (monitor == null) {
             return null;
         }
-        return (RuleMonitor)monitor;
+        return (RuleMonitor) monitor;
     }
 
     @Override
@@ -98,7 +98,7 @@ public class MessageMonitor extends Monitor<List<Rule>> {
             } else {
                 sb.append(",");
             }
-            sb.append(rule.getConfigureName());
+            sb.append(rule.getName());
         }
         return sb.toString();
     }

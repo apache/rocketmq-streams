@@ -20,23 +20,11 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.RuntimeUtil;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.rocksdb.BlockBasedTableConfig;
-import org.rocksdb.BloomFilter;
-import org.rocksdb.Cache;
-import org.rocksdb.CompactionStyle;
-import org.rocksdb.CompressionType;
-import org.rocksdb.Filter;
-import org.rocksdb.LRUCache;
 import org.rocksdb.Options;
-import org.rocksdb.RateLimiter;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.Statistics;
 import org.rocksdb.TtlDB;
 import org.rocksdb.WriteOptions;
-import org.rocksdb.util.SizeUnit;
 
 public class RocksDBOperator {
 
@@ -48,14 +36,14 @@ public class RocksDBOperator {
 
     protected static RocksDB rocksDB;
 
-    protected WriteOptions writeOptions = new WriteOptions();
-
     static {
         RocksDB.loadLibrary();
     }
 
+    protected WriteOptions writeOptions = new WriteOptions();
+
     public RocksDBOperator() {
-        this(FileUtil.concatFilePath( DB_PATH + File.separator + RuntimeUtil.getDipperInstanceId(), "rocksdb"));
+        this(FileUtil.concatFilePath(DB_PATH + File.separator + RuntimeUtil.getDipperInstanceId(), "rocksdb"));
     }
 
     public RocksDBOperator(String rocksdbFilePath) {
@@ -72,7 +60,7 @@ public class RocksDBOperator {
                                         dir.delete();
                                     }
                                     dir.mkdirs();
- //                                   final Filter bloomFilter = new BloomFilter(10);
+                                    //                                   final Filter bloomFilter = new BloomFilter(10);
 //                                    final ReadOptions readOptions = new ReadOptions().setFillCache(false);
 //                                    final Statistics stats = new Statistics();
 //                                    final RateLimiter rateLimiter = new RateLimiter(10000000, 10000, 10);

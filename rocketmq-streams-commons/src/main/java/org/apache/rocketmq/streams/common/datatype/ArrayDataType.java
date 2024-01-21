@@ -44,6 +44,21 @@ public class ArrayDataType extends GenericParameterDataType<Object> {
 
     }
 
+    public static String getTypeName() {
+        return "array";
+    }
+
+    /**
+     * @param args
+     */
+    public static void main(String[] args) throws ClassNotFoundException {
+        String name = long.class.getName();
+        System.out.println(name);
+        Class clazz = ReflectUtil.forClass(name);
+//        Float[] strs = new Float[10];
+//        ArrayDataType arrayDataType =(ArrayDataType) DataTypeUtil.getDataTypeFromClass(strs.getClass());
+    }
+
     @Override
     public String toDataJson(Object objectArray) {
         JSONArray jsonArray = new JSONArray();
@@ -103,10 +118,6 @@ public class ArrayDataType extends GenericParameterDataType<Object> {
 
     @Override
     public String getName() {
-        return "array";
-    }
-
-    public static String getTypeName() {
         return "array";
     }
 
@@ -249,17 +260,6 @@ public class ArrayDataType extends GenericParameterDataType<Object> {
     @Override
     public DataType create() {
         return new ArrayDataType();
-    }
-
-    /**
-     * @param args
-     */
-    public static void main(String[] args) throws ClassNotFoundException {
-        String name = long.class.getName();
-        System.out.println(name);
-        Class clazz = ReflectUtil.forClass(name);
-//        Float[] strs = new Float[10];
-//        ArrayDataType arrayDataType =(ArrayDataType) DataTypeUtil.getDataTypeFromClass(strs.getClass());
     }
 
     @Override

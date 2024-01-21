@@ -54,11 +54,11 @@ public class MemoryChannelBuilder extends AbstractSupportShuffleChannelBuilder {
 
     @Override
     public ISource copy(ISource pipelineSource) {
-        return new MemoryChannel();
+        return new MemorySource();
     }
 
     @Override
     public ISink createBySource(ISource pipelineSource) {
-        return new MemoryChannel();
+        return new MemorySink();
     }
 }

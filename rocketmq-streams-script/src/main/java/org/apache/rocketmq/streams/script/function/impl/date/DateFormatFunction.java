@@ -36,14 +36,14 @@ public class DateFormatFunction {
      */
     @FunctionMethod(value = "format", comment = "把指定的标准时间转换成某种特定的格式")
     public String format(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String dateFieldName,
-                         @FunctionParamter(value = "string", comment = "代表转换时间格式的字段名或常量") String destformat) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String dateFieldName,
+        @FunctionParamter(value = "string", comment = "代表转换时间格式的字段名或常量") String destformatOri) {
         String value = FunctionUtils.getValueString(message, context, dateFieldName);
-        destformat = FunctionUtils.getValueString(message, context, destformat);
-        if(FunctionUtils.isLong(value)){
+        String destformat = FunctionUtils.getValueString(message, context, destformatOri);
+        if (FunctionUtils.isLong(value)) {
             try {
                 SimpleDateFormat destDateFormat = new SimpleDateFormat(destformat);
-                Date date=new Date(Long.valueOf(value));
+                Date date = new Date(Long.valueOf(value));
                 String dateStr = destDateFormat.format(date);
                 return dateStr;
             } catch (Exception e) {
@@ -51,8 +51,8 @@ public class DateFormatFunction {
                 throw new RuntimeException("format函数执行错误", e);
             }
 
-        }else {
-            return format(message,context,dateFieldName,"'yyyy-MM-dd HH:mm:ss'",destformat);
+        } else {
+            return format(message, context, dateFieldName, "'yyyy-MM-dd HH:mm:ss'", destformatOri);
         }
     }
 
@@ -63,15 +63,16 @@ public class DateFormatFunction {
      */
     @FunctionMethod(value = "format", comment = "把指定的时间转换成某种特定的格式")
     public String format(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String dateFieldName,
-                         @FunctionParamter(value = "string", comment = "代表现有时间格式的字段名或常量") String oriformat,
-                         @FunctionParamter(value = "string", comment = "代表转换时间格式的字段名或常量") String destformat) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String dateFieldName,
+        @FunctionParamter(value = "string", comment = "代表现有时间格式的字段名或常量") String oriformat,
+        @FunctionParamter(value = "string", comment = "代表转换时间格式的字段名或常量") String destformat) {
         String value = FunctionUtils.getValueString(message, context, dateFieldName);
         oriformat = FunctionUtils.getValueString(message, context, oriformat);
         destformat = FunctionUtils.getValueString(message, context, destformat);
         SimpleDateFormat oriDateFormat = new SimpleDateFormat(oriformat);
         SimpleDateFormat destDateFormat = new SimpleDateFormat(destformat);
         try {
+            value=value.replace("T"," ");
             Date date = oriDateFormat.parse(value);
             String dateStr = destDateFormat.format(date);
             return dateStr;
@@ -85,8 +86,8 @@ public class DateFormatFunction {
     @Deprecated
     @FunctionMethod(value = "dateFormat", alias = "modifyFormat", comment = "修改标准时间字段为某种时间格式")
     public String dateFormat(IMessage message, FunctionContext context,
-                             @FunctionParamter(value = "string", comment = "代表时间的字段名,不支持常量") String dateFieldName,
-                             @FunctionParamter(value = "string", comment = "默认为格式常量，不加引号") String format) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名,不支持常量") String dateFieldName,
+        @FunctionParamter(value = "string", comment = "默认为格式常量，不加引号") String format) {
         String value = FunctionUtils.getValueString(message, context, dateFieldName);
         if (value == null) {
             return "";

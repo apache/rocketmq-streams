@@ -16,29 +16,54 @@
  */
 package org.apache.rocketmq.streams.common.topology.stages;
 
+import org.apache.rocketmq.streams.common.batchsystem.BatchFinishMessage;
+import org.apache.rocketmq.streams.common.channel.source.systemmsg.NewSplitMessage;
+import org.apache.rocketmq.streams.common.channel.source.systemmsg.RemoveSplitMessage;
+import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.context.MessageHeader;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
 
 public class JoinStartChainStage extends EmptyChainStage {
     protected String rightDependentTableName;
-    protected String leftLableName;
-    protected String rightLableName;
+    protected String leftLabelName;
+    protected String rightLabelName;
+
     @Override
-    protected IMessage proccessMessage(IMessage message, AbstractContext context) {
+    protected IMessage handleMessage(IMessage message, AbstractContext context) {
         String lable = message.getHeader().getMsgRouteFromLable();
         if (lable != null) {
             if (lable.equals(rightDependentTableName)) {
-                message.getHeader().addRouteLabel(rightLableName);
+                message.getHeader().addRouteLabel(rightLabelName);
             } else {
-                message.getHeader().addRouteLabel(leftLableName);
+                message.getHeader().addRouteLabel(leftLabelName);
             }
 
         } else {
             throw new RuntimeException("can not dipatch message, need route label " + toJson());
         }
         return message;
+    }
+
+    @Override public void checkpoint(IMessage message, AbstractContext context, CheckPointMessage checkPointMessage) {
+        handleMessage(message, context);
+        super.checkpoint(message, context, checkPointMessage);
+    }
+
+    @Override public void addNewSplit(IMessage message, AbstractContext context, NewSplitMessage newSplitMessage) {
+        handleMessage(message, context);
+        super.addNewSplit(message, context, newSplitMessage);
+    }
+
+    @Override
+    public void removeSplit(IMessage message, AbstractContext context, RemoveSplitMessage removeSplitMessage) {
+        handleMessage(message, context);
+        super.removeSplit(message, context, removeSplitMessage);
+    }
+
+    @Override
+    public void batchMessageFinish(IMessage message, AbstractContext context, BatchFinishMessage checkPointMessage) {
+        handleMessage(message, context);
+        super.batchMessageFinish(message, context, checkPointMessage);
     }
 
     public String getRightDependentTableName() {
@@ -49,19 +74,19 @@ public class JoinStartChainStage extends EmptyChainStage {
         this.rightDependentTableName = rightDependentTableName;
     }
 
-    public String getLeftLableName() {
-        return leftLableName;
+    public String getLeftLabelName() {
+        return leftLabelName;
     }
 
-    public void setLeftLableName(String leftLableName) {
-        this.leftLableName = leftLableName;
+    public void setLeftLabelName(String leftLabelName) {
+        this.leftLabelName = leftLabelName;
     }
 
-    public String getRightLableName() {
-        return rightLableName;
+    public String getRightLabelName() {
+        return rightLabelName;
     }
 
-    public void setRightLableName(String rightLableName) {
-        this.rightLableName = rightLableName;
+    public void setRightLabelName(String rightLabelName) {
+        this.rightLabelName = rightLabelName;
     }
 }

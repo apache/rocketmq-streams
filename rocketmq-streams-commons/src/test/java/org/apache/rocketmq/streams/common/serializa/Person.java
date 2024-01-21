@@ -28,10 +28,10 @@ import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 public class Person extends BasedConfigurable {
     protected String name;
     protected int age;
+    protected Map<String, CountAccum> accums;
     private Boolean isMale;
     private List<String> addresses;
     private Map<String, Integer> childName2Age;
-    protected Map<String, CountAccum> accums;
 
     public static Person createPerson(String namespace) {
         Person person = new Person();
@@ -52,7 +52,6 @@ public class Person extends BasedConfigurable {
         person.accums = new HashMap<>();
         CountAccum count = new CountAccum();
         count.count = 1;
-        person.setId(1222L);
         person.accums.put("count", count);
         return person;
     }

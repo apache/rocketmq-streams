@@ -25,38 +25,30 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.disruptor.BufferFullFunction;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorEvent;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorEventFactory;
 import org.apache.rocketmq.streams.common.disruptor.DisruptorProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 不可靠的消息源，如http，syslog，可以继承这个类。做了系统保护，如果消息发送太快，可能会出现丢失。
  */
-public abstract class AbstractUnreliableSource extends AbstractBatchSource {
-    private static final Log LOG = LogFactory.getLog(AbstractUnreliableSource.class);
+public abstract class AbstractUnreliableSource extends AbstractSingleSplitSource {
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractUnreliableSource.class);
 
     protected Boolean enableAsyncReceive = false;
     protected boolean isSingleType = false;//是否只有单个生产者，如果是，则为true
-
+    protected transient boolean discard = false;//如果过快，直接丢弃。只有enableAsyncReceive生效时使用
     private transient ExecutorService cachedThreadPool = null;
     private transient int bufferSize = 1024;
     private transient Disruptor<DisruptorEvent> disruptor;
     private transient DisruptorProducer<Message> disruptorProducer;
     private transient BufferFullFunction bufferFullFunction;
-    protected transient boolean discard = false;//如果过快，直接丢弃。只有enableAsyncReceive生效时使用
     private transient EventHandler<DisruptorEvent> eventEventHandler;
-
-    @Override
-    protected boolean initConfigurable() {
-        bufferSize = 1024;
-        boolean discard = false;//如果过快，直接丢弃。只有enableAsyncReceive生效时使用
-        return super.initConfigurable();
-    }
 
     public AbstractUnreliableSource() {
         super();
@@ -86,6 +78,13 @@ public abstract class AbstractUnreliableSource extends AbstractBatchSource {
     }
 
     @Override
+    protected boolean initConfigurable() {
+        bufferSize = 1024;
+        boolean discard = false;//如果过快，直接丢弃。只有enableAsyncReceive生效时使用
+        return super.initConfigurable();
+    }
+
+    @Override
     public AbstractContext executeMessage(Message channelMessage) {
         if (enableAsyncReceive) {
             disruptorProducer.publish(channelMessage, bufferFullFunction, discard);
@@ -94,21 +93,6 @@ public abstract class AbstractUnreliableSource extends AbstractBatchSource {
             return executeMessageBySupper(channelMessage);
         }
 
-    }
-
-    @Override
-    public boolean supportRemoveSplitFind() {
-        return false;
-    }
-
-    @Override
-    public boolean supportOffsetRest() {
-        return false;
-    }
-
-    @Override
-    protected boolean isNotDataSplit(String queueId) {
-        return false;
     }
 
     /**
@@ -127,10 +111,6 @@ public abstract class AbstractUnreliableSource extends AbstractBatchSource {
         return doUnreliableReceiveMessage(message);
     }
 
-    @Override
-    protected void executeMessageAfterReceiver(Message channelMessage, AbstractContext context) {
-    }
-
     public Boolean getEnableAsyncReceive() {
         return enableAsyncReceive;
     }
@@ -144,20 +124,20 @@ public abstract class AbstractUnreliableSource extends AbstractBatchSource {
 
     }
 
-    protected class MessageEventHandler implements EventHandler<DisruptorEvent> {
-        @Override
-        public void onEvent(DisruptorEvent event, long sequence, boolean endOfBatch) throws Exception {
-            // LOG.info("get event " + event);
-            Message msg = (Message)event.getData();
-            executeMessageBySupper(msg);
-        }
-    }
-
     public boolean isSingleType() {
         return isSingleType;
     }
 
     public void setSingleType(boolean singleType) {
         isSingleType = singleType;
+    }
+
+    protected class MessageEventHandler implements EventHandler<DisruptorEvent> {
+        @Override
+        public void onEvent(DisruptorEvent event, long sequence, boolean endOfBatch) throws Exception {
+            // LOG.info("get event " + event);
+            Message msg = (Message) event.getData();
+            executeMessageBySupper(msg);
+        }
     }
 }

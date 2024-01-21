@@ -31,6 +31,12 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class CurrentTimestampFunction {
 
+    public static void main(String[] args) {
+        Timestamp timestamp = null;
+        timestamp = new Timestamp(System.currentTimeMillis());
+        System.out.println(timestamp.getTime() / 1000);
+    }
+
     /**
      * 获取当前时间戳
      *
@@ -56,7 +62,7 @@ public class CurrentTimestampFunction {
     public Long curstampSecond(IMessage message, FunctionContext context) {
         Timestamp timestamp = null;
         timestamp = new Timestamp(System.currentTimeMillis());
-        return timestamp.getTime()/1000;
+        return timestamp.getTime() / 1000;
     }
 
     /**
@@ -67,9 +73,10 @@ public class CurrentTimestampFunction {
      * @return
      */
     @FunctionMethod(value = "curstamp_second", alias = "timestamp_second", comment = "生成时间戳")
-    public Long curstampSecond(IMessage message, FunctionContext context,String dateStr) {
-       return curstampSecond(message,context,dateStr,null);
+    public Long curstampSecond(IMessage message, FunctionContext context, String dateStr) {
+        return curstampSecond(message, context, dateStr, null);
     }
+
     /**
      * 获取当前时间戳
      *
@@ -78,38 +85,35 @@ public class CurrentTimestampFunction {
      * @return
      */
     @FunctionMethod(value = "curstamp_second", alias = "timestamp_second", comment = "生成时间戳")
-    public Long curstampSecond(IMessage message, FunctionContext context,String dateStr,String format) {
-        Long time= convert(message,context,dateStr,format);
-        if(time==null){
+    public Long curstampSecond(IMessage message, FunctionContext context, String dateStr, String format) {
+        Long time = convert(message, context, dateStr, format);
+        if (time == null) {
             return null;
         }
-        return time/1000;
+        return time / 1000;
     }
-    public static void main(String[] args) {
-        Timestamp timestamp = null;
-        timestamp = new Timestamp(System.currentTimeMillis());
-        System.out.println( timestamp.getTime()/1000);
-    }
+
     @FunctionMethod(value = "curstamp", alias = "timestamp", comment = "生成指定时间的时间戳")
     public Long convert(IMessage message, FunctionContext context,
-        @FunctionParamter(value = "string", comment = "标准时间格式的时间") String dateTime){
-        return convert(message,context,dateTime,null);
+        @FunctionParamter(value = "string", comment = "标准时间格式的时间") String dateTime) {
+        return convert(message, context, dateTime, null);
     }
+
     @FunctionMethod(value = "curstamp", alias = "timestamp", comment = "生成指定时间的时间戳")
     public Long convert(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "标准时间格式的时间") String dateTime,String format) {
+        @FunctionParamter(value = "string", comment = "标准时间格式的时间") String dateTime, String format) {
         String dateTimeStr = FunctionUtils.getValueString(message, context, dateTime);
-        SimpleDateFormat dateFormat =null;
-        if(format==null){
-            dateFormat= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        }else {
-            dateFormat= new SimpleDateFormat(FunctionUtils.getValueString(message,context,format));
+        SimpleDateFormat dateFormat = null;
+        if (format == null) {
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        } else {
+            dateFormat = new SimpleDateFormat(FunctionUtils.getValueString(message, context, format));
         }
 
         if (dateTime == null) {
             return null;
         }
-        if(StringUtil.isEmpty(dateTimeStr)){
+        if (StringUtil.isEmpty(dateTimeStr)) {
             return null;
         }
         try {

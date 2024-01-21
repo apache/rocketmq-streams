@@ -62,7 +62,7 @@ public class CompileScriptExpression {
         int startIndex = 0;
         if (this.containsContext) {
             parameterTemplete[0] = new Message(new JSONObject());
-            parameterTemplete[1] = new Context((IMessage)parameterTemplete[0]);
+            parameterTemplete[1] = new Context((IMessage) parameterTemplete[0]);
             startIndex = 2;
         }
 
@@ -105,10 +105,10 @@ public class CompileScriptExpression {
                 Entry<Integer, CompileParameter> entry = it.next();
                 Integer index = entry.getKey();
                 CompileParameter compileParameter = entry.getValue();
-                parameters[index] = functionConfigure.getRealValue(index,compileParameter.getValue(message, context));
+                parameters[index] = functionConfigure.getRealValue(index, compileParameter.getValue(message, context));
             }
         }
-        Object value = scriptExpression.executeFunctionConfigue(message,context,functionConfigure,parameters);
+        Object value = scriptExpression.executeFunctionConfigue(message, context, functionConfigure, parameters);
         if (isSimpleNewFieldName && value != null) {
             message.getMessageBody().put(scriptExpression.getNewFieldName(), value);
         } else {

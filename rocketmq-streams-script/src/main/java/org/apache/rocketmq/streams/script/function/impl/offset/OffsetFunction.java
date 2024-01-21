@@ -38,7 +38,7 @@ public class OffsetFunction {
      */
     @FunctionMethod(value = "offset", alias = "progress", comment = "设置offset")
     public void extractOffset(IMessage message, AbstractContext context,
-                              @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String... fieldNames) {
         if (fieldNames == null) {
             return;
         }

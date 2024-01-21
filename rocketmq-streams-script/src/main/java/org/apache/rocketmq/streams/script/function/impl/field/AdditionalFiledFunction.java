@@ -20,7 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
-import org.apache.rocketmq.streams.common.utils.Ip2LongUtils;
+import org.apache.rocketmq.streams.common.utils.Ip2LongUtil;
 import org.apache.rocketmq.streams.common.utils.RandomStrUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.script.annotation.Function;
@@ -43,8 +43,8 @@ public class AdditionalFiledFunction {
 
     @FunctionMethod(value = "addRandomId", alias = "addRandom", comment = "增加一个随机数的新字段")
     public String addRandomId(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "新字段名称") String newFieldName,
-                              @FunctionParamter(value = "string", comment = "字段长度，不需要单引号或双引号") String strLength) {
+        @FunctionParamter(value = "string", comment = "新字段名称") String newFieldName,
+        @FunctionParamter(value = "string", comment = "字段长度，不需要单引号或双引号") String strLength) {
         String name = FunctionUtils.getValueString(message, context, newFieldName);
         if (StringUtil.isEmpty(name)) {
             name = newFieldName;
@@ -56,12 +56,12 @@ public class AdditionalFiledFunction {
 
     @FunctionMethod(value = "random", alias = "createRandom", comment = "产生一个随机数")
     public String random(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表字段长度的字段名，数字或常量") String strLength) {
+        @FunctionParamter(value = "string", comment = "代表字段长度的字段名，数字或常量") String strLength) {
         Long length = 10L;
         if (!StringUtil.isEmpty(strLength) && !"null".equals(strLength)) {
             Object object = FunctionUtils.getValue(message, context, strLength);
             if (FunctionUtils.isNumberObject(object)) {
-                length = (Long)object;
+                length = (Long) object;
             } else {
                 length = Long.valueOf(object.toString());
             }
@@ -72,8 +72,8 @@ public class AdditionalFiledFunction {
 
     @FunctionMethod(value = "copyField", alias = "copy", comment = "copy一个字段的值到一个新的字段（不建议使用，建议使用直接赋值方式）")
     public Object extra(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "代表新字段名的字段名") String newFieldName,
-                        @FunctionParamter(value = "string", comment = "代表字段值的字段名或常量") String oldFieldName) {
+        @FunctionParamter(value = "string", comment = "代表新字段名的字段名") String newFieldName,
+        @FunctionParamter(value = "string", comment = "代表字段值的字段名或常量") String oldFieldName) {
         Object value = FunctionUtils.getValue(message, context, oldFieldName);
         if (value == null) {
             return null;
@@ -88,7 +88,7 @@ public class AdditionalFiledFunction {
 
     @FunctionMethod(value = "copyField", alias = "copy", comment = "copy一个字段的值到一个新的字段")
     public Object extra(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "代表字段值的字段名或常量") String oldFieldName) {
+        @FunctionParamter(value = "string", comment = "代表字段值的字段名或常量") String oldFieldName) {
         Object value = FunctionUtils.getValue(message, context, oldFieldName);
         return value;
     }
@@ -104,8 +104,8 @@ public class AdditionalFiledFunction {
 
     @FunctionMethod(alias = "addField", value = "newField", comment = "增加一个新字段，字段值为value")
     public String addField(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "新字段的名称，不需要引号") String newFieldName,
-                           @FunctionParamter(value = "string", comment = "代表新字段值的字段名或常量") String value) {
+        @FunctionParamter(value = "string", comment = "新字段的名称，不需要引号") String newFieldName,
+        @FunctionParamter(value = "string", comment = "代表新字段值的字段名或常量") String value) {
         Object newFieldValue = FunctionUtils.getValue(message, context, value);
         String name = FunctionUtils.getValueString(message, context, newFieldName);
         if (StringUtil.isEmpty(name)) {
@@ -118,8 +118,8 @@ public class AdditionalFiledFunction {
     @Deprecated
     @FunctionMethod(value = "addConstant", alias = "constant", comment = "增加一个常量")
     public String addConstant(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "新字段的名次，不需要引号") String newFieldName,
-                              @FunctionParamter(value = "string", comment = "新字段的值，默认为常量，不需要引号") String value) {
+        @FunctionParamter(value = "string", comment = "新字段的名次，不需要引号") String newFieldName,
+        @FunctionParamter(value = "string", comment = "新字段的值，默认为常量，不需要引号") String value) {
         String name = FunctionUtils.getValueString(message, context, newFieldName);
         if (StringUtil.isEmpty(name)) {
             name = newFieldName;
@@ -148,7 +148,7 @@ public class AdditionalFiledFunction {
     @FunctionMethod(value = "addByEqual", comment = "建议用if(compareValue==b)"
         + "then{newFieldName=equalValue}else{newFieldName=notEqualValue}方式")
     public String addByEqual(IMessage message, FunctionContext context, String newFieldName, String msgFielName,
-                             String compareValue, String equalValue, String notEqualValue) {
+        String compareValue, String equalValue, String notEqualValue) {
         String value = null;
         String msgValue = FunctionUtils.getValueString(message, context, msgFielName);
         if (compareValue.equals(msgValue)) {
@@ -199,8 +199,8 @@ public class AdditionalFiledFunction {
      */
     @FunctionMethod(value = "addByIp2Long", comment = "把ip转换成long，并增加到新字段")
     public String addByIp2Long(IMessage message, FunctionContext context,
-                               @FunctionParamter(value = "string", comment = "新字段的名次，不需要引号") String newFieldName,
-                               @FunctionParamter(value = "string", comment = "代表ip的字段名或常量") String msgFielName) {
+        @FunctionParamter(value = "string", comment = "新字段的名次，不需要引号") String newFieldName,
+        @FunctionParamter(value = "string", comment = "代表ip的字段名或常量") String msgFielName) {
 
         long ipLong = ip2Long(message, context, msgFielName);
         String name = FunctionUtils.getValueString(message, context, newFieldName);
@@ -220,25 +220,25 @@ public class AdditionalFiledFunction {
      */
     @FunctionMethod(value = "ip2Long", comment = "把ip转换成long")
     public Long ip2Long(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "代表ip的字段名或常量") String msgFielName) {
+        @FunctionParamter(value = "string", comment = "代表ip的字段名或常量") String msgFielName) {
         Object o = FunctionUtils.getValue(message, context, msgFielName);
         if (o == null) {
             return null;
         }
-        String ip = (String)o;
-        long ipLong = Ip2LongUtils.ipDotDec2Long(ip);
+        String ip = (String) o;
+        long ipLong = Ip2LongUtil.ipDotDec2Long(ip);
         return ipLong;
     }
 
     @FunctionMethod(value = "timeLong2String", comment = "把时间戳转换成标准格式，赋值给新字段")
     public String timeLong2String(IMessage message, FunctionContext context,
-                                  @FunctionParamter(value = "string", comment = "新字段的名次，不需要引号") String newFieldName,
-                                  @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String msgFielName) {
+        @FunctionParamter(value = "string", comment = "新字段的名次，不需要引号") String newFieldName,
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String msgFielName) {
         Object o = FunctionUtils.getValue(message, context, msgFielName);
         if (o == null) {
             return null;
         }
-        String time = (String)o;
+        String time = (String) o;
         if (MatchUtil.isNumber(time)) {
             time = DateUtil.longToString(Long.parseLong(time));
         }
@@ -258,7 +258,7 @@ public class AdditionalFiledFunction {
      * @return
      */
     private boolean matchOccureTime(Object occureTime, String cacheDateFormat, String msgOccureTime,
-                                    String msgDateFormate) {
+        String msgDateFormate) {
         Date openTime = createTime(occureTime, cacheDateFormat);
         Date logTime = createTime(msgOccureTime, msgDateFormate);
         long timeDiff = DateUtil.dateDiff(openTime, logTime);
@@ -270,11 +270,11 @@ public class AdditionalFiledFunction {
 
     private Date createTime(Object time, String format) {
         if (String.class.isInstance(time)) {
-            return createTime((String)time, format);
+            return createTime((String) time, format);
         } else if (Date.class.isInstance(time)) {
-            return createTime((Date)time);
+            return createTime((Date) time);
         } else if (Long.class.isInstance(time)) {
-            return createTime((Long)time);
+            return createTime((Long) time);
         }
         return null;
     }

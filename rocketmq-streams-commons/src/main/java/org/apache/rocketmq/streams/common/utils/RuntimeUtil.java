@@ -51,9 +51,11 @@ public class RuntimeUtil {
      * @return
      */
     public static String getDipperInstanceId() {
-
         return MapKeyUtil.createKeyBySign("_", IPUtil.getLocalIdentification(), getPid()).replaceAll("\\.", "_");
+    }
 
+    public static String getDipperInstanceIdWithoutPid() {
+        return MapKeyUtil.createKeyBySign("_", IPUtil.getLocalIdentification()).replaceAll("\\.", "_");
     }
 
     public static void main(String[] args) {

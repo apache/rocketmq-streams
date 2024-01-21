@@ -25,8 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.Message;
 import org.apache.rocketmq.streams.common.context.MessageHeader;
@@ -35,10 +33,70 @@ import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
 import org.apache.rocketmq.streams.window.state.impl.JoinLeftState;
 import org.apache.rocketmq.streams.window.state.impl.JoinRightState;
 import org.apache.rocketmq.streams.window.state.impl.JoinState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DBOperator implements Operator {
 
-    private static final Log LOG = LogFactory.getLog(DBOperator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DBOperator.class);
+
+    /**
+     * 根据join条件生成消息比对key值
+     *
+     * @param messageBody
+     * @param joinLabel
+     * @param leftJoinFieldNames
+     * @param rightJoinFieldNames
+     * @return
+     */
+    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames,
+        List<String> rightJoinFieldNames) {
+        StringBuffer buffer = new StringBuffer();
+        if ("left".equalsIgnoreCase(joinLabel)) {
+            for (String field : leftJoinFieldNames) {
+                String value = messageBody.getString(field);
+                buffer.append(value).append("_");
+            }
+        } else {
+            for (String field : rightJoinFieldNames) {
+                String[] rightFields = field.split("\\.");
+                if (rightFields.length > 1) {
+                    field = rightFields[1];
+                }
+                String value = messageBody.getString(field);
+                buffer.append(value).append("_");
+            }
+        }
+
+        return MD5(buffer.toString());
+    }
+
+    public static String MD5(String s) {
+        char hexDigits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+        try {
+            byte[] btInput = s.getBytes();
+            // 获得MD5摘要算法的 MessageDigest 对象
+            MessageDigest mdInst = MessageDigest.getInstance("MD5");
+            // 使用指定的字节更新摘要
+            mdInst.update(btInput);
+            // 获得密文
+            byte[] md = mdInst.digest();
+            // 把密文转换成十六进制的字符串形式
+            int j = md.length;
+            char str[] = new char[j * 2];
+            int k = 0;
+            for (int i = 0; i < j; i++) {
+                byte byte0 = md[i];
+                str[k++] = hexDigits[byte0 >>> 4 & 0xf];
+                str[k++] = hexDigits[byte0 & 0xf];
+            }
+            return new String(str);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
 
     /**
      * 根据join流对原始数据进行处理并入库
@@ -140,64 +198,6 @@ public class DBOperator implements Operator {
         }
 
         return list;
-    }
-
-    /**
-     * 根据join条件生成消息比对key值
-     *
-     * @param messageBody
-     * @param joinLabel
-     * @param leftJoinFieldNames
-     * @param rightJoinFieldNames
-     * @return
-     */
-    public static String generateKey(JSONObject messageBody, String joinLabel, List<String> leftJoinFieldNames,
-        List<String> rightJoinFieldNames) {
-        StringBuffer buffer = new StringBuffer();
-        if ("left".equalsIgnoreCase(joinLabel)) {
-            for (String field : leftJoinFieldNames) {
-                String value = messageBody.getString(field);
-                buffer.append(value).append("_");
-            }
-        } else {
-            for (String field : rightJoinFieldNames) {
-                String[] rightFields = field.split("\\.");
-                if (rightFields.length > 1) {
-                    field = rightFields[1];
-                }
-                String value = messageBody.getString(field);
-                buffer.append(value).append("_");
-            }
-        }
-
-        return MD5(buffer.toString());
-    }
-
-    public static String MD5(String s) {
-        char hexDigits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
-        try {
-            byte[] btInput = s.getBytes();
-            // 获得MD5摘要算法的 MessageDigest 对象
-            MessageDigest mdInst = MessageDigest.getInstance("MD5");
-            // 使用指定的字节更新摘要
-            mdInst.update(btInput);
-            // 获得密文
-            byte[] md = mdInst.digest();
-            // 把密文转换成十六进制的字符串形式
-            int j = md.length;
-            char str[] = new char[j * 2];
-            int k = 0;
-            for (int i = 0; i < j; i++) {
-                byte byte0 = md[i];
-                str[k++] = hexDigits[byte0 >>> 4 & 0xf];
-                str[k++] = hexDigits[byte0 & 0xf];
-            }
-            return new String(str);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
     public List<Map<String, Object>> dealJoin(IMessage message) {
@@ -363,7 +363,7 @@ public class DBOperator implements Operator {
             try {
                 bodys.add(Message.parseObject(tmp.getMessageBody()));
             } catch (Exception e) {
-                LOG.error("json parase error:", e);
+                LOGGER.error("json parase error:", e);
             }
 
         }
@@ -392,8 +392,8 @@ public class DBOperator implements Operator {
         params.put("startTime", start);
         params.put("windowNameSpace", windowNameSpace);
         params.put("windowName", windowName);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("dboperata delete param is " + JSONObject.toJSONString(params));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("dboperata delete param is " + JSONObject.toJSONString(params));
         }
 
         List<JoinLeftState> joinLeftStates = ORMUtil.queryForList("select id from join_left_state where window_name_space = #{windowNameSpace} and " +

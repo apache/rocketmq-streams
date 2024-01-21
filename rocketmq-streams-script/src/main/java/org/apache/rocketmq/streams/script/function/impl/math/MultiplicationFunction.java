@@ -39,8 +39,8 @@ public class MultiplicationFunction {
      */
     @FunctionMethod(value = "multiplication", alias = "multiplication", comment = "两个数值的乘法返回结果")
     public Object multiplication(IMessage message, FunctionContext context,
-                                 @FunctionParamter(value = "String", comment = "代表要求乘法的第一个参数") String x,
-                                 @FunctionParamter(value = "String", comment = "代表要求乘法的第二个参数") String y) {
+        @FunctionParamter(value = "String", comment = "代表要求乘法的第一个参数") String x,
+        @FunctionParamter(value = "String", comment = "代表要求乘法的第二个参数") String y) {
         Double result = null;
         String paramX = FunctionUtils.getValueString(message, context, x);
         String paramY = FunctionUtils.getValueString(message, context, y);

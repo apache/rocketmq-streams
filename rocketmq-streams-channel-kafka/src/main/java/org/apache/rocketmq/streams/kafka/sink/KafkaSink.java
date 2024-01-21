@@ -21,8 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListTopicsResult;
@@ -36,15 +35,19 @@ import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.kafka.KafkaSplit;
 import org.apache.rocketmq.streams.kafka.source.KafkaSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaSink extends AbstractSupportShuffleSink {
-    private static final Log LOG = LogFactory.getLog(KafkaSource.class);
-
-    private transient KafkaProducer<String, String> kafkaProducer;
-
-    private volatile transient boolean stop = false;
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
     protected String topic;
+    private transient KafkaProducer<String, String> kafkaProducer;
+    private volatile transient boolean stop = false;
     @ENVDependence private String bootstrapServers;
+    private String maxRequestSize;
+    private String userName;
+
+    private String password;
     private int sessionTimeout = 30000;
 
     public KafkaSink() {
@@ -53,6 +56,10 @@ public class KafkaSink extends AbstractSupportShuffleSink {
     public KafkaSink(String bootstrapServers, String topic) {
         this.bootstrapServers = bootstrapServers;
         this.topic = topic;
+    }
+
+    public static int getMaxPollRecords() {
+        return 100;
     }
 
     @Override protected boolean initConfigurable() {
@@ -67,6 +74,16 @@ public class KafkaSink extends AbstractSupportShuffleSink {
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+        String maxRequestSizeTmp="4194304";
+        if(StringUtils.isNotEmpty(this.maxRequestSize)){
+            maxRequestSizeTmp=this.maxRequestSize;
+        }
+        props.put("max.request.size",maxRequestSizeTmp);
+
+        if (this.userName != null && this.password != null) {
+            props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" + userName + "\" password=\"" + password + "\";");
+        }
         this.kafkaProducer = new KafkaProducer<>(props);
         return super.initConfigurable();
     }
@@ -86,8 +103,8 @@ public class KafkaSink extends AbstractSupportShuffleSink {
             try {
                 kafkaProducer.close();
             } catch (Throwable t) {
-                if (LOG.isWarnEnabled()) {
-                    LOG.warn(t.getMessage(), t);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(t.getMessage(), t);
                 }
             }
         }
@@ -115,7 +132,7 @@ public class KafkaSink extends AbstractSupportShuffleSink {
             NewTopic newTopic = new NewTopic(topic, splitNum, (short) 1);
             adminClient.createTopics(Collections.singletonList(newTopic));
 
-            LOG.info("创建主题成功：" + topic);
+            LOGGER.info("创建主题成功：" + topic);
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
@@ -141,17 +158,17 @@ public class KafkaSink extends AbstractSupportShuffleSink {
     protected boolean putMessage2Mq(IMessage fieldName2Value) {
         try {
 
-            LOG.info(String.format("topic=%s, record=%s", topic, fieldName2Value.getMessageValue().toString()));
+         //   LOGGER.info(String.format("topic=%s, record=%s", topic, fieldName2Value.getMessageValue().toString()));
             ProducerRecord<String, String> records = new ProducerRecord<>(topic, fieldName2Value.getMessageValue().toString());
             kafkaProducer.send(records, (recordMetadata, e) -> {
                 if (e != null) {
-                    //LOG.error("send kafka message error!topic=" + topic, e);
+                    LOGGER.error("send kafka message error!topic=" + topic, e);
                 } else {
                     //LOG.info(String.format("send success topic=%s, record=%s", topic, jsonObject.toJSONString()));
                 }
             });
         } catch (Exception e) {
-            LOG.error("send message error:" + fieldName2Value.getMessageValue().toString(), e);
+            LOGGER.error("send message error:" + fieldName2Value.getMessageValue().toString(), e);
             return false;
         }
         return true;
@@ -159,10 +176,6 @@ public class KafkaSink extends AbstractSupportShuffleSink {
 
     @Override public int getSplitNum() {
         return getSplitList().size();
-    }
-
-    public static int getMaxPollRecords() {
-        return 100;
     }
 
     public boolean isStop() {
@@ -197,4 +210,27 @@ public class KafkaSink extends AbstractSupportShuffleSink {
         this.topic = topic;
     }
 
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getMaxRequestSize() {
+        return maxRequestSize;
+    }
+
+    public void setMaxRequestSize(String maxRequestSize) {
+        this.maxRequestSize = maxRequestSize;
+    }
 }

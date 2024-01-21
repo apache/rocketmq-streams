@@ -22,10 +22,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 /**
  * state ，save stata data
  */
-public interface IState<K,V>  {
+public interface IState<K, V> {
 
     /**
      * Returns the number of key-value mappings in this map.  If the
@@ -52,16 +53,15 @@ public interface IState<K,V>  {
      *
      * @param key key whose presence in this map is to be tested
      * @return <tt>true</tt> if this map contains a mapping for the specified
-     *         key
-     * @throws ClassCastException if the key is of an inappropriate type for
-     *         this map
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     * key
+     * @throws ClassCastException   if the key is of an inappropriate type for
+     *                              this map
+     *                              (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      * @throws NullPointerException if the specified key is null and this map
-     *         does not permit null keys
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     *                              does not permit null keys
+     *                              (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      */
     boolean containsKey(K key);
-
 
     /**
      * Returns the value to which the specified key is mapped,
@@ -80,22 +80,17 @@ public interface IState<K,V>  {
      *
      * @param key the key whose associated value is to be returned
      * @return the value to which the specified key is mapped, or
-     *         {@code null} if this map contains no mapping for the key
-     * @throws ClassCastException if the key is of an inappropriate type for
-     *         this map
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     * {@code null} if this map contains no mapping for the key
+     * @throws ClassCastException   if the key is of an inappropriate type for
+     *                              this map
+     *                              (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      * @throws NullPointerException if the specified key is null and this map
-     *         does not permit null keys
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     *                              does not permit null keys
+     *                              (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      */
     V get(K key);
 
-
-
-    Map<K,V> get(List<K> key);
-
-
-
+    Map<K, V> get(List<K> key);
 
     // Modification Operations
 
@@ -107,21 +102,21 @@ public interface IState<K,V>  {
      * if {@link #containsKey(Object) m.containsKey(k)} would return
      * <tt>true</tt>.)
      *
-     * @param key key with which the specified value is to be associated
+     * @param key   key with which the specified value is to be associated
      * @param value value to be associated with the specified key
      * @return the previous value associated with <tt>key</tt>, or
-     *         <tt>null</tt> if there was no mapping for <tt>key</tt>.
-     *         (A <tt>null</tt> return can also indicate that the map
-     *         previously associated <tt>null</tt> with <tt>key</tt>,
-     *         if the implementation supports <tt>null</tt> values.)
+     * <tt>null</tt> if there was no mapping for <tt>key</tt>.
+     * (A <tt>null</tt> return can also indicate that the map
+     * previously associated <tt>null</tt> with <tt>key</tt>,
+     * if the implementation supports <tt>null</tt> values.)
      * @throws UnsupportedOperationException if the <tt>put</tt> operation
-     *         is not supported by this map
-     * @throws ClassCastException if the class of the specified key or value
-     *         prevents it from being stored in this map
-     * @throws NullPointerException if the specified key or value is null
-     *         and this map does not permit null keys or values
-     * @throws IllegalArgumentException if some property of the specified key
-     *         or value prevents it from being stored in this map
+     *                                       is not supported by this map
+     * @throws ClassCastException            if the class of the specified key or value
+     *                                       prevents it from being stored in this map
+     * @throws NullPointerException          if the specified key or value is null
+     *                                       and this map does not permit null keys or values
+     * @throws IllegalArgumentException      if some property of the specified key
+     *                                       or value prevents it from being stored in this map
      */
     V put(K key, V value);
 
@@ -145,39 +140,38 @@ public interface IState<K,V>  {
      *
      * @param key key whose mapping is to be removed from the map
      * @return the previous value associated with <tt>key</tt>, or
-     *         <tt>null</tt> if there was no mapping for <tt>key</tt>.
+     * <tt>null</tt> if there was no mapping for <tt>key</tt>.
      * @throws UnsupportedOperationException if the <tt>remove</tt> operation
-     *         is not supported by this map
-     * @throws ClassCastException if the key is of an inappropriate type for
-     *         this map
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
-     * @throws NullPointerException if the specified key is null and this
-     *         map does not permit null keys
-     * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     *                                       is not supported by this map
+     * @throws ClassCastException            if the key is of an inappropriate type for
+     *                                       this map
+     *                                       (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
+     * @throws NullPointerException          if the specified key is null and this
+     *                                       map does not permit null keys
+     *                                       (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      */
     V remove(K key);
-
 
     // Bulk Operations
 
     /**
      * Copies all of the mappings from the specified map to this map
      * (optional operation).  The effect of this call is equivalent to that
-     * of calling {@link #put(Object,Object) put(k, v)} on this map once
+     * of calling {@link #put(Object, Object) put(k, v)} on this map once
      * for each mapping from key <tt>k</tt> to value <tt>v</tt> in the
      * specified map.  The behavior of this operation is undefined if the
      * specified map is modified while the operation is in progress.
      *
      * @param m mappings to be stored in this map
      * @throws UnsupportedOperationException if the <tt>putAll</tt> operation
-     *         is not supported by this map
-     * @throws ClassCastException if the class of a key or value in the
-     *         specified map prevents it from being stored in this map
-     * @throws NullPointerException if the specified map is null, or if
-     *         this map does not permit null keys or values, and the
-     *         specified map contains null keys or values
-     * @throws IllegalArgumentException if some property of a key or value in
-     *         the specified map prevents it from being stored in this map
+     *                                       is not supported by this map
+     * @throws ClassCastException            if the class of a key or value in the
+     *                                       specified map prevents it from being stored in this map
+     * @throws NullPointerException          if the specified map is null, or if
+     *                                       this map does not permit null keys or values, and the
+     *                                       specified map contains null keys or values
+     * @throws IllegalArgumentException      if some property of a key or value in
+     *                                       the specified map prevents it from being stored in this map
      */
     void putAll(Map<? extends K, ? extends V> m);
 
@@ -186,7 +180,7 @@ public interface IState<K,V>  {
      * The map will be empty after this call returns.
      *
      * @throws UnsupportedOperationException if the <tt>clear</tt> operation
-     *         is not supported by this map
+     *                                       is not supported by this map
      */
     void clear();
 
@@ -207,7 +201,6 @@ public interface IState<K,V>  {
      */
     Iterator<K> keyIterator();
 
-
     /**
      * Returns a {@link Set} view of the mappings contained in this map.
      * The set is backed by the map, so changes to the map are
@@ -226,14 +219,9 @@ public interface IState<K,V>  {
      */
     Iterator<Map.Entry<K, V>> entryIterator();
 
-
-
     void removeKeys(Collection<String> keys);
 
-
-
     void scanEntity(IEntryProcessor<K, V> processor);
-
 
     V putIfAbsent(K key, V value);
 }

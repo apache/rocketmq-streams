@@ -22,14 +22,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.context.IMessage;
@@ -41,36 +38,33 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ESSinkOnlyChannel extends AbstractSink {
-    private static final Log LOG = LogFactory.getLog(ESSinkOnlyChannel.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ESSinkOnlyChannel.class);
 
     private static final String PREFIX = "xxx";
-
+    protected String esMsgId;
     @ENVDependence
     private String host;
     @ENVDependence
     private String port;
-
     private boolean needAuth = false;
     @ENVDependence
     private String authUsername;
     @ENVDependence
     private String authPassword;
-    private int socketTimeOut = 5 * 60 * 1000;;
-
-    private int connectTimeOut = 5 * 60 * 1000;;
-
-    private int connectionRequestTimeOut =  5 * 60 * 1000;;
-
+    ;
+    private int socketTimeOut = 5 * 60 * 1000;
+    ;
+    private int connectTimeOut = 5 * 60 * 1000;
+    ;
+    private int connectionRequestTimeOut = 5 * 60 * 1000;
     private String schema = "http";
     @ENVDependence
     private String esIndex;
-
     private String esIndexType = "log";
-
-    protected String esMsgId;
-
     private transient RestHighLevelClient client;
 
     public ESSinkOnlyChannel() {
@@ -123,41 +117,38 @@ public class ESSinkOnlyChannel extends AbstractSink {
             try {
                 client = new RestHighLevelClient(builder);
             } catch (Exception e) {
-                setInitSuccess(false);
                 throw new RuntimeException("unknowhost exception ", e);
             }
         }
         return true;
     }
 
-
     private List<IndexRequest> generateRequests(List<IMessage> messages) {
         List<IndexRequest> requests = new ArrayList<>();
         messages.forEach(message -> {
             IndexRequest indexRequest = new IndexRequest(esIndex);
             Object object = message.getMessageValue();
-            if(object!=null&&!(object instanceof Map)){
-                String str=object.toString();
-                if(str.startsWith("{")&&str.endsWith("}")){
+            if (object != null && !(object instanceof Map)) {
+                String str = object.toString();
+                if (str.startsWith("{") && str.endsWith("}")) {
                     try {
-                        JSONObject jsonObject= JSON.parseObject(str);
-                        object=jsonObject;
-                    }catch (Exception e){
-                        LOG.warn("the sink msg is not json, convert error");
+                        JSONObject jsonObject = JSON.parseObject(str);
+                        object = jsonObject;
+                    } catch (Exception e) {
+                        LOGGER.warn("the sink msg is not json, convert error");
                     }
 
                 }
             }
             if (object instanceof Map) {
                 indexRequest.source((Map<String, ?>) object);
-                if(StringUtil.isNotEmpty(esMsgId)){
-                    Map map=(Map)object;
-                    Object msgId=map.get(esMsgId);
-                    if(msgId!=null){
+                if (StringUtil.isNotEmpty(esMsgId)) {
+                    Map map = (Map) object;
+                    Object msgId = map.get(esMsgId);
+                    if (msgId != null) {
                         indexRequest.id(msgId.toString());
                     }
                 }
-
 
             } else {
                 indexRequest.source(object.toString());
@@ -178,11 +169,11 @@ public class ESSinkOnlyChannel extends AbstractSink {
             response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
             e.printStackTrace();
-            LOG.error("batch insert message to es exception " + e);
+            LOGGER.error("batch insert message to es exception " + e);
             return false;
         }
 
-        LOG.info("esChannel sendLogs logSize=" + messages.size() + " response size"
+        LOGGER.info("esChannel sendLogs logSize=" + messages.size() + " response size"
             + response.getItems().length + " status " + response.status()
             + " cost=" + response.getTook() + " esIndex=" + esIndex + " host=" + host);
         return true;

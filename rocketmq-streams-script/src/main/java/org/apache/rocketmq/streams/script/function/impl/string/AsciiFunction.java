@@ -37,13 +37,13 @@ public class AsciiFunction {
      */
     @FunctionMethod(value = "ascii", comment = "返回字符串第一个字符的ascii码")
     public Integer ascii(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String str) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String str) {
         Integer result = null;
         String ori = FunctionUtils.getValueString(message, context, str);
         if (StringUtil.isEmpty(ori)) {
             return result;
         }
-        result = (int)ori.charAt(0);
+        result = (int) ori.charAt(0);
         return result;
     }
 

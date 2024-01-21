@@ -17,80 +17,40 @@
 package org.apache.rocketmq.streams.common.topology.stages;
 
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
+import org.apache.rocketmq.streams.common.configurable.annotation.ConfigurableReference;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
-import org.apache.rocketmq.streams.common.topology.model.IStageHandle;
-import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.common.utils.TraceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> implements IAfterConfigurableRefreshListener {
-    private static final Log LOG = LogFactory.getLog(ScriptChainStage.class);
-    protected String scriptName;
+public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChainStage<T> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScriptChainStage.class);
 
-    protected transient AbstractScript script;
+    @ConfigurableReference protected AbstractScript script;
 
     public ScriptChainStage() {
         setEntityName("operator");
     }
 
-    protected transient IStageHandle handle = new IStageHandle() {
-        @Override
-        protected IMessage doProcess(IMessage message, AbstractContext context) {
-            IStreamOperator<IMessage, List<IMessage>> receiver = (IStreamOperator) script;
-            List<IMessage> messages = receiver.doMessage(message, context);
-            TraceUtil.debug(message.getHeader().getTraceId(), "ScriptChainStage", script.getValue(),
-                message.getMessageBody().toJSONString());
-            if (messages == null || messages.size() == 0) {
-                context.breakExecute();
-                return message;
-            } else if (messages.size() == 1) {
-                context.setMessage(messages.get(0));
-            } else {
-                context.setSplitModel(true);
-                context.setSplitMessages(messages);
-            }
-            if (ComponentCreator.getPropertyBooleanValue("debug.message.parse")) {
-                LOG.info("message size is " + messages.size() + " split mode is " + context.isSplitModel());
-            }
+    @Override
+    protected IMessage handleMessage(IMessage message, AbstractContext context) {
+        IStreamOperator<IMessage, List<IMessage>> receiver = (IStreamOperator) script;
+        List<IMessage> messages = receiver.doMessage(message, context);
+        TraceUtil.debug(message.getHeader().getTraceId(), "ScriptChainStage", script.getValue(),
+            message.getMessageBody().toJSONString());
+        if (messages == null || messages.size() == 0) {
+            context.breakExecute();
             return message;
+        } else if (messages.size() == 1) {
+            context.setMessage(messages.get(0));
+        } else {
+            context.setSplitModel(true);
+            context.setSplitMessages(messages);
         }
-
-        @Override
-        public String getName() {
-            return ScriptChainStage.class.getName();
-        }
-    };
-
-    @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
-        if (StringUtil.isEmpty(scriptName)) {
-            return;
-        }
-        AbstractScript script = queryScript(configurableService, AbstractScript.TYPE, scriptName);
-        this.script = script;
-    }
-
-    @Override
-    protected IStageHandle selectHandle(T t, AbstractContext context) {
-        return handle;
-    }
-
-    protected AbstractScript queryScript(IConfigurableService configurableService, String type, String scriptName) {
-        return configurableService.queryConfigurable(type, scriptName);
-    }
-
-    public void setScript(AbstractScript script) {
-        this.script = script;
-        this.setNameSpace(script.getNameSpace());
-        this.setScriptName(script.getConfigureName());
-        this.setLabel(script.getConfigureName());
+        return message;
     }
 
     public List<String> getDependentScripts(String fieldName) {
@@ -112,11 +72,10 @@ public class ScriptChainStage<T extends IMessage> extends AbstractStatelessChain
         return script;
     }
 
-    public String getScriptName() {
-        return scriptName;
+    public void setScript(AbstractScript script) {
+        this.script = script;
+        this.setNameSpace(script.getNameSpace());
+        this.setLabel(script.getName());
     }
 
-    public void setScriptName(String scriptName) {
-        this.scriptName = scriptName;
-    }
 }

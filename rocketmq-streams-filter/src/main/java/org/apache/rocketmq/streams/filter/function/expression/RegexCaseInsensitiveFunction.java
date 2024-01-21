@@ -31,7 +31,7 @@ public class RegexCaseInsensitiveFunction extends RegexFunction {
     @FunctionMethod(value = "regexCaseInsensitive", alias = "~regex")
     @FunctionMethodAilas("正则匹配(忽略大小写)")
     public Boolean doExpressionFunction(IMessage message, AbstractContext context, Expression expression) {
-        return super.doExpressionFunction(message,context,expression);
+        return super.doExpressionFunction(message, context, expression);
     }
 
     @Override

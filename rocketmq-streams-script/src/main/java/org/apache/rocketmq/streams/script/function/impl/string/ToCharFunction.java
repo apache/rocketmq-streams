@@ -38,7 +38,7 @@ public class ToCharFunction {
      */
     @FunctionMethod(value = "tochar", alias = "tostring", comment = "转化为字符串")
     public String tochar(IMessage message, FunctionContext context,
-                         @FunctionParamter(comment = "带转换的字符串代表列名称或常量值", value = "string") String fieldName) {
+        @FunctionParamter(comment = "带转换的字符串代表列名称或常量值", value = "string") String fieldName) {
         if (StringUtil.isEmpty(fieldName.toString())) {
             return null;
         }
@@ -56,7 +56,7 @@ public class ToCharFunction {
      */
     @FunctionMethod(value = "tochar", alias = "tostring", comment = "转化为字符串")
     public String tochar(IMessage message, FunctionContext context,
-                         @FunctionParamter(comment = "带转换的字符串代表Boolean类型的常量值", value = "boolean") Boolean fieldName) {
+        @FunctionParamter(comment = "带转换的字符串代表Boolean类型的常量值", value = "boolean") Boolean fieldName) {
         if (StringUtil.isEmpty(fieldName.toString())) {
             return null;
         }
@@ -73,7 +73,7 @@ public class ToCharFunction {
      */
     @FunctionMethod(value = "tochar", alias = "tostring", comment = "转化为字符串")
     public String tochar(IMessage message, FunctionContext context,
-                         @FunctionParamter(comment = "带转换的字符串代表Long类型的常量值", value = "long") Long fieldName) {
+        @FunctionParamter(comment = "带转换的字符串代表Long类型的常量值", value = "long") Long fieldName) {
         if (StringUtil.isEmpty(fieldName.toString())) {
             return null;
         }
@@ -90,7 +90,7 @@ public class ToCharFunction {
      */
     @FunctionMethod(value = "tochar", alias = "tostring", comment = "转化为字符串")
     public String tochar(IMessage message, FunctionContext context,
-                         @FunctionParamter(comment = "带转换的字符串代表BigDecimal类型的常量值", value = "bigdecimal") BigDecimal fieldName) {
+        @FunctionParamter(comment = "带转换的字符串代表BigDecimal类型的常量值", value = "bigdecimal") BigDecimal fieldName) {
         if (StringUtil.isEmpty(fieldName.toString())) {
             return null;
         }
@@ -107,7 +107,7 @@ public class ToCharFunction {
      */
     @FunctionMethod(value = "tochar", alias = "tostring", comment = "转化为字符串")
     public String tochar(IMessage message, FunctionContext context,
-                         @FunctionParamter(comment = "带转换的字符串代表double类型的常量值", value = "double") Double fieldName) {
+        @FunctionParamter(comment = "带转换的字符串代表double类型的常量值", value = "double") Double fieldName) {
         if (StringUtil.isEmpty(fieldName.toString())) {
             return null;
         }

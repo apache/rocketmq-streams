@@ -17,15 +17,19 @@
 package org.apache.rocketmq.streams.common.utils;
 
 import com.alibaba.fastjson.JSONObject;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class MapKeyUtil {
 
     /**
      * 默认分隔符
      */
-    private static final String SIGN = ";";
+    public static final String SIGN = ";";
 
     public static String createKey(List<String> keyItems) {
         return createKey(SIGN, keyItems);
@@ -90,18 +94,18 @@ public class MapKeyUtil {
         return key.split(SIGN);
     }
 
-    public static String getFirst(String key){
+    public static String getFirst(String key) {
         String[] keys = splitKey(key);
         return keys[0];
     }
 
-    public static String getLast(String key){
+    public static String getLast(String key) {
         String[] keys = splitKey(key);
         assert keys.length >= 1 : "keys length must less than 1";
         return keys[keys.length - 1];
     }
 
-    public static String getByIndex(String key, int index){
+    public static String getByIndex(String key, int index) {
         String[] keys = splitKey(key);
         assert keys.length >= index : "index must less than length";
         return keys[index];
@@ -169,4 +173,17 @@ public class MapKeyUtil {
         return result;
     }
 
+    public static String createKeyFromObject(Object[] ps) {
+        List<String> values = new ArrayList<>();
+        for (Object object : ps) {
+            if (object == null) {
+                values.add("<null>");
+            } else if (object instanceof String) {
+                values.add(object.toString());
+            } else {
+                values.add(object.toString());
+            }
+        }
+        return createKey(values);
+    }
 }

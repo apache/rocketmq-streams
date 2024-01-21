@@ -109,7 +109,7 @@ public class JarUtil {
     }
 
     private static void writeFile(List<JarEntry> lists,
-                                  JarFile jarFile, Map<String, String> jarFilePath2Content) throws IOException {
+        JarFile jarFile, Map<String, String> jarFilePath2Content) throws IOException {
         FileOutputStream fos = new FileOutputStream(jarFile.getName(), true);
         JarOutputStream jos = new JarOutputStream(fos);
         try {

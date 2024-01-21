@@ -16,15 +16,21 @@
  */
 package org.apache.rocketmq.streams.script.service.udf;
 
+import com.aliyun.oss.OSSClient;
+import com.google.common.collect.Lists;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang3.time.DateUtils;
+import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.interfaces.IUDF;
 import org.apache.rocketmq.streams.common.topology.model.AbstractScript;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.MapKeyUtil;
@@ -33,17 +39,16 @@ import org.apache.rocketmq.streams.script.ScriptComponent;
 import org.apache.rocketmq.streams.script.function.model.FunctionConfigure;
 import org.apache.rocketmq.streams.script.function.model.FunctionType;
 import org.apache.rocketmq.streams.script.function.service.IFunctionService;
-import org.apache.rocketmq.streams.script.service.IScriptUDFInit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 主要是为了兼容外部的udf，或者把任意java的方法发布成函数
  */
-public class UDFScript extends AbstractScript implements IScriptUDFInit {
+public class UDFScript extends AbstractScript implements IUDF {
 
-    private transient ScriptComponent scriptComponent = ScriptComponent.getInstance();
-
-    private static final org.apache.commons.logging.Log LOG = LogFactory.getLog(UDFScript.class);
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(UDFScript.class);
+    private final transient ScriptComponent scriptComponent = ScriptComponent.getInstance();
     protected transient Object instance;
 
     protected String fullClassName;//类的全限定名
@@ -62,24 +67,40 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
      * init method对应的参数
      */
     protected transient Object[] initParameters = null;
-
+    protected String jarPath;
     /**
      * 是否完成初始化
      */
     private transient volatile boolean hasInit = false;
+
+    protected static File createFileSupportResourceFile(String fileUrl) {
+        if (fileUrl.startsWith(FileUtil.CLASS_PATH_FILE_HEADER)) {
+            fileUrl = fileUrl.replaceFirst(FileUtil.CLASS_PATH_FILE_HEADER, "");
+            return FileUtil.getResourceFile(fileUrl);
+        } else if (fileUrl.startsWith(FileUtil.LOCAL_FILE_HEADER)) {
+            fileUrl = fileUrl.replaceFirst(FileUtil.LOCAL_FILE_HEADER, "");
+            return new File(fileUrl);
+        } else {
+            return new File(fileUrl);
+        }
+    }
 
     /**
      * Configuable的初始化方法，由框架执行，执行时自动完成注册
      *
      * @return
      */
-    @Override
-    protected boolean initConfigurable() {
+    @Override protected boolean initConfigurable() {
+        loadUDFInner();
+
+        return true;
+    }
+
+    private void loadUDFInner() {
         registFunctionSerivce(scriptComponent.getFunctionService());
-        FunctionConfigure functionConfigure =
-            scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), this.initParameters);
+        FunctionConfigure functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(createInitMethodName(), this.initParameters);
         if (functionConfigure == null) {
-            return true;
+            return;
         }
         if (initParameters != null) {
             functionConfigure.execute(initParameters);
@@ -91,13 +112,14 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
             }
             functionConfigure.execute(paras);
         }
-        return true;
+    }
+
+    @Override public void loadUDF() {
+
     }
 
     /**
      * 完成函数的注册
-     *
-     * @param iFunctionService
      */
     protected void registFunctionSerivce(IFunctionService iFunctionService) {
         if (StringUtil.isEmpty(functionName) || hasInit) {
@@ -126,8 +148,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
         }
     }
 
-    @Override
-    public void destroy() {
+    @Override public void destroy() {
         super.destroy();
         FunctionConfigure functionConfigure = scriptComponent.getFunctionService().getFunctionConfigure(getCloseMethodName());
         if (functionConfigure == null) {
@@ -143,81 +164,68 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
 
     /**
      * 在加载时，初始化对象。应该支持，本地class load，从文件load和从远程下载。远程下载部分待测试
-     *
-     * @param iFunctionService
-     * @return
      */
     protected boolean initBeanClass(IFunctionService iFunctionService) {
 
         ClassLoader classLoader = this.getClass().getClassLoader();
-        Class clazz;
+        Class<?> clazz;
         try {
             clazz = classLoader.loadClass(fullClassName);
             instance = clazz.newInstance();
-            return true;
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-        try {
-            String jarUrl = getValue();
-//            if (StringUtil.isEmpty(jarUrl)) {
-//                clazz = classLoader.loadClass(fullClassName);
-//                instance = clazz.newInstance();
-//                return true;
-//            }
-            URL url = null;
-            if (isURL) {
-                url = new URL(getValue());
-            } else {
-                File file = null;
-                if (StringUtil.isNotEmpty(jarUrl)) {
-                    if (jarUrl.startsWith("/")) {
-                        file = new File(jarUrl);
-                    } else {
-                        file = downLoadFile(jarUrl);
-                    }
-                    if (file == null) {
-                        throw new RuntimeException("can not file jar file");
-                    }
-                    url = new URL("file", null, file.getCanonicalPath());
+            try {
+                String jarUrl = getValue();
+                URL url = null;
+                if (isURL) {
+                    url = new URL(getValue());
+                } else {
+                    if (StringUtil.isNotEmpty(jarUrl)) {
+                        if (jarUrl.startsWith("/")) {
+                            File file = new File(jarUrl);
+                            url = new URL("file", null, file.getCanonicalPath());
+                        } else if (jarUrl.startsWith("http://") || jarUrl.startsWith("https://")) {
+                            url = new URL(jarUrl);
+                        } else if (jarUrl.startsWith("oss://")) {
+                            String ossUrl = jarUrl.substring(6); //url以oss://开头
+                            String accessKeyId = configuration.getProperty(ComponentCreator.UDF_JAR_OSS_ACCESS_ID);
+                            String accesskeySecurity = configuration.getProperty(ComponentCreator.UDF_JAR_OSS_ACCESS_KEY);
 
+                            String[] ossInfo = ossUrl.split("/");
+                            String endPoint = ossInfo.length > 0 ? ossInfo[0] : "";
+                            String bucketName = ossInfo.length > 1 ? ossInfo[1] : "";
+                            List<String> objectNames = ossInfo.length > 2 ? Arrays.asList(ossInfo[2].split(",")) : Lists.newArrayList();
+
+                            OSSClient ossClient = new OSSClient(endPoint, accessKeyId, accesskeySecurity);
+                            if (objectNames.size() > 0) {
+                                url = ossClient.generatePresignedUrl(bucketName, objectNames.get(0), DateUtils.addMinutes(new Date(), 30));
+                            }
+                        } else {
+                            File file = downLoadFile(jarUrl);
+                            url = new URL("file", null, file.getCanonicalPath());
+                        }
+                    }
                 }
+
+                URL[] urls = new URL[] {url};
+                classLoader = new URLClassLoader(urls, classLoader);
+
+                clazz = classLoader.loadClass(fullClassName);
+                instance = clazz.newInstance();
+            } catch (Exception ex) {
+                LOGGER.error("加载异常," + ex.getMessage(), ex);
+                return false;
             }
-
-            URL[] urls = new URL[] {url};
-            URLClassLoader urlClassLoader = new URLClassLoader(urls, classLoader);
-            classLoader = urlClassLoader;
-
-            clazz = classLoader.loadClass(fullClassName);
-            instance = clazz.newInstance();
-
-        } catch (Exception e) {
-            LOG.error("加载异常," + e.getMessage(), e);
-            return false;
         }
         return true;
     }
 
     protected File downLoadFile(String fileUrl) {
         if (fileUrl.startsWith(FileUtil.LOCAL_FILE_HEADER)) {
-            File file = createFileSupportResourceFile(fileUrl);
-            return file;
+            return createFileSupportResourceFile(fileUrl);
         } else if (fileUrl.startsWith(FileUtil.CLASS_PATH_FILE_HEADER)) {
             return createFileSupportResourceFile(fileUrl);
         }
         return null;
-    }
-
-    protected static File createFileSupportResourceFile(String fileUrl) {
-        if (fileUrl.startsWith(FileUtil.CLASS_PATH_FILE_HEADER)) {
-            fileUrl = fileUrl.replaceFirst(FileUtil.CLASS_PATH_FILE_HEADER, "");
-            return FileUtil.getResourceFile(fileUrl);
-        } else if (fileUrl.startsWith(FileUtil.LOCAL_FILE_HEADER)) {
-            fileUrl = fileUrl.replaceFirst(FileUtil.LOCAL_FILE_HEADER, "");
-            return new File(fileUrl);
-        } else {
-            return new File(fileUrl);
-        }
     }
 
     protected String createInitMethodName() {
@@ -244,8 +252,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
         this.methodName = methodName;
     }
 
-    @Override
-    public String getInitMethodName() {
+    @Override public String getInitMethodName() {
         return initMethodName;
     }
 
@@ -257,8 +264,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
         return FunctionType.UDF;
     }
 
-    @Override
-    public Object getInstance() {
+    @Override public Object getInstance() {
         return instance;
     }
 
@@ -270,6 +276,10 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
         return functionName;
     }
 
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
+    }
+
     public boolean isURL() {
         return isURL;
     }
@@ -278,12 +288,7 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
         isURL = URL;
     }
 
-    public void setFunctionName(String functionName) {
-        this.functionName = functionName;
-    }
-
-    @Override
-    public Object doMessage(IMessage channelMessage, AbstractContext context) {
+    @Override public Object doMessage(IMessage channelMessage, AbstractContext context) {
         return instance;
     }
 
@@ -295,13 +300,19 @@ public class UDFScript extends AbstractScript implements IScriptUDFInit {
         this.closeMethodName = closeMethodName;
     }
 
-    @Override
-    public List<String> getScriptsByDependentField(String fieldName) {
+    @Override public List<String> getScriptsByDependentField(String fieldName) {
         throw new RuntimeException("can not support this method:getScriptsByDependentField");
     }
 
-    @Override
-    public Map<String, List<String>> getDependentFields() {
+    @Override public Map<String, List<String>> getDependentFields() {
         return null;
+    }
+
+    public String getJarPath() {
+        return jarPath;
+    }
+
+    public void setJarPath(String jarPath) {
+        this.jarPath = jarPath;
     }
 }

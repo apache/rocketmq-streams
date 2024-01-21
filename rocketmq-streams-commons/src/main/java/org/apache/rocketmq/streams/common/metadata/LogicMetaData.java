@@ -22,14 +22,13 @@ import java.util.Set;
 /**
  * @description logic table meta
  */
-public class LogicMetaData extends MetaData{
+public class LogicMetaData extends MetaData {
 
     String tableNamePattern; // table
 
     Set<String> tableNames; // table_20210731000000
 
-
-    public LogicMetaData(){
+    public LogicMetaData() {
         tableNames = new HashSet<>();
     }
 
@@ -41,17 +40,16 @@ public class LogicMetaData extends MetaData{
         this.tableNamePattern = tableNamePattern;
     }
 
-
-    public LogicMetaData addTableName(String tableName){
+    public LogicMetaData addTableName(String tableName) {
         tableNames.add(tableName);
         return this;
     }
 
-    public boolean isContainsTable(String tableName){
+    public boolean isContainsTable(String tableName) {
         return tableNames.contains(tableName);
     }
 
-    public boolean removeTable(String tableName){
+    public boolean removeTable(String tableName) {
         return tableNames.remove(tableName);
     }
 }

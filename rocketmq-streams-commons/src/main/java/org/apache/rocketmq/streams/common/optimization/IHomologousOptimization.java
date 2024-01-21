@@ -17,14 +17,18 @@
 package org.apache.rocketmq.streams.common.optimization;
 
 import java.util.List;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
-import org.apache.rocketmq.streams.common.context.IMessage;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.metric.NotFireReason;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
+import org.apache.rocketmq.streams.common.topology.stages.FilterChainStage;
 
 public interface IHomologousOptimization {
 
-    void optimizate(List<ChainPipeline<?>> pipelineList, int cacheSize, int preFingerprintCacheSize);
+    void optimizate(List<ChainPipeline<?>> pipelineList);
 
+    IHomologousCalculate createHomologousCalculate();
 
-    void calculate(IMessage message, AbstractContext context);
+    void setPeFingerprintForPipeline(ChainPipeline pipeline);
+
+    NotFireReason analysisNotFireReason(FilterChainStage stage, String fieldValue, List<String> notFireExpressionMonitor);
+
 }

@@ -24,6 +24,8 @@ import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.ServiceName;
+import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
+import org.apache.rocketmq.streams.db.source.DBSource;
 
 @AutoService(IChannelBuilder.class)
 @ServiceName(value = DBSinkBuilder.TYPE, aliasName = "db")
@@ -32,15 +34,8 @@ public class DBSinkBuilder implements IChannelBuilder {
 
     @Override
     public ISink createSink(String namespace, String name, Properties properties, MetaData metaData) {
-        DBSink sink = new DBSink();
-        JSONObject proJson = createFormatProperty(properties);
-        sink.setUrl(proJson.getString("url"));
-        sink.setUserName(proJson.getString("userName"));
-        sink.setPassword(proJson.getString("password"));
-        sink.setTableName(proJson.getString("tableName"));
-        sink.setSqlMode(proJson.getString("sqlMode"));
-        sink.setMetaData(metaData);
-        return sink;
+       return (ISink) ConfigurableUtil.create(DBSink.class.getName(), namespace, name, createFormatProperty(properties), null);
+
     }
 
     /**
@@ -66,7 +61,7 @@ public class DBSinkBuilder implements IChannelBuilder {
 
     @Override
     public ISource createSource(String namespace, String name, Properties properties, MetaData metaData) {
-        throw new RuntimeException("can not support this method");
+        return (ISource) ConfigurableUtil.create(DBSource.class.getName(), namespace, name, createFormatProperty(properties), null);
     }
 
     @Override

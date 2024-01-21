@@ -13,7 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package org.apache.rocketmq.streams.window.storage;
+ */
+package org.apache.rocketmq.streams.window.storage;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -23,9 +24,9 @@ import org.apache.rocketmq.streams.db.driver.batchloader.IRowOperator;
 
 public interface IStorage<T> {
 
-
     /**
      * 支持单个key value的存储
+     *
      * @param key
      * @param value
      */
@@ -38,18 +39,21 @@ public interface IStorage<T> {
     T get(Class<T> clazz, IKeyGenerator keyGenerator, String key);
 
     //获取多个key的值
-    Map<String,T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, String... keyValues);
+    Map<String, T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, String... keyValues);
+
     //获取多个key的值
-    Map<String,T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, List<String> keys);
+    Map<String, T> mutilGet(Class<T> clazz, IKeyGenerator keyGenerator, List<String> keys);
 
     /**
      * remove keys
+     *
      * @param keys
      */
     void removeKeys(IKeyGenerator keyGenerator, Collection<String> keys);
 
     /**
      * remove keys by prefix
+     *
      * @param keyPrefix
      */
     void removeKeyPrefix(IKeyGenerator keyGenerator, String keyPrefix);
@@ -59,19 +63,14 @@ public interface IStorage<T> {
      */
     Iterator<T> iterateByPrefix(IKeyGenerator keyGenerator, String keyPrefix, Class<T> clazz);
 
-
     T putIfAbsent(T t, Class<T> clazz);
-
 
     int count(IKeyGenerator keyGenerator, String key);
 
     int incrementAndGet(IKeyGenerator keyGenerator, String key);
 
-
     Iterator<T> queryByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator, String keyPrefix, Object startIndexValue,
         Object endIndexValue, Class<T> clazz);
-
-
 
     void loadByPrefixBetweenOrderByValue(IKeyGenerator keyGenerator, String keyPrefix, Object startIndexValue,
         Object endIndexValue,

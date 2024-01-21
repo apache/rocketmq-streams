@@ -30,15 +30,15 @@ import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
  */
 public class CycleSchedule implements Serializable {
 
-    private static final long serialVersionUID = -5151597286296228754L;
     public static final int INIT_CYCLE_VERSION = 0;
+    private static final long serialVersionUID = -5151597286296228754L;
     private static CycleSchedule INSTANCE;
+    //历史数据读取时使用,表示比起当前相差多少个调度周期
+    final long cycleDiff;
     CyclePeriod cyclePeriod;
     AtomicLong cycleId = new AtomicLong(0);
     String expression;
     boolean isInit;
-    //历史数据读取时使用,表示比起当前相差多少个调度周期
-    final long cycleDiff;
 
     public CycleSchedule(String expr, Date date) throws ParseException {
         Date local = subMs(date);
@@ -53,6 +53,21 @@ public class CycleSchedule implements Serializable {
         } else {
             cycleDiff = 0;
         }
+    }
+
+    public static CycleSchedule getInstance(String expr, Date date) {
+        if (INSTANCE == null) {
+            synchronized (CycleSchedule.class) {
+                if (INSTANCE == null) {
+                    try {
+                        INSTANCE = new CycleSchedule(expr, date);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return INSTANCE;
     }
 
     /**
@@ -144,21 +159,6 @@ public class CycleSchedule implements Serializable {
         return cycleDiff;
     }
 
-    public static CycleSchedule getInstance(String expr, Date date) {
-        if (INSTANCE == null) {
-            synchronized (CycleSchedule.class) {
-                if (INSTANCE == null) {
-                    try {
-                        INSTANCE = new CycleSchedule(expr, date);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-        return INSTANCE;
-    }
-
     public static class Cycle extends BasedConfigurable implements Serializable {
 
         private static final long serialVersionUID = 4842560538716388622L;
@@ -169,15 +169,15 @@ public class CycleSchedule implements Serializable {
         String curDateStr;
         long cycleDiff;
 
+        public Cycle() {
+        }
+
         public Integer getCycleCount() {
             return cycleCount;
         }
 
         public void setCycleCount(Integer cycleCount) {
             this.cycleCount = cycleCount;
-        }
-
-        public Cycle() {
         }
 
         public Long getCycleId() {

@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.client.transform.window.Time;
-import org.apache.rocketmq.streams.common.model.NameCreator;
 import org.apache.rocketmq.streams.common.model.NameCreatorContext;
-import org.apache.rocketmq.streams.common.topology.ChainStage;
 import org.apache.rocketmq.streams.common.topology.builder.PipelineBuilder;
+import org.apache.rocketmq.streams.common.topology.model.AbstractChainStage;
+import org.apache.rocketmq.streams.common.topology.stages.DimChainStage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.apache.rocketmq.streams.dim.model.AbstractDim;
 import org.apache.rocketmq.streams.filter.builder.ExpressionBuilder;
@@ -48,29 +48,27 @@ public class JoinStream {
     protected JoinType joinType;//连接类型
 
     //用于返回DataStream流
-    protected PipelineBuilder pipelineBuilder;
+    protected PipelineBuilder rootPipelineBuilder;
     protected Set<PipelineBuilder> otherPipelineBuilders;
-    protected ChainStage<?> currentChainStage;
+    protected AbstractChainStage<?> currentChainStage;
 
     /**
      * 双流join 场景
      *
-     * @param joinWindow
-     * @param pipelineBuilder
-     * @param pipelineBuilders
-     * @param currentChainStage
+     * @param joinWindow            join窗口
+     * @param rootPipelineBuilder   rootPipelineBuilder
+     * @param otherPipelineBuilders otherPipelineBuilders
+     * @param currentChainStage     currentChainStage
      */
-    public JoinStream(JoinWindow joinWindow, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage) {
-        this.pipelineBuilder = pipelineBuilder;
-        this.otherPipelineBuilders = pipelineBuilders;
+    public JoinStream(JoinWindow joinWindow, PipelineBuilder rootPipelineBuilder, Set<PipelineBuilder> otherPipelineBuilders, AbstractChainStage<?> currentChainStage) {
+        this.rootPipelineBuilder = rootPipelineBuilder;
+        this.otherPipelineBuilders = otherPipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.joinWindow = joinWindow;
     }
 
-    public JoinStream(JoinWindow joinWindow, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage, JoinType joinType) {
-        this.pipelineBuilder = pipelineBuilder;
+    public JoinStream(JoinWindow joinWindow, PipelineBuilder rootPipelineBuilder, Set<PipelineBuilder> pipelineBuilders, AbstractChainStage<?> currentChainStage, JoinType joinType) {
+        this.rootPipelineBuilder = rootPipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.joinWindow = joinWindow;
@@ -80,36 +78,46 @@ public class JoinStream {
     /**
      * 维表join 场景
      *
-     * @param pipelineBuilder
-     * @param pipelineBuilders
-     * @param currentChainStage
+     * @param rootPipelineBuilder rootPipelineBuilder
+     * @param pipelineBuilders    pipelineBuilders
+     * @param currentChainStage   currentChainStage
      */
-    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage) {
+    public JoinStream(AbstractDim dim, PipelineBuilder rootPipelineBuilder, Set<PipelineBuilder> pipelineBuilders, AbstractChainStage<?> currentChainStage) {
         this.dim = dim;
-        this.pipelineBuilder = pipelineBuilder;
+        this.rootPipelineBuilder = rootPipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.isDimJoin = true;
     }
 
-    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage, Boolean isDimJoin) {
+    public JoinStream(AbstractDim dim, PipelineBuilder rootPipelineBuilder, Set<PipelineBuilder> pipelineBuilders, AbstractChainStage<?> currentChainStage, Boolean isDimJoin) {
         this.dim = dim;
-        this.pipelineBuilder = pipelineBuilder;
+        this.rootPipelineBuilder = rootPipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.isDimJoin = isDimJoin;
     }
 
-    public JoinStream(AbstractDim dim, PipelineBuilder pipelineBuilder, Set<PipelineBuilder> pipelineBuilders,
-        ChainStage<?> currentChainStage, Boolean isDimJoin, JoinType joinType) {
-        this.pipelineBuilder = pipelineBuilder;
+    public JoinStream(AbstractDim dim, PipelineBuilder rootPipelineBuilder, Set<PipelineBuilder> pipelineBuilders, AbstractChainStage<?> currentChainStage, Boolean isDimJoin, JoinType joinType) {
+        this.rootPipelineBuilder = rootPipelineBuilder;
         this.otherPipelineBuilders = pipelineBuilders;
         this.currentChainStage = currentChainStage;
         this.dim = dim;
         this.isDimJoin = isDimJoin;
         this.joinType = joinType;
+    }
+
+    public static String createName(String functionName, String... names) {
+        if (names == null || names.length == 0) {
+            return NameCreatorContext.get().createName(INNER_VAR_NAME_PREFIX, functionName);
+        }
+        String[] values = new String[names.length + 2];
+        values[0] = INNER_VAR_NAME_PREFIX;
+        values[1] = functionName;
+        for (int i = 2; i < values.length; i++) {
+            values[i] = names[i - 2];
+        }
+        return NameCreatorContext.get().createName(values);
     }
 
     /**
@@ -183,16 +191,31 @@ public class JoinStream {
             });
         }
         String script = null;
+
+        boolean isInnerJoin = false;
+        boolean isLeftJoin = false;
+        String splitFieldName = null;
         if (JoinType.INNER_JOIN == joinType) {
             String data = createName("inner_join");
-            script = data + "=inner_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "', '' ,''," + ");splitArray('" + data + "');rm(" + data + ");";
+            splitFieldName = data;
+            script = "splitArray('" + data + "');rm(" + data + ");";
         } else if ((JoinType.LEFT_JOIN == joinType)) {
             String data = createName("left_join");
-            script = data + "=left_join('" + dim.getNameSpace() + "','" + dim.getConfigureName() + "','" + onCondition + "', '' ,''," + ");if(!null(" + data + ")){splitArray('" + data + "');};rm(" + data + ");";
+            splitFieldName = data;
+            script = "if(!null(" + data + ")){splitArray('" + data + "');};rm(" + data + ");";
         }
-        ChainStage<?> stage = this.pipelineBuilder.createStage(new ScriptOperator(script));
-        this.pipelineBuilder.setTopologyStages(currentChainStage, stage);
-        return new DataStream(pipelineBuilder, otherPipelineBuilders, stage);
+        DimChainStage dimChainStage = new DimChainStage();
+        ScriptOperator scriptOperator = new ScriptOperator(script);
+        dimChainStage.setScript(scriptOperator);
+        dimChainStage.setDim(dim);
+        dimChainStage.setExpressionStr(onCondition);
+        dimChainStage.setInnerJoin(isInnerJoin);
+        dimChainStage.setLeftJoin(isLeftJoin);
+        dimChainStage.setSplitFieldName(splitFieldName);
+        this.rootPipelineBuilder.addConfigurables(scriptOperator);
+        this.rootPipelineBuilder.addChainStage(dimChainStage);
+        this.rootPipelineBuilder.setTopologyStages(currentChainStage, dimChainStage);
+        return new DataStream(rootPipelineBuilder, otherPipelineBuilders, dimChainStage);
     }
 
     /**
@@ -209,25 +232,16 @@ public class JoinStream {
 
         AtomicBoolean hasNoEqualsExpression = new AtomicBoolean(false);//是否有非等值的join 条件
         Map<String, String> left2Right = createJoinFieldsFromCondition(onCondition, hasNoEqualsExpression);//把等值条件的左右字段映射成map
-        List<String> leftList = new ArrayList<>();
-        List<String> rightList = new ArrayList<>();
-        leftList.addAll(left2Right.keySet());
-        rightList.addAll(left2Right.values());
+        List<String> leftList = new ArrayList<>(left2Right.keySet());
+        List<String> rightList = new ArrayList<>(left2Right.values());
         joinWindow.setLeftJoinFieldNames(leftList);
         joinWindow.setRightJoinFieldNames(rightList);
         //如果有非等值，则把这个条件设置进去
         if (hasNoEqualsExpression.get()) {
             joinWindow.setExpression(onCondition);
         }
-        return new DataStream(pipelineBuilder, otherPipelineBuilders, currentChainStage);
-    }
-
-    /**
-     * 支持的连接类型，目前支持inner join和left join
-     */
-    public enum JoinType {
-        INNER_JOIN,
-        LEFT_JOIN
+        joinWindow.setRightDependentTableName("right");
+        return new DataStream(rootPipelineBuilder, otherPipelineBuilders, currentChainStage);
     }
 
     /**
@@ -254,16 +268,11 @@ public class JoinStream {
         return left2Right;
     }
 
-    public static String createName(String functionName, String... names) {
-        if (names == null || names.length == 0) {
-            return NameCreatorContext.get().createNewName(INNER_VAR_NAME_PREFIX, functionName);
-        }
-        String[] values = new String[names.length + 2];
-        values[0] = INNER_VAR_NAME_PREFIX;
-        values[1] = functionName;
-        for (int i = 2; i < values.length; i++) {
-            values[i] = names[i - 2];
-        }
-        return NameCreatorContext.get().createNewName(values);
+    /**
+     * 支持的连接类型，目前支持inner join和left join
+     */
+    public enum JoinType {
+        INNER_JOIN,
+        LEFT_JOIN
     }
 }

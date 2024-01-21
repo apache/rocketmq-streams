@@ -62,7 +62,7 @@ public class LoggerOutputChannel extends AbstractSink {
         for (IMessage msg : messages) {
             String result = msg.getMessageValue().toString();
             if (JSONObject.class.isInstance(msg.getMessageValue())) {
-                result = JsonableUtil.formatJson((JSONObject)msg.getMessageValue());
+                result = JsonableUtil.formatJson((JSONObject) msg.getMessageValue());
             }
             if (isFirst) {
                 isFirst = false;

@@ -48,6 +48,11 @@ public class MockLeaseImpl implements ILeaseService {
     }
 
     @Override
+    public void stopLeaseTask(String name) {
+
+    }
+
+    @Override
     public boolean lock(String name, String lockerName) {
         return true;
     }

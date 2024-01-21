@@ -18,35 +18,43 @@ package org.apache.rocketmq.streams.common.optimization;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 可以用sql中的like表示正则，系统负责完成转化
  */
 public class LikeRegex {
-    private static final Log LOG = LogFactory.getLog(LikeRegex.class);
     public static final String SPECAIL_WORD = "%";
+    private static final Logger LOG = LoggerFactory.getLogger(LikeRegex.class);
     public static String[] regexSpecialWords = {"\\(", "\\)", "\\*", "\\+", "\\.", "\\[", "\\]", "\\?", "\\^", "\\{", "\\}", "\\|"};
     //public static String[] regexSpecialWords = {"\\\\","\\$", "\\(", "\\)", "\\*", "\\+", "\\.", "\\[", "\\]", "\\?", "\\^", "\\{", "\\}", "\\|"};
 
     protected String likeStr;
     protected boolean isStartFlag = true;
     protected boolean isEndFlag = true;
-    protected boolean hasUnderline=false;
+    protected boolean hasUnderline = false;
     protected List<String> quickMatchWord = new ArrayList<>();
-    protected List<Integer> specailWordIndex=new ArrayList<>();
+    protected List<Integer> specailWordIndex = new ArrayList<>();
 
     public LikeRegex(String likeStr) {
         this.likeStr = likeStr;
         parse();
     }
 
+    public static void main(String[] args) {
+        String content = "xCurrentVersion\\Windows\\load";
+        String likeStr = "$Current$ersionWindows?\\load$";
+        LikeRegex likeRegex = new LikeRegex(likeStr);
+
+        System.out.println(likeRegex.createRegex());
+    }
+
     public void parse() {
         String tmp = likeStr;
-        if(tmp.indexOf("_")!=-1){
-            hasUnderline=true;
+        if (tmp.indexOf("_") != -1) {
+            hasUnderline = true;
         }
         if (tmp == null) {
             return;
@@ -74,9 +82,9 @@ public class LikeRegex {
         if (content == null) {
             return false;
         }
-        if(hasUnderline){
-            String regex=createRegex();
-            return StringUtil.matchRegex(content,regex);
+        if (hasUnderline) {
+            String regex = createRegex();
+            return StringUtil.matchRegex(content, regex);
         }
         if (quickMatchWord == null || quickMatchWord.size() == 0) {
             LOG.warn("like may be parse error, words is empty " + likeStr);
@@ -102,50 +110,50 @@ public class LikeRegex {
         return true;
     }
 
-    public String createRegex(){
-        StringBuilder regex=new StringBuilder();
+    public String createRegex() {
+        StringBuilder regex = new StringBuilder();
 
-        boolean isFirst=true;
-        for(String word:this.quickMatchWord){
-            if(isFirst){
-                isFirst=false;
-            }else {
+        boolean isFirst = true;
+        for (String word : this.quickMatchWord) {
+            if (isFirst) {
+                isFirst = false;
+            } else {
                 regex.append(".*");
             }
-            String subRegex=word;
+            String subRegex = word;
 
-            for(String regexSpecialWord:regexSpecialWords){
+            for (String regexSpecialWord : regexSpecialWords) {
                 try {
-                    subRegex = subRegex.replaceAll(regexSpecialWord,"\\"+regexSpecialWord);
+                    subRegex = subRegex.replaceAll(regexSpecialWord, "\\" + regexSpecialWord);
 
-                }catch (Exception e){
-                    LOG.error(regexSpecialWord+"  "+subRegex+"\r\n"+  e.getMessage(),e);
+                } catch (Exception e) {
+                    LOG.error(regexSpecialWord + "  " + subRegex + "\r\n" + e.getMessage(), e);
                     throw new RuntimeException(e);
                 }
             }
 
-            if (subRegex.indexOf("$")!=-1){
-                String newSubRegex="";
-                for(int i=0;i<subRegex.length();i++){
-                    String regexWord=subRegex.substring(i,1+i);
-                    if("$".equals(regexWord)){
-                        newSubRegex=newSubRegex+"\\$";
-                    }else {
-                        newSubRegex=newSubRegex+regexWord;
+            if (subRegex.indexOf("$") != -1) {
+                String newSubRegex = "";
+                for (int i = 0; i < subRegex.length(); i++) {
+                    String regexWord = subRegex.substring(i, 1 + i);
+                    if ("$".equals(regexWord)) {
+                        newSubRegex = newSubRegex + "\\$";
+                    } else {
+                        newSubRegex = newSubRegex + regexWord;
                     }
                 }
-                subRegex=newSubRegex;
+                subRegex = newSubRegex;
             }
             regex.append(subRegex);
         }
 
-        String regexStr=regex.toString();
-        regexStr=regexStr.replaceAll("_",".");
-        if(!regexStr.startsWith(".")&&isStartFlag){
-            regexStr="^"+regexStr;
+        String regexStr = regex.toString();
+        regexStr = regexStr.replaceAll("_", ".");
+        if (!regexStr.startsWith(".") && isStartFlag) {
+            regexStr = "^" + regexStr;
         }
-        if(isEndFlag){
-            regexStr=regexStr+"$";
+        if (isEndFlag) {
+            regexStr = regexStr + "$";
         }
         return regexStr;
     }
@@ -187,8 +195,8 @@ public class LikeRegex {
     }
 
     public int indexOf(char[] source, int sourceOffset, int sourceCount,
-                       char[] target, int targetOffset, int targetCount,
-                       int fromIndex) {
+        char[] target, int targetOffset, int targetCount,
+        int fromIndex) {
         if (fromIndex >= sourceCount) {
             return (targetCount == 0 ? sourceCount : -1);
         }
@@ -205,7 +213,9 @@ public class LikeRegex {
         for (int i = sourceOffset + fromIndex; i <= max; i++) {
             /* Look for first character. */
             if (source[i] != first && first != '_') {
-                while (++i <= max && source[i] != first && first != '_') { ; }
+                while (++i <= max && source[i] != first && first != '_') {
+                    ;
+                }
             }
 
             /* Found first character, now look at the rest of v2 */
@@ -213,7 +223,9 @@ public class LikeRegex {
                 int j = i + 1;
                 int end = j + targetCount - 1;
                 for (int k = targetOffset + 1; j < end && (source[j]
-                    == target[k] || target[k] == '_'); j++, k++) { ; }
+                    == target[k] || target[k] == '_'); j++, k++) {
+                    ;
+                }
 
                 if (j == end) {
                     /* Found whole string. */
@@ -222,13 +234,5 @@ public class LikeRegex {
             }
         }
         return -1;
-    }
-
-    public static void main(String[] args) {
-        String content = "xCurrentVersion\\Windows\\load";
-        String likeStr = "$Current$ersionWindows?\\load$";
-        LikeRegex likeRegex = new LikeRegex(likeStr);
-
-        System.out.println(likeRegex.createRegex());
     }
 }

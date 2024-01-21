@@ -18,23 +18,15 @@ package org.apache.rocketmq.streams.common.regex;
 
 import com.google.re2j.Pattern;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
 import org.apache.rocketmq.streams.common.optimization.RegexEngine;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 public class RegexTest {
 
-    @Before
-    public void init() {
-        ComponentCreator.getProperties().setProperty(ConfigureFileKey.DIPPER_REGEX_ENGINE, "re2j");
-    }
-
     @Test
     public void testRe2Basic() {
-        RegexEngine<Integer> regexEngine = new RegexEngine<>();
+        RegexEngine<Integer> regexEngine = new RegexEngine<>(true);
         regexEngine.addRegex("python", 0);
         regexEngine.addRegex("\\.dll", 1);
         String message = "python test.py";

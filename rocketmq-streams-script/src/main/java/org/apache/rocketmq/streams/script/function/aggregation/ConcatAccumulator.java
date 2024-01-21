@@ -32,13 +32,6 @@ public class ConcatAccumulator implements IAccumulator<String, ConcatAccumulator
 
     private static final int USE_DEFINED_SEPARATOR = 2;
 
-    public static class ConcatAccum {
-
-        public String separator = ",";
-
-        public List<String> values = new ArrayList<>();
-    }
-
     @Override
     public ConcatAccum createAccumulator() {
         return new ConcatAccum();
@@ -63,10 +56,10 @@ public class ConcatAccumulator implements IAccumulator<String, ConcatAccumulator
         }
         try {
             if (USE_DEFAULT_SEPARATOR == parameters.length) {
-                accumulator.values.add((String)parameters[0]);
+                accumulator.values.add((String) parameters[0]);
             } else if (USE_DEFINED_SEPARATOR == parameters.length) {
-                accumulator.separator = (String)parameters[0];
-                accumulator.values.add((String)parameters[1]);
+                accumulator.separator = (String) parameters[0];
+                accumulator.values.add((String) parameters[1]);
             }
         } catch (Exception e) {
             throw e;
@@ -90,6 +83,13 @@ public class ConcatAccumulator implements IAccumulator<String, ConcatAccumulator
     @Override
     public void retract(ConcatAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class ConcatAccum {
+
+        public String separator = ",";
+
+        public List<String> values = new ArrayList<>();
     }
 
 }

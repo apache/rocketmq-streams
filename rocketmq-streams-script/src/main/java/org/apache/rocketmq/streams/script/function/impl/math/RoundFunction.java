@@ -37,8 +37,8 @@ public class RoundFunction {
      */
     @FunctionMethod(value = "round", comment = "四舍五入到指定小数点位置")
     public Double round(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "代表要求值的列名或常量") String base,
-                        @FunctionParamter(value = "string", comment = "四舍五入计算到小数点后的位置") String x) {
+        @FunctionParamter(value = "string", comment = "代表要求值的列名或常量") String base,
+        @FunctionParamter(value = "string", comment = "四舍五入计算到小数点后的位置") String x) {
         Double result = null;
         Double baseTem = Double.parseDouble(FunctionUtils.getValueString(message, context, base));
         Integer xTem = Integer.parseInt(FunctionUtils.getValueString(message, context, x));
@@ -60,8 +60,8 @@ public class RoundFunction {
      */
     @FunctionMethod(value = "round", comment = "四舍五入到指定小数点位置")
     public Double round(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "Double", comment = "代表要求值的常量") Double base,
-                        @FunctionParamter(value = "Double", comment = "四舍五入计算到小数点后的位置") Double x) {
+        @FunctionParamter(value = "Double", comment = "代表要求值的常量") Double base,
+        @FunctionParamter(value = "Double", comment = "四舍五入计算到小数点后的位置") Double x) {
         Double result = null;
         if (base == null || x == null) {
             return result;
@@ -81,8 +81,8 @@ public class RoundFunction {
      */
     @FunctionMethod(value = "round", comment = "四舍五入到指定小数点位置")
     public Double round(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "integer", comment = "代表要求值的常量") Integer base,
-                        @FunctionParamter(value = "integer", comment = "四舍五入计算到小数点后的位置") Integer x) {
+        @FunctionParamter(value = "integer", comment = "代表要求值的常量") Integer base,
+        @FunctionParamter(value = "integer", comment = "四舍五入计算到小数点后的位置") Integer x) {
         Double result = null;
         if (base == null || x == null) {
             return result;
@@ -92,23 +92,4 @@ public class RoundFunction {
         return result;
     }
 
-    /**
-     * 四舍五入到指定小数点位置
-     *
-     * @param message
-     * @param context
-     * @param x
-     * @return
-     */
-    @FunctionMethod(value = "round", comment = "四舍五入到指定小数点位置")
-    public BigDecimal round(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "代表要求值的常量") BigDecimal base,
-                            @FunctionParamter(value = "BigDecimal", comment = "四舍五入计算到小数点后的位置") BigDecimal x) {
-        BigDecimal result = null;
-        if (base == null || x == null) {
-            return result;
-        }
-        result = new BigDecimal(base.setScale(x.intValue(), BigDecimal.ROUND_HALF_UP).doubleValue());
-        return result;
-    }
 }

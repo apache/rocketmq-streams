@@ -28,10 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class LruState<T> {
 
-    private int max_size;
-
     private final T FLAG_VALUE;
-
+    private int max_size;
     private ConcurrentHashMap<T, Element<T>> elementMap;
 
     private LinkedList<T> elementList;
@@ -117,6 +115,15 @@ public final class LruState<T> {
         return new LruIterator();
     }
 
+    /**
+     * counter
+     *
+     * @return
+     */
+    public synchronized int count() {
+        return elementMap.size();
+    }
+
     public class LruIterator implements Iterator<T> {
 
         private Element<T> current = elementList.head.next;
@@ -132,26 +139,14 @@ public final class LruState<T> {
         }
     }
 
-    /**
-     * counter
-     *
-     * @return
-     */
-    public synchronized int count() {
-        return elementMap.size();
-    }
-
 }
 
 class Element<T> {
 
-    private T value;
-
-    private volatile int counter;
-
     Element<T> next;
-
     Element<T> pre;
+    private T value;
+    private volatile int counter;
 
     public Element(T element) {
         this.value = element;

@@ -22,49 +22,49 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.apache.rocketmq.streams.window.WindowConstants;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 
+/**
+ * 对齐等待，当所有的数据源分片的数据都收到，才会返回事件时间
+ */
 public class SplitEventTimeManager {
-    protected static final Log LOG = LogFactory.getLog(SplitEventTimeManager.class);
-    protected static Map<String, Long> messageSplitId2MaxTime = new HashMap<>();
-    private AtomicInteger queueIdCount = new AtomicInteger(0);
+    private static Long splitReadyTime;
+    private final AtomicInteger queueIdCount = new AtomicInteger(0);
+    protected Map<String, Long> messageSplitId2MaxTime = new HashMap<>();
     protected Long lastUpdateTime;
-
     protected volatile Integer allSplitSize;
-    protected volatile Integer workingSplitSize;
-    protected Map<String, List<ISplit>> splitsGroupByInstance;
-    protected ISource source;
-
+    protected Map<String, List<ISplit<?, ?>>> splitsGroupByInstance;
+    protected ISource<?> source;
     protected volatile boolean isAllSplitReceived = false;
     protected transient String queueId;
 
-    private static Long splitReadyTime;
-
-    public SplitEventTimeManager(ISource source, String queueId) {
+    public SplitEventTimeManager(ISource<?> source, String queueId) {
         this.source = source;
         this.queueId = queueId;
-        if (source instanceof AbstractSource) {
-            AbstractSource abstractSource = (AbstractSource) source;
-            List<ISplit> splits = abstractSource.getAllSplits();
-            if (splits == null) {
-                this.allSplitSize = -1;
-            } else {
-                this.allSplitSize = splits.size();
-            }
+        AbstractSource abstractSource = (AbstractSource) source;
+        List<ISplit<?, ?>> splits = abstractSource.fetchAllSplits();
+        if (splits == null) {
+            this.allSplitSize = -1;
+        } else {
+            this.allSplitSize = splits.size();
         }
     }
 
+    /**
+     * 更新数据源分片的事件时间，取当前收到消息的最大值
+     *
+     * @param message
+     * @param window
+     */
     public void updateEventTime(IMessage message, AbstractWindow window) {
-        String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
+        String oriQueueId = message.getMessageBody().getString(WindowConstants.ORIGIN_QUEUE_ID);
         if (StringUtil.isEmpty(oriQueueId)) {
             return;
         }
@@ -80,6 +80,17 @@ public class SplitEventTimeManager {
         }
     }
 
+    /**
+     * 获取事件时间，对齐等待，期望获取所有分片的数据后开始，如果一直没有数据，则等1分钟后开始
+     * 对齐等待：先判断是否所有的数据源分片的数据都收到过，这块是通过数据源接口获取所有分片，然后根据收到信息的分片做对比，这种实现有两个风险：
+     * 1.数据分片不均匀，会导致某些分片的数据一直收不到，导致窗口一直未能触发，尤其是数据在分片中按shuffle key存储
+     * 2.要求所有的数据源必须提供获取所有分片的接口，不友好
+     * 最新实现：
+     * 1.所有数据源启动后或在窗口shuffle前，收到第一条消息后，发一个系统消息
+     * 2.通过系统消息，确保分片已经正常工作，且能和数据源的时间快速对齐
+     *
+     * @return
+     */
     public Long getMaxEventTime() {
 
         if (!isSplitsReceiver()) {
@@ -110,29 +121,26 @@ public class SplitEventTimeManager {
         if (lastUpdateTime == null) {
             lastUpdateTime = System.currentTimeMillis();
         }
-        if (allSplitSize == null && workingSplitSize == null) {
+        int workingSplitSize = this.messageSplitId2MaxTime.size();
+        if (allSplitSize == null) {
             if (source == null) {
                 return false;
             }
-            if (source instanceof AbstractSource) {
-                AbstractSource abstractSource = (AbstractSource) source;
-                List<ISplit> splits = abstractSource.getAllSplits();
-                if (splits == null) {
-                    this.allSplitSize = -1;
-                } else {
-                    this.allSplitSize = splits.size();
-                }
+            AbstractSource abstractSource = (AbstractSource) source;
+            List<ISplit<?, ?>> splits = abstractSource.fetchAllSplits();
+            if (splits == null) {
+                this.allSplitSize = -1;
+            } else {
+                this.allSplitSize = splits.size();
             }
         }
         if (allSplitSize == -1) {
             return true;
         }
-        if (allSplitSize != -1 && workingSplitSize == null) {
-            workingSplitSize = 0;
-        }
+
         if (allSplitSize != -1 && allSplitSize > workingSplitSize) {
             if (System.currentTimeMillis() - lastUpdateTime > 1000) {
-                workingSplitSize = calcuteWorkingSplitSize();
+                workingSplitSize = this.messageSplitId2MaxTime.size();
                 lastUpdateTime = System.currentTimeMillis();
                 if (allSplitSize > workingSplitSize) {
                     return false;
@@ -162,25 +170,8 @@ public class SplitEventTimeManager {
         return false;
     }
 
-    private Integer calcuteWorkingSplitSize() {
-        if (source instanceof AbstractSource) {
-            AbstractSource abstractSource = (AbstractSource) source;
-            Map<String, List<ISplit>> splits = abstractSource.getWorkingSplitsGroupByInstances();
-            if (splits == null) {
-                return 0;
-            }
-            this.splitsGroupByInstance = splits;
-            int count = 0;
-            for (List<ISplit> splitList : splits.values()) {
-                count += splitList.size();
-            }
-            return count;
-        }
-        return 0;
-
-    }
-
     public void setSource(ISource source) {
         this.source = source;
     }
+
 }

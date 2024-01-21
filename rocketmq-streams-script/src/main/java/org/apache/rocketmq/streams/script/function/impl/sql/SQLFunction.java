@@ -30,9 +30,9 @@ public class SQLFunction {
 
     @FunctionMethod(value = "inSQL", alias = "create_inSQL", comment = "把字段对应的数组转化成sql中的in变量")
     public String createInSQL(IMessage message, FunctionContext context,
-                              @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String msgFieldName,
-                              @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String columnName,
-                              @FunctionParamter(value = "boolean", comment = "是否是String类型") boolean isString) {
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String msgFieldName,
+        @FunctionParamter(value = "string", comment = "代表字符串的字段名或常量") String columnName,
+        @FunctionParamter(value = "boolean", comment = "是否是String类型") boolean isString) {
         msgFieldName = FunctionUtils.getValueString(message, context, msgFieldName);
         columnName = FunctionUtils.getValueString(message, context, columnName);
         JSONArray jsonArray = message.getMessageBody().getJSONArray(msgFieldName);

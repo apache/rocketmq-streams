@@ -41,6 +41,22 @@ public interface IDBDriver {
     void execute(String sql);
 
     /**
+     * 以预编译的方式执行sql
+     *
+     * @param sql    含参数的sql
+     * @param params 参数
+     */
+    int execute(String sql, Object[] params);
+
+    /**
+     * 以预编译的方式执行查询
+     *
+     * @param sql    含参数的sql
+     * @param params 参数
+     */
+    List<Map<String, Object>> executeQuery(String sql, Object[] params);
+
+    /**
      * 查询多行数据
      *
      * @param sql sql
@@ -64,9 +80,9 @@ public interface IDBDriver {
      */
     long executeInsert(final String sql);
 
-    void executSqls(String... sqls);
+    void executeSqls(String... sqls);
 
-    void executSqls(Collection<String> sqls);
+    void executeSqls(Collection<String> sqls);
 
     /**
      * 分批查询数据，每次批次是batchSize，避免一次加载数据太多

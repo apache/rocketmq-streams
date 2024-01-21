@@ -18,8 +18,7 @@ package org.apache.rocketmq.streams.common.metadata;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.datatype.BooleanDataType;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.FloatDataType;
@@ -36,7 +35,6 @@ public class MetaDataField<T> extends Entity implements IJsonable {
     public static final String RULE = "rule";
 
     private static final long serialVersionUID = 3590425799189771820L;
-    private static final Log RULEENGINE_MESSAGE_LOG = LogFactory.getLog("ruleengine_message");
     private String fieldName;
     private DataType<T> dataType;
     private Boolean isRequired;
@@ -44,6 +42,40 @@ public class MetaDataField<T> extends Entity implements IJsonable {
     // 前端处理使用
     @Deprecated
     private String dataTypeStr;
+
+    public static DataType<?> getDataTypeByStr(String dataType) {
+        DataType<?> dt = null;
+        if ("String".equals(dataType)) {
+            dt = new StringDataType();
+        } else if ("long".equals(dataType)) {
+            dt = new LongDataType();
+        } else if ("int".equals(dataType)) {
+            dt = new IntDataType();
+        } else if ("float".equals(dataType)) {
+            dt = new FloatDataType();
+        } else if ("boolean".equals(dataType)) {
+            dt = new BooleanDataType();
+        } else {
+            dt = new StringDataType();
+        }
+        return dt;
+    }
+
+    public static String getDataTypeStrByType(DataType<?> dataType) {
+        String dataTypeStr = "";
+        if (dataType instanceof StringDataType) {
+            dataTypeStr = "String";
+        } else if (dataType instanceof LongDataType) {
+            dataTypeStr = "long";
+        } else if (dataType instanceof IntDataType) {
+            dataTypeStr = "int";
+        } else if (dataType instanceof FloatDataType) {
+            dataTypeStr = "float";
+        } else {
+            dataTypeStr = "String";
+        }
+        return dataTypeStr;
+    }
 
     public String getFieldName() {
         return fieldName;
@@ -121,6 +153,7 @@ public class MetaDataField<T> extends Entity implements IJsonable {
         jsonObject.put("dataType", dataType.toJson());
         jsonObject.put("isRequired", isRequired);
         jsonObject.put("isPrimary", isPrimary);
+        jsonObject.put(IConfigurable.CLASS_NAME,this.getClass().getName());
         return jsonObject.toJSONString();
     }
 
@@ -132,40 +165,6 @@ public class MetaDataField<T> extends Entity implements IJsonable {
         this.dataType = DataTypeUtil.createDataType(dataTypeJson);
         this.isRequired = jsonObject.getBoolean("isRequired");
         this.isPrimary = jsonObject.getBoolean("isPrimary");
-    }
-
-    public static DataType<?> getDataTypeByStr(String dataType) {
-        DataType<?> dt = null;
-        if ("String".equals(dataType)) {
-            dt = new StringDataType();
-        } else if ("long".equals(dataType)) {
-            dt = new LongDataType();
-        } else if ("int".equals(dataType)) {
-            dt = new IntDataType();
-        } else if ("float".equals(dataType)) {
-            dt = new FloatDataType();
-        } else if ("boolean".equals(dataType)) {
-            dt = new BooleanDataType();
-        } else {
-            dt = new StringDataType();
-        }
-        return dt;
-    }
-
-    public static String getDataTypeStrByType(DataType<?> dataType) {
-        String dataTypeStr = "";
-        if (dataType instanceof StringDataType) {
-            dataTypeStr = "String";
-        } else if (dataType instanceof LongDataType) {
-            dataTypeStr = "long";
-        } else if (dataType instanceof IntDataType) {
-            dataTypeStr = "int";
-        } else if (dataType instanceof FloatDataType) {
-            dataTypeStr = "float";
-        } else {
-            dataTypeStr = "String";
-        }
-        return dataTypeStr;
     }
 
 }

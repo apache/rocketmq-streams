@@ -24,10 +24,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
+import org.apache.rocketmq.streams.common.channel.source.SplitProgress;
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
 import org.apache.rocketmq.streams.common.checkpoint.CheckPointMessage;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
-import org.apache.rocketmq.streams.common.context.AbstractContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.context.MessageOffset;
 import org.apache.rocketmq.streams.common.interfaces.IStreamOperator;
@@ -42,12 +42,11 @@ import org.apache.rocketmq.streams.common.utils.InstantiationUtil;
 public abstract class AbstractChannel extends BasedConfigurable implements IChannel<IChannel> {
     protected transient ISink sink;
     protected transient ISource source;
+    protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
 
     protected abstract ISink createSink();
 
     protected abstract ISource createSource();
-
-    protected transient AtomicBoolean hasCreated = new AtomicBoolean(false);
 
     @Override
     protected boolean initConfigurable() {
@@ -74,14 +73,14 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
         create();
         if (sourceValue != null) {
             source = InstantiationUtil.deserializeObject(Base64Utils.decode(sourceValue));
-            if(source!=null){
+            if (source != null) {
                 source.init();
             }
 
         }
         if (sinkValue != null) {
             sink = InstantiationUtil.deserializeObject(Base64Utils.decode(sinkValue));
-            if(sink!=null){
+            if (sink != null) {
                 sink.init();
             }
         }
@@ -109,20 +108,28 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     }
 
     public void removeSplit(Set<String> splitIds) {
-        if(source instanceof AbstractSource){
-            (( AbstractSource)source).removeSplit(splitIds);
+        if (source instanceof AbstractSource) {
+            ((AbstractSource) source).removeSplit(splitIds);
         }
     }
 
     public void addNewSplit(Set<String> splitIds) {
-        if(source instanceof AbstractSource){
-            (( AbstractSource)source).addNewSplit(splitIds);
+        if (source instanceof AbstractSource) {
+            ((AbstractSource) source).addNewSplit(splitIds);
         }
+    }
+
+    @Override public Map<String, SplitProgress> getSplitProgress() {
+        return source.getSplitProgress();
     }
 
     @Override
     public Map<String, MessageOffset> getFinishedQueueIdAndOffsets(CheckPointMessage checkPointMessage) {
         return sink.getFinishedQueueIdAndOffsets(checkPointMessage);
+    }
+
+    @Override public List<ISplit<?, ?>> fetchAllSplits() {
+        return source.fetchAllSplits();
     }
 
     @Override
@@ -156,7 +163,7 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     }
 
     @Override
-    public boolean batchAdd(IMessage fieldName2Value,  ISplit split) {
+    public boolean batchAdd(IMessage fieldName2Value, ISplit split) {
         return sink.batchAdd(fieldName2Value, split);
     }
 
@@ -186,13 +193,13 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
     }
 
     @Override
-    public void setBatchSize(int batchSize) {
-        sink.setBatchSize(batchSize);
+    public int getBatchSize() {
+        return sink.getBatchSize();
     }
 
     @Override
-    public int getBatchSize() {
-        return sink.getBatchSize();
+    public void setBatchSize(int batchSize) {
+        sink.setBatchSize(batchSize);
     }
 
     @Override
@@ -232,24 +239,22 @@ public abstract class AbstractChannel extends BasedConfigurable implements IChan
 
     public void setJsonData(Boolean isJsonData) {
         create();
-        ((AbstractSource)source).setJsonData(isJsonData);
+        ((AbstractSource) source).setJsonData(isJsonData);
     }
 
     @Override
-    public String getTopic(){
+    public String getTopic() {
         return source.getTopic();
     }
 
     @Override
-    public void setTopic(String topic){
+    public void setTopic(String topic) {
         source.setTopic(topic);
     }
 
     @Override
-    public void atomicSink(ISystemMessage message){
+    public void atomicSink(ISystemMessage message) {
 
     }
-
-
 
 }

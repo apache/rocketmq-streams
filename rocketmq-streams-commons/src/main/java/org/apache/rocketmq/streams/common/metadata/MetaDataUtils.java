@@ -28,7 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.component.AbstractComponent;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
 import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
 
 /**
@@ -36,7 +36,7 @@ import org.apache.rocketmq.streams.common.utils.DataTypeUtil;
  */
 public class MetaDataUtils {
 
-    private static final String DEFAULT_DRIVER = AbstractComponent.DEFAULT_JDBC_DRIVER;
+    private static final String DEFAULT_DRIVER = ConfigurationKey.DEFAULT_JDBC_DRIVER;
 
     /**
      * 去除id字段,主要用于拼接sql

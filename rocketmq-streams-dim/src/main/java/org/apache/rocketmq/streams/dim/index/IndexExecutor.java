@@ -38,22 +38,15 @@ import org.apache.rocketmq.streams.filter.operator.expression.RelationExpression
  */
 public class IndexExecutor {
 
+    private static IntDataType intDataType = new IntDataType();
     private String expressionStr;//表达式
-
     private boolean isSupport = false;//是否支持索引，比如表达式等值部分无所以，则不能走索引逻辑
-
     private String namespace;
-
     private String indexNameKey;//索引的名字，多个字段";"分隔
-
     private List<String> msgNames;//
-
     private Rule rule;//表达式会被编译成rule
-
     private List<String> index; //标准化后的索引name
-
     private Set<String> indexNames = new HashSet<>();
-
     private Set<String> columnNames;
 
     public IndexExecutor(String expressionStr, String namespace, List<String> index, Set<String> columns) {
@@ -96,14 +89,15 @@ public class IndexExecutor {
 
         this.isSupport = true;
         List<Expression> indexExpressions = new ArrayList<>();
-        List<Expression> otherExpressions = new ArrayList<>();
+        // List<Expression> otherExpressions = new ArrayList<>();
+        boolean hasOtherExpression = false;
         if (relationExpression != null) {
             Map<String, Expression> map = new HashMap<>();
             for (Expression tmp : expressions) {
-                map.put(tmp.getConfigureName(), tmp);
+                map.put(tmp.getName(), tmp);
             }
             for (Expression tmp : relationExpressions) {
-                map.put(tmp.getConfigureName(), tmp);
+                map.put(tmp.getName(), tmp);
             }
             List<String> expressionNames = relationExpression.getValue();
             relationExpression.setValue(new ArrayList<>());
@@ -112,8 +106,9 @@ public class IndexExecutor {
                 if (subExpression != null && !RelationExpression.class.isInstance(subExpression) && this.indexNames.contains(subExpression.getValue())) {
                     indexExpressions.add(subExpression);
                 } else {
-                    otherExpressions.add(subExpression);
-                    relationExpression.getValue().add(subExpression.getConfigureName());
+                    hasOtherExpression = true;
+                    // otherExpressions.add(subExpression);
+                    relationExpression.getValue().add(expressionName);
                 }
             }
 
@@ -142,7 +137,7 @@ public class IndexExecutor {
             return;
         }
         this.msgNames = createMsgNames(fieldNames, msgNames);
-        if (otherExpressions.size() == 0) {
+        if (hasOtherExpression == false) {
             return;
         }
         Rule rule = ExpressionBuilder.createRule("tmp", "tmp", expressionStr);
@@ -170,13 +165,14 @@ public class IndexExecutor {
         return isSupport;
     }
 
-    private static IntDataType intDataType = new IntDataType();
+    public boolean isSupportIndex() {
+        return isSupport;
+    }
 
     public List<Map<String, Object>> match(JSONObject msg, AbstractDim nameList, boolean needAll, String script) {
         List<Map<String, Object>> rows = new ArrayList<>();
         String msgValue = createValue(msg);
-        List<Long> rowIds = nameList.getNameListIndex() == null ? Collections.emptyList() : nameList.getNameListIndex().getRowIds(indexNameKey, msgValue);
-        ;
+        List<Long> rowIds = getMatchRowIds(msg, nameList);
         if (rowIds == null) {
             return null;
         }
@@ -193,6 +189,12 @@ public class IndexExecutor {
         return rows;
     }
 
+    public List<Long> getMatchRowIds(JSONObject msg, AbstractDim nameList) {
+        String msgValue = createValue(msg);
+        List<Long> rowIds = nameList.getNameListIndex() == null ? Collections.emptyList() : nameList.getNameListIndex().getRowIds(indexNameKey, msgValue);
+        return rowIds;
+    }
+
     /**
      * 按顺序创建msg的key
      *
@@ -205,5 +207,9 @@ public class IndexExecutor {
             value.add(msg.getString(msgName));
         }
         return MapKeyUtil.createKey(value);
+    }
+
+    public List<String> getMsgNames() {
+        return msgNames;
     }
 }

@@ -17,8 +17,6 @@
 package org.apache.rocketmq.streams.db.sink;
 
 import org.apache.rocketmq.streams.common.channel.split.ISplit;
-import org.apache.rocketmq.streams.common.configurable.IAfterConfigurableRefreshListener;
-import org.apache.rocketmq.streams.common.configurable.IConfigurableService;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.functions.MultiTableSplitFunction;
 import org.apache.rocketmq.streams.db.DynamicMultipleDBSplit;
@@ -26,13 +24,19 @@ import org.apache.rocketmq.streams.db.DynamicMultipleDBSplit;
 /**
  * @description
  */
-public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAfterConfigurableRefreshListener {
+public class DynamicMultipleDBSink extends AbstractMultiTableSink {
 
     private static final long serialVersionUID = -4570659943689358381L;
     String logicTableName;
     String fieldName;
 
     public DynamicMultipleDBSink() {
+    }
+
+    public DynamicMultipleDBSink(String url, String userName, String password, String logicTableName, String fieldName) {
+        super(url, userName, password);
+        this.logicTableName = logicTableName;
+        this.fieldName = fieldName;
     }
 
     public String getLogicTableName() {
@@ -51,12 +55,6 @@ public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAf
         this.fieldName = fieldName;
     }
 
-    public DynamicMultipleDBSink(String url, String userName, String password, String logicTableName, String fieldName) {
-        super(url, userName, password);
-        this.logicTableName = logicTableName;
-        this.fieldName = fieldName;
-    }
-
     @Override
     protected String createTableName(String splitId) {
         return this.multiTableSplitFunction.createTableFromSplitId(splitId);
@@ -68,7 +66,7 @@ public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAf
     }
 
     @Override
-    public void doProcessAfterRefreshConfigurable(IConfigurableService configurableService) {
+    protected boolean initConfigurable() {
 
         if (this.multiTableSplitFunction == null) {
 
@@ -85,6 +83,7 @@ public class DynamicMultipleDBSink extends AbstractMultiTableSink implements IAf
             };
 
         }
+        return true;
 
     }
 }

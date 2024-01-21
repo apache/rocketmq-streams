@@ -19,25 +19,30 @@ package org.apache.rocketmq.streams.connectors.source.filter;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description
  */
 public class DataFormatPatternFilter extends AbstractPatternFilter implements Serializable {
 
-    private static final long serialVersionUID = 3604787588465242642L;
-
-    static final Log logger = LogFactory.getLog(DataFormatPatternFilter.class);
-
+    static final Logger LOGGER = LoggerFactory.getLogger(DataFormatPatternFilter.class);
     static final String yyyyMMddHHmmss = "yyyyMMddHHmmss";
     static final String yyyyMMdd = "yyyyMMdd";
     static final String yyyyMMddHH = "yyyyMMddHH";
-
+    private static final long serialVersionUID = 3604787588465242642L;
     SimpleDateFormat format1 = new SimpleDateFormat(yyyyMMdd);
     SimpleDateFormat format2 = new SimpleDateFormat(yyyyMMddHH);
     SimpleDateFormat format3 = new SimpleDateFormat(yyyyMMddHHmmss);
+
+    public static void main(String[] args) {
+        DataFormatPatternFilter filter = new DataFormatPatternFilter();
+//        System.out.println(filter.filter("20200101"));
+//        System.out.println(filter.filter("2020010101"));
+//        System.out.println(filter.filter("20200101010101"));
+
+    }
 
     @Override
     public boolean filter(String sourceName, String logicTableName, String tableNameSuffix) {
@@ -76,7 +81,7 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
         }
 
         if (isFilter) {
-            logger.info(String.format("filter sourceName %s, logicTableName %s, suffix %s", sourceName, logicTableName, tableNameSuffix));
+            LOGGER.info(String.format("filter sourceName %s, logicTableName %s, suffix %s", sourceName, logicTableName, tableNameSuffix));
             return true;
         }
         if (next != null) {
@@ -93,14 +98,6 @@ public class DataFormatPatternFilter extends AbstractPatternFilter implements Se
 
     public PatternFilter getNext() {
         return next;
-    }
-
-    public static void main(String[] args) {
-        DataFormatPatternFilter filter = new DataFormatPatternFilter();
-//        System.out.println(filter.filter("20200101"));
-//        System.out.println(filter.filter("2020010101"));
-//        System.out.println(filter.filter("20200101010101"));
-
     }
 
 }

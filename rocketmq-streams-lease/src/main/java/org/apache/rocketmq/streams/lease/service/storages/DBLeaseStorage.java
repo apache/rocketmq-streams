@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.SQLUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
@@ -30,14 +28,16 @@ import org.apache.rocketmq.streams.db.driver.DriverBuilder;
 import org.apache.rocketmq.streams.db.driver.JDBCDriver;
 import org.apache.rocketmq.streams.lease.model.LeaseInfo;
 import org.apache.rocketmq.streams.lease.service.ILeaseStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DBLeaseStorage implements ILeaseStorage {
-    private static final Log LOG = LogFactory.getLog(DBLeaseStorage.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DBLeaseStorage.class);
     protected JDBCDriver jdbcDataSource;
-    private String url;
     protected String userName;
     protected String password;
     protected String jdbc;
+    private String url;
 
     public DBLeaseStorage(String jdbc, String url, String userName, String password) {
         this.jdbc = jdbc;
@@ -75,7 +75,7 @@ public class DBLeaseStorage implements ILeaseStorage {
             }
             return success;
         } catch (Exception e) {
-            LOG.error("LeaseServiceImpl updateLeaseInfo excuteUpdate error", e);
+            LOGGER.error("LeaseServiceImpl updateLeaseInfo excuteUpdate error", e);
             throw new RuntimeException("execute sql error " + sql, e);
         }
     }
@@ -99,7 +99,7 @@ public class DBLeaseStorage implements ILeaseStorage {
     @Override
     public LeaseInfo queryInValidateLease(String leaseName) {
         String sql = "SELECT * FROM lease_info WHERE lease_name ='" + leaseName + "' and status=1 and lease_end_time<'" + DateUtil.getCurrentTimeString() + "'";
-        LOG.info("LeaseServiceImpl queryInValidateLease builder:" + sql);
+        LOGGER.info("LeaseServiceImpl queryInValidateLease builder:" + sql);
         return queryLease(leaseName, sql);
     }
 
@@ -139,7 +139,17 @@ public class DBLeaseStorage implements ILeaseStorage {
 
             getOrCreateJDBCDataSource().execute(sql);
         } catch (Exception e) {
-            LOG.error("LeaseServiceImpl execute sql error,sql:" + sql, e);
+            LOGGER.error("LeaseServiceImpl execute sql error,sql:" + sql, e);
+            throw new RuntimeException("execute sql error " + sql, e);
+        }
+    }
+
+    @Override public void deleteLeaseInfo(String leaseName) {
+        String sql = " DELETE FROM lease_info WHERE lease_name = '" + leaseName + "'";
+        try {
+            getOrCreateJDBCDataSource().execute(sql);
+        } catch (Exception e) {
+            LOGGER.error("LeaseServiceImpl execute sql error,sql:" + sql, e);
             throw new RuntimeException("execute sql error " + sql, e);
         }
     }

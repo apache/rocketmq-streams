@@ -36,7 +36,7 @@ public class HexFunction {
      */
     @FunctionMethod(value = "hex", alias = "hex", comment = "将整数或字符转换为十六进制格式")
     public String hex(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
+        @FunctionParamter(value = "String", comment = "代表要求值的字段名或常量值") String number) {
         String result = null;
         Integer numberTem = Integer.parseInt(FunctionUtils.getValueString(message, context, number));
         if (numberTem == null) {
@@ -56,7 +56,7 @@ public class HexFunction {
      */
     @FunctionMethod(value = "hex", alias = "hex", comment = "将整数或字符转换为十六进制格式")
     public String hex(IMessage message, FunctionContext context,
-                      @FunctionParamter(value = "Long", comment = "代表要求的常量值") Long number) {
+        @FunctionParamter(value = "Long", comment = "代表要求的常量值") Long number) {
         String result = null;
         if (number == null) {
             return result;

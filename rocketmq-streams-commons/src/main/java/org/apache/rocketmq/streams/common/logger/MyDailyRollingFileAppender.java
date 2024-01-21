@@ -40,6 +40,10 @@ import org.apache.log4j.spi.LoggingEvent;
  */
 public class MyDailyRollingFileAppender extends FileAppender {
 
+    /**
+     * The gmtTimeZone is used only in computeCheckPeriod() method.
+     */
+    public static final TimeZone gmtTimeZone = TimeZone.getTimeZone("GMT");
     // The code assumes that the following constants are in a increasing
     // sequence.
     static final int TOP_OF_TROUBLE = -1;
@@ -49,44 +53,30 @@ public class MyDailyRollingFileAppender extends FileAppender {
     static final int TOP_OF_DAY = 3;
     static final int TOP_OF_WEEK = 4;
     static final int TOP_OF_MONTH = 5;
-
-    /**
-     * The gmtTimeZone is used only in computeCheckPeriod() method.
-     */
-    public static final TimeZone gmtTimeZone = TimeZone.getTimeZone("GMT");
-
+    public int checkPeriod = TOP_OF_TROUBLE;
     /**
      * The default maximum file size is 20MB.
      */
     protected long maxFileSize = 20 * 1024 * 1024;
-
     /**
      * The date pattern. By default, the pattern is set to "'.'yyyy-MM-dd" meaning daily rollover.
      */
     private String datePattern = "'.'yyyy-MM-dd";
-
     /**
      * There is one backup file by default.
      */
     private int maxBackupIndex = 1;
-
     /**
      * The log file will be renamed to the value of the scheduledFilename variable when the next interval is entered. For example, if the rollover period is one hour, the log file will be renamed to the value of "scheduledFilename" at the beginning of the next hour. The precise time when a rollover occurs depends on logging activity.
      */
     private String scheduledFilename;
-
     /**
      * The next time we estimate a rollover should occur.
      */
     private long nextCheck = System.currentTimeMillis() - 1;
-
     private Date now = new Date();
-
     private SimpleDateFormat sdf;
-
     private MyRollingCalendar rollingCalendar = new MyRollingCalendar();
-
-    public int checkPeriod = TOP_OF_TROUBLE;
 
     /**
      * The default constructor does nothing.
@@ -106,10 +96,36 @@ public class MyDailyRollingFileAppender extends FileAppender {
     }
 
     /**
-     * The <b>DatePattern</b> takes a string in the same format as expected by {@link SimpleDateFormat}. This options determines the rollover schedule.
+     * 测试方法
      */
-    public void setDatePattern(String pattern) {
-        datePattern = pattern;
+    public static void main(String args[]) {
+        String className = MyDailyRollingFileAppender.class.getName();
+
+        MyDailyRollingFileAppender myAppender = new MyDailyRollingFileAppender();
+
+        myAppender.setDatePattern("'.'yyyy-MM-dd-HH");
+        myAppender.setFile("E:/test/mylogApender/test.log");
+        myAppender.setMaxBackupIndex(3);
+
+        PatternLayout patternLayout = new PatternLayout("%d [%-5p]-[%t]-[%c{1}] (%F:%L) %m%n");
+        myAppender.setLayout(patternLayout);
+
+        System.out.println("getMaxBackupIndex():" + myAppender.getMaxBackupIndex());
+
+        myAppender.activateOptions();
+
+        for (int i = 0; i < 50000; i++) {
+            myAppender.subAppend(new LoggingEvent(className, Logger.getLogger(className), Level.INFO,
+                "test,hello " + i, null));
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
+
+            System.out.println("Fine attesa");
+        }
     }
 
     /**
@@ -120,12 +136,10 @@ public class MyDailyRollingFileAppender extends FileAppender {
     }
 
     /**
-     * 设置日志文件最大备份数
-     * <p>
-     * The <b>MaxBackupIndex</b> option determines how many backup files are kept before the oldest is erased. This option takes a positive integer value. If set to zero, then there will be no backup files and the log file will be renamed to the value of the scheduledFilename variable when the next interval is entered.
+     * The <b>DatePattern</b> takes a string in the same format as expected by {@link SimpleDateFormat}. This options determines the rollover schedule.
      */
-    public void setMaxBackupIndex(int maxBackups) {
-        this.maxBackupIndex = maxBackups;
+    public void setDatePattern(String pattern) {
+        datePattern = pattern;
     }
 
     /**
@@ -133,6 +147,15 @@ public class MyDailyRollingFileAppender extends FileAppender {
      */
     public int getMaxBackupIndex() {
         return maxBackupIndex;
+    }
+
+    /**
+     * 设置日志文件最大备份数
+     * <p>
+     * The <b>MaxBackupIndex</b> option determines how many backup files are kept before the oldest is erased. This option takes a positive integer value. If set to zero, then there will be no backup files and the log file will be renamed to the value of the scheduledFilename variable when the next interval is entered.
+     */
+    public void setMaxBackupIndex(int maxBackups) {
+        this.maxBackupIndex = maxBackups;
     }
 
     @Override
@@ -328,7 +351,7 @@ public class MyDailyRollingFileAppender extends FileAppender {
         now.setTime(currentTimeMillis);
 
         if (fileName != null && qw != null) {
-            long size = ((CountingQuietWriter)qw).getCount();
+            long size = ((CountingQuietWriter) qw).getCount();
             if (size >= maxFileSize) {
                 // close current file, and rename it
                 this.closeFile();
@@ -374,46 +397,13 @@ public class MyDailyRollingFileAppender extends FileAppender {
         super.setFile(fileName, append, this.bufferedIO, this.bufferSize);
         if (append) {
             File f = new File(fileName);
-            ((CountingQuietWriter)qw).setCount(f.length());
+            ((CountingQuietWriter) qw).setCount(f.length());
         }
     }
 
     @Override
     protected void setQWForFiles(Writer writer) {
         this.qw = new CountingQuietWriter(writer, errorHandler);
-    }
-
-    /**
-     * 测试方法
-     */
-    public static void main(String args[]) {
-        String className = MyDailyRollingFileAppender.class.getName();
-
-        MyDailyRollingFileAppender myAppender = new MyDailyRollingFileAppender();
-
-        myAppender.setDatePattern("'.'yyyy-MM-dd-HH");
-        myAppender.setFile("E:/test/mylogApender/test.log");
-        myAppender.setMaxBackupIndex(3);
-
-        PatternLayout patternLayout = new PatternLayout("%d [%-5p]-[%t]-[%c{1}] (%F:%L) %m%n");
-        myAppender.setLayout(patternLayout);
-
-        System.out.println("getMaxBackupIndex():" + myAppender.getMaxBackupIndex());
-
-        myAppender.activateOptions();
-
-        for (int i = 0; i < 50000; i++) {
-            myAppender.subAppend(new LoggingEvent(className, Logger.getLogger(className), Level.INFO,
-                "test,hello " + i, null));
-
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
-
-            System.out.println("Fine attesa");
-        }
     }
 }
 
@@ -422,8 +412,6 @@ public class MyDailyRollingFileAppender extends FileAppender {
  */
 class MyRollingCalendar extends GregorianCalendar {
 
-    private static final long serialVersionUID = 1L;
-
     public static final int TOP_OF_TROUBLE = -1;
     public static final int TOP_OF_MINUTE = 0;
     public static final int TOP_OF_HOUR = 1;
@@ -431,7 +419,7 @@ class MyRollingCalendar extends GregorianCalendar {
     public static final int TOP_OF_DAY = 3;
     public static final int TOP_OF_WEEK = 4;
     public static final int TOP_OF_MONTH = 5;
-
+    private static final long serialVersionUID = 1L;
     int type = TOP_OF_TROUBLE;
 
     MyRollingCalendar() {

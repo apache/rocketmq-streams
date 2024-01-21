@@ -29,6 +29,18 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class RegexInstrFunction {
 
+    public static void main(String[] args) {
+        String ori = "i love www.taobao.com";
+        String pattern = "o[a-zA-Z]{1}";
+        String strTem = "";
+        Pattern r = Pattern.compile(pattern);
+        Matcher m = r.matcher(ori);
+        if (m.find()) {
+            strTem = m.group(1);
+        }
+        System.out.println(strTem);
+    }
+
     /**
      * 获取正则匹配的位置信息
      *
@@ -40,8 +52,8 @@ public class RegexInstrFunction {
      */
     @FunctionMethod(value = "regexinstr", comment = "获取正则匹配的信息所在的位置")
     public Long regexinstr(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
-                           @FunctionParamter(value = "string", comment = "正则表达式") String pattern) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式") String pattern) {
         Long index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
@@ -53,7 +65,7 @@ public class RegexInstrFunction {
         if (m.find()) {
             strTem = m.group(1);
         }
-        index = (long)ori.indexOf(strTem);
+        index = (long) ori.indexOf(strTem);
         return index;
     }
 
@@ -68,9 +80,9 @@ public class RegexInstrFunction {
      */
     @FunctionMethod(value = "regexinstr", comment = "从指定位置获取正则匹配的信息所在的位置")
     public Long regexinstr(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
-                           @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
-                           @FunctionParamter(value = "long", comment = "指定的位置") Long position) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
+        @FunctionParamter(value = "long", comment = "指定的位置") Long position) {
         Long index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
@@ -82,7 +94,7 @@ public class RegexInstrFunction {
         if (m.find()) {
             strTem = m.group(1);
         }
-        index = (long)ori.indexOf(strTem, position.intValue());
+        index = (long) ori.indexOf(strTem, position.intValue());
         return index;
     }
 
@@ -97,10 +109,10 @@ public class RegexInstrFunction {
      */
     @FunctionMethod(value = "regexinstr", comment = "从指定位置获取正则匹配的信息指定出现的次数所在的位置")
     public Long regexinstr(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
-                           @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
-                           @FunctionParamter(value = "long", comment = "指定的位置") Long position,
-                           @FunctionParamter(value = "long", comment = "指定正则出现的次数") Long occurrence) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
+        @FunctionParamter(value = "long", comment = "指定的位置") Long position,
+        @FunctionParamter(value = "long", comment = "指定正则出现的次数") Long occurrence) {
         Long index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
@@ -114,7 +126,7 @@ public class RegexInstrFunction {
         }
         int i = 1;
         while (i <= occurrence) {
-            index = (long)ori.indexOf(strTem, position.intValue() + 1);
+            index = (long) ori.indexOf(strTem, position.intValue() + 1);
             position = index;
             i++;
         }
@@ -132,11 +144,11 @@ public class RegexInstrFunction {
      */
     @FunctionMethod(value = "regexinstr", comment = "从指定位置获取正则匹配的信息指定出现的次数所在的位置")
     public Long regexinstr(IMessage message, FunctionContext context,
-                           @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
-                           @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
-                           @FunctionParamter(value = "long", comment = "指定的位置") Long position,
-                           @FunctionParamter(value = "long", comment = "指定正则出现的次数") Long occurrence,
-                           @FunctionParamter(value = "long", comment = "0表示返回匹配的开始位置，1表示返回匹配的结束位置") Long returnOption) {
+        @FunctionParamter(value = "string", comment = "代表要匹配的列名称或常量值") String fieldName,
+        @FunctionParamter(value = "string", comment = "正则表达式") String pattern,
+        @FunctionParamter(value = "long", comment = "指定的位置") Long position,
+        @FunctionParamter(value = "long", comment = "指定正则出现的次数") Long occurrence,
+        @FunctionParamter(value = "long", comment = "0表示返回匹配的开始位置，1表示返回匹配的结束位置") Long returnOption) {
         Long index = null;
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori) || StringUtil.isEmpty(pattern)) {
@@ -150,7 +162,7 @@ public class RegexInstrFunction {
         }
         int i = 1;
         while (i <= occurrence) {
-            index = (long)ori.indexOf(strTem, position.intValue() + 1);
+            index = (long) ori.indexOf(strTem, position.intValue() + 1);
             position = index;
             i++;
         }
@@ -160,18 +172,6 @@ public class RegexInstrFunction {
             return index;
         }
 
-    }
-
-    public static void main(String[] args) {
-        String ori = "i love www.taobao.com";
-        String pattern = "o[a-zA-Z]{1}";
-        String strTem = "";
-        Pattern r = Pattern.compile(pattern);
-        Matcher m = r.matcher(ori);
-        if (m.find()) {
-            strTem = m.group(1);
-        }
-        System.out.println(strTem);
     }
 
 }

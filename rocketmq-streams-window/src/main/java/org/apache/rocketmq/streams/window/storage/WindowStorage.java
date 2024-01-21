@@ -42,17 +42,27 @@ import org.apache.rocketmq.streams.window.storage.rocksdb.RocksdbStorage;
 
 public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStorage<T> {
     protected transient ShufflePartitionManager shufflePartitionManager = ShufflePartitionManager.getInstance();
-    protected IWindowStorage localStorage;
-    protected IWindowStorage remoteStorage;
+    protected IWindowStorage<T> localStorage;
+    protected IWindowStorage<T> remoteStorage;
 
-    public WindowStorage(boolean isLoaclStorageOnly) {
+    public WindowStorage(boolean isLocalStorageOnly) {
         this();
-        this.isLocalStorageOnly = isLoaclStorageOnly;
+        this.isLocalStorageOnly = isLocalStorageOnly;
     }
 
     public WindowStorage() {
-        localStorage = new RocksdbStorage();
-        remoteStorage = new DBStorage();
+        localStorage = new RocksdbStorage<>();
+        remoteStorage = new DBStorage<>();
+    }
+
+    /**
+     * refer to: WindowMessageProcessor.createStoreKey
+     */
+    public static String createWindowInstanceId(String msgKey) {
+        String[] values = MapKeyUtil.splitKey(msgKey);
+        String[] lastValues = Arrays.copyOfRange(values, 1, values.length - 2);
+        //values[4]: endTime or fireTime
+        return MapKeyUtil.createKey(lastValues);
     }
 
     @Override
@@ -205,16 +215,6 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
         localStorage.removeKeys(keys);
     }
 
-    /**
-     * refer to: WindowMessageProcessor.createStoreKey
-     */
-    public static String createWindowInstanceId(String msgKey) {
-        String[] values = MapKeyUtil.splitKey(msgKey);
-        String[] lastValues = Arrays.copyOfRange(values, 1, values.length - 2);
-        //values[4]: endTime or fireTime
-        return MapKeyUtil.createKey(lastValues);
-    }
-
     @Override
     public void delete(String windowInstanceId, String queueId, Class<T> clazz) {
         this.delete(windowInstanceId, queueId, clazz, null);
@@ -232,24 +232,24 @@ public class WindowStorage<T extends WindowBaseValue> extends AbstractWindowStor
         }
     }
 
+    @Override
+    public void clearCache(ISplit split, Class<T> clazz) {
+        localStorage.clearCache(split, clazz);
+    }
+
+    public IWindowStorage<T> getLocalStorage() {
+        return localStorage;
+    }
+
+    public IWindowStorage<T> getRemoteStorage() {
+        return remoteStorage;
+    }
+
     public static abstract class WindowBaseValueIterator<T extends WindowBaseValue> implements Iterator<T> {
         protected long partitionNum = -1;
 
         public void setPartitionNum(long partitionNum) {
             this.partitionNum = partitionNum;
         }
-    }
-
-    @Override
-    public void clearCache(ISplit split, Class<T> clazz) {
-        localStorage.clearCache(split, clazz);
-    }
-
-    public IWindowStorage getLocalStorage() {
-        return localStorage;
-    }
-
-    public IWindowStorage getRemoteStorage() {
-        return remoteStorage;
     }
 }

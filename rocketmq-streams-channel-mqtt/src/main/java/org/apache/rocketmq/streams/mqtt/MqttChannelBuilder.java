@@ -20,6 +20,7 @@ import com.google.auto.service.AutoService;
 import java.util.Properties;
 import org.apache.rocketmq.streams.common.channel.builder.AbstractSupportShuffleChannelBuilder;
 import org.apache.rocketmq.streams.common.channel.builder.IChannelBuilder;
+import org.apache.rocketmq.streams.common.channel.impl.memory.MemorySink;
 import org.apache.rocketmq.streams.common.channel.sink.ISink;
 import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
@@ -29,7 +30,7 @@ import org.apache.rocketmq.streams.mqtt.sink.PahoSink;
 import org.apache.rocketmq.streams.mqtt.source.PahoSource;
 
 @AutoService(IChannelBuilder.class)
-@ServiceName(value = MqttChannelBuilder.TYPE, aliasName = "MqttSource")
+@ServiceName(value = MqttChannelBuilder.TYPE, aliasName = "PahoSource")
 public class MqttChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     public static final String TYPE = "mqtt";
 
@@ -50,11 +51,6 @@ public class MqttChannelBuilder extends AbstractSupportShuffleChannelBuilder {
 
     @Override
     public ISink createBySource(ISource pipelineSource) {
-        PahoSource source = (PahoSource) pipelineSource;
-        if (source.getUsername() != null && source.getPassword() != null) {
-            return new PahoSink(source.getUrl(), source.getClientId(), source.getTopic(), source.getUsername(), source.getPassword());
-        } else {
-            return new PahoSink(source.getUrl(), source.getClientId(), source.getTopic());
-        }
+        return new MemorySink();
     }
 }

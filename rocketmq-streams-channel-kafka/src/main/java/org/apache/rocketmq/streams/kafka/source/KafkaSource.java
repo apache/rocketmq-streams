@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.streams.kafka.source;
 
-import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,29 +25,36 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSupportShuffleSource;
-import org.apache.rocketmq.streams.common.context.Message;
+import org.apache.rocketmq.streams.common.channel.source.AbstractPushSource;
+import org.apache.rocketmq.streams.common.channel.split.ISplit;
+import org.apache.rocketmq.streams.common.threadpool.ThreadPoolFactory;
+import org.apache.rocketmq.streams.kafka.KafkaSplit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class KafkaSource extends AbstractSupportShuffleSource {
+public class KafkaSource extends AbstractPushSource {
 
-    private static final Log LOG = LogFactory.getLog(KafkaSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSource.class);
 
     private transient Properties props;
     private String bootstrapServers;
+
+    private String userName;
+
+    private String password;
+    private String autoOffsetReset = "earliest";
+
     private transient KafkaConsumer<String, String> consumer;
 
     private int maxPollRecords = 100;
     private volatile transient boolean stop = false;
+    private volatile transient boolean isFinished = false;
     private int sessionTimeout = 30000;
+    private transient ExecutorService executorService;
 
     public KafkaSource() {
     }
@@ -73,9 +80,14 @@ public class KafkaSource extends AbstractSupportShuffleSource {
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("auto.offset.reset", "earliest");
+        props.put("auto.offset.reset", autoOffsetReset);
         props.put("key.serializer.encoding", getEncoding());
         props.put("value.serializer.encoding", getEncoding());
+        props.put("security.protocol", "SASL_PLAINTEXT");
+        props.put("sasl.mechanism", "PLAIN");
+        if (this.userName != null && this.password != null) {
+            props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required serviceName=\"" + this.getNameSpace() + "_" + this.getName() + "\" username=\"" + userName + "\" password=\"" + password + "\";");
+        }
         this.props = props;
         return super.initConfigurable();
     }
@@ -88,57 +100,24 @@ public class KafkaSource extends AbstractSupportShuffleSource {
                 this.consumer.subscribe(Lists.newArrayList(topic));
             }
             WorkerFunc workerFunc = new WorkerFunc();
-            ExecutorService executorService = new ThreadPoolExecutor(getMaxThread(), getMaxThread(), 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(1000));
+            if (executorService == null) {
+                executorService = ThreadPoolFactory.createFixedThreadPool(getMaxThread(), KafkaSource.class.getName() + "-" + getName());
+            }
             executorService.execute(workerFunc);
         } catch (Exception e) {
-            setInitSuccess(false);
-            LOG.error(e.getMessage(), e);
-            destroy();
+            LOGGER.error(e.getMessage(), e);
+            try {
+                destroy();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
             throw new RuntimeException(" start kafka channel error " + topic);
         }
         return true;
     }
 
-    protected class WorkerFunc implements Runnable {
-
-        @Override public void run() {
-            long lastUpgrade = System.currentTimeMillis();
-            List<PartitionInfo> oldPartitionInfos = consumer.partitionsFor(topic);
-            while (!stop) {
-                try {
-                    ConsumerRecords<String, String> records = consumer.poll(1000);
-                    List<PartitionInfo> newPartitionInfos = consumer.partitionsFor(topic);
-                    messageQueueChanged(oldPartitionInfos, newPartitionInfos);
-                    Set<String> queueIds = new HashSet<>();
-                    for (ConsumerRecord<String, String> record : records) {
-                        try {
-                            queueIds.add(record.partition() + "");
-                            Map<String, Object> parameters = new HashMap<>();
-                            if (getHeaderFieldNames() != null) {
-                                parameters.put("messageKey", record.key());
-                                parameters.put("topic", record.topic());
-                                parameters.put("partition", record.partition());
-                                parameters.put("offset", record.offset());
-                                parameters.put("timestamp", record.timestamp());
-                            }
-                            JSONObject msg = create(record.value(), parameters);
-                            Message message = createMessage(msg, record.partition() + "", record.offset() + "", false);
-                            message.getHeader().setOffsetIsLong(true);
-                            executeMessage(message);
-                        } catch (Exception e) {
-                            LOG.error(e.getMessage(), e);
-                        }
-                    }
-                    if ((System.currentTimeMillis() - lastUpgrade) > checkpointTime) {
-                        sendCheckpoint(queueIds);
-                        consumer.commitAsync();
-                        lastUpgrade = System.currentTimeMillis();
-                    }
-                } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
-                }
-            }
-        }
+    @Override protected boolean hasListenerSplitChanged() {
+        return true;
     }
 
     public void messageQueueChanged(List<PartitionInfo> old, List<PartitionInfo> newPartitions) {
@@ -167,36 +146,56 @@ public class KafkaSource extends AbstractSupportShuffleSource {
 
     }
 
-    @Override public boolean supportNewSplitFind() {
-        return true;
-    }
+    @Override public List<ISplit<?, ?>> fetchAllSplits() {
+        KafkaConsumer consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(Lists.newArrayList(topic));
+        try {
+            List<PartitionInfo> partitionInfos = consumer.partitionsFor(topic);
+            List<ISplit<?, ?>> splits = new ArrayList<>();
+            for (PartitionInfo partitionInfo : partitionInfos) {
+                splits.add(new KafkaSplit(partitionInfo));
+            }
+            return splits;
 
-    @Override public boolean supportRemoveSplitFind() {
-        return true;
-    }
+        } finally {
+            consumer.close();
+        }
 
-    @Override public boolean supportOffsetRest() {
-        return false;
-    }
-
-    @Override protected boolean isNotDataSplit(String queueId) {
-        return false;
     }
 
     protected void destroyConsumer() {
+        this.stop = true;
+
+        while (!isFinished) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         if (this.consumer != null) {
             this.consumer.close();
+
+        }
+        this.stop = false;
+        this.isFinished = false;
+        if (this.executorService != null) {
+            this.executorService.shutdown();
+            this.executorService = null;
         }
     }
 
-    @Override public void destroy() {
-        super.destroy();
+    @Override public void destroySource() {
         stop = true;
         destroyConsumer();
     }
 
     public int getMaxPollRecords() {
         return maxPollRecords;
+    }
+
+    public void setMaxPollRecords(int maxPollRecords) {
+        this.maxPollRecords = maxPollRecords;
     }
 
     public boolean isStop() {
@@ -213,6 +212,22 @@ public class KafkaSource extends AbstractSupportShuffleSource {
 
     public void setBootstrapServers(String bootstrapServers) {
         this.bootstrapServers = bootstrapServers;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     @Override public void setMaxFetchLogGroupSize(int size) {
@@ -234,5 +249,53 @@ public class KafkaSource extends AbstractSupportShuffleSource {
 
     public void setConsumer(KafkaConsumer<String, String> consumer) {
         this.consumer = consumer;
+    }
+
+    protected class WorkerFunc implements Runnable {
+
+        @Override public void run() {
+            long lastUpgrade = System.currentTimeMillis();
+            List<PartitionInfo> oldPartitionInfos = consumer.partitionsFor(topic);
+            while (!stop) {
+                try {
+                    ConsumerRecords<String, String> records = consumer.poll(1000);
+                    List<PartitionInfo> newPartitionInfos = consumer.partitionsFor(topic);
+                    messageQueueChanged(oldPartitionInfos, newPartitionInfos);
+                    Set<String> queueIds = new HashSet<>();
+                    for (ConsumerRecord<String, String> record : records) {
+                        try {
+                            queueIds.add(record.partition() + "");
+                            Map<String, Object> parameters = new HashMap<>();
+                            if (getHeaderFieldNames() != null) {
+                                parameters.put("messageKey", record.key());
+                                parameters.put("topic", record.topic());
+                                parameters.put("partition", record.partition());
+                                parameters.put("offset", record.offset());
+                                parameters.put("timestamp", record.timestamp());
+                            }
+                            doReceiveMessage(record.value(), false, record.partition() + "", record.offset() + "", parameters);
+                        } catch (Exception e) {
+                            LOGGER.error(e.getMessage(), e);
+                        }
+                    }
+                    if ((System.currentTimeMillis() - lastUpgrade) > checkpointTime) {
+                        sendCheckpoint(queueIds);
+                        consumer.commitAsync();
+                        lastUpgrade = System.currentTimeMillis();
+                    }
+                } catch (Exception e) {
+                    LOGGER.error(e.getMessage(), e);
+                }
+            }
+            isFinished = true;
+        }
+    }
+
+    public String getAutoOffsetReset() {
+        return autoOffsetReset;
+    }
+
+    public void setAutoOffsetReset(String autoOffsetReset) {
+        this.autoOffsetReset = autoOffsetReset;
     }
 }

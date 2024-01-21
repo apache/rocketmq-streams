@@ -37,7 +37,7 @@ public class SoundxFunction {
      */
     @FunctionMethod(value = "soundx", comment = "将普通字符串转换成soundex字符串")
     public String soundx(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "转化的字段代表列字段或常量名") String fieldName) {
+        @FunctionParamter(value = "string", comment = "转化的字段代表列字段或常量名") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

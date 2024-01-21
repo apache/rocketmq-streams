@@ -27,6 +27,10 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 @Function
 public class Md5Function {
 
+    public static void main(String[] args) {
+        System.out.println(new Md5Function().MD5("password"));
+    }
+
     /**
      * 字符串MD5加密
      *
@@ -37,7 +41,7 @@ public class Md5Function {
      */
     @FunctionMethod(value = "md5", comment = "计算字符串的md5")
     public String concat(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "字段名或常量") String param) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String param) {
         String result = "";
         param = FunctionUtils.getValueString(message, context, param);
         if (param == null) {
@@ -72,10 +76,6 @@ public class Md5Function {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println(new Md5Function().MD5("password"));
     }
 
 }

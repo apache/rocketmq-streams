@@ -28,19 +28,60 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.configurable.BasedConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.configurable.IFieldProcessor;
 import org.apache.rocketmq.streams.common.configurable.annotation.ENVDependence;
 import org.apache.rocketmq.streams.common.datatype.DataType;
 import org.apache.rocketmq.streams.common.datatype.GenericParameterDataType;
-import org.apache.rocketmq.streams.common.topology.ChainPipeline;
 import org.apache.rocketmq.streams.common.topology.model.AbstractStage;
+import org.apache.rocketmq.streams.common.topology.model.ChainPipeline;
 
 public class PrintUtil {
 
     public static String LINE = System.getProperty("line.separator");
+    private static boolean isSimpleModel = true;
+    private static Set<String> excludeFieldNames = new HashSet<>();
+    private static Map<String, String> excludeDefalutValueMap = new HashMap<>();
+
+    static {
+        excludeFieldNames.add("dbChannelName");
+        excludeFieldNames.add("entityName");
+        excludeFieldNames.add("channelName");
+        excludeFieldNames.add("indexs");
+        excludeFieldNames.add("ruleName");
+        excludeFieldNames.add("msgMetaDataName");
+        excludeFieldNames.add("actionNames");
+        excludeFieldNames.add("scriptNames");
+        excludeFieldNames.add("varNames");
+        excludeFieldNames.add("expressionName");
+        excludeFieldNames.add("expressionStr");
+
+        excludeFieldNames.add("configureName");
+        excludeFieldNames.add("nameSpace");
+        excludeFieldNames.add("type");
+        excludeFieldNames.add("version");
+        excludeFieldNames.add("extendField");
+        excludeDefalutValueMap.put("isJsonData", "true");
+        excludeDefalutValueMap.put("msgIsJsonArray", "false");
+        excludeDefalutValueMap.put("maxThread", "10");
+        excludeDefalutValueMap.put("offset", "0");
+        excludeDefalutValueMap.put("syncCount", "1000");
+        excludeDefalutValueMap.put("syncTimeout", "60000");
+        excludeDefalutValueMap.put("outputThreadCount", "-1");
+        excludeDefalutValueMap.put("isAutoFlush", "false");
+        excludeDefalutValueMap.put("batchSize", "6000");
+        excludeDefalutValueMap.put("timeout", "60000");
+        excludeDefalutValueMap.put("activtyTimeOut", "3000");
+        excludeDefalutValueMap.put("startNow", "true");
+        excludeDefalutValueMap.put("topic", "");
+        excludeDefalutValueMap.put("pollingTime", "86400");
+        excludeDefalutValueMap.put("closeSplitMode", "false");
+        excludeDefalutValueMap.put("result", "while");
+        excludeDefalutValueMap.put("ruleStatus", "3");
+        excludeDefalutValueMap.put("isBatchMessage", "true");
+        excludeDefalutValueMap.put("cancelAfterConfigurableRefreshListerner", "false");
+    }
 
     public static void print(List<String> list) {
         for (String str : list) {
@@ -97,49 +138,6 @@ public class PrintUtil {
         }
     }
 
-    private static boolean isSimpleModel = true;
-    private static Set<String> excludeFieldNames = new HashSet<>();
-    private static Map<String, String> excludeDefalutValueMap = new HashMap<>();
-
-    static {
-        excludeFieldNames.add("dbChannelName");
-        excludeFieldNames.add("entityName");
-        excludeFieldNames.add("channelName");
-        excludeFieldNames.add("indexs");
-        excludeFieldNames.add("ruleName");
-        excludeFieldNames.add("msgMetaDataName");
-        excludeFieldNames.add("actionNames");
-        excludeFieldNames.add("scriptNames");
-        excludeFieldNames.add("varNames");
-        excludeFieldNames.add("expressionName");
-        excludeFieldNames.add("expressionStr");
-
-        excludeFieldNames.add("configureName");
-        excludeFieldNames.add("nameSpace");
-        excludeFieldNames.add("type");
-        excludeFieldNames.add("version");
-        excludeFieldNames.add("extendField");
-        excludeDefalutValueMap.put("isJsonData", "true");
-        excludeDefalutValueMap.put("msgIsJsonArray", "false");
-        excludeDefalutValueMap.put("maxThread", "10");
-        excludeDefalutValueMap.put("offset", "0");
-        excludeDefalutValueMap.put("syncCount", "1000");
-        excludeDefalutValueMap.put("syncTimeout", "60000");
-        excludeDefalutValueMap.put("outputThreadCount", "-1");
-        excludeDefalutValueMap.put("isAutoFlush", "false");
-        excludeDefalutValueMap.put("batchSize", "6000");
-        excludeDefalutValueMap.put("timeout", "60000");
-        excludeDefalutValueMap.put("activtyTimeOut", "3000");
-        excludeDefalutValueMap.put("startNow", "true");
-        excludeDefalutValueMap.put("topic", "");
-        excludeDefalutValueMap.put("pollingTime", "86400");
-        excludeDefalutValueMap.put("closeSplitMode", "false");
-        excludeDefalutValueMap.put("result", "while");
-        excludeDefalutValueMap.put("ruleStatus", "3");
-        excludeDefalutValueMap.put("isBatchMessage", "true");
-        excludeDefalutValueMap.put("cancelAfterConfigurableRefreshListerner", "false");
-    }
-
     public static String print(IConfigurable configurable, String... paras) {
         StringBuilder sb = new StringBuilder();
         if (paras != null && paras.length > 0 && StringUtil.isNotEmpty(paras[0])) {
@@ -168,12 +166,10 @@ public class PrintUtil {
                     if (isSimpleModel && excludeDefaultValue != null && excludeDefaultValue.equals(valueStr)) {
                         return;
                     }
-                    if (field.getAnnotation(ENVDependence.class) != null && BasedConfigurable.class.isInstance(
-                        configurable)) {
-                        BasedConfigurable basedConfigurable = (BasedConfigurable)configurable;
-                        String oriValue = basedConfigurable.getOriFieldValue(field, valueStr);
+                    if (field.getAnnotation(ENVDependence.class) != null && configurable instanceof BasedConfigurable) {
+                        String oriValue = valueStr;
                         sb.append(field.getName() + "=" + oriValue + LINE);
-                        String actualValue = ComponentCreator.getProperties().getProperty(oriValue);
+                        String actualValue = (oriValue);
                         if (StringUtil.isNotEmpty(actualValue)) {
                             sb.append(field.getName() + "_mock_value=" + actualValue + LINE);
                         }
@@ -189,21 +185,20 @@ public class PrintUtil {
 
     public static String getDataTypeStr(DataType dataType, Object value) {
         if (GenericParameterDataType.class.isInstance(dataType)) {
-            return ((GenericParameterDataType)dataType).toDataStr(value);
+            return ((GenericParameterDataType) dataType).toDataStr(value);
         }
         return dataType.toDataJson(value);
     }
 
     public static String print(ChainPipeline pipline) {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("namespace.name", pipline.getNameSpace() + "." + pipline.getConfigureName());
-        jsonObject.put("sucessInit", pipline.isInitSuccess());
+        jsonObject.put("namespace.name", pipline.getNameSpace() + "." + pipline.getName());
         List<AbstractStage> stages = pipline.getStages();
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(pipline.getChannelName());
         for (AbstractStage stage : stages) {
             stringBuilder.append("--->");
-            stringBuilder.append(stage.getConfigureName());
+            stringBuilder.append(stage.getName());
         }
         jsonObject.put("stages", stringBuilder.toString());
         return JsonableUtil.formatJson(jsonObject);

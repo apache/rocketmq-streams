@@ -22,28 +22,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.rocketmq.streams.common.channel.source.AbstractSource;
+import org.apache.rocketmq.streams.common.channel.source.AbstractSingleSplitSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description for test checkpoint
  */
-public class CollectionSource extends AbstractSource implements Serializable {
+public class CollectionSource extends AbstractSingleSplitSource implements Serializable {
 
-    private static final Log logger = LogFactory.getLog(CollectionSource.class);
-
+    private static final Logger logger = LoggerFactory.getLogger(CollectionSource.class);
+    private static final int checkpointIntervalMs = 10 * 1000;
     transient ConcurrentLinkedQueue<JSONObject> queue = new ConcurrentLinkedQueue<>();
-
     transient AtomicLong offset = new AtomicLong(0);
-
     long maxOffset;
-
     //must be json string
     List<String> elements;
-
-    private static final int checkpointIntervalMs = 10 * 1000;
-
     long lastCheckpointTime = System.currentTimeMillis();
 
     transient volatile long currentOffset;
@@ -115,24 +109,8 @@ public class CollectionSource extends AbstractSource implements Serializable {
         return true;
     }
 
-    @Override
-    public boolean supportNewSplitFind() {
-        return false;
-    }
+    @Override protected void destroySource() {
 
-    @Override
-    public boolean supportRemoveSplitFind() {
-        return false;
-    }
-
-    @Override
-    public boolean supportOffsetRest() {
-        return true;
-    }
-
-    @Override
-    protected boolean isNotDataSplit(String queueId) {
-        return false;
     }
 
     public long getMaxOffset() {

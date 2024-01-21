@@ -28,11 +28,11 @@ import org.apache.rocketmq.streams.script.utils.FunctionUtils;
 public class RemoveFieldFunction {
 
     public static boolean isFunction(String functionName) {
-        if(functionName==null){
+        if (functionName == null) {
             return false;
         }
-        functionName=functionName.toLowerCase();
-        if("rm".equals(functionName)||"removeField".equals(functionName)||"delete".equals(functionName)||"del".equals(functionName)){
+        functionName = functionName.toLowerCase();
+        if ("rm".equals(functionName) || "removeField".equals(functionName) || "delete".equals(functionName) || "del".equals(functionName)) {
             return true;
         }
         return false;
@@ -40,15 +40,15 @@ public class RemoveFieldFunction {
 
     @FunctionMethod(value = "rm", alias = "removeField", comment = "删除某个字段")
     public <T> T remove(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "字段名称，不需要引号") String fieldName) {
+        @FunctionParamter(value = "string", comment = "字段名称，不需要引号") String fieldName) {
         Object value = message.getMessageBody().get(fieldName);
         message.getMessageBody().remove(fieldName);
-        return (T)value;
+        return (T) value;
     }
 
     @FunctionMethod(value = "rm", alias = "removeField", comment = "删除某个字段")
     public <T> T remove(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "字段名称，不需要引号") String... fieldNames) {
+        @FunctionParamter(value = "string", comment = "字段名称，不需要引号") String... fieldNames) {
         if (fieldNames == null) {
             return null;
         }
@@ -64,7 +64,7 @@ public class RemoveFieldFunction {
 
     @FunctionMethod(value = "delete", alias = "del", comment = "删除某个字段")
     public <T> T delete(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "字段名称，不需要引号") String... fieldNames) {
+        @FunctionParamter(value = "string", comment = "字段名称，不需要引号") String... fieldNames) {
         return remove(message, context, fieldNames);
     }
 }

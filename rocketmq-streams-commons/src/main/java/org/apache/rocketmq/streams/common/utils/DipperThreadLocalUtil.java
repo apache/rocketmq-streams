@@ -25,7 +25,7 @@ public class DipperThreadLocalUtil {
     }
 
     public static <T> T get() {
-        return (T)threadLocal.get();
+        return (T) threadLocal.get();
     }
 
     public static void remove() {

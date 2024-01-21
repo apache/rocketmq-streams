@@ -27,11 +27,11 @@ import org.apache.rocketmq.streams.common.channel.source.ISource;
 import org.apache.rocketmq.streams.common.metadata.MetaData;
 import org.apache.rocketmq.streams.common.model.ServiceName;
 import org.apache.rocketmq.streams.common.utils.ConfigurableUtil;
-import org.apache.rocketmq.streams.sink.RocketMQSink;
-import org.apache.rocketmq.streams.source.RocketMQSource;
+import org.apache.rocketmq.streams.rocketmq.sink.RocketMQSink;
+import org.apache.rocketmq.streams.rocketmq.source.RocketMQSource;
 
 @AutoService(IChannelBuilder.class)
-@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource")
+@ServiceName(value = RocketMQChannelBuilder.TYPE, aliasName = "RocketMQSource,metaq")
 public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder {
     public static final String TYPE = "rocketmq";
 
@@ -40,6 +40,7 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
         return (RocketMQSource) ConfigurableUtil.create(RocketMQSource.class.getName(), namespace, name, createFormatProperty(properties), null);
     }
 
+    @Override
     protected JSONObject createFormatProperty(Properties properties) {
         JSONObject formatProperties = new JSONObject();
         for (Object object : properties.keySet()) {
@@ -50,28 +51,15 @@ public class RocketMQChannelBuilder extends AbstractSupportShuffleChannelBuilder
             formatProperties.put(key, properties.get(key));
         }
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "topic", "topic");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "tags", "tags");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "tags", "tag");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "thread.max.count");
+        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "pullIntervalMs", "pullIntervalMs");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "offsetTime", "offsetTime");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "namesrvAddr", "namesrvAddr");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "producerGroup");
         IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "consumerGroup");
-
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "maxThread", "maxthread");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "pullIntervalMs", "pullintervalms");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "offsetTime", "offsettime");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "namesrvAddr", "namesrvaddr");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "producergroup");
-        IChannelBuilder.formatPropertiesName(formatProperties, properties, "groupName", "consumergroup");
-        if (properties.getProperty("group") != null) {
-            String group = properties.getProperty("group");
-            if (group.startsWith("GID_")) {
-                formatProperties.put("groupName", group);
-            } else {
-                formatProperties.put("groupName", "GID_" + group);
-            }
-        }
 
         return formatProperties;
     }

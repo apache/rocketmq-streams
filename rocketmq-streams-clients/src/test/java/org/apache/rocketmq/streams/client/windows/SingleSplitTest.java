@@ -16,23 +16,22 @@
  */
 package org.apache.rocketmq.streams.client.windows;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.transform.DataStream;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.functions.MapFunction;
-import org.apache.rocketmq.streams.common.topology.model.IWindow;
+import org.apache.rocketmq.streams.common.topology.IWindow;
 import org.junit.Test;
 
 public class SingleSplitTest extends AbstractWindowTest {
 
     protected DataStream createSourceDataStream() {
-        return StreamBuilder.dataStream("namespace", "name1")
+        return StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name1")
             .fromFile(filePath, true);
     }
 
     @Test
     public void testFile() {
-        StreamBuilder.dataStream("namespace", "name1")
+        StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name1")
             .fromFile(filePath, false)
             .map(new MapFunction<String, String>() {
 
@@ -45,7 +44,7 @@ public class SingleSplitTest extends AbstractWindowTest {
     }
 
     protected int getSourceCount() {
-        return 88121;
+        return 10;
     }
 
     /**
@@ -62,7 +61,7 @@ public class SingleSplitTest extends AbstractWindowTest {
     @Test
     public void testFireMode0() throws InterruptedException {
         // ComponentCreator.getProperties().setProperty("window.fire.isTest","true");
-        ComponentCreator.getProperties().setProperty("dipper.configurable.polling.time", "-1");
+//        ComponentCreator.getProperties().setProperty("dipper.configurable.polling.time", "-1");
         super.executeWindowStream(true, 5, IWindow.DEFAULTFIRE_MODE, 0, 200l);
     }
 

@@ -23,28 +23,36 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.rocketmq.streams.common.threadpool.ScheduleFactory;
 
 public class ExpressionPerformance implements Runnable {
     protected static List<ExpressionPerformance> expressionPerformances = new ArrayList<>();
 
-    protected transient volatile List<String> expressionNames = new ArrayList<>();
-    protected transient Map<String, ExpressionStatistic> expressionStatisticMap = new HashMap<>();
-    protected transient long lastTime = System.currentTimeMillis();//最后一次的优化时间
-    protected transient final List<String> values;
-
-    private static ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(10, new BasicThreadFactory.Builder().namingPattern("ExpressionPerformance-Performance-%d").build());
-
     static {
-        scheduledExecutorService.scheduleWithFixedDelay(() -> {
+        ScheduleFactory.getInstance().execute(ExpressionPerformance.class.getName() + "-schedule", () -> {
             for (ExpressionPerformance expressionPerformance : expressionPerformances) {
                 expressionPerformance.run();
             }
         }, 10, 3, TimeUnit.SECONDS);
+    }
+
+    protected transient final List<String> values;
+    protected transient volatile List<String> expressionNames = new ArrayList<>();
+    protected transient Map<String, ExpressionStatistic> expressionStatisticMap = new HashMap<>();
+    protected transient long lastTime = System.currentTimeMillis();//最后一次的优化时间
+
+    public ExpressionPerformance(List<String> values) {
+        this.expressionNames = values;
+        this.values = values;
+        for (String name : expressionNames) {
+            ExpressionStatistic expressionStatistic = new ExpressionStatistic();
+            expressionStatistic.name = name;
+            expressionStatistic.count.set(0);
+            expressionStatisticMap.put(name, expressionStatistic);
+        }
+        expressionPerformances.add(this);
     }
 
     @Override
@@ -65,23 +73,6 @@ public class ExpressionPerformance implements Runnable {
         this.lastTime = System.currentTimeMillis();
     }
 
-    protected static class ExpressionStatistic {
-        protected String name;
-        protected AtomicInteger count = new AtomicInteger(0);
-    }
-
-    public ExpressionPerformance(List<String> values) {
-        this.expressionNames = values;
-        this.values = values;
-        for (String name : expressionNames) {
-            ExpressionStatistic expressionStatistic = new ExpressionStatistic();
-            expressionStatistic.name = name;
-            expressionStatistic.count.set(0);
-            expressionStatisticMap.put(name, expressionStatistic);
-        }
-        expressionPerformances.add(this);
-    }
-
     public Boolean optimizate(String expressionName, Boolean value) {
         ExpressionStatistic expressionStatistic = expressionStatisticMap.get(expressionName);
         expressionStatistic.count.incrementAndGet();
@@ -93,5 +84,10 @@ public class ExpressionPerformance implements Runnable {
             return values.iterator();
         }
         return expressionNames.iterator();//expressionNames 会做优化，会给快速失效的表达式，加权中
+    }
+
+    protected static class ExpressionStatistic {
+        protected String name;
+        protected AtomicInteger count = new AtomicInteger(0);
     }
 }

@@ -21,7 +21,7 @@ import java.util.Date;
 /**
  * @description
  */
-public class DateTimeDataType extends DateDataType{
+public class DateTimeDataType extends DateDataType {
 
     public DateTimeDataType(Class clazz) {
         setDataClazz(clazz);
@@ -31,13 +31,13 @@ public class DateTimeDataType extends DateDataType{
         setDataClazz(Date.class);
     }
 
+    public static String getTypeName() {
+        return "datetime";
+    }
+
     @Override
     public String getDataTypeName() {
         return getTypeName();
-    }
-
-    public static String getTypeName() {
-        return "datetime";
     }
 
 }

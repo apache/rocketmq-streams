@@ -25,11 +25,15 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.streams.examples.aggregate.ProducerFromFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.NAMESRV_ADDRESS;
 import static org.apache.rocketmq.streams.examples.aggregate.Constant.RMQ_TOPIC;
 
 public class Producer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Producer.class);
+
     private static final AtomicInteger count = new AtomicInteger(0);
 
     /**
@@ -48,7 +52,7 @@ public class Producer {
 
             for (int i = 0; i < 100; i++) {
                 if (count.get() % 100 == 0) {
-                    System.out.println("already send message: " + count.get());
+                    LOGGER.info("already send message: " + count.get());
                 }
 
                 for (String str : result) {
@@ -61,7 +65,7 @@ public class Producer {
             }
 
         } catch (Throwable t) {
-
+            LOGGER.error("produce error", t);
         }
 
     }

@@ -53,13 +53,6 @@ public class TraceIdsDO {
     private String jobName;
 
     /**
-     * setter for column 主键
-     */
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    /**
      * getter for column 主键
      */
     public int getId() {
@@ -67,10 +60,10 @@ public class TraceIdsDO {
     }
 
     /**
-     * setter for column tarceid
+     * setter for column 主键
      */
-    public void setTraceId(String traceId) {
-        this.traceId = traceId;
+    public void setId(int id) {
+        this.id = id;
     }
 
     /**
@@ -81,10 +74,10 @@ public class TraceIdsDO {
     }
 
     /**
-     * setter for column 过期时间
+     * setter for column tarceid
      */
-    public void setGmtExpire(Date gmtExpire) {
-        this.gmtExpire = gmtExpire;
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
     }
 
     /**
@@ -95,10 +88,10 @@ public class TraceIdsDO {
     }
 
     /**
-     * setter for column 创建时间
+     * setter for column 过期时间
      */
-    public void setGmtCreate(Date gmtCreate) {
-        this.gmtCreate = gmtCreate;
+    public void setGmtExpire(Date gmtExpire) {
+        this.gmtExpire = gmtExpire;
     }
 
     /**
@@ -106,6 +99,13 @@ public class TraceIdsDO {
      */
     public Date getGmtCreate() {
         return this.gmtCreate;
+    }
+
+    /**
+     * setter for column 创建时间
+     */
+    public void setGmtCreate(Date gmtCreate) {
+        this.gmtCreate = gmtCreate;
     }
 
     public String getUseStatus() {

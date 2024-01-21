@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.streams.script.function.impl.math;
 
-import java.math.BigDecimal;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.script.annotation.Function;
 import org.apache.rocketmq.streams.script.annotation.FunctionMethod;
@@ -37,8 +36,8 @@ public class PowerFunction {
      */
     @FunctionMethod(value = "power", alias = "power", comment = "返回x的y次方")
     public Double power(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "String", comment = "Double常量代表底数") String base,
-                        @FunctionParamter(value = "String", comment = "Double常量代表底数") String x) {
+        @FunctionParamter(value = "String", comment = "Double常量代表底数") String base,
+        @FunctionParamter(value = "String", comment = "Double常量代表底数") String x) {
         Double result = null;
         Double baseTem = Double.parseDouble(FunctionUtils.getValueString(message, context, base));
         Double xTem = Double.parseDouble(FunctionUtils.getValueString(message, context, x));
@@ -59,8 +58,8 @@ public class PowerFunction {
      */
     @FunctionMethod(value = "power", alias = "power", comment = "返回x的y次方")
     public Double power(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "Double", comment = "Double常量代表底数") Double base,
-                        @FunctionParamter(value = "Double", comment = "Double常量代表底数") Double x) {
+        @FunctionParamter(value = "Double", comment = "Double常量代表底数") Double base,
+        @FunctionParamter(value = "Double", comment = "Double常量代表底数") Double x) {
         Double result = null;
         if (base == null || x == null) {
             return result;
@@ -79,33 +78,13 @@ public class PowerFunction {
      */
     @FunctionMethod(value = "power", alias = "power", comment = "返回x的y次方")
     public Double power(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "Integer", comment = "Integer常量代表底数") Integer base,
-                        @FunctionParamter(value = "Integer", comment = "Integer常量代表底数") Integer x) {
+        @FunctionParamter(value = "Integer", comment = "Integer常量代表底数") Integer base,
+        @FunctionParamter(value = "Integer", comment = "Integer常量代表底数") Integer x) {
         Double result = null;
         if (base == null || x == null) {
             return result;
         }
         result = Math.pow(base, x);
-        return result;
-    }
-
-    /**
-     * 返回x的y次方
-     *
-     * @param message
-     * @param context
-     * @param x
-     * @return
-     */
-    @FunctionMethod(value = "power", alias = "power", comment = "返回x的y次方")
-    public BigDecimal power(IMessage message, FunctionContext context,
-                            @FunctionParamter(value = "BigDecimal", comment = "BigDecimal常量代表底数") BigDecimal base,
-                            @FunctionParamter(value = "BigDecimal", comment = "BigDecimal常量代表幂数") BigDecimal x) {
-        BigDecimal result = null;
-        if (base == null || x == null) {
-            return result;
-        }
-        result = new BigDecimal(Math.pow(base.doubleValue(), x.doubleValue()));
         return result;
     }
 }

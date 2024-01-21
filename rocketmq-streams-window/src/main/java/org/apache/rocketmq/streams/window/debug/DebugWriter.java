@@ -24,19 +24,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.context.IMessage;
 import org.apache.rocketmq.streams.common.utils.DateUtil;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.window.model.WindowCache;
+import org.apache.rocketmq.streams.window.WindowConstants;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.operator.AbstractWindow;
 import org.apache.rocketmq.streams.window.state.impl.WindowValue;
 
 public class DebugWriter {
-    protected String filePath = "/tmp/rocketmq-streams/window_debug";
     protected static Map<String, DebugWriter> debugWriterMap = new HashMap<>();
+    protected String filePath = "/tmp/rocketmq-streams/window_debug";
     protected boolean openDebug = false;
     protected String countFileName;
     protected boolean openRocksDBTest = false;
@@ -45,19 +45,19 @@ public class DebugWriter {
         filePath = filePath + "/" + windowName;
         File file = new File(filePath);
         file.deleteOnExit();
-        String value = ComponentCreator.getProperties().getProperty("window.debug");
+        String value = SystemContext.getProperty("window.debug");
         if (StringUtil.isNotEmpty(value)) {
             openDebug = Boolean.valueOf(value);
         }
-        value = ComponentCreator.getProperties().getProperty("window.debug.countFileName");
+        value = SystemContext.getProperty("window.debug.countFileName");
         if (StringUtil.isNotEmpty(value)) {
             countFileName = value;
         }
-        value = ComponentCreator.getProperties().getProperty("window.debug.dir");
+        value = SystemContext.getProperty("window.debug.dir");
         if (StringUtil.isNotEmpty(value)) {
             filePath = value;
         }
-        value = ComponentCreator.getProperties().getProperty("window.debug.rocksdb");
+        value = SystemContext.getProperty("window.debug.rocksdb");
         if (StringUtil.isNotEmpty(value)) {
             openRocksDBTest = Boolean.valueOf(value);
         }
@@ -163,10 +163,10 @@ public class DebugWriter {
                 jsonObject.put("lastUpdateTime", lastUpdateTime);
             }
 
-            String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
+            String oriQueueId = message.getMessageBody().getString(WindowConstants.ORIGIN_QUEUE_ID);
             if (StringUtil.isNotEmpty(oriQueueId)) {
                 jsonObject.put("ori_queue_id", oriQueueId);
-                jsonObject.put("ori_offset", message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET));
+                jsonObject.put("ori_offset", message.getMessageBody().getString(WindowConstants.ORIGIN_OFFSET));
             }
 
             msgs.add(jsonObject.toJSONString());
@@ -243,6 +243,10 @@ public class DebugWriter {
         return openDebug;
     }
 
+    public void setOpenDebug(boolean openDebug) {
+        this.openDebug = openDebug;
+    }
+
     public String getCountFileName() {
         return countFileName;
     }
@@ -257,10 +261,6 @@ public class DebugWriter {
 
     public void setFilePath(String filePath) {
         this.filePath = filePath;
-    }
-
-    public void setOpenDebug(boolean openDebug) {
-        this.openDebug = openDebug;
     }
 
     public boolean isOpenRocksDBTest() {

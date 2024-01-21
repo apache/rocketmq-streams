@@ -17,7 +17,8 @@
 package org.apache.rocketmq.streams.syslog;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.rocketmq.streams.common.component.ComponentCreator;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
 import org.graylog2.syslog4j.SyslogConstants;
 
@@ -25,11 +26,8 @@ public class SyslogChannelManager {
     public static final String TCP = SyslogConstants.TCP;//tcp协议名称
     public static final String UDP = SyslogConstants.UDP;//tcp协议名称
 
-    public static final String TCP_PORT_PROPERTY_KEY = "dipper.syslog.server.tcp.port";//当需要改变端口值时，通过配置文件增加dipper.syslog.server.tcp.port=新端口的值
-    public static final String UDP_PORT_PROPERTY_KEY = "dipper.syslog.server.udp.port";//当需要改变端口值时，通过配置文件增加dipper.syslog.server.tcp.port=新端口的值
-
-    public  static int tcpPort = 12345;//syslog server默认端口
-    public  static int udpPort = 12346;//syslog server默认端口
+    public static int tcpPort = 12345;//syslog server默认端口
+    public static int udpPort = 12346;//syslog server默认端口
 
     private static AtomicBoolean tcpStart = new AtomicBoolean(false);//标记是否启动tcp server，只会启动一次
     private static AtomicBoolean updStart = new AtomicBoolean(false);//标记是否启动udp server，只会启动一次
@@ -39,7 +37,7 @@ public class SyslogChannelManager {
     public static void registeTCP(SyslogChannel syslogRouter) {
         if (!TCP_CHANNEL.getRouters().contains(syslogRouter)) {
             TCP_CHANNEL.getRouters().add(syslogRouter);
-            if (tcpPort == 12345&&syslogRouter.getPort()>0) {
+            if (tcpPort == 12345 && syslogRouter.getPort() > 0) {
                 tcpPort = syslogRouter.getPort();
             }
         }
@@ -73,7 +71,7 @@ public class SyslogChannelManager {
 
     protected static void startTCPServer() {
         if (tcpStart.compareAndSet(false, true)) {
-            String value = ComponentCreator.getProperties().getProperty(TCP_PORT_PROPERTY_KEY);
+            String value = SystemContext.getProperty(ConfigurationKey.SYSLOG_TCP_PORT_PROPERTY_KEY);
             if (StringUtil.isNotEmpty(value)) {
                 tcpPort = Integer.valueOf(value);
             }
@@ -87,7 +85,7 @@ public class SyslogChannelManager {
 
     protected static void startUDPServer() {
         if (updStart.compareAndSet(false, true)) {
-            String value = ComponentCreator.getProperties().getProperty(UDP_PORT_PROPERTY_KEY);
+            String value = SystemContext.getProperty(ConfigurationKey.SYSLOG_UDP_PORT_PROPERTY_KEY);
             if (StringUtil.isNotEmpty(value)) {
                 udpPort = Integer.valueOf(value);
             }

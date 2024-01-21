@@ -19,8 +19,6 @@ package org.apache.rocketmq.streams.filter;
 import com.alibaba.fastjson.JSONObject;
 import java.util.List;
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
 import org.apache.rocketmq.streams.common.component.IgnoreNameSpace;
@@ -37,8 +35,6 @@ import org.apache.rocketmq.streams.filter.service.impl.RuleEngineServiceImpl;
  */
 public class FilterComponent extends AbstractComponent<IRuleEngineService> implements IRuleEngineService, IgnoreNameSpace {
 
-    private static final Log LOG = LogFactory.getLog(FilterComponent.class);
-
     private static final FilterComponent filterComponent = ComponentCreator.getComponent(null, FilterComponent.class);
 
     protected RuleEngineServiceImpl ruleEngineService;
@@ -48,6 +44,13 @@ public class FilterComponent extends AbstractComponent<IRuleEngineService> imple
 
     public static FilterComponent getInstance() {
         return filterComponent;
+    }
+
+    public static RuleEngineServiceImpl createRuleEngineService(Properties properties) {
+        RuleEngineServiceImpl ruleEngineService = new RuleEngineServiceImpl();
+        ContextConfigure config = new ContextConfigure(properties);
+        ruleEngineService.initRuleContext(config);
+        return ruleEngineService;
     }
 
     @Override
@@ -65,13 +68,6 @@ public class FilterComponent extends AbstractComponent<IRuleEngineService> imple
         return true;
     }
 
-    public static RuleEngineServiceImpl createRuleEngineService(Properties properties) {
-        RuleEngineServiceImpl ruleEngineService = new RuleEngineServiceImpl();
-        ContextConfigure config = new ContextConfigure(properties);
-        ruleEngineService.initRuleContext(config);
-        return ruleEngineService;
-    }
-
     @Override
     protected boolean initProperties(Properties properties) {
         if (ruleEngineService != null) {
@@ -86,7 +82,7 @@ public class FilterComponent extends AbstractComponent<IRuleEngineService> imple
     @Override
     public Rule createRule(String namespace, String ruleName, String expressionStr, String... msgMetaInfo) {
         RuleBuilder ruleCreator = new RuleBuilder(namespace, ruleName, expressionStr, msgMetaInfo);
-        Rule rule = ruleCreator.generateRule(null);
+        Rule rule = ruleCreator.generateRule();
         return rule;
     }
 
@@ -98,6 +94,11 @@ public class FilterComponent extends AbstractComponent<IRuleEngineService> imple
     @Override
     public List<Rule> executeRule(IMessage message, AbstractContext context, Rule... rules) {
         return ruleEngineService.executeRule(message, context, rules);
+    }
+
+    @Override
+    public List<Rule> executeRule(IMessage message, AbstractContext context, Rule rule) {
+        return ruleEngineService.executeRule(message, context, rule);
     }
 
     @Override public List<Rule> executeRule(IMessage message, AbstractContext context, List<Rule> rules) {

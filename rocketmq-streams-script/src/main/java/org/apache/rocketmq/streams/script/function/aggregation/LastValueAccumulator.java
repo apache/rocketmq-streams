@@ -26,10 +26,6 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 @UDAFFunction("LAST_VALUE")
 public class LastValueAccumulator<T> implements IAccumulator<T, LastValueAccumulator.LastValue> {
 
-    public static class LastValue<T> {
-        public T value;
-    }
-
     @Override
     public LastValue createAccumulator() {
         return new LastValue();
@@ -62,6 +58,10 @@ public class LastValueAccumulator<T> implements IAccumulator<T, LastValueAccumul
     @Override
     public void retract(LastValue accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class LastValue<T> {
+        public T value;
     }
 
 }

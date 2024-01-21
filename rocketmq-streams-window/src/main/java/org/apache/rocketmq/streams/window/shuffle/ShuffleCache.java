@@ -26,19 +26,27 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.streams.common.channel.sink.AbstractSink;
 import org.apache.rocketmq.streams.common.context.IMessage;
+import org.apache.rocketmq.streams.common.context.MessageHeader;
 import org.apache.rocketmq.streams.db.driver.orm.ORMUtil;
+import org.apache.rocketmq.streams.script.function.impl.window.WindowFunction;
+import org.apache.rocketmq.streams.window.WindowConstants;
 import org.apache.rocketmq.streams.window.debug.DebugWriter;
-import org.apache.rocketmq.streams.window.model.WindowCache;
 import org.apache.rocketmq.streams.window.model.WindowInstance;
 import org.apache.rocketmq.streams.window.offset.WindowMaxValue;
 import org.apache.rocketmq.streams.window.operator.AbstractShuffleWindow;
 import org.apache.rocketmq.streams.window.sqlcache.impl.SplitSQLElement;
+import org.apache.rocketmq.streams.window.util.ShuffleUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * save receiver messages into cachefilter when checkpoint/autoflush/flush， process cachefilter message
  */
 public class ShuffleCache extends AbstractSink {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShuffleCache.class);
+
     protected AbstractShuffleWindow window;
+    protected transient AtomicLong count = new AtomicLong(0);
 
     public ShuffleCache(AbstractShuffleWindow window) {
         this.window = window;
@@ -46,6 +54,7 @@ public class ShuffleCache extends AbstractSink {
 
     @Override
     protected boolean batchInsert(List<IMessage> messageList) {
+        LOGGER.debug("[{}] the count is {}", getName(), count.addAndGet(messageList.size()));
         Map<Pair<String, String>, List<IMessage>> instance2Messages = new HashMap<>();
         Map<String, WindowInstance> windowInstanceMap = new HashMap<>();
         groupByWindowInstanceAndQueueId(messageList, instance2Messages, windowInstanceMap);
@@ -56,12 +65,20 @@ public class ShuffleCache extends AbstractSink {
             String windowInstanceId = queueIdAndInstanceKey.getRight();
             List<IMessage> messages = instance2Messages.get(queueIdAndInstanceKey);
             WindowInstance windowInstance = windowInstanceMap.get(windowInstanceId);
-            DebugWriter.getDebugWriter(window.getConfigureName()).writeShuffleReceive(window, messages, windowInstance);
-            window.shuffleCalculate(messages, windowInstance, queueId);
+            DebugWriter.getDebugWriter(window.getName()).writeShuffleReceive(window, messages, windowInstance);
+
+            /**
+             * TUMBLE_START(ts, INTERVAL '1' MINUTE) 语句使用
+             */
+            for (IMessage message : messages) {
+                message.getMessageBody().put(WindowFunction.WINDOW_START, windowInstance.getStartTime());
+                message.getMessageBody().put(WindowFunction.WINDOW_END, windowInstance.getEndTime());
+            }
+            window.accumulate(messages, windowInstance);
             saveSplitProgress(queueId, messages);
-            window.saveMsgContext(queueId,windowInstance,messages);
+            window.saveMsgContext(queueId, windowInstance, messages);
         }
-            return true;
+        return true;
     }
 
     /**
@@ -74,16 +91,15 @@ public class ShuffleCache extends AbstractSink {
         Map<String, String> queueId2OrigOffset = new HashMap<>();
         Boolean isLong = false;
         for (IMessage message : messages) {
-            isLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
-            String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
-            String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
+            isLong = message.getMessageBody().getBoolean(WindowConstants.ORIGIN_QUEUE_IS_LONG);
+            String oriQueueId = message.getMessageBody().getString(WindowConstants.ORIGIN_QUEUE_ID);
+            String oriOffset = message.getMessageBody().getString(WindowConstants.ORIGIN_OFFSET);
             queueId2OrigOffset.put(oriQueueId, oriOffset);
         }
-        Map<String, WindowMaxValue> windowMaxValueMap = window.getWindowMaxValueManager().saveMaxOffset(isLong, window.getConfigureName(), queueId, queueId2OrigOffset);
-        window.getSqlCache().addCache(new SplitSQLElement(queueId, ORMUtil.createBatchReplacetSQL(new ArrayList<>(windowMaxValueMap.values()))));
+        Map<String, WindowMaxValue> windowMaxValueMap = window.getWindowMaxValueManager().saveMaxOffset(isLong, window.getName(), queueId, queueId2OrigOffset);
+        window.getSqlCache().addCache(new SplitSQLElement(queueId, ORMUtil.createBatchReplaceSQL(new ArrayList<>(windowMaxValueMap.values()))));
 
     }
-
 
     /**
      * 根据message，把message分组到不同的group，分别处理
@@ -97,9 +113,11 @@ public class ShuffleCache extends AbstractSink {
         for (IMessage message : messageList) {
             //the queueId will be replace below, so get first here!
             String queueId = message.getHeader().getQueueId();
-            String oriQueueId = message.getMessageBody().getString(WindowCache.ORIGIN_QUEUE_ID);
-            String oriOffset = message.getMessageBody().getString(WindowCache.ORIGIN_OFFSET);
-            Boolean isLong = message.getMessageBody().getBoolean(WindowCache.ORIGIN_QUEUE_IS_LONG);
+            String oriQueueId = message.getMessageBody().getString(WindowConstants.ORIGIN_QUEUE_ID);
+            String oriOffset = message.getMessageBody().getString(WindowConstants.ORIGIN_OFFSET);
+            Boolean isLong = message.getMessageBody().getBoolean(WindowConstants.ORIGIN_QUEUE_IS_LONG);
+            MessageHeader header = ShuffleUtil.getMessageHeader(message.getMessageBody());
+            message.setHeader(header);
             message.getHeader().setQueueId(oriQueueId);
             message.getHeader().setOffset(oriOffset);
             message.getHeader().setOffsetIsLong(isLong);

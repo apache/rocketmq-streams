@@ -29,10 +29,6 @@ import org.apache.rocketmq.streams.script.service.IAccumulator;
 @UDAFFunction("min")
 public class MinAccumulator implements IAccumulator<String, MinAccumulator.MinAccum> {
 
-    public static class MinAccum {
-        public String min;
-    }
-
     private transient static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Override
@@ -52,7 +48,7 @@ public class MinAccumulator implements IAccumulator<String, MinAccumulator.MinAc
         }
         try {
             if (parameters[0] instanceof Number) {
-                Number input = (Number)parameters[0];
+                Number input = (Number) parameters[0];
                 if (accumulator.min == null) {
                     accumulator.min = input.toString();
                     return;
@@ -61,7 +57,7 @@ public class MinAccumulator implements IAccumulator<String, MinAccumulator.MinAc
                 accumulator.min = min.doubleValue() <= input.doubleValue() ? accumulator.min : input.toString();
             } else if (parameters[0] instanceof Date) {
                 try {
-                    Date input = (Date)parameters[0];
+                    Date input = (Date) parameters[0];
                     if (accumulator.min == null) {
                         accumulator.min = dateFormat.format(input);
                         return;
@@ -72,8 +68,8 @@ public class MinAccumulator implements IAccumulator<String, MinAccumulator.MinAc
                     throw new RuntimeException(e);
                 }
             } else if (parameters[0] instanceof String) {
-                String input = (String)parameters[0];
-                if("".equals(input)){
+                String input = (String) parameters[0];
+                if ("".equals(input)) {
                     return;
                 }
                 if (accumulator.min == null) {
@@ -108,6 +104,10 @@ public class MinAccumulator implements IAccumulator<String, MinAccumulator.MinAc
     @Override
     public void retract(MinAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class MinAccum {
+        public String min;
     }
 
 }

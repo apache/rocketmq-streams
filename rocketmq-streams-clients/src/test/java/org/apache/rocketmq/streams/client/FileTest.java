@@ -22,13 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
+import org.apache.rocketmq.streams.common.configurable.IConfigurable;
 import org.apache.rocketmq.streams.common.utils.FileUtil;
 import org.junit.Test;
 
 public class FileTest {
     @Test
     public void testFilter() {
-        DataStreamSource dataStream = DataStreamSource.create("namespace", "name");
+        DataStreamSource dataStream = StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "name");
         dataStream.fromFile("/tmp/file.txt", false)
             .filter((message) -> {
                 JSONObject jsonObject = JSON.parseObject((String) message);
@@ -57,5 +58,18 @@ public class FileTest {
         }
         lines.add("");
         FileUtil.write("/tmp/file.txt", lines);
+    }
+
+    @Test
+    public void testt() {
+        try {
+            IConfigurable configurable = (IConfigurable) Class.forName("org.apache.rocketmq.streams.common.topology.stages.FilterChainStage").newInstance();
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

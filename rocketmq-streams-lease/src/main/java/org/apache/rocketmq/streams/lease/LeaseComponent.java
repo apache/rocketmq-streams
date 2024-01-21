@@ -17,14 +17,11 @@
 package org.apache.rocketmq.streams.lease;
 
 import java.util.Properties;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.streams.common.component.AbstractComponent;
 import org.apache.rocketmq.streams.common.component.ComponentCreator;
-import org.apache.rocketmq.streams.common.component.ConfigureDescriptor;
-import org.apache.rocketmq.streams.common.configure.ConfigureFileKey;
+import org.apache.rocketmq.streams.common.configuration.ConfigurationKey;
+import org.apache.rocketmq.streams.common.configuration.SystemContext;
 import org.apache.rocketmq.streams.common.utils.StringUtil;
-import org.apache.rocketmq.streams.configurable.service.ConfigurableServcieType;
 import org.apache.rocketmq.streams.lease.service.ILeaseService;
 import org.apache.rocketmq.streams.lease.service.ILeaseStorage;
 import org.apache.rocketmq.streams.lease.service.impl.LeaseServiceImpl;
@@ -40,13 +37,11 @@ import org.apache.rocketmq.streams.serviceloader.ServiceLoaderComponent;
 public class LeaseComponent extends AbstractComponent<ILeaseService> {
 
     private static LeaseComponent leaseComponent = null;
-    private static final Log LOG = LogFactory.getLog(LeaseComponent.class);
     private ILeaseService leaseService;
 
     public LeaseComponent() {
         initConfigurableServiceDescriptor();
-        addConfigureDescriptor(
-            new ConfigureDescriptor(CONNECT_TYPE, false, ConfigurableServcieType.DEFAULT_SERVICE_NAME));
+
     }
 
     public static LeaseComponent getInstance() {
@@ -77,25 +72,25 @@ public class LeaseComponent extends AbstractComponent<ILeaseService> {
 
     @Override
     protected boolean initProperties(Properties properties) {
-        String connectType = properties.getProperty(JDBC_URL);
+        String connectType = properties.getProperty(ConfigurationKey.JDBC_URL);
         if (StringUtil.isEmpty(connectType)) {
             this.leaseService = new MockLeaseImpl();
             return true;
         }
 
         LeaseServiceImpl leaseService = new LeaseServiceImpl();
-        String storageName = ComponentCreator.getProperties().getProperty(ConfigureFileKey.LEASE_STORAGE_NAME);
-        ILeaseStorage storasge = null;
+        String storageName = SystemContext.getProperty(ConfigurationKey.LEASE_STORAGE_NAME);
+        ILeaseStorage storage = null;
         if (StringUtil.isEmpty(storageName)) {
-            String jdbc = properties.getProperty(AbstractComponent.JDBC_DRIVER);
-            String url = properties.getProperty(AbstractComponent.JDBC_URL);
-            String userName = properties.getProperty(AbstractComponent.JDBC_USERNAME);
-            String password = properties.getProperty(AbstractComponent.JDBC_PASSWORD);
-            storasge = new DBLeaseStorage(jdbc, url, userName, password);
+            String jdbc = properties.getProperty(ConfigurationKey.JDBC_DRIVER);
+            String url = properties.getProperty(ConfigurationKey.JDBC_URL);
+            String userName = properties.getProperty(ConfigurationKey.JDBC_USERNAME);
+            String password = properties.getProperty(ConfigurationKey.JDBC_PASSWORD);
+            storage = new DBLeaseStorage(jdbc, url, userName, password);
         } else {
-            storasge = (ILeaseStorage)ServiceLoaderComponent.getInstance(ILeaseStorage.class).loadService(storageName);
+            storage = (ILeaseStorage) ServiceLoaderComponent.getInstance(ILeaseStorage.class).loadService(storageName);
         }
-        leaseService.setLeaseStorage(storasge);
+        leaseService.setLeaseStorage(storage);
         this.leaseService = leaseService;
         return true;
     }

@@ -42,8 +42,8 @@ public class DateDiffFunction {
      */
     @FunctionMethod(value = "dateDiff", comment = "计算从enddate到startdate两个时间的天数差值")
     public Long dateDiff(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String startdate,
-                         @FunctionParamter(value = "String", comment = "代表时间格式化格式") String enddate) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String startdate,
+        @FunctionParamter(value = "String", comment = "代表时间格式化格式") String enddate) {
         startdate = FunctionUtils.getValueString(message, context, startdate);
         enddate = FunctionUtils.getValueString(message, context, enddate);
         Date end = DateUtil.parse(enddate, DateUtil.DEFAULT_FORMAT);
@@ -65,8 +65,8 @@ public class DateDiffFunction {
      */
     @FunctionMethod(value = "dateDiff", comment = "计算从enddate到startdate两个时间的天数差值")
     public Long dateDiff(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "long", comment = "代表时间的字段名或常量") long startdate,
-                         @FunctionParamter(value = "long", comment = "代表时间格式化格式") long enddate) {
+        @FunctionParamter(value = "long", comment = "代表时间的字段名或常量") long startdate,
+        @FunctionParamter(value = "long", comment = "代表时间格式化格式") long enddate) {
 
         Date end = new Date(enddate);
         Date start = new Date(startdate);
@@ -87,8 +87,8 @@ public class DateDiffFunction {
      */
     @FunctionMethod(value = "dateDiff", comment = "计算从enddate到startdate两个时间的天数差值")
     public Long dateDiff(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String startdate,
-                         @FunctionParamter(value = "long", comment = "代表时间格式化格式") long enddate) {
+        @FunctionParamter(value = "string", comment = "代表时间的字段名或常量") String startdate,
+        @FunctionParamter(value = "long", comment = "代表时间格式化格式") long enddate) {
 
         Date end = new Date(enddate);
         Date start = DateUtil.parse(startdate, DateUtil.DEFAULT_FORMAT);
@@ -109,8 +109,8 @@ public class DateDiffFunction {
      */
     @FunctionMethod(value = "dateDiff", comment = "计算从enddate到startdate两个时间的天数差值")
     public Long dateDiff(IMessage message, FunctionContext context,
-                         @FunctionParamter(value = "long", comment = "代表时间的字段名或常量") long startdate,
-                         @FunctionParamter(value = "string", comment = "代表时间格式化格式") String enddate) {
+        @FunctionParamter(value = "long", comment = "代表时间的字段名或常量") long startdate,
+        @FunctionParamter(value = "string", comment = "代表时间格式化格式") String enddate) {
 
         Date start = new Date(startdate);
         Date end = DateUtil.parse(enddate, DateUtil.DEFAULT_FORMAT);

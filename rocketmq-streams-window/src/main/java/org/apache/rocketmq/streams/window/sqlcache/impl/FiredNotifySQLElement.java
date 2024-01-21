@@ -22,9 +22,10 @@ import org.apache.rocketmq.streams.window.sqlcache.ISQLElement;
 public class FiredNotifySQLElement implements ISQLElement {
     protected String queueId;
     protected String windowInstanceId;
-    public FiredNotifySQLElement(String splitId,String windowInstanceId){
-        this.queueId=splitId;
-        this.windowInstanceId=windowInstanceId;
+
+    public FiredNotifySQLElement(String splitId, String windowInstanceId) {
+        this.queueId = splitId;
+        this.windowInstanceId = windowInstanceId;
     }
 
     @Override public boolean isWindowInstanceSQL() {

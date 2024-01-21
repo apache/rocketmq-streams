@@ -37,7 +37,7 @@ public class RTrimFunction {
      */
     @FunctionMethod(value = "rtrim", comment = "去除右测空格")
     public String rtrim(IMessage message, FunctionContext context,
-                        @FunctionParamter(value = "string", comment = "字段名或常量") String fieldName) {
+        @FunctionParamter(value = "string", comment = "字段名或常量") String fieldName) {
         String ori = FunctionUtils.getValueString(message, context, fieldName);
         if (StringUtil.isEmpty(ori)) {
             return null;

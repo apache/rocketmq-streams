@@ -21,8 +21,7 @@ public class HomologousVar {
     protected String varName;
     protected Integer index;
 
-
-    public String getHomologousVarKey(){
+    public String getHomologousVarKey() {
         return sourceVarName;
     }
 

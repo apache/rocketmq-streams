@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.streams.examples.source;
 
-import org.apache.rocketmq.streams.client.StreamBuilder;
+import org.apache.rocketmq.streams.client.StreamExecutionEnvironment;
 import org.apache.rocketmq.streams.client.source.DataStreamSource;
 
 public class FileSourceExample {
     public static void main(String[] args) {
-        DataStreamSource source = StreamBuilder.dataStream("namespace", "pipeline");
-        source.fromFile("/Users/junjie.cheng/jobs/access.log", false)
+        DataStreamSource source = StreamExecutionEnvironment.getExecutionEnvironment().create("namespace", "pipeline");
+        source.fromFile("/Users/junjie.cheng/logs/jmonitor.log", false)
             .map(message -> message)
             .toPrint(1)
             .start();

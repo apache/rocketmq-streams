@@ -33,10 +33,6 @@ import org.apache.rocketmq.streams.state.kv.rocksdb.RocksdbState;
 @UDAFFunction("count")
 public class CountAccumulator implements IAccumulator<Integer, CountAccumulator.CountAccum> {
 
-    public static class CountAccum {
-        public int count = 0;
-    }
-
     protected Integer count = 0;
 
     @Override
@@ -91,6 +87,10 @@ public class CountAccumulator implements IAccumulator<Integer, CountAccumulator.
     @Override
     public void retract(CountAccum accumulator, String... parameters) {
         //TODO
+    }
+
+    public static class CountAccum {
+        public int count = 0;
     }
 
 }
